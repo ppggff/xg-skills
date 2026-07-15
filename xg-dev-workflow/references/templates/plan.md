@@ -1,0 +1,58 @@
+---
+id: NNN
+title: <plan title>
+project: <project>
+design: ./design.md
+status: draft | active | done | superseded
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+
+# 实现 NNN: <plan title>
+
+> **Reader: Claude-first** (execution zone — Claude executes this autonomously, no per-task gate;
+> the human approved the *design*, not this breakdown). Write it terse & structured for execution +
+> resume, not as a human read-through; it's the autonomy handoff. (SKILL.md「Two zones」.)
+>
+> This plan implements the FROZEN design (+ `detail.md` if present) and is **mutable** —
+> refine it freely as reality bites. Tasks **reference** `detail.md` for structure/algorithm
+> rather than redefining it. If you find the *design* is wrong, stop and run
+> change-management (M2); do not silently diverge from `design.md`.
+>
+> **Refining a task is silent; deleting / merging / deferring a task — or invalidating an
+> already-`[x]` acceptance — gets a one-line `log.md` `[实现]` entry (what + why)**, so a dropped
+> task leaves a trail (was-it-done? why-gone?) instead of vanishing (M2 case B).
+
+## Overview
+
+One paragraph: what this plan builds, against which design.
+
+## Task list (vertical slices, dependency-ordered)
+
+<!-- If the design is split into parts (design.md「Decomposition/Parts」), tag each task with
+     its `Part:`; cross-part tasks list the **seam** under Dependencies. Omit `Part:` when un-split. -->
+
+### Task 1: <title>
+- **Description:** what this slice accomplishes.
+- **Implements:** R1, R2 — the `requirement.md`「需求条目」this slice delivers (— if purely scaffolding).
+- **Part:** <part name> | —   (optional; only when the design is split into parts)
+- **Acceptance:** (binary walk — `[x]` only when its verification test passes; `[!]` if it
+  failed; `[ ]` unverified. No subjective `[x]`.)
+  - [ ] <testable condition>
+- **Verification:** test / build / manual check (cbdb: describe, do not run, unless asked).
+- **Dependencies:** None | Task N
+- **Files likely touched:** `path/...`
+- **Scope:** XS | S | M | L  (L → break down further)
+
+### Checkpoint: after Tasks 1–N
+- [ ] builds / tests green; system works end-to-end so far.
+
+## Risks & mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| … | H/M/L | … |
+
+## Open questions
+
+- …

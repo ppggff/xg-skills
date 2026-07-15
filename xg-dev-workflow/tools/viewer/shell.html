@@ -1,0 +1,1645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Untrusted markdown is rendered here. The CSP lets the app's own inline + /assets scripts
+     run but blocks exfiltration: connect/img/etc. are pinned to 'self', so an injected
+     fetch/beacon to an external host is refused. (Full sanitization would be a further step.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>status viewer</title>
+<style>
+  /* Visual direction 丁 (terminal): 全 mono chrome · 方形 · amber accent · 高对比. Theme = light
+     defaults + dark applied via OS pref OR manual data-theme override (manual wins over @media). */
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f4; --fg: #17191c; --body: #3d424a; --muted: #666c75; --line: #d6d6cf; --line2: #c0c0b8;
+    --accent: #b9761a; --accent-soft: #f3e6cf; --red: #c9432f; --green: #1f8f4e; --hunk: #7c3aed;
+    --side: #ededea; --chip: #e2e2dc; --sel: #f0dca8; --badge-fg: #ffffff;
+    /* 整体状态 palette */
+    --s-active:#2563eb; --s-done:#1f8f4e; --s-blocked:#c9432f; --s-paused:#a86b16;
+    --s-todo:#0e8296; --s-backlog:#6c727b; --s-dropped:#9aa0aa; --s-unknown:#8b919a;
+    --radius: 0px; --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; --chrome: var(--mono);
+    --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px;
+  }
+  /* dark values duplicated across two selectors (no build step to share a block):
+     OS-dark unless manually forced light · manual dark always. */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0a0b0d; --fg: #e4e8ee; --body: #b4bbc4; --muted: #818995; --line: #2f353f; --line2: #434c58;
+    --accent: #e5a54f; --accent-soft: #31260f; --red: #f2837a; --green: #66d98a; --hunk: #b39dff;
+    --side: #15181d; --chip: #1e222a; --sel: #4a3d1a; --badge-fg: #13161b;
+    --s-active:#6ea8fe; --s-done:#66d98a; --s-blocked:#f2837a; --s-paused:#e5a54f;
+    --s-todo:#4fd0de; --s-backlog:#818995; --s-dropped:#6b7280; --s-unknown:#4a515b;
+  } }
+  :root[data-theme="light"] { color-scheme: light; }   /* manual override drives native widgets too (select/scrollbar) */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0a0b0d; --fg: #e4e8ee; --body: #b4bbc4; --muted: #818995; --line: #2f353f; --line2: #434c58;
+    --accent: #e5a54f; --accent-soft: #31260f; --red: #f2837a; --green: #66d98a; --hunk: #b39dff;
+    --side: #15181d; --chip: #1e222a; --sel: #4a3d1a; --badge-fg: #13161b;
+    --s-active:#6ea8fe; --s-done:#66d98a; --s-blocked:#f2837a; --s-paused:#e5a54f;
+    --s-todo:#4fd0de; --s-backlog:#818995; --s-dropped:#6b7280; --s-unknown:#4a515b;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  #layout { display: flex; height: 100vh; overflow: hidden; }
+  .pane { overflow: auto; height: 100%; position: relative; }
+  #side { background: var(--side); width: 280px; flex: none; padding: 12px; display: flex;
+    flex-direction: column; gap: 10px; }
+  /* content panes are flex columns so a board-detail drawer can pin to the bottom (margin-top:auto)
+     even when the board is short; children keep their size (flex-shrink:0) so tall content still scrolls. */
+  #left { flex: 1 1 0; min-width: 200px; padding: 0 28px 20px; display: flex; flex-direction: column; }
+  #right { flex: none; width: 46vw; min-width: 200px; padding: 0 28px 20px; display: none; flex-direction: column; }
+  #right.show { display: flex; }
+  #left > *, #right > * { flex-shrink: 0; }
+  #toc { width: 240px; flex: none; background: var(--side); padding: 14px 12px;
+    font-size: 12.5px; display: none; }
+  #toc.show { display: block; }
+  #toc .toc-inner { max-width: none; }   /* R55: no content cap — dragging the TOC wider widens the
+                                            content too, so long search-result paths stop wrapping */
+  /* R27/R36: focused pane — a light bar on the (sticky) header top, so it floats while scrolling */
+  #left.focused .doc-head, #right.focused .doc-head {
+    box-shadow: inset 0 3px 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  .pane.collapsed { display: none !important; }
+  .gutter { flex: none; width: 6px; cursor: col-resize; background: var(--line); display: none; }
+  .gutter.show { display: block; } .gutter:hover { background: var(--accent); }
+  .gutter.hidden { display: none; }
+  /* re-open affordance when #side is collapsed (R26) */
+  #reopen { position: fixed; top: 8px; left: 8px; z-index: 20; display: none; }
+  #reopen.show { display: block; }
+  /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
+     the body and the current-line band) while the body scrolls under it. The pane has no top
+     padding, so top:0 sticks flush; negative side margins let it span the pane's full width. */
+  .doc-head { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 6;
+    background: var(--bg); margin: 0 -28px 0; padding: 12px 28px 8px; border-bottom: 1px solid var(--line); }
+  .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
+    background: var(--bg); color: var(--muted); border-radius: var(--radius); padding: 1px 7px; }
+  .iconbtn:hover { color: var(--fg); border-color: var(--accent); }
+  .iconbtn:disabled { opacity: .35; cursor: default; }
+  /* history <select> styled as an iconbtn: drop native chrome so its height matches the buttons */
+  select.iconbtn { -webkit-appearance: none; appearance: none; font-family: var(--chrome); line-height: 1.6; max-width: 12em; }
+  h1 { font-size: 21px; margin: 0 0 14px; } h2 { font-size: 16px; margin: 20px 0 9px; }
+  h2.sec { font-family: var(--chrome); font-size: 13px; letter-spacing: .04em; }   /* R8: board/search section headers = mono chrome */
+  /* board project separator: small uppercase muted label + a trailing hairline rule (matches comp) */
+  h2.sec.sec-proj { display: flex; align-items: center; gap: 8px; margin: 12px 0 9px; text-transform: uppercase;
+    font-size: 11px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
+  h2.sec.sec-proj::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  /* R2/R11: default reading measure (left-aligned, so the left edge is stable), toggle to full.
+     measure lives ON .docbody so the R52 current-line band (keyed off .docbody rect) stays aligned. */
+  .docbody { color: var(--body); max-width: 52em; }   /* R21: doc body dimmer than chrome */
+  .docbody.full { max-width: none; }
+  .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
+  .docbody h1,.docbody h2,.docbody h3,.docbody h4 { color: var(--fg); }
+  /* R2/R40/R52 current marker — a band over the current UNIT: a single wrapped line in a doc, or a
+     whole card/hit/commit in board/search/recent. Set by click / TOC jump / default only; it scrolls
+     with the content. R3: bright in the focused pane, dim in the other (.focused flips the color).
+     It is a pane child (positioned via JS with scrollTop), painted under the sticky header. */
+  .curline-ov { position: absolute; display: none; pointer-events: none; z-index: 1;
+    border-radius: 3px; background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  #left.focused .curline-ov, #right.focused .curline-ov {
+    background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  .docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6 { scroll-margin-top: 56px; }
+  h2.sec, h2.commit { scroll-margin-top: 56px; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  a.broken { color: var(--red); text-decoration: line-through; cursor: help; }
+  .brand { font-family: var(--chrome); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .brand-btns { display: flex; gap: 4px; }
+  .brand .dot { color: var(--accent); }
+  .ctl { width: 100%; font-family: var(--chrome); font-size: 12.5px; padding: 6px 8px; border: 1px solid var(--line2);
+    border-radius: var(--radius); background: var(--bg); color: var(--fg); }
+  /* nav = vertical list with a leading glyph per item; the current view is highlighted (.on) */
+  .navbtns { display: flex; flex-direction: column; gap: 2px; }
+  .navbtn { font-family: var(--chrome); font-size: 12.5px; text-align: left; padding: 6px 9px; cursor: pointer;
+    border: 1px solid transparent; border-radius: var(--radius); background: none; color: var(--body);
+    display: flex; gap: 8px; align-items: center; text-decoration: none; }
+  .navbtn .k { flex: none; width: 1.1em; text-align: center; color: var(--muted); }
+  .navbtn[data-go="board"] .k { position: relative; top: -1px; }   /* the ▦ glyph sits low in its box; ≡/‹› center fine */
+  .navbtn:hover { background: var(--line); color: var(--fg); text-decoration: none; }   /* kill the global a:hover underline on the gitweb <a> entry */
+  .navbtn.on { background: var(--accent-soft); color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+  .navbtn.on .k { color: var(--accent); }
+  /* R7: top-level "browse code" gitweb entry — a normal nav item (body/hover styling like Board/Recent),
+     shown only when a companion URL exists; the ‹› icon + new-tab are its cue, not a different color. */
+  #gitwebEntry { display: none; } #gitwebEntry.show { display: flex; }
+  /* R65: tree toolbar — a quiet label + a collapse-all button */
+  .tree-tools { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+  .tree-tools .side-label { font-family: var(--chrome); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tree-tools .iconbtn { font-size: 10.5px; padding: 1px 7px; }
+  .tree { font-family: var(--chrome); font-size: 12.5px; overflow: auto; flex: 1; user-select: none; }   /* R6: mono, denoised */
+  /* dev/kb section root = a quiet side-label (uppercase muted), matching the comp */
+  .tree > details > summary { text-transform: uppercase; font-size: 10.5px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
+  .tree details { margin: 0; }
+  .tree > details + details { margin-top: 10px; }   /* a little air between the dev and kb sections */
+  /* R25: every row (folder summary AND file) opens with a fixed-width .arrow column, so the
+     folder 📁 and file 📄 icons — which follow it — line up at the same depth. File rows carry
+     an empty .arrow so their icon sits under the folder icon, not under the arrow. */
+  .tree summary, .tree .file { display: flex; align-items: center; padding: 2px 4px; border-radius: var(--radius);
+    white-space: nowrap; overflow: hidden; }
+  .tree summary { cursor: pointer; list-style: none; color: var(--fg); font-weight: 500; }
+  .tree .file { color: var(--body); text-overflow: ellipsis; }
+  .tree .arrow { flex: none; width: 1.1em; text-align: center; color: var(--line2); font-size: .85em; }  /* R6: dimmer arrows */
+  .tree summary .arrow::before { content: "▸"; }
+  .tree details[open] > summary .arrow::before { content: "▾"; }
+  .tree summary:hover, .tree .file:hover { background: var(--line); text-decoration: none; color: var(--fg); }
+  /* R1: per-section sort controls (plain text, no box/highlight) + modified-time column */
+  .tree .secctl { margin-left: auto; display: inline-flex; align-items: center; gap: 9px; padding-left: 10px; }
+  .tree .secctl .sx { font-family: var(--chrome); font-size: 11.5px; color: var(--muted); cursor: pointer; }
+  .tree .secctl .sx:hover { color: var(--fg); }
+  .tree .when { margin-left: auto; padding-left: 8px; color: var(--muted); font-size: 10.5px; opacity: .8; }
+  .tree .none { color: var(--muted); font-size: 12px; padding: 4px 4px 6px 24px; }   /* R3: filtered-to-empty section note (indented under the header) */
+  /* R3/R4: filename filter pinned flush to the sidebar bottom; dev/kb scope toggles (muted like the sort A) */
+  #filterbox { margin: 0 -12px -12px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 7px; padding: 8px 12px; }
+  #filterbox .fmag { color: var(--muted); font-family: var(--chrome); font-size: 12px; }
+  #filterbox input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--fg); font-family: var(--chrome); font-size: 12.5px; }
+  #filterbox .fcount { color: var(--muted); font-size: 10px; white-space: nowrap; font-family: var(--chrome); }
+  #filterbox .fscope { font-family: var(--chrome); font-size: 11px; background: transparent; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; }
+  #filterbox .fscope.off { text-decoration: line-through; opacity: .55; }
+  .tree .file.active { background: var(--accent-soft); color: var(--accent); font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--accent); }   /* R6: active gets a left accent bar */
+  /* nesting shown by JS depth-padding (below), so a folder summary and its sibling files share
+     the same indent — the .kids details adds no indent of its own. */
+  .tree .kids { margin: 0; }
+  mark { background: var(--sel); color: inherit; padding: 0 1px; border-radius: 2px; }
+  #toc .toc-title { font-family: var(--chrome); font-weight: 700; color: var(--muted); text-transform: uppercase;
+    font-size: 11px; letter-spacing: .05em; margin-bottom: 8px; }
+  #toc a { display: block; color: var(--body); padding: 3px 0; line-height: 1.35; }  /* R28: wrap */
+  #toc a:hover { color: var(--accent); text-decoration: none; }
+  #toc a.cur { color: var(--accent); font-weight: 600; }
+  /* R61: TOC filter — a checkbox in front of each entry (board=project, search=file) */
+  .toc-row { display: flex; align-items: flex-start; gap: 6px; }
+  .toc-row a { flex: 1; }
+  input.tocf { flex: none; margin: 5px 0 0; cursor: pointer; }
+  table { border-collapse: collapse; margin: 8px 0; } td, th { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
+  th { background: var(--chip); }
+  pre { overflow-x: auto; background: var(--chip); padding: 12px; border-radius: var(--radius); font-family: var(--mono); font-size: 12.5px; }
+  code { font-family: var(--mono); font-size: .92em; } :not(pre) > code { background: var(--chip); padding: 1px 5px; border-radius: var(--radius); }
+  blockquote { margin: 8px 0; padding: 2px 14px; border-left: 3px solid var(--line2); color: var(--muted); }
+  .diff { line-height: 1.45; } .diff .add { color: var(--green); } .diff .del { color: var(--red); }
+  .diff .hunk { color: var(--hunk); font-weight: 600; }
+  /* R1: list board = responsive grid within each project section (fills wide screens instead of
+     one stretched banner), cards equal-height per row (align-items:stretch) with the step row pinned
+     to the bottom; narrow screens fall back to a single column. kanban stays a horizontal flex. */
+  /* R1: cards keep a bounded, consistent width (matching the kanban lane width) instead of stretching
+     to fill — so a card looks identical in list and kanban; wide screens gain more columns. */
+  .board { display: grid; grid-template-columns: repeat(auto-fill, 368px); justify-content: start; gap: 10px; align-items: stretch; }
+  .board.kanban { display: flex; flex-direction: row; align-items: flex-start; gap: 14px; overflow-x: auto; padding-bottom: 10px; }
+  .board.kanban .col { flex: 0 0 368px; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+  /* kanban lane header (variant B — minimal): status swatch + name + count badge over a status-colored rule.
+     --lane (the status color) is set per column at render time. */
+  .col h3 { display: flex; align-items: center; gap: 8px; margin: 0; padding-bottom: 8px; font-family: var(--chrome);
+    font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--body);
+    border-bottom: 2px solid var(--lane, var(--s-backlog)); }
+  .col h3 .sw { width: 9px; height: 9px; flex: none; background: var(--lane, var(--s-backlog)); }
+  .col h3 .ct { margin-left: auto; font-family: var(--chrome); font-size: 10.5px; font-weight: 400; letter-spacing: 0;
+    color: var(--muted); border: 1px solid var(--line2); padding: 0 7px; }
+  /* R56: in-board filters (status + project) — display-only, independent of the sidebar scope */
+  .board-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+  .flabel { font-family: var(--chrome); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 2px 0 8px; }
+  /* R60: status chips carry the status color itself (no leading dot); off = dimmed + struck. */
+  .fchip { font-family: var(--chrome); font-size: 11.5px; cursor: pointer; border: 1px solid var(--line2); background: var(--bg);
+    color: var(--fg); border-radius: var(--radius); padding: 2px 10px; }
+  .fchip:hover { filter: brightness(1.08); border-color: var(--accent); }
+  .fchip.off { opacity: .4; text-decoration: line-through; }
+  .card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line2); border-left: 3px solid var(--s-backlog);
+    border-radius: var(--radius); padding: 9px 12px; background: var(--side); min-height: 142px; }
+  /* R3/R4/R8 card skeleton (frontend-design: hierarchy + de-boxing + alignment):
+     eyebrow (state pill + proj·nnn) → title (focus) → Now/Next (aligned) → gate-track (signature, pinned bottom). */
+  .card .eyebrow { display: flex; align-items: baseline; gap: 8px; font-family: var(--chrome);
+    font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .card .eyebrow .dep { margin-left: auto; }
+  .card .title { font: 600 13.5px/1.35 var(--chrome); color: var(--fg); margin: var(--sp2) 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .nn { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 12.5px; line-height: 1.5; }
+  /* Now/Next show as bare lines (labels dropped for content room); single-line ellipsis, full text on
+     hover via title=. Now in body tone, Next muted — a quiet cue without the label column. */
+  .card .nn dd { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .nn dd.now { color: var(--body); }
+  .card .nn dd.next { color: var(--muted); }
+  /* R4/R62 gate-track (signature): single row, square node + label per phase, pinned to card bottom;
+     doc deep-links preserved; ▏ marks the decision→execution zone boundary before 实现. */
+  .card .steps { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .card .phase { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+  .card .phase .node { width: 9px; height: 9px; flex: none; position: relative; top: -2px; border: 1.5px solid var(--s-backlog); background: var(--bg); }   /* -2px optical: PingFang CJK label ink sits high in the line box */
+  .card .phase.done .node { background: var(--s-done); border-color: var(--s-done); }
+  .card .phase.doing .node { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 47%); }
+  .card .phase.pending .node { border-style: dashed; border-color: var(--line2); }
+  .card .phase .lbl { font-family: var(--chrome); font-size: 11px; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
+  .card .phase.done .lbl { color: var(--body); }
+  .card .phase.doing .lbl { color: var(--accent); font-weight: 600; }
+  .card a.phase:hover .lbl { text-decoration: underline; }
+  .card .phase.gate { border-left: 2px solid color-mix(in srgb, var(--accent) 70%, transparent); margin-left: 5px; padding-left: 9px; }
+  .card .steps .tail { display: flex; gap: 9px; margin-left: auto; }
+  .card a.step { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11px; }
+  .card a.step:hover { text-decoration: underline; }
+  /* R20: 整体状态 color-coded (card left border + badge) */
+  .card.st-active { border-left-color: var(--s-active); } .card.st-done { border-left-color: var(--s-done); }
+  .card.st-blocked { border-left-color: var(--s-blocked); } .card.st-paused { border-left-color: var(--s-paused); }
+  .card.st-todo { border-left-color: var(--s-todo); } .card.st-backlog { border-left-color: var(--s-backlog); }
+  .card.st-dropped { border-left-color: var(--s-dropped); opacity: .6; }
+  .card.st-unknown { border-left-color: var(--s-unknown); border-left-style: dashed; }
+  .card { cursor: pointer; }   /* R64: click selects → detail drawer */
+  /* R64: selected-card highlight + a collapsible detail drawer pinned to the board pane's bottom */
+  .card.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .card-detail { position: sticky; bottom: -20px; margin: auto -28px -20px; padding: 0 28px 4px; background: var(--side);
+    border-top: 1px solid var(--line2); box-shadow: 0 -6px 16px -12px rgba(0,0,0,.6); }   /* margin-top:auto pins to the bottom when the board is short; bottom:-20 + sticky pins it while scrolling a tall board */
+  .cd-bar { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; cursor: pointer; }
+  .cd-caret { flex: none; width: .8em; color: var(--muted); }
+  .cd-caret::before { content: "\25B8"; }
+  .card-detail.open .cd-caret::before { content: "\25BE"; }
+  .cd-title { flex: 1; font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-x { flex: none; }
+  .cd-body { display: none; padding: 2px 0 12px; }
+  .card-detail.open .cd-body { display: block; }
+  .cd-row { display: flex; align-items: baseline; gap: 10px; padding: 3px 0; font-size: 12.5px; line-height: 1.55; }
+  .cd-k { flex: none; width: 4em; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .cd-v { color: var(--body); }
+  .cd-phases { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .cd-phase { font-family: var(--chrome); font-size: 11.5px; color: var(--body); text-decoration: none; }
+  a.cd-phase:hover { color: var(--accent); text-decoration: underline; }
+  .cd-phase.diff { color: var(--accent); }
+  .cd-ps { color: var(--muted); } .cd-ps.dim { opacity: .6; }
+  .badge { font-size: 10px; line-height: 1; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px 2px; border-radius: var(--radius); background: var(--chip); color: var(--muted); }   /* tight line-height + top-heavy padding centers the caps (which sit high in the line box) */
+  .badge.state { color: var(--badge-fg); }   /* R5: dual-theme badge text (dark on bright / white on deep) */
+  .badge.st-active { background: var(--s-active); } .badge.st-done { background: var(--s-done); }
+  .badge.st-blocked { background: var(--s-blocked); } .badge.st-paused { background: var(--s-paused); }
+  .badge.st-todo { background: var(--s-todo); } .badge.st-backlog { background: var(--s-backlog); }
+  .badge.st-dropped { background: var(--s-dropped); }
+  /* R5: unknown/? state — dashed outline, not a filled colored pill (reads as "unknown", not backlog) */
+  .badge.state.st-unknown { background: transparent; border: 1px dashed var(--line2); color: var(--muted); }
+  .hit { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .hit .path { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .hit .snip { font-size: 13px; color: var(--body); }
+  /* R3: frontmatter as a compact one-line meta (status pill + key:value), not a big table */
+  /* doc meta = a distinct bar under the header (surface bg, spans the pane), matching the comp */
+  .frontmatter { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin: 0 -28px 16px;
+    padding: 8px 28px; background: var(--chip); border-bottom: 1px solid var(--line2);
+    font-family: var(--chrome); font-size: 11.5px; color: var(--muted); }
+  .frontmatter .fm-sep { color: var(--line2); }
+  .frontmatter .fm-st { color: var(--body); background: var(--side); padding: 1px 8px; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
+  /* saturated tones only: white/dark badge text on the colored bg; backlog-tone keeps readable --body on --chip */
+  .frontmatter .fm-st.st-active, .frontmatter .fm-st.st-done, .frontmatter .fm-st.st-paused, .frontmatter .fm-st.st-blocked { color: var(--badge-fg); }
+  .frontmatter .fm-st.st-active { background: var(--s-active); } .frontmatter .fm-st.st-done { background: var(--s-done); }
+  .frontmatter .fm-st.st-paused { background: var(--s-paused); } .frontmatter .fm-st.st-blocked { background: var(--s-blocked); }
+  .frontmatter .fm-kv b { color: var(--body); font-weight: 600; }
+  .mermaid { background: var(--bg); text-align: center; margin: 12px 0; }
+  #basket { position: fixed; right: 18px; bottom: 18px; max-width: 360px; background: var(--bg);
+    border: 1px solid var(--line2); border-radius: var(--radius); padding: 10px 12px; display: none;
+    box-shadow: 0 4px 20px #0003; font-size: 13px; z-index: 10; }
+  #basket.show { display: block; } #basket ul { margin: 6px 0; padding-left: 16px; max-height: 30vh; overflow: auto; }
+  #basket code { font-size: 11px; }
+  .muted { color: var(--muted); } .hint { font-size: 11px; color: var(--muted); }
+  /* R6: a missing file shows a gentle inline notice (with the header intact), not a stark page */
+  .notice { padding: 30px 20px; color: var(--muted); text-align: center; font-size: 15px; }
+  .notice .hint { margin-top: 8px; font-family: var(--mono); }
+  /* R10: unified empty/zero state (board filtered-to-empty, search no-match) */
+  .empty { padding: 34px 20px; text-align: center; color: var(--muted); }
+  .empty .big { font-size: 22px; opacity: .5; }
+  .empty .msg { margin-top: 8px; font-size: 14px; }
+  .empty .sub { margin-top: 4px; font-size: 12px; font-family: var(--chrome); }
+  /* R2: comment affordance floats by the selection so the feature is discoverable */
+  #cmt { position: fixed; display: none; z-index: 15; box-shadow: 0 2px 10px #0003; }
+  /* R63: a doc pane's content changed on disk — click to refresh (non-intrusive, doesn't yank) */
+  #stale { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 30; display: none;
+    background: var(--accent); color: var(--badge-fg); border-radius: var(--radius); padding: 5px 15px; font-size: 12.5px;
+    cursor: pointer; box-shadow: 0 2px 12px #0004; }
+  #stale.show { display: block; }
+  ::selection { background: var(--sel); }
+  /* R5: quick-open palette (⌘K) */
+  #qo-back { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; }
+  #qo-back.show { display: block; }
+  #qo { display: none; position: fixed; z-index: 51; top: 76px; left: 50%; transform: translateX(-50%);
+    width: min(640px, 92vw); background: var(--side); border: 1px solid var(--line2); box-shadow: 0 18px 50px rgba(0,0,0,.4); }
+  #qo.show { display: block; }
+  #qo .qhead { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  #qo .qmag { color: var(--accent); font-family: var(--chrome); }
+  #qo input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--fg); font-family: var(--chrome); font-size: 15px; }
+  #qo .qlist { max-height: 54vh; overflow: auto; }
+  #qo .qrow { display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; cursor: pointer; font-family: var(--chrome); font-size: 13px; border-left: 2px solid transparent; }
+  #qo .qrow.sel { background: var(--accent-soft); border-left-color: var(--accent); }
+  #qo .qrow .qn { color: var(--fg); flex: none; }
+  #qo .qrow .qp { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #qo .qrow .qt { margin-left: auto; color: var(--muted); font-size: 10.5px; flex: none; padding-left: 8px; }
+  #qo .qrow .qtag { flex: none; font-size: 9.5px; letter-spacing: .1em; padding: 1px 5px; border: 1px solid var(--line2); color: var(--muted); }
+  #qo .qrow.qfall { position: sticky; bottom: 0; background: var(--side); border-top: 1px solid var(--line); }   /* fall-through always visible at list bottom */
+  #qo .qrow.qfall.sel { background: var(--accent-soft); }
+  #qo mark { background: transparent; color: var(--accent); font-weight: 700; }
+  #qo .qempty { padding: 16px 12px; color: var(--muted); font-family: var(--chrome); font-size: 12px; }
+  #qo .qfoot { padding: 6px 12px; border-top: 1px solid var(--line); color: var(--muted); font-family: var(--chrome); font-size: 10.5px; display: flex; gap: 14px; }
+  #qo .qclear { margin-left: auto; cursor: pointer; }
+  #qo .qclear:hover { color: var(--fg); }
+  #qo kbd { border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 4px; font-family: var(--chrome); font-size: 10px; }
+  /* a11y floor (R8 quality floor): visible keyboard focus + respect reduced-motion */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }   /* square: element keeps its own --radius (0) */
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<button id="reopen" class="iconbtn" title="show sidebar">☰</button>
+<div id="layout">
+  <aside id="side" class="pane">
+    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <select id="proj" class="ctl" title="project scope"></select>
+    <input id="search" class="ctl" type="search" list="recent-searches" placeholder="search docs… (Enter)">
+    <datalist id="recent-searches"></datalist>
+    <div class="navbtns">
+      <button class="navbtn" data-go="board"><span class="k">▦</span>Board</button>
+      <button class="navbtn" data-go="recent"><span class="k">≡</span>Recent</button>
+      <a id="gitwebEntry" class="navbtn code" target="_blank" rel="noopener" title="browse code (gitweb — all repos)"><span class="k">‹&#8288;›</span>浏览代码</a>
+    </div>
+    <div class="tree-tools"><span class="side-label">files</span></div>
+    <div id="tree" class="tree">loading…</div>
+    <div class="hint">shift-click → open on the right · select text in a doc → 💬 comment</div>
+    <div id="filterbox">
+      <span class="fmag">⌕</span>
+      <input id="treeFilter" type="text" list="recent-filters" placeholder="filter files…" aria-label="filter files by name">
+      <datalist id="recent-filters"></datalist>
+      <span class="fcount" id="fcount"></span>
+      <button class="fscope" id="fscope-dev" data-tree="dev" title="include DEV in filter">dev</button>
+      <button class="fscope" id="fscope-kb" data-tree="kb" title="include KB in filter">kb</button>
+    </div>
+  </aside>
+  <div class="gutter show" data-resize="side"></div>
+  <main id="left" class="pane"><div class="muted">loading…</div></main>
+  <div class="gutter" data-resize="rightpane"></div>
+  <section id="right" class="pane"></section>
+  <div class="gutter" data-resize="toc"></div>
+  <aside id="toc" class="pane"></aside>
+</div>
+<div id="stale">📄 内容已更新 · 点击刷新</div>
+<button id="cmt" class="iconbtn">💬 comment</button>
+<div id="basket"><b>comment basket</b>
+  <button id="basket-copy">copy all</button> <button id="basket-clear">clear</button>
+  <ul id="basket-list"></ul></div>
+
+<!-- R5: quick-open palette (⌘K / Ctrl-K). Filename/path fuzzy jump; separate from the content search box. -->
+<div id="qo-back"></div>
+<div id="qo" role="dialog" aria-label="quick open">
+  <div class="qhead"><span class="qmag">⌕</span><input id="qoInput" type="text" placeholder="quick open — file name / path…" aria-label="quick open" autocomplete="off"></div>
+  <div class="qlist" id="qoList"></div>
+  <div class="qfoot"><span><kbd>↑↓</kbd> select</span><span><kbd>↵</kbd> open</span><span><kbd>⇧↵</kbd> right</span><span><kbd>⌘↵</kbd> search</span><span><kbd>esc</kbd> close</span><span class="qclear" id="qoClear" title="clear recent history">clear history</span></div>
+</div>
+
+<script>window.GITWEB_URL = "__GITWEB_URL__";</script>  <!-- 003: viewer injects the companion URL ("" = disabled) -->
+<script>
+// R9: manual theme override. Three states cycled by the toggle: follow OS (no attr) →
+// light → dark → follow. Persisted in localStorage; applied before the app renders. Manual choice
+// wins over @media (see the CSS). __onThemeChange lets the app re-theme mermaid on toggle.
+(function () {
+  "use strict";
+  var KEY = "sv-theme", root = document.documentElement;
+  function saved() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function apply(v) { if (v === "light" || v === "dark") root.setAttribute("data-theme", v);
+    else root.removeAttribute("data-theme"); }
+  function effective() {
+    var v = root.getAttribute("data-theme");
+    return v || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  }
+  apply(saved());
+  var btn = document.getElementById("themeToggle");
+  function paint() {
+    // ◐ follow · ☀ forced light · ☾ forced dark
+    var v = root.getAttribute("data-theme");
+    if (btn) btn.textContent = v === "light" ? "☀" : v === "dark" ? "☾" : "◐";
+  }
+  paint();
+  if (btn) btn.onclick = function () {
+    var v = root.getAttribute("data-theme");
+    var next = v === "light" ? "dark" : v === "dark" ? null : "light";
+    apply(next);
+    try { next ? localStorage.setItem(KEY, next) : localStorage.removeItem(KEY); } catch (e) {}
+    paint();
+    if (typeof window.__onThemeChange === "function") window.__onThemeChange(effective());
+  };
+  window.__effectiveTheme = effective;
+})();
+</script>
+<script src="/assets/marked.min.js"></script>
+<!-- mermaid (3.3MB) is loaded lazily, only when a viewed doc actually has a ```mermaid block,
+     so the board / tree / plain docs paint immediately without waiting on it. -->
+<script>
+"use strict";
+// ---------------------------------------------------------------------------
+// Pure helpers (unit-tested in test-shell.mjs). No DOM here — exported via window
+// / module.exports so the node test can import them.
+// ---------------------------------------------------------------------------
+var SV = (function () {
+  // Split a doc's front matter (--- fence) into {fields, body}; flat key: value only.
+  function parseFrontmatter(text) {
+    if (!text.startsWith("---")) return { fields: {}, body: text };
+    var end = text.indexOf("\n---", 3);
+    if (end === -1) return { fields: {}, body: text };
+    var head = text.slice(3, end), fields = {};
+    head.split("\n").forEach(function (line) {
+      var m = line.match(/^(\w+):\s*(.+)$/);
+      if (m) fields[m[1]] = m[2].trim();
+    });
+    return { fields: fields, body: text.slice(end + 4).replace(/^\n+/, "") };
+  }
+
+  // Normalize a doc link to "<tree>:<relpath>" (canonical case), or null if unresolvable.
+  function resolveLink(href, curTree, curRel, treeSets) {
+    href = String(href).trim();
+    var wiki = href.match(/^\[\[(.+?)\]\]$/);
+    var target, tree;
+    if (wiki) {
+      var x = wiki[1].split("|")[0].split("#")[0].trim();
+      if (/^(wiki|raw)\//.test(x)) { tree = "kb"; target = x.endsWith(".md") ? x : x + ".md"; }
+      else return null;                                       // legacy bare/colon → broken
+    } else {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) return null;
+      var path = href.split("#")[0];
+      if (!path.endsWith(".md")) return null;
+      tree = curTree;
+      var dir = curRel.indexOf("/") === -1 ? "" : curRel.replace(/\/[^/]*$/, "");
+      target = normalizePath(dir, path);
+      if (target === null) return null;
+    }
+    var canon = treeSets[tree] && treeSets[tree].get(target.toLowerCase());  // case-insensitive
+    return canon ? tree + ":" + canon : null;
+  }
+
+  function normalizePath(dir, rel) {
+    var parts = (dir ? dir.split("/") : []);
+    rel.split("/").forEach(function (p) {
+      if (parts === null || p === "" || p === ".") return;
+      if (p === "..") { if (!parts.length) { parts = null; return; } parts.pop(); }
+      else parts.push(p);
+    });
+    return parts === null ? null : parts.join("/");
+  }
+
+  // Project names from the two trees' paths: a dev path contributes its first segment ONLY if
+  // it's inside a project dir (has a "/"), so top-level files like index.md/log.md are excluded;
+  // a kb path contributes raw/<proj> | wiki/<proj>'s second segment.
+  function projectsFromTree(dev, kb) {
+    var set = {};
+    (dev || []).forEach(function (p) { if (p.indexOf("/") !== -1) set[p.split("/")[0]] = 1; });
+    // kb: raw/<proj>/<file> | wiki/<proj>/<file> → the project is segment[1], but only when a
+    // file sits under it (length > 2); this excludes the KB's own wiki/index.md, wiki/log.md.
+    (kb || []).forEach(function (p) { var s = p.split("/"); if (s.length > 2) set[s[1]] = 1; });
+    return Object.keys(set).sort();
+  }
+
+  // Fold items [{path, mtime}] (mtime optional) into a nested {dirs:{name:node}, files:[...]}
+  // tree. Files within a dir are sorted by mtime ASCENDING (oldest first); dirs render first
+  // (see nodeHtml) sorted by name. Accepts bare-string items too (mtime defaults 0).
+  function buildTree(items) {
+    var root = { dirs: {}, files: [], mtime: 0 };
+    (items || []).forEach(function (it) {
+      var p = typeof it === "string" ? it : it.path, mtime = typeof it === "string" ? 0 : (it.mtime || 0);
+      var segs = p.split("/"), node = root;
+      node.mtime = Math.max(node.mtime, mtime);   // R1: dir mtime = newest descendant (lets a dir float by recency)
+      for (var i = 0; i < segs.length - 1; i++) {
+        var d = segs[i];
+        node.dirs[d] = node.dirs[d] || { dirs: {}, files: [], mtime: 0 };
+        node = node.dirs[d];
+        node.mtime = Math.max(node.mtime, mtime);
+      }
+      node.files.push({ name: segs[segs.length - 1], path: p, mtime: mtime });
+    });
+    sortFiles(root);
+    return root;
+  }
+  function sortFiles(node) {
+    node.files.sort(function (a, b) { return a.mtime - b.mtime || a.name.localeCompare(b.name); });
+    Object.keys(node.dirs).forEach(function (d) { sortFiles(node.dirs[d]); });
+  }
+  // R1: comparator for tree nodes ({name, mtime}) — name (A) or modified (T), asc/desc; name breaks mtime ties.
+  function sortCmp(key, dir) {
+    dir = dir < 0 ? -1 : 1;
+    return key === "mtime"
+      ? function (a, b) { return (a.mtime - b.mtime) * dir || a.name.localeCompare(b.name); }
+      : function (a, b) { return a.name.localeCompare(b.name) * dir; };
+  }
+  // R5/R9/R10 (ADR-0003): fzf-style matcher. The query splits on whitespace into terms — ALL must match
+  // (AND), order-independent. A leading `=` makes a term an exact contiguous substring; otherwise it is a
+  // fuzzy subsequence scored by OPTIMAL alignment (word-boundary starts + consecutive runs rewarded, gaps
+  // penalised with a bounded start+extension cost). Each term scores against the full path and — when
+  // nameStart>0 — the filename tail, taking the better plus a filename bonus (名>路径). smart-case: a term
+  // with an uppercase char matches case-sensitively. Returns {hit, score, idx} — idx = matched positions in
+  // `str` (highlights name AND path). nameStart omitted (nav items) ⇒ pure whole-string matching.
+  var MS_BASE = 16, MS_BOUNDARY = 16, MS_CONSEC = 8, MS_GAP_START = 3, MS_GAP_EXT = 1, MS_NAME_BONUS = 32;
+  function msBoundary(str, i) {
+    return i === 0 || /[\/\-_.\s]/.test(str[i - 1]) || (/[a-z]/.test(str[i - 1]) && /[A-Z]/.test(str[i]));
+  }
+  function msParse(q) {
+    var out = [], parts = String(q == null ? "" : q).split(/\s+/);
+    for (var i = 0; i < parts.length; i++) {
+      var t = parts[i]; if (!t) continue;
+      if (t.charAt(0) === "=") { if (t.length > 1) out.push({ exact: true, ndl: t.slice(1) }); }
+      else out.push({ exact: false, ndl: t });
+    }
+    return out;
+  }
+  function msAlign(term, str) {                     // one term vs one string → {hit,score,idx (in str coords)}
+    var cs = /[A-Z]/.test(term.ndl);                // smart-case
+    var ndl = cs ? term.ndl : term.ndl.toLowerCase();
+    var hay = cs ? str : str.toLowerCase();
+    var n = hay.length, m = ndl.length;
+    if (!m) return { hit: true, score: 0, idx: [] };
+    if (term.exact) {
+      var p = hay.indexOf(ndl); if (p < 0) return { hit: false, score: 0, idx: [] };
+      var eidx = []; for (var e = 0; e < m; e++) eidx.push(p + e);
+      return { hit: true, score: m * (MS_BASE + MS_CONSEC) + (msBoundary(str, p) ? MS_BOUNDARY : 0), idx: eidx };
+    }
+    var jg = 0; for (var gi = 0; gi < n && jg < m; gi++) if (hay.charAt(gi) === ndl.charAt(jg)) jg++;
+    if (jg < m) return { hit: false, score: 0, idx: [] };     // cheap subsequence reject before the DP
+    var NEG = -1e9, sc = [], bk = [];
+    for (var j = 0; j < m; j++) { var r1 = [], r2 = []; for (var c = 0; c < n; c++) { r1.push(NEG); r2.push(-1); } sc.push(r1); bk.push(r2); }
+    for (var i = 0; i < n; i++) {
+      for (var jj = 0; jj < m && jj <= i; jj++) {
+        if (hay.charAt(i) !== ndl.charAt(jj)) continue;
+        var chScore = MS_BASE + (msBoundary(str, i) ? MS_BOUNDARY : 0);
+        if (jj === 0) { if (chScore > sc[0][i]) { sc[0][i] = chScore; bk[0][i] = -1; } continue; }
+        for (var k = jj - 1; k < i; k++) {
+          if (sc[jj - 1][k] === NEG) continue;
+          var gap = i - k - 1;
+          var val = sc[jj - 1][k] + chScore + (gap === 0 ? MS_CONSEC : -(MS_GAP_START + (gap - 1) * MS_GAP_EXT));
+          if (val > sc[jj][i]) { sc[jj][i] = val; bk[jj][i] = k; }
+        }
+      }
+    }
+    var best = NEG, bi = -1;
+    for (var x = 0; x < n; x++) if (sc[m - 1][x] > best) { best = sc[m - 1][x]; bi = x; }
+    var idx = [], jb = m - 1, ib = bi;
+    while (ib >= 0 && jb >= 0) { idx.push(ib); ib = bk[jb][ib]; jb--; }
+    idx.reverse();
+    return { hit: true, score: best, idx: idx };
+  }
+  function matchScore(q, str, nameStart) {
+    var terms = msParse(q);
+    if (!terms.length) return { hit: true, score: 0, idx: [] };
+    nameStart = nameStart || 0;
+    var total = 0, set = {};
+    for (var t = 0; t < terms.length; t++) {
+      var full = msAlign(terms[t], str);
+      if (!full.hit) return { hit: false, score: -Infinity, idx: [] };
+      var sTerm = full.score, tidx = full.idx;
+      if (nameStart > 0) {
+        var nm = msAlign(terms[t], str.slice(nameStart));
+        if (nm.hit && nm.score + MS_NAME_BONUS >= sTerm) {
+          sTerm = nm.score + MS_NAME_BONUS;
+          tidx = nm.idx.map(function (v) { return v + nameStart; });
+        }
+      }
+      total += sTerm;
+      for (var g = 0; g < tidx.length; g++) set[tidx[g]] = 1;
+    }
+    var out = []; for (var key in set) out.push(+key); out.sort(function (a, b) { return a - b; });
+    return { hit: true, score: total, idx: out };
+  }
+  // R6/R7/R8: push an item onto a "recent use" list — dedup (move existing to front), cap, recency-ordered.
+  function recentPush(list, item, cap) {
+    var out = (list || []).filter(function (x) { return x !== item; });
+    out.unshift(item);
+    return out.slice(0, cap || 8);
+  }
+
+  // Group search hits by file, preserving first-seen order → [{tree, path, hits:[...]}].
+  function groupHits(hits) {
+    var order = [], by = {};
+    (hits || []).forEach(function (h) {
+      var k = h.tree + ":" + h.path;
+      if (!by[k]) { by[k] = { tree: h.tree, path: h.path, hits: [] }; order.push(k); }
+      by[k].hits.push(h);
+    });
+    return order.map(function (k) { return by[k]; });
+  }
+
+  // Flatten a doc's headings into a TOC list [{depth,text,slug}] (slug = anchor id).
+  function tocFromHeadings(headings) {
+    return (headings || []).map(function (h) {
+      return { depth: h.depth, text: h.text,
+               slug: h.text.toLowerCase().replace(/[^\w一-鿿]+/g, "-").replace(/^-+|-+$/g, "") };
+    });
+  }
+
+  function colorizeDiff(text) {
+    return text.split("\n").map(function (line) {
+      var cls = line.startsWith("@@") ? "hunk"
+              : (line.startsWith("+") && !line.startsWith("+++")) ? "add"
+              : (line.startsWith("-") && !line.startsWith("---")) ? "del" : "";
+      var safe = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return cls ? '<span class="' + cls + '">' + safe + "</span>" : safe;
+    }).join("\n");
+  }
+
+  function commentBlock(tree, relpath, headings, selStartLine, excerpt) {
+    var h = null;
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].line <= selStartLine) h = headings[i]; else break;
+    }
+    var anchor = h ? "#" + h.text : "";
+    var quoted = excerpt.split("\n").map(function (l) { return "> " + l; }).join("\n");
+    return "[" + tree + ":" + relpath + anchor + "]\n" + quoted;
+  }
+
+  // Pure state→presentation mappings (unit-tested here; used by the board + doc renderers below).
+  function stName(state) {                          // R5: canonical 整体状态 name; ?/empty → distinct "unknown"
+    var s = String(state).toLowerCase();
+    if (s === "?" || s === "" || s === "unknown") return "unknown";
+    return /^(active|done|blocked|paused|todo|backlog|dropped)$/.test(s) ? s : "backlog";
+  }
+  function stepFill(state) {                         // R4: phase state → gate-track node fill (done/doing/pending)
+    var s = String(state).toLowerCase().trim();
+    if (!s || s === "—" || s === "?" || s === "planned" || s === "not-started") return "pending";
+    if (/^(drafting|draft|active|implementing|in-progress|doing|todo|testing|blocked|failing)/.test(s)) return "doing";
+    return "done";
+  }
+  var STATUS_TONE = { frozen: "done", approved: "done", confirmed: "done", baseline: "done", passing: "done",
+    done: "done", active: "active", "in-progress": "active", drafting: "paused", draft: "paused",
+    blocked: "blocked", superseded: "backlog" };
+  function statusTone(s) { return STATUS_TONE[String(s).toLowerCase()] || "backlog"; }   // R3: doc-status → pill tone
+
+  return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
+           projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
+           groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
+           stName: stName, stepFill: stepFill, statusTone: statusTone };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = SV;
+if (typeof window !== "undefined") window.SV = SV;
+</script>
+<script>
+"use strict";
+// ---------------------------------------------------------------------------
+// DOM app: routing + fetch + views (R13 tree · R14 project scope · R15 search ·
+// R16 kanban · R17 mermaid). Verified in a browser; SV above carries the unit tests.
+// ---------------------------------------------------------------------------
+if (typeof window !== "undefined" && window.marked) (function () {
+  var PANES = { left: document.getElementById("left"), right: document.getElementById("right") };
+  var tocPane = document.getElementById("toc"), treeEl = document.getElementById("tree");
+  var projSel = document.getElementById("proj"), searchBox = document.getElementById("search");
+  var TREES = { dev: new Map(), kb: new Map() }, RAW = { dev: [], kb: [] };
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var basket = [], project = lsGet("sv-project") || "", focus = "left";   // R65: persist project scope
+  var layoutState = { leftW: null, tocW: 240, leftCustom: false };   // R58: fixed pane widths (px) + filler mode
+  var docWidth = (function () { try { return localStorage.getItem("sv-docwidth") === "full" ? "full" : "measure"; }
+    catch (e) { return "measure"; } })();   // R11: reading width (measure | full), persisted
+  var staleSides = {}, lastDevRev = 0, lastKbRev = 0;   // R63: live-refresh state (stale doc panes; last dev/kb rev tokens)
+  var treeSort = (function () {   // R1: per-section sort (name|mtime + dir), default A↑, persisted; survives live-refresh
+    try { var s = JSON.parse(lsGet("sv-tree-sort")); if (s && s.dev && s.kb) return s; } catch (e) {}
+    return { dev: { key: "name", dir: 1 }, kb: { key: "name", dir: 1 } };
+  })();
+  var treeSnap = { dev: null, kb: null };   // R2: per-section pre-collapse fold snapshot (session-only) → F's second click restores
+  var treeFilter = "";   // R3: transient filename filter (never persisted — a stale filter silently narrowing the tree is confusing)
+  var filterScope = (function () {   // R4: which sections the filter applies to; off → section shown unfiltered (not hidden). Persisted.
+    try { var s = JSON.parse(lsGet("sv-tree-scope")); if (s && typeof s.dev === "boolean" && typeof s.kb === "boolean") return s; } catch (e) {}
+    return { dev: true, kb: true };
+  })();
+  ["left", "right"].forEach(function (s) { var p = PANES[s]; p._hist = []; p._hi = -1; p._view = null; p._sections = []; p._cur = 0; });
+
+  function api(p) { return fetch(p).then(function (r) {
+    if (!r.ok) throw new Error(p + " → " + r.status); return r; }); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+  function cssEsc(s) { return s.replace(/["\\]/g, "\\$&"); }
+  function relTime(sec) {   // R1: compact relative time for the modified-sort column (mtime = epoch seconds)
+    var d = Date.now() / 1000 - sec;
+    if (d < 90) return "now"; if (d < 3600) return Math.round(d / 60) + "m";
+    if (d < 86400) return Math.round(d / 3600) + "h"; return Math.round(d / 86400) + "d";
+  }
+  function inProject(relpath) { return !project || relpath.split("/").indexOf(project) !== -1; }
+  function hlmark(text, q) {
+    var e = esc(text), ql = q.toLowerCase(), el = e.toLowerCase(), out = "", i = 0, j;
+    while ((j = el.indexOf(ql, i)) !== -1) { out += e.slice(i, j) + "<mark>" + e.slice(j, j + q.length) + "</mark>"; i = j + q.length; }
+    return out + e.slice(i);
+  }
+
+  window.marked.use({ extensions: [{
+    name: "wikilink", level: "inline",
+    start: function (src) { return src.indexOf("[["); },
+    tokenizer: function (src) { var m = /^\[\[([^\]]+)\]\]/.exec(src);
+      if (m) return { type: "wikilink", raw: m[0], text: m[1] }; },
+    renderer: function (t) { return '<a href="[[' + esc(t.text) + ']]">' + esc(t.text) + "</a>"; },
+  }] });
+
+  // ===== navigation model: each pane holds a view + its own history (R30) =====
+  // view = {kind:'board'|'recent'|'doc'|'search', tree?, rel?, q?}
+  // Order everywhere is setFocus THEN render: render() dispatches an async fetch whose renderX
+  // rebuilds the TOC only once, when the new sections are ready — no empty-then-full TOC flash
+  // (R4). setFocus no longer touches the TOC, so the old TOC stays put during the fetch gap
+  // instead of collapsing the column and reflowing both panes.
+  function navigate(side, view, push) {
+    var p = PANES[side];
+    if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
+    if (side === "right") showRight(true);
+    setFocus(side); render(side);
+  }
+  function back(side) { var p = PANES[side]; if (p._hi > 0) { p._hi--; setFocus(side); render(side); } }
+  function highlightNav() {   // mark the nav item matching the left pane's current view (board/recent)
+    var k = PANES.left._view && PANES.left._view.kind;
+    document.querySelectorAll(".navbtn[data-go]").forEach(function (b) { b.classList.toggle("on", b.dataset.go === k); });
+  }
+  function render(side) {
+    var p = PANES[side], v = p._view = p._hist[p._hi];
+    if (!v) return;
+    if (v.kind === "doc") renderDoc(side, v);
+    else if (v.kind === "search") renderSearch(side, v);
+    else if (v.kind === "recent") renderRecent(side, v);
+    else if (v.kind === "diff") renderDiff(side, v);
+    else renderBoard(side, v);
+    if (side === "left") highlightNav();
+  }
+  function histLabel(v) {
+    if (!v) return "?";
+    if (v.kind === "doc") return "📄 " + v.rel.split("/").pop();
+    if (v.kind === "search") return "🔍 " + v.q;
+    if (v.kind === "diff") return "± " + v.card;
+    return (v.kind === "recent" ? "commits" : "board");
+  }
+  function paneHead(side, crumb, extra) {
+    var p = PANES[side];
+    var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back">◀</button>';
+    var hist = p._hist.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="history">' +
+      p._hist.map(function (v, i) { return '<option value="' + i + '"' + (i === p._hi ? " selected" : "") + ">" +
+        esc(histLabel(v)) + "</option>"; }).join("") + "</select>" : "";
+    var tools = side === "left"
+      ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
+        '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
+        '<button class="iconbtn" data-resetlayout="1" title="reset pane widths (equal / fill)">↺</button>'
+      : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
+    return '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>";
+  }
+  // sections: give each addressable block an id + record {text,depth} for the TOC/scroll-spy.
+  function tagSections(side, els, metas) {
+    var p = PANES[side]; p._sections = []; p._cur = 0;   // new content → current resets to the top
+    els.forEach(function (el, i) { el.id = "sec_" + side + "_" + i; p._sections.push(metas[i]); });
+  }
+
+  // --- doc view (R2/R3/R22/R29) ----------------------------------------------
+  function renderDoc(side, v) {
+    var pane = PANES[side], mt = 0;
+    api("/raw/" + v.tree + "/" + v.rel).then(function (r) { mt = +r.headers.get("X-Mtime") || 0; return r.text(); }).then(function (text) {
+      var fm = SV.parseFrontmatter(text), headings = collectHeadings(fm.body);
+      pane._doc = { tree: v.tree, rel: v.rel, body: fm.body, headings: headings, mtime: mt };   // R63: version
+      if (staleSides[side]) { delete staleSides[side]; showStale(); }   // freshly (re)loaded → not stale
+      pane.innerHTML = paneHead(side, v.tree + "/" + v.rel,
+          '<button class="iconbtn" data-docwidth title="reading width: measure / full">↔</button>') +
+        frontmatterTable(fm.fields) +
+        '<div class="docbody' + (docWidth === "full" ? " full" : "") + '">' + window.marked.parse(fm.body) + "</div>";
+      var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
+      tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
+      markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(pane.querySelector(".docbody"));
+      afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
+      highlightInTree(v.tree, v.rel);
+    }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
+      var is404 = / → 404$/.test(e.message);
+      pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
+        (is404 ? "📄 该文件不存在或已被移动。" : "无法打开：" + esc(e.message)) +
+        "<div class='hint'>" + esc(v.tree + "/" + v.rel) + "</div></div>";
+      pane._sections = []; if (focus === side) renderToc();
+    });
+  }
+  function frontmatterTable(f) {                    // R3: compact meta (status pill + key:value), not a table
+    var keys = Object.keys(f); if (!keys.length) return "";
+    var st = f.status ? '<span class="fm-st st-' + SV.statusTone(f.status) + '">' + esc(f.status) + "</span>" : "";
+    var kv = keys.filter(function (k) { return k !== "status" && k !== "title"; })
+      .map(function (k) { return '<span class="fm-kv"><b>' + esc(k) + "</b> " + esc(f[k]) + "</span>"; })
+      .join('<span class="fm-sep">·</span>');       // comp: fields split by a dot, not just whitespace
+    if (!st && !kv) return "";                        // no status + only title → no empty meta bar
+    return '<div class="frontmatter">' + st + kv + "</div>";
+  }
+  function collectHeadings(body) {
+    var out = []; body.split("\n").forEach(function (l, i) {
+      var m = l.match(/^(#{1,6})\s+(.+?)\s*#*$/); if (m) out.push({ depth: m[1].length, text: m[2].trim(), line: i }); });
+    return out;
+  }
+  function markLinks(body, tree, rel) {
+    body.querySelectorAll("a[href]").forEach(function (a) {
+      var raw = a.getAttribute("href"), key = SV.resolveLink(raw, tree, rel, TREES);
+      if (key) { var i = key.indexOf(":"); a.setAttribute("data-nav", "doc");
+        a.setAttribute("data-tree", key.slice(0, i)); a.setAttribute("data-rel", key.slice(i + 1)); a.removeAttribute("href"); }
+      else if (/^https?:\/\//i.test(raw)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+      else if (raw.charAt(0) === "#") { /* in-page anchor: leave it */ }
+      // R6: any other internal link is inert (broken) so a click can never navigate the whole
+      // window to a server 404 page.
+      else { a.classList.add("broken"); a.removeAttribute("href"); a.title = "unresolved: " + raw; }
+    });
+  }
+  var mermaidLoading = null;
+  function ensureMermaid() {
+    if (window.mermaid) return Promise.resolve(window.mermaid);
+    if (mermaidLoading) return mermaidLoading;
+    mermaidLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement("script"); s.src = "/assets/mermaid.min.js";
+      s.onload = function () { window.mermaid.initialize({ startOnLoad: false,
+        theme: (window.__effectiveTheme && window.__effectiveTheme() === "dark") ? "dark" : "default" }); resolve(window.mermaid); };
+      s.onerror = function () { reject(new Error("mermaid failed to load")); };
+      document.head.appendChild(s);
+    });
+    return mermaidLoading;
+  }
+  function renderMermaid(body) {
+    var blocks = body.querySelectorAll("pre > code.language-mermaid");
+    if (!blocks.length) return;
+    ensureMermaid().then(function (mermaid) {
+      blocks.forEach(function (code, i) {
+        var src = code.textContent, holder = document.createElement("div");
+        holder.className = "mermaid"; code.parentNode.replaceWith(holder);
+        mermaid.render("mmd" + Date.now() + i, src).then(function (res) { holder.innerHTML = res.svg; })
+          .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; });
+      });
+    }).catch(function () {});
+  }
+
+  // --- search view (R31/R32): results grouped by file ------------------------
+  var searchHideFile = {};   // R61: files hidden via the TOC filter, kept across searches
+  function renderSearch(side, v) {
+    var pane = PANES[side]; pane._doc = null;   // keep prior content until results arrive (R4: no flash)
+    api("/api/search?q=" + encodeURIComponent(v.q) + "&project=" + encodeURIComponent(project))
+      .then(function (r) { return r.json(); }).then(function (d) {
+        if (d.note) { pane.innerHTML = paneHead(side, "search") + "<p class='muted'>" + esc(d.note) + "</p>";
+          pane._sections = []; afterRender(side, null); return; }
+        var groups = SV.groupHits(d.hits);
+        pane.innerHTML = paneHead(side, "search: " + v.q + "  (" + d.hits.length + (d.truncated ? "+" : "") + ")") +
+          (groups.map(function (g) {          // R61: each file group wrapped so the TOC checkbox can hide it
+            return '<section class="grp" data-key="' + esc(g.tree + ":" + g.path) + '">' +
+              '<h2 class="sec"><a data-nav="doc" data-tree="' + g.tree + '" data-rel="' + esc(g.path) + '">' +
+              esc(g.tree + "/" + g.path) + "</a> <span class='muted'>(" + g.hits.length + ")</span></h2>" +
+              g.hits.map(function (h) { return "<div class='hit'>" + (h.line ? "<span class='muted'>:" + h.line + "</span> " : "") +
+                "<span class='snip'>" + hlmark(h.snippet, v.q) + "</span></div>"; }).join("") + "</section>";
+          }).join("") || emptyHtml("无匹配结果", "搜索: " + v.q));   // R10
+        applyGrpHidden(pane, searchHideFile);
+        var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
+        tagSections(side, secs, groups.map(function (g) { return { text: g.tree + "/" + g.path, depth: 1 }; }));
+        afterRender(side, ".hit, h2.sec", { set: searchHideFile, keys: groups.map(function (g) { return g.tree + ":" + g.path; }) });
+      }).catch(function (e) { pane.innerHTML = paneHead(side, "search") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+  }
+
+  // R10: unified empty/zero state (board filtered-to-empty, search no-match)
+  function emptyHtml(msg, sub) {
+    return '<div class="empty"><div class="big">◍</div><div class="msg">' + esc(msg) + "</div>" +
+      (sub ? '<div class="sub">' + esc(sub) + "</div>" : "") + "</div>";
+  }
+
+  // --- board view (R1/R16/R20/R32) -------------------------------------------
+  // Status filter lives in the bar (R56/R60, default hides done+dropped); project filter moved to
+  // the TOC checkboxes (R61). Both are display-only, kept across re-renders.
+  // R65: persist board view prefs (mode + status filter); project filter (boardHideProj) stays session-only.
+  var boardKanban = lsGet("sv-board-kanban") === "1";
+  var boardHideState = (function () { try { return JSON.parse(lsGet("sv-board-hide")) || { done: true, dropped: true }; }
+    catch (e) { return { done: true, dropped: true }; } })();
+  var boardHideProj = {};
+  // R64: board detail drawer — click a card to show its full details in a collapsible bottom drawer.
+  var boardCardMap = {}, boardSelected = null, detailOpen = true;
+  try { boardSelected = localStorage.getItem("sv-detail-card") || null; detailOpen = localStorage.getItem("sv-detail-open") !== "0"; } catch (e) {}
+  var STATE_ORDER = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
+  // R62: each sub-phase step ("label:state") links to its fixed doc; 评审 (notes/review-*.md is
+  // date-stamped) and not-yet-started phases (state "—") stay plain, non-linked.
+  var STEP_FILE = { "需求": "requirement.md", "设计": "design.md", "详设": "detail.md", "实现": "plan.md", "测试": "test.md" };
+  function renderBoard(side, v) {
+    var pane = PANES[side]; pane._doc = null;
+    api("/api/board").then(function (r) { return r.json(); }).then(function (board) {
+      var projs = Object.keys(board).filter(function (p) { return !project || p === project; });   // sidebar scope
+      var all = []; projs.forEach(function (p) { all = all.concat(board[p]); });
+      boardCardMap = {}; all.forEach(function (c) { boardCardMap[c.project + "/" + c.nnn] = c; });   // R64: detail-drawer lookup
+      var states = []; all.forEach(function (c) { if (states.indexOf(c.state) === -1) states.push(c.state); });
+      var cards = all.filter(function (c) { return !boardHideState[c.state]; });   // bar handles status
+      var body, tf;
+      if (boardKanban) {                            // kanban groups by status; project filter still applies
+        body = kanban(cards.filter(function (c) { return !boardHideProj[c.project]; })); tf = null;
+      } else {                                      // list groups by project; TOC checkboxes hide groups
+        var byProj = {}, order = [];
+        cards.forEach(function (c) { if (!byProj[c.project]) { byProj[c.project] = []; order.push(c.project); } byProj[c.project].push(c); });
+        body = list(order, byProj); tf = { set: boardHideProj, keys: order };
+      }
+      if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
+      pane.innerHTML = paneHead(side, "Board",
+        '<button class="iconbtn" id="tog_' + side + '">' + (boardKanban ? "list" : "kanban") + "</button>") +
+        boardFilters(states) + body + cardDetailHtml();
+      applyGrpHidden(pane, boardHideProj);
+      var tog = document.getElementById("tog_" + side);
+      if (tog) tog.onclick = function () { boardKanban = !boardKanban; lsSet("sv-board-kanban", boardKanban ? "1" : "0"); render(side); };
+      pane.querySelectorAll("[data-fstate]").forEach(function (b) {
+        b.onclick = function () { boardHideState[b.dataset.fstate] = !boardHideState[b.dataset.fstate];
+          lsSet("sv-board-hide", JSON.stringify(boardHideState)); render(side); }; });
+      var secs = [].slice.call(pane.querySelectorAll(boardKanban ? ".col h3" : "h2.sec"));
+      tagSections(side, secs, secs.map(function (s) { return { text: s.textContent, depth: 1 }; }));
+      afterRender(side, ".card, " + (boardKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+  }
+  function boardFilters(states) {                   // R60: status chips only (no dots), colored by status
+    var ss = STATE_ORDER.filter(function (s) { return states.indexOf(s) !== -1; })
+      .concat(states.filter(function (s) { return STATE_ORDER.indexOf(s) === -1; }));
+    var st = ss.map(function (s) { return '<button class="fchip' + (boardHideState[s] ? " off" : "") + '" data-fstate="' +
+      esc(s) + '" style="background:var(' + stVar(s) + ');color:var(--badge-fg);border-color:transparent">' + esc(s) + "</button>"; }).join("");
+    return '<div class="board-filters"><span class="flabel">状态</span>' + st + "</div>";
+  }
+  function applyGrpHidden(pane, set) {              // R61: reflect the hidden-set onto the group wrappers
+    pane.querySelectorAll("section.grp").forEach(function (g) { g.hidden = !!set[g.dataset.key]; });
+  }
+  function stClass(state) { return "st-" + SV.stName(state); }   // pure mappings live in SV (unit-tested)
+  function stVar(state) { return "--s-" + SV.stName(state); }
+  function stepHtml(c) {                           // R4/R62: gate-track — node+label per phase, linked to its doc
+    var base = c.project + "/" + c.dir + "/";
+    var line = c.steps.map(function (s) {
+      var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1);
+      var file = STEP_FILE[label], fill = SV.stepFill(state), gate = label === "实现" ? " gate" : "";
+      var title = esc(label + (state ? ": " + state : "")), inner = '<span class="node"></span><span class="lbl">' + esc(label) + "</span>";
+      return (file && state !== "—")
+        ? '<a class="phase ' + fill + gate + '" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"
+        : '<span class="phase ' + fill + gate + '" title="' + title + '">' + inner + "</span>";
+    }).join("");
+    var tail = '<a class="step" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>';
+    if (window.GITWEB_URL) {   // R3/R6: cross-origin deep-link into the gitweb companion (+ card branch)
+      tail += ' <a class="step" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
+        "?p=" + encodeURIComponent(c.project) + ";a=summary" +
+        (c.branch ? ";h=refs/heads/" + encodeURIComponent(c.branch) : "") + '">code</a>';
+    }
+    return line + '<span class="tail">' + tail + "</span>";
+  }
+  function cardHtml(c) {
+    var st = stClass(c.state), title = esc(c.dir.replace(/^\d+-/, ""));   // dir minus the NNN- prefix (shown in eyebrow)
+    var key = c.project + "/" + c.nnn, sel = key === boardSelected ? " selected" : "";
+    var eyebrow = '<div class="eyebrow"><span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
+      '<span class="pn">' + esc(c.project) + " · " + esc(c.nnn) + "</span>" +
+      (c.deps && c.deps !== "—" ? '<span class="badge dep">deps ' + esc(c.deps) + "</span>" : "") + "</div>";
+    var nn = '<dl class="nn">' + (c.now ? '<dd class="now" title="' + esc(c.now) + '">' + esc(c.now) + "</dd>" : "") +
+      '<dd class="next" title="' + esc(c.effective_next) + '">' + esc(c.effective_next) + "</dd></dl>";
+    return '<div class="card ' + st + sel + '" data-key="' + esc(key) + '">' + eyebrow +
+      '<div class="title" title="' + title + '">' + title + "</div>" + nn +
+      '<div class="steps">' + stepHtml(c) + "</div></div>";
+  }
+  // R64: the detail drawer for the currently-selected card (empty string when none selected / not in view).
+  function cardDetailHtml() {
+    var c = boardSelected && boardCardMap[boardSelected]; if (!c) return "";
+    var st = stClass(c.state), base = c.project + "/" + c.dir + "/", title = esc(c.dir.replace(/^\d+-/, ""));
+    var phases = c.steps.map(function (s) {
+      var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1), file = STEP_FILE[label];
+      var body = esc(label) + (state && state !== "—" ? ' <span class="cd-ps">' + esc(state) + "</span>" : ' <span class="cd-ps dim">—</span>');
+      return (file && state !== "—")
+        ? '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '">' + body + "</a>"
+        : '<span class="cd-phase">' + body + "</span>";
+    }).join("");
+    function row(k, v) { return v && v !== "—" ? '<div class="cd-row"><span class="cd-k">' + k + '</span><span class="cd-v">' + esc(v) + "</span></div>" : ""; }
+    return '<div class="card-detail' + (detailOpen ? " open" : "") + '">' +
+      '<div class="cd-bar" data-cd-toggle><span class="cd-caret"></span>' +
+        '<span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
+        '<span class="cd-title">' + esc(c.project) + " · " + esc(c.nnn) + " — " + title + "</span>" +
+        '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
+      '<div class="cd-body">' + row("Now", c.now) + row("Next", c.effective_next) + row("Deps", c.deps) + row("Branch", c.branch) +
+        '<div class="cd-row"><span class="cd-k">阶段</span><span class="cd-phases">' + phases + "</span></div>" +
+        '<div class="cd-row"><span class="cd-k">文档</span><span class="cd-phases">' +
+          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
+          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +
+          '<a class="cd-phase diff" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>' +
+          (window.GITWEB_URL ? '<a class="cd-phase diff" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
+            "?p=" + encodeURIComponent(c.project) + ";a=summary" + (c.branch ? ";h=refs/heads/" + encodeURIComponent(c.branch) : "") + '">code ↗</a>' : "") +
+        "</span></div>" +
+      "</div></div>";
+  }
+  // R64: reflect selection + drawer in place (no board re-fetch).
+  function updateDetail(side) {
+    var pane = PANES[side];
+    pane.querySelectorAll(".card").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
+    var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
+    if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
+    else if (html) pane.insertAdjacentHTML("beforeend", html);
+  }
+  function list(order, byProj) {                    // R61: each project group wrapped so the TOC can hide it
+    return order.map(function (p) {
+      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
+        ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
+        '<div class="board">' + byProj[p].map(cardHtml).join("") + "</div></section>"; }).join("");
+  }
+  function kanban(cards) {
+    var cols = {}, order = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
+    cards.forEach(function (c) { (cols[c.state] = cols[c.state] || []).push(c); });
+    var keys = order.filter(function (k) { return cols[k]; }).concat(Object.keys(cols).filter(function (k) { return order.indexOf(k) === -1; }));
+    return '<div class="board kanban">' + keys.map(function (k) {
+      return '<div class="col" style="--lane:var(' + stVar(k) + ')"><h3><span class="sw"></span><span class="nm">' +
+        esc(k) + '</span><span class="ct">' + cols[k].length + "</span></h3>" +
+        cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
+  }
+
+  // --- recent view (R32): commit list, TOC = subjects ------------------------
+  function renderRecent(side, v) {
+    var pane = PANES[side]; pane._doc = null;   // keep prior content until the log arrives (R4)
+    api("/api/log?n=25").then(function (r) { return r.text(); }).then(function (text) {
+      var commits = splitCommits(text);
+      pane.innerHTML = paneHead(side, "Recent commits") + commits.map(function (c) {
+        return '<h2 class="sec commit">' + esc(c.subject) + "</h2><pre class='diff'>" + SV.colorizeDiff(c.body) + "</pre>";
+      }).join("");
+      var secs = [].slice.call(pane.querySelectorAll("h2.commit"));
+      tagSections(side, secs, commits.map(function (c) { return { text: c.subject, depth: 1 }; }));
+      afterRender(side, "h2.commit");   // R52
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "Recent") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+  }
+  function splitCommits(text) {
+    var parts = text.split(/\n(?=commit [0-9a-f]{7,})/), out = [];
+    parts.forEach(function (block) {
+      if (!/^commit /.test(block)) return;
+      var m = block.match(/\n\n\s{4}(.+)/);           // git indents the subject 4 spaces
+      out.push({ subject: m ? m[1].trim() : block.slice(0, 60), body: block });
+    });
+    return out;
+  }
+
+  // --- TOC (R23/R29/R32): the focused pane's sections; scroll-spy = current line
+  function renderToc() {
+    var p = PANES[focus], secs = p._sections || [], tf = p._tocFilter;
+    if (!secs.length) { showToc(false); tocPane.innerHTML = ""; return; }
+    tocPane.innerHTML = '<div class="toc-inner"><div class="toc-title">' + (tf ? "filter · contents" : "contents") + "</div>" +
+      secs.map(function (s, i) {
+        var a = '<a data-toc="' + i + '" style="padding-left:' + ((s.depth - 1) * 10) + 'px">' + esc(s.text) + "</a>";
+        if (!tf) return a;                          // R61: a checkbox per entry filters the pane (board/search)
+        return '<div class="toc-row"><input type="checkbox" class="tocf" data-tocf="' + i + '"' +
+          (tf.set[tf.keys[i]] ? "" : " checked") + ">" + a + "</div>";
+      }).join("") + "</div>";
+    showToc(true); markCurrent();
+  }
+  function markCurrent() {                       // sync the TOC's active entry to pane._cur (R29)
+    tocPane.querySelectorAll("a.cur").forEach(function (a) { a.classList.remove("cur"); });
+    var ta = tocPane.querySelector('a[data-toc="' + PANES[focus]._cur + '"]'); if (ta) ta.classList.add("cur");
+  }
+  function sectionOf(side, el) {                  // nearest section id at/above el (document order)
+    var p = PANES[side], idx = 0;
+    for (var i = 0; i < p._sections.length; i++) {
+      var sec = document.getElementById("sec_" + side + "_" + i); if (!sec) continue;
+      if (sec.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING || sec === el) idx = i; else break;
+    }
+    return idx;
+  }
+  // R2: the current line is a SINGLE wrapped line, not the whole block. Find the line-box rect in
+  // `blk` under clientY (or the block's first line when set programmatically / as the default).
+  function lineBand(blk, clientY) {
+    var range = document.createRange(); range.selectNodeContents(blk);
+    var rects = [].slice.call(range.getClientRects()).filter(function (r) { return r.width > 1 && r.height > 1; });
+    if (!rects.length) return blk.getBoundingClientRect();
+    if (clientY == null) return rects[0];
+    for (var i = 0; i < rects.length; i++) if (clientY >= rects[i].top - 2 && clientY <= rects[i].bottom + 2) return rects[i];
+    return rects[0];
+  }
+  // The current marker is set ONLY by a click / TOC jump / default (R40/R52) — never by scroll (R6).
+  // It drives the TOC's active entry and dims when the pane is unfocused (R3). The overlay is a pane
+  // child (so it scrolls with the content, under the sticky header) covering a single wrapped line in
+  // a doc, or the whole clicked block (card / hit / commit) in board / search / recent.
+  function setCurLine(side, blk, clientY) {
+    var p = PANES[side]; if (!blk) return;
+    var ov = p.querySelector(".curline-ov");
+    if (!ov) { ov = document.createElement("div"); ov.className = "curline-ov"; p.appendChild(ov); }
+    var paneR = p.getBoundingClientRect(), isDoc = p._view && p._view.kind === "doc" && blk.closest(".docbody");
+    var top, height, left, width;
+    if (isDoc) { var dbR = blk.closest(".docbody").getBoundingClientRect(), lb = lineBand(blk, clientY);
+      top = lb.top; height = lb.height; left = dbR.left; width = dbR.width; }
+    else { var r = blk.getBoundingClientRect(); top = r.top; height = r.height; left = r.left; width = r.width; }
+    ov.style.top = (top - paneR.top + p.scrollTop) + "px"; ov.style.height = height + "px";
+    ov.style.left = (left - paneR.left + p.scrollLeft) + "px"; ov.style.width = width + "px";
+    ov.style.display = "block";
+    p._curEl = blk; p._cur = sectionOf(side, blk); if (focus === side) markCurrent();
+  }
+  // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
+  // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
+  function afterRender(side, blockSel, tocFilter) {
+    var p = PANES[side]; p._blockSel = blockSel; p._tocFilter = tocFilter || null;   // R61
+    if (focus === side) renderToc();
+    // R64: start the current-line marker on the selected card (if any) rather than the first block.
+    var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
+    if (first) setCurLine(side, first);
+  }
+  ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
+    PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block
+      var sel = PANES[s]._blockSel; if (!sel) return;
+      var blk = e.target.closest(sel); if (blk && PANES[s].contains(blk)) setCurLine(s, blk, e.clientY);
+    });
+  });
+
+  // --- sidebar: project selector + tree (R13/R19/R25) ------------------------
+  function loadTree() {
+    return api("/api/tree").then(function (r) { return r.json(); }).then(function (t) {
+      RAW = t;
+      TREES.dev = new Map(t.dev.map(function (it) { return [it.path.toLowerCase(), it.path]; }));
+      TREES.kb = new Map(t.kb.map(function (it) { return [it.path.toLowerCase(), it.path]; }));
+      fillProjects(t); renderTree();
+    });
+  }
+  function fillProjects(t) {
+    var dp = t.dev.map(function (x) { return x.path; }), kp = t.kb.map(function (x) { return x.path; });
+    projSel.innerHTML = ['<option value="">all projects</option>'].concat(
+      SV.projectsFromTree(dp, kp).map(function (p) { return "<option>" + esc(p) + "</option>"; })).join("");
+    projSel.value = project; project = projSel.value;   // R65: reflect the persisted scope; reconcile if it no longer exists
+  }
+  function renderTree() {
+    function scope(items) { return items.filter(function (it) { return inProject(it.path); }); }
+    treeEl.innerHTML = treeSection("dev", scope(RAW.dev)) + treeSection("kb", scope(RAW.kb));
+    applyTreeOpen();
+    updateFilterUI();
+    // rebuilding innerHTML drops the open-doc highlight; restore it (same as refreshTree) so sort/filter/scope keep it
+    visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") highlightInTree(v.tree, v.rel); });
+  }
+  function updateFilterUI() {   // R3/R4: hit count over the scoped-in sections
+    if (!document.getElementById("filterbox")) return;
+    var q = treeFilter.toLowerCase(), scoped = filterScope.dev || filterScope.kb, n = 0;
+    ["dev", "kb"].forEach(function (t) {
+      if (treeFilter && filterScope[t]) n += RAW[t].filter(function (it) {
+        return inProject(it.path) && it.path.split("/").pop().toLowerCase().indexOf(q) !== -1; }).length;
+    });
+    // blank when both scopes are off — the tree is shown in full, so a "0 hits" label would contradict it
+    document.getElementById("fcount").textContent = (treeFilter && scoped) ? n + " hits" : "";
+  }
+  // R63: identify a folder by its path (summary names root→here) so open/closed state survives a reload.
+  function treePathKey(det) {
+    var parts = [], el = det;
+    while (el && el !== treeEl) {
+      if (el.tagName === "DETAILS" && el.dataset.name) parts.unshift(el.dataset.name);   // data-name is stable vs summary text (which now carries sort controls / mtime)
+      el = el.parentElement;
+    }
+    return parts.join("/");
+  }
+  // R65: persist which folders are open (localStorage). Toggle → save; render → apply (so it survives reloads
+  // AND the R63 live-refresh). No saved state yet → keep the HTML defaults (roots open, nested closed).
+  var treeApplying = false;
+  function persistTreeOpen() {
+    if (treeApplying || treeFilter) return;   // R3: folds shown while filtering are transient (force-open) — never persist them
+    var open = []; treeEl.querySelectorAll("details").forEach(function (d) { if (d.open) open.push(treePathKey(d)); });
+    lsSet("sv-tree-open", JSON.stringify(open));
+  }
+  function applyTreeOpen() {
+    var raw = lsGet("sv-tree-open"); if (!raw) return;
+    var set = {}; try { JSON.parse(raw).forEach(function (k) { set[k] = 1; }); } catch (e) { return; }
+    treeApplying = true;
+    treeEl.querySelectorAll("details").forEach(function (d) {
+      if (d.closest("[data-filtered]")) return;   // R3: a filtered section keeps its force-open render (don't restore saved folds)
+      d.open = !!set[treePathKey(d)];
+    });
+    treeApplying = false;
+  }
+  // R63: live-refresh the tree (file add/remove) without yanking — open folders come back via applyTreeOpen.
+  function refreshTree() {
+    var sc = treeEl.scrollTop;
+    return loadTree().then(function () {
+      visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") highlightInTree(v.tree, v.rel); });
+      treeEl.scrollTop = sc;
+    });
+  }
+  function treeSection(tree, items) {
+    var sc = treeSort[tree], filt = (treeFilter && filterScope[tree]) ? treeFilter.toLowerCase() : "";   // R4: scope off → filt "" → unfiltered render
+    var kids = nodeHtml(tree, SV.buildTree(items), 0, SV.sortCmp(sc.key, sc.dir), sc.key, filt);
+    if (filt && !kids) kids = '<div class="none">无匹配</div>';   // R3: a scoped-in section with zero matches shows a note, not a bare header
+    return '<details open data-name="' + tree + '"' + (filt ? " data-filtered" : "") + '><summary>' + tree + " · " + items.length + secctl(tree) +
+      "</summary>" + kids + "</details>";
+  }
+  function dirMatches(node, filt) {   // R3: a folder survives the filter iff some descendant file matches
+    return node.files.some(function (f) { return f.name.toLowerCase().indexOf(filt) !== -1; }) ||
+      Object.keys(node.dirs).some(function (d) { return dirMatches(node.dirs[d], filt); });
+  }
+  function secctl(tree) {   // R1: per-section sort/collapse controls (A/T + arrow + F); keyboard-reachable (tabindex/role + treeEl keydown)
+    var sc = treeSort[tree];
+    function b(act, label, title) { return '<span class="sx" tabindex="0" role="button" data-act="' + act + '" title="' + title + '" aria-label="' + title + '">' + label + "</span>"; }
+    return '<span class="secctl" data-tree="' + tree + '">' +
+      b("key", sc.key === "mtime" ? "T" : "A", "sort: name (A) / modified (T)") +
+      b("dir", sc.dir > 0 ? "↑" : "↓", "sort direction") +
+      b("collapse", "F", "collapse section folders · activate again to restore") + "</span>";
+  }
+  function nodeHtml(tree, node, depth, cmp, sortKey, filt) {
+    depth = depth || 0;
+    var pad = ' style="padding-left:' + (6 + depth * 14) + 'px"', h = "";
+    var dirs = Object.keys(node.dirs).map(function (d) { return { name: d, node: node.dirs[d], mtime: node.dirs[d].mtime }; });
+    dirs.sort(cmp);   // folders always render before files → folders-first regardless of sort
+    dirs.forEach(function (e) {
+      if (filt && !dirMatches(e.node, filt)) return;   // R3: prune folders with no matching descendant
+      var w = sortKey === "mtime" ? '<span class="when">' + relTime(e.mtime) + "</span>" : "";
+      h += '<details class="kids" data-name="' + esc(e.name) + '"' + (filt ? " open" : "") + '><summary' + pad + '><span class="arrow"></span>' + esc(e.name) + w + "</summary>" +
+        nodeHtml(tree, e.node, depth + 1, cmp, sortKey, filt) + "</details>";
+    });
+    node.files.slice().sort(cmp).forEach(function (f) {
+      if (filt && f.name.toLowerCase().indexOf(filt) === -1) return;   // R3: only matching files
+      var w = sortKey === "mtime" ? '<span class="when">' + relTime(f.mtime) + "</span>" : "";
+      h += '<a class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
+        '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + w + "</a>";
+    });
+    return h;
+  }
+  function highlightInTree(tree, rel) {
+    treeEl.querySelectorAll(".file.active").forEach(function (a) { a.classList.remove("active"); });
+    var a = treeEl.querySelector('a.file[data-tree="' + tree + '"][data-rel="' + cssEsc(rel) + '"]');
+    if (!a) return;
+    a.classList.add("active");
+    for (var el = a.parentElement; el && el !== treeEl; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true;
+    a.scrollIntoView({ block: "nearest" });
+  }
+
+  // --- panes: show/collapse/resize (R24/R26/R27) -----------------------------
+  // Layout model (R58): exactly one pane is the elastic "filler"; the others are fixed-width.
+  //   right open      → RIGHT fills;  left = leftW, toc = tocW (both fixed).
+  //   single + custom → TOC fills;    left = leftW (fixed) — so opening/closing the right pane NEVER
+  //                                   changes the left width once it has been customized.
+  //   single + auto   → LEFT fills;   toc = tocW. Opening right equal-splits; the reset button (R59)
+  //                                   returns to this auto state.
+  function applyLayout() {
+    var L = PANES.left, open = PANES.right.classList.contains("show"), tw = layoutState.tocW || 240;
+    if (open && !layoutState.leftW) layoutState.leftW = Math.max(200, Math.round(L.getBoundingClientRect().width / 2));
+    if (open) {
+      L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
+      PANES.right.style.flex = "1 1 0"; PANES.right.style.width = "auto";
+      tocPane.style.flex = "none"; tocPane.style.width = tw + "px";
+    } else if (layoutState.leftCustom && tocPane.classList.contains("show")) {
+      L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
+      tocPane.style.flex = "1 1 0"; tocPane.style.width = "auto";
+    } else {
+      L.style.flex = ""; L.style.width = "";
+      tocPane.style.flex = "none"; tocPane.style.width = tw + "px";
+    }
+  }
+  function showRight(on) {
+    var was = PANES.right.classList.contains("show");
+    if (on && !was && !layoutState.leftCustom)          // auto: equal-split from the current fill width
+      layoutState.leftW = Math.max(200, Math.round((PANES.left.getBoundingClientRect().width - 6) / 2));
+    PANES.right.classList.toggle("show", on); gutterFor("rightpane").classList.toggle("show", on);
+    applyLayout();
+  }
+  function resetLayout() {                               // R59: back to auto (left fills / equal split)
+    layoutState.leftCustom = false; layoutState.tocW = 240;
+    layoutState.leftW = PANES.right.classList.contains("show")
+      ? Math.max(200, Math.round((PANES.left.getBoundingClientRect().width + PANES.right.getBoundingClientRect().width) / 2))
+      : null;
+    applyLayout();
+  }
+  function showToc(on) { tocPane.classList.toggle("show", on); gutterFor("toc").classList.toggle("show", on); applyLayout(); }
+  function gutterFor(name) { return document.querySelector('.gutter[data-resize="' + name + '"]'); }
+  // setFocus only flips the focus flag + classes; TOC rebuilds happen in renderX (after sections
+  // are ready) or explicitly on a focus change that doesn't re-render (pane mousedown) — R4.
+  function setFocus(side) {                    // _hi>=0 (not _view): setFocus runs before render sets _view
+    focus = side;
+    PANES.left.classList.toggle("focused", side === "left" && PANES.left._hi >= 0);
+    PANES.right.classList.toggle("focused", side === "right" && PANES.right._hi >= 0);
+  }
+  document.querySelectorAll("[data-collapse]").forEach(function (b) {
+    b.onclick = function () {
+      var el = document.getElementById(b.dataset.collapse); el.classList.toggle("collapsed");
+      var g = gutterFor(b.dataset.collapse); if (g) g.classList.toggle("hidden", el.classList.contains("collapsed"));
+      if (b.dataset.collapse === "side") document.getElementById("reopen").classList.toggle("show", el.classList.contains("collapsed"));
+    };
+  });
+  document.getElementById("reopen").onclick = function () {
+    document.getElementById("side").classList.remove("collapsed");
+    gutterFor("side").classList.remove("hidden"); this.classList.remove("show");
+  };
+  // Each gutter drags the boundary next to it; the model's current filler (right / toc / left)
+  // absorbs the change. The two dividers bordering the LEFT pane customize+freeze its width (R58).
+  document.querySelectorAll(".gutter").forEach(function (g) {
+    g.addEventListener("mousedown", function (e) {
+      e.preventDefault();
+      var name = g.dataset.resize, startX = e.clientX, rightOpen = PANES.right.classList.contains("show"), move;
+      var singleAutoToc = name === "toc" && !rightOpen && !layoutState.leftCustom;
+      function up() {
+        document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); document.body.style.userSelect = "";
+        if (singleAutoToc) {                            // first single-pane TOC drag freezes the left width (R58)
+          layoutState.leftCustom = true; layoutState.leftW = PANES.left.getBoundingClientRect().width; applyLayout(); }
+      }
+      if (name === "side") {
+        var sideEl = document.getElementById("side"), sw = sideEl.getBoundingClientRect().width;
+        move = function (ev) { sideEl.style.flex = "none"; sideEl.style.width = Math.max(140, sw + (ev.clientX - startX)) + "px"; };
+      } else if (name === "rightpane" || (name === "toc" && !rightOpen && layoutState.leftCustom)) {
+        var lw = PANES.left.getBoundingClientRect().width;   // left|right, or left|toc(custom) → resize LEFT
+        move = function (ev) { layoutState.leftW = Math.max(200, lw + (ev.clientX - startX)); layoutState.leftCustom = true; applyLayout(); };
+      } else {                                          // a TOC divider with the filler on the other side → resize TOC
+        var tw = tocPane.getBoundingClientRect().width;
+        move = function (ev) { layoutState.tocW = Math.max(140, tw - (ev.clientX - startX)); applyLayout(); };
+      }
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+    });
+  });
+
+  // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
+  document.addEventListener("click", function (e) {
+    var t;
+    if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
+      var i = +t.dataset.toc, sec = document.getElementById("sec_" + focus + "_" + i);
+      if (sec) { sec.scrollIntoView({ block: "start",
+          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        PANES[focus]._cur = i; setCurLine(focus, sec); markCurrent(); } return; }   // R6: TOC follows the line
+    if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
+    if ((t = e.target.closest("[data-closeright]"))) { PANES.right.innerHTML = ""; PANES.right._view = null;
+      PANES.right._hist = []; PANES.right._hi = -1; showRight(false); if (focus === "right") setFocus("left"); return; }
+    if ((t = e.target.closest("[data-mirror]"))) { e.preventDefault();
+      if (PANES.left._view) navigate("right", Object.assign({}, PANES.left._view)); return; }
+    if ((t = e.target.closest("[data-swap]"))) { e.preventDefault(); swapPanes(); return; }
+    if ((t = e.target.closest("[data-resetlayout]"))) { e.preventDefault(); resetLayout(); return; }
+    if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R11: toggle reading width, persist
+      docWidth = docWidth === "full" ? "measure" : "full";
+      try { localStorage.setItem("sv-docwidth", docWidth); } catch (ex) {}
+      document.querySelectorAll(".docbody").forEach(function (d) { d.classList.toggle("full", docWidth === "full"); });
+      return; }
+    if ((t = e.target.closest("[data-cd-close]"))) { e.preventDefault();   // R64: deselect → drop the drawer
+      boardSelected = null; try { localStorage.removeItem("sv-detail-card"); } catch (ex) {}
+      updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
+    if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
+      detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
+      var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
+    if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
+      var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
+      if (kind === "doc") navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });
+      else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
+      return; }
+    if ((t = e.target.closest(".card")) && t.dataset.key) {                 // R64: select a card → detail drawer
+      boardSelected = t.dataset.key; detailOpen = true;
+      try { localStorage.setItem("sv-detail-card", boardSelected); localStorage.setItem("sv-detail-open", "1"); } catch (ex) {}
+      updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
+  });
+  function swapPanes() {
+    var L = PANES.left, R = PANES.right;
+    var tmp = { h: L._hist, i: L._hi }; L._hist = R._hist; L._hi = R._hi; R._hist = tmp.h; R._hi = tmp.i;
+    setFocus("left");
+    if (!R._hist.length) { showRight(false); } else { showRight(true); render("right"); }
+    if (L._hist.length) render("left"); else { L.innerHTML = ""; renderToc(); }
+  }
+  function renderDiff(side, v) {
+    var pane = PANES[side]; pane._doc = null;
+    api("/api/diff?card=" + encodeURIComponent(v.card)).then(function (r) { return r.text(); }).then(function (t) {
+      pane.innerHTML = paneHead(side, "diff " + v.card) + "<pre class='diff'>" + SV.colorizeDiff(t) + "</pre>";
+      pane._sections = []; afterRender(side, "pre.diff");   // R52 (no sections → no TOC; the pre is the block)
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "diff") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+  }
+
+  // R30: jump to any point in a pane's history via the dropdown
+  document.addEventListener("change", function (e) {
+    var chk = e.target.closest("input.tocf");       // R61: TOC filter checkbox → hide/show that group
+    if (chk) { var pf = PANES[focus], tf = pf._tocFilter; if (!tf) return;
+      var key = tf.keys[+chk.dataset.tocf]; tf.set[key] = !chk.checked;
+      var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
+      return; }
+    var sel = e.target.closest("select[data-hist]"); if (!sel) return;
+    var side = sel.dataset.hist; PANES[side]._hi = +sel.value; setFocus(side); render(side);
+  });
+  // R6 fix: shift-clicking a nav target must not extend the text selection / flash.
+  document.addEventListener("mousedown", function (e) {
+    if (e.shiftKey && e.target.closest("[data-nav],[data-go],[data-toc]")) e.preventDefault();
+  });
+  PANES.left.addEventListener("mousedown", function () { if (PANES.left._view && focus !== "left") { setFocus("left"); renderToc(); } });
+  PANES.right.addEventListener("mousedown", function () { if (PANES.right._view && focus !== "right") { setFocus("right"); renderToc(); } });
+
+  // --- comment basket (R2/R9): select text in a doc → 'c' or the floating 💬 button ----------
+  var cmtBtn = document.getElementById("cmt");
+  function addComment() {
+    var doc = PANES[focus] && PANES[focus]._doc; if (!doc) return;
+    var sel = String(window.getSelection()); if (!sel.trim()) return;
+    var first = sel.split("\n")[0].trim(), lines = doc.body.split("\n"), start = 0;
+    for (var i = 0; i < lines.length; i++) { if (first && lines[i].indexOf(first) !== -1) { start = i; break; } }
+    basket.push(SV.commentBlock(doc.tree, doc.rel, doc.headings, start, sel)); renderBasket();
+    window.getSelection().removeAllRanges(); cmtBtn.style.display = "none";
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "c") return;
+    var t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    addComment();
+  });
+  cmtBtn.addEventListener("mousedown", function (e) { e.preventDefault(); });   // keep the selection alive
+  cmtBtn.addEventListener("click", addComment);
+  document.addEventListener("mouseup", function () {                            // show 💬 by the selection
+    setTimeout(function () {
+      var sel = window.getSelection(), doc = PANES[focus] && PANES[focus]._doc;
+      if (doc && sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode)) {
+        var r = sel.getRangeAt(0).getBoundingClientRect();
+        cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, r.left) + "px";
+        cmtBtn.style.display = "block";
+      } else if (document.activeElement !== cmtBtn) cmtBtn.style.display = "none";
+    }, 0);
+  });
+  function renderBasket() {
+    document.getElementById("basket-list").innerHTML =
+      basket.map(function (b) { return "<li><code>" + esc(b.split("\n")[0]) + "</code></li>"; }).join("");
+    document.getElementById("basket").classList.toggle("show", basket.length > 0);
+  }
+  document.getElementById("basket-copy").onclick = function () {
+    var text = basket.join("\n\n");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    else fallbackCopy(text);
+  };
+  document.getElementById("basket-clear").onclick = function () { basket = []; renderBasket(); };
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta);
+  }
+
+  // --- wiring ----------------------------------------------------------------
+  projSel.onchange = function () { project = projSel.value; lsSet("sv-project", project); renderTree(); navigate("left", PANES.left._view || { kind: "board" }); };
+  treeEl.addEventListener("toggle", persistTreeOpen, true);   // R65: persist folder open/closed on user toggle (toggle doesn't bubble → capture)
+  function sxActivate(c, e) {   // R1/R2: activate a section sort/collapse control (click or Enter/Space); preventDefault stops the <details> toggle
+    e.preventDefault(); e.stopPropagation();
+    var tree = c.parentNode.dataset.tree, act = c.dataset.act;
+    if (act === "collapse") { collapseSection(tree, c.closest("details[data-name]")); return; }   // no renderTree → focus stays
+    var s = treeSort[tree];
+    if (act === "key") { s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; }
+    else { s.dir = -s.dir; }
+    lsSet("sv-tree-sort", JSON.stringify(treeSort)); renderTree();
+    var re = treeEl.querySelector('.secctl[data-tree="' + tree + '"] .sx[data-act="' + act + '"]'); if (re) re.focus();   // keep keyboard focus on the rebuilt control
+  }
+  treeEl.addEventListener("click", function (e) { var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
+  treeEl.addEventListener("keydown", function (e) { if (e.key !== "Enter" && e.key !== " ") return; var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
+  // R2: F collapses this section's folders; if already fully collapsed, restores the pre-collapse set.
+  // Decision keys off live DOM state (any folder open?), NOT a flag — <details> toggle events are async,
+  // so a flag reset synchronously would be clobbered when the programmatic toggles fire later.
+  function collapseSection(tree, sectionDet) {
+    var folders = sectionDet.querySelectorAll("details");   // descendants only (not the section <details> itself)
+    var anyOpen = false; folders.forEach(function (d) { if (d.open) anyOpen = true; });
+    treeApplying = true;
+    if (anyOpen) {                                            // snapshot the open set, then collapse
+      var cur = {}; folders.forEach(function (d) { if (d.open) cur[treePathKey(d)] = 1; });
+      treeSnap[tree] = cur;
+      folders.forEach(function (d) { d.open = false; });
+    } else if (treeSnap[tree]) {                              // fully collapsed + have a snapshot → restore
+      var snap = treeSnap[tree]; treeSnap[tree] = null;
+      folders.forEach(function (d) { d.open = !!snap[treePathKey(d)]; });
+    }
+    treeApplying = false; persistTreeOpen();
+  }
+  var treeFilterEl = document.getElementById("treeFilter");   // R3: bottom filename filter
+  treeFilterEl.addEventListener("input", function () { treeFilter = treeFilterEl.value.trim(); renderTree(); });
+  treeFilterEl.addEventListener("keydown", function (e) { if (e.key === "Escape") { treeFilter = ""; treeFilterEl.value = ""; renderTree(); } });
+  ["dev", "kb"].forEach(function (t) {   // R4: dev/kb scope — off means "don't filter this section" (shown in full)
+    var b = document.getElementById("fscope-" + t);
+    b.classList.toggle("off", !filterScope[t]);
+    b.addEventListener("click", function () {
+      filterScope[t] = !filterScope[t]; b.classList.toggle("off", !filterScope[t]);
+      lsSet("sv-tree-scope", JSON.stringify(filterScope)); renderTree();
+    });
+  });
+
+  // --- R6/R7/R8: bounded "recent use" histories (filter terms / opened files / search terms) in localStorage ---
+  var RecentStore = {
+    list: function (kind) { try { return JSON.parse(lsGet("sv-recent-" + kind)) || []; } catch (e) { return []; } },
+    record: function (kind, item) { if (item) lsSet("sv-recent-" + kind, JSON.stringify(SV.recentPush(this.list(kind), item, 8))); },
+    clear: function () { ["filter", "opened", "search"].forEach(function (k) { try { localStorage.removeItem("sv-recent-" + k); } catch (e) {} }); }
+  };
+  function fillDatalist(id, kind) {   // R6/R8: recent terms surface as native <datalist> options on the input
+    var dl = document.getElementById(id); if (!dl) return;
+    dl.innerHTML = RecentStore.list(kind).map(function (v) { return '<option value="' + esc(v) + '">'; }).join("");
+  }
+  fillDatalist("recent-filters", "filter"); fillDatalist("recent-searches", "search");
+  function recordFilter() { var v = treeFilterEl.value.trim(); if (v) { RecentStore.record("filter", v); fillDatalist("recent-filters", "filter"); } }
+  treeFilterEl.addEventListener("blur", recordFilter);   // R6: record complete filter terms (blur/Enter), not partials
+  treeFilterEl.addEventListener("keydown", function (e) { if (e.key === "Enter") recordFilter(); });
+
+  // --- R5: quick-open palette (⌘K/Ctrl-K) — filename/path fuzzy jump ---
+  var qoBack = document.getElementById("qo-back"), qoEl = document.getElementById("qo"),
+      qoInput = document.getElementById("qoInput"), qoList = document.getElementById("qoList");
+  var qoRows = [], qoSel = 0;
+  function qoCandidates() {   // all files, both trees — a global finder (ignores project scope by design)
+    function map(tree) { return RAW[tree].map(function (x) {
+      return { kind: "file", tree: tree, path: x.path, full: tree + "/" + x.path, name: x.path.split("/").pop(), mtime: x.mtime }; }); }
+    return map("dev").concat(map("kb"));
+  }
+  function markRange(str, off, set) { var o = ""; for (var i = 0; i < str.length; i++) o += set[off + i] ? "<mark>" + esc(str[i]) + "</mark>" : esc(str[i]); return o; }
+  function qoNav() {   // R5: jump targets folded into the palette; gitweb only when the companion URL is present
+    var nav = [
+      { kind: "go", id: "board", name: "Board", tag: "VIEW", hint: "board view", search: "board" },
+      { kind: "go", id: "recent", name: "Recent", tag: "VIEW", hint: "recent commits", search: "recent commits" }
+    ];
+    if (window.GITWEB_URL) nav.push({ kind: "ext", id: "gitweb", name: "浏览代码 · gitweb", tag: "EXT", hint: "gitweb — all repos", search: "gitweb code 浏览代码", url: window.GITWEB_URL });
+    return nav;
+  }
+  function qoRender(q) {
+    var rows = [];
+    if (!q) {
+      qoNav().forEach(function (c) { rows.push({ c: c, idx: [] }); });   // nav pinned on top
+      var byFull = {}; qoCandidates().forEach(function (c) { byFull[c.full] = c; });
+      var seen = {};
+      RecentStore.list("opened").forEach(function (full) {   // R7: recently-opened first (those that still exist)
+        var c = byFull[full]; if (c && !seen[full]) { seen[full] = 1; rows.push({ c: c, idx: [] }); }
+      });
+      qoCandidates().filter(function (c) { return !seen[c.full]; })
+        .sort(function (a, b) { return b.mtime - a.mtime; }).slice(0, 40).forEach(function (c) { rows.push({ c: c, idx: [] }); });
+    } else {
+      qoNav().forEach(function (c) {
+        var ms = SV.matchScore(q, c.search); if (!ms.hit) return;
+        var mn = SV.matchScore(q, c.name);
+        rows.push({ c: c, idx: mn.hit ? mn.idx : [], score: (mn.hit ? mn.score : ms.score) + 30 });
+      });
+      qoCandidates().forEach(function (c) {
+        var ms = SV.matchScore(q, c.full, c.full.length - c.name.length);   // nameStart ⇒ per-term 名>路径 bonus inside matcher
+        if (!ms.hit) return;
+        rows.push({ c: c, idx: ms.idx, score: ms.score });
+      });
+      rows.sort(function (a, b) { return b.score - a.score || (b.c.mtime || 0) - (a.c.mtime || 0); });
+      rows = rows.slice(0, 40);
+      rows.push({ c: { kind: "search", q: q, name: "search “" + q + "”", tag: "GO", hint: "⌘↵ · full-text content search" }, idx: [] });   // fall-through: hand the query to the content search
+    }
+    qoRows = rows; if (qoSel >= rows.length) qoSel = 0;
+    if (!rows.length) { qoList.innerHTML = '<div class="qempty">no match</div>'; return; }
+    qoList.innerHTML = rows.map(function (r, i) {
+      var c = r.c, sel = i === qoSel ? " sel" : "", set = {}; r.idx.forEach(function (n) { set[n] = 1; });
+      if (c.kind !== "file") {   // nav / gitweb / fall-through: tag chip + name + hint
+        var xtra = c.kind === "search" ? " qfall" : "";   // fall-through sticks to the list bottom → always visible, not buried under 40 matches
+        return '<div class="qrow' + sel + xtra + '" data-i="' + i + '"><span class="qtag">' + esc(c.tag) + "</span>" +
+          '<span class="qn">' + (r.idx.length ? markRange(c.name, 0, set) : esc(c.name)) + "</span>" +
+          '<span class="qp">' + esc(c.hint) + "</span></div>";
+      }
+      var b = c.full.length - c.name.length;
+      return '<div class="qrow' + sel + '" data-i="' + i + '">' +
+        '<span class="qn">' + markRange(c.name, b, set) + "</span>" +
+        '<span class="qp">' + markRange(c.full.slice(0, b), 0, set) + "</span>" +
+        '<span class="qt">' + relTime(c.mtime) + "</span></div>";
+    }).join("");
+    [].forEach.call(qoList.querySelectorAll(".qrow"), function (el) {
+      el.addEventListener("click", function (e) { qoSel = +el.dataset.i; qoChoose(e.shiftKey); });
+      el.addEventListener("mousemove", function () { var i = +el.dataset.i; if (qoSel !== i) { qoSel = i; qoPaint(); } });
+    });
+  }
+  function qoPaint() { [].forEach.call(qoList.querySelectorAll(".qrow"), function (el, i) {
+    el.classList.toggle("sel", i === qoSel); if (i === qoSel) el.scrollIntoView({ block: "nearest" }); }); }
+  function qoChoose(shift) {
+    var r = qoRows[qoSel]; qoClose(); if (!r) return;
+    var c = r.c, side = shift ? "right" : "left";
+    if (c.kind === "ext") { window.open(c.url, "_blank", "noopener"); return; }   // gitweb → new tab (⇧ n/a)
+    if (c.kind === "go") { navigate(side, { kind: c.id }); return; }               // Board / Recent
+    if (c.kind === "search") { RecentStore.record("search", c.q); fillDatalist("recent-searches", "search"); navigate(side, { kind: "search", q: c.q }); return; }  // fall-through (feeds R8 search history too)
+    RecentStore.record("opened", c.full);   // R7: quick-open (incl. ⇧-right) feeds the recent-opened history
+    navigate(side, { kind: "doc", tree: c.tree, rel: c.path });                    // file
+  }
+  function openQuick() { qoBack.classList.add("show"); qoEl.classList.add("show"); qoInput.value = ""; qoSel = 0; qoRender(""); qoInput.focus(); }
+  function qoClose() { qoBack.classList.remove("show"); qoEl.classList.remove("show"); }
+  qoInput.addEventListener("input", function () { qoSel = 0; qoRender(qoInput.value.trim()); });
+  qoInput.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") { qoSel = Math.min(qoSel + 1, qoRows.length - 1); qoPaint(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { qoSel = Math.max(qoSel - 1, 0); qoPaint(); e.preventDefault(); }
+    else if (e.key === "Enter") {
+      if (e.metaKey || e.ctrlKey) {   // ⌘↵ / Ctrl+↵ = content-search the current query, regardless of which row is selected
+        var qq = qoInput.value.trim();
+        if (qq) { RecentStore.record("search", qq); fillDatalist("recent-searches", "search"); qoClose(); navigate(e.shiftKey ? "right" : "left", { kind: "search", q: qq }); }
+        e.preventDefault();
+      } else qoChoose(e.shiftKey);
+    }
+    else if (e.key === "Escape") { qoClose(); }
+  });
+  qoBack.addEventListener("click", qoClose);
+  document.getElementById("qoClear").addEventListener("click", function () {   // one-tap clear of all recent histories
+    RecentStore.clear(); fillDatalist("recent-filters", "filter"); fillDatalist("recent-searches", "search"); qoRender(qoInput.value.trim());
+  });
+  document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search (not while typing)
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
+    var t = e.target;
+    if (e.key === "/" && !(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) { e.preventDefault(); searchBox.focus(); }
+  });
+
+  searchBox.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && searchBox.value.trim().length >= 2) {
+      var sq = searchBox.value.trim();
+      RecentStore.record("search", sq); fillDatalist("recent-searches", "search");   // R8: search-term history
+      navigate(e.shiftKey ? "right" : "left", { kind: "search", q: sq });   // R31: shift+Enter → right
+    }
+  });
+  document.querySelectorAll("[data-go]").forEach(function (b) {   // Board / Recent tabs (R31: shift → right)
+    b.addEventListener("click", function (e) { navigate(e.shiftKey ? "right" : "left", { kind: b.dataset.go }); });
+  });
+
+  // --- live refresh (R63): poll while the server is up; board/recent auto-refresh, docs pill -----
+  function visiblePanes() {
+    return ["left", "right"].filter(function (s) { return PANES[s]._view && (s === "left" || PANES[s].classList.contains("show")); });
+  }
+  function refreshView(side) {                       // re-render the current view in place, keeping scroll
+    var sc = PANES[side].scrollTop; render(side);
+    setTimeout(function () { PANES[side].scrollTop = sc; }, 160);
+  }
+  function showStale() { document.getElementById("stale").classList.toggle("show", Object.keys(staleSides).length > 0); }
+  function pollUpdates() {
+    visiblePanes().forEach(function (side) {
+      var v = PANES[side]._view;
+      if (v.kind === "doc" && PANES[side]._doc) {
+        fetch("/api/rev?path=" + encodeURIComponent(v.tree + "/" + v.rel)).then(function (r) { return r.json(); })
+          .then(function (d) { if (d.mtime && d.mtime > (PANES[side]._doc.mtime || 0)) { staleSides[side] = true; showStale(); } })
+          .catch(function () {});
+      }
+    });
+    // global dev/kb token — always polled so the tree reflects file add/remove regardless of the open view;
+    // board/recent panes also auto-refresh on a dev change.
+    fetch("/api/rev").then(function (r) { return r.json(); }).then(function (d) {
+      var devChanged = lastDevRev && d.dev && d.dev !== lastDevRev, kbChanged = lastKbRev && d.kb && d.kb !== lastKbRev;
+      if (devChanged) visiblePanes().forEach(function (side) { var k = PANES[side]._view.kind; if (k === "board" || k === "recent") refreshView(side); });
+      if (devChanged || kbChanged) refreshTree();
+      lastDevRev = d.dev || lastDevRev; lastKbRev = d.kb || lastKbRev;
+    }).catch(function () {});
+  }
+  document.getElementById("stale").onclick = function () {
+    Object.keys(staleSides).forEach(refreshView); staleSides = {}; showStale();
+  };
+  setInterval(pollUpdates, 2500);
+
+  // R9: on manual theme toggle, re-init mermaid to the new theme + re-render visible doc panes
+  // (board/tree/etc. re-theme automatically via CSS vars; only mermaid SVGs need a re-render).
+  window.__onThemeChange = function () {
+    if (window.mermaid) window.mermaid.initialize({ startOnLoad: false,
+      theme: (window.__effectiveTheme && window.__effectiveTheme() === "dark") ? "dark" : "default" });
+    visiblePanes().forEach(function (side) {
+      if (PANES[side]._view && PANES[side]._view.kind === "doc") refreshView(side); });
+  };
+
+  if (window.GITWEB_URL) {   // R7: reveal the top-level gitweb entry when a companion URL is present
+    var ge = document.getElementById("gitwebEntry");
+    if (ge) { ge.href = window.GITWEB_URL; ge.classList.add("show"); }
+  }
+
+  navigate("left", { kind: "board" });
+  loadTree().catch(function (e) { treeEl.innerHTML = "<p class='broken'>" + esc(e.message) + "</p>"; });
+})();
+</script>
+</body>
+</html>

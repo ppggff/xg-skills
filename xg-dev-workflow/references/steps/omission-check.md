@@ -1,0 +1,121 @@
+# Step: omission check (M3)
+
+Authored inline. Run after **any** doc edit (and as the `check` verb). Cheap consistency
+pass so nothing silently drifts. Inspired by xg-knowledge-lite Lint, scoped to a
+requirement dir.
+
+## How to run (cost)
+
+Split the checklist by nature (SKILL.md「Subagent model assignment」):
+
+- **Deterministic subset → script, zero tokens**: link/wikilink resolution, frontmatter
+  status/updated presence, index-row existence, 项目根散件, board monotonic constraints,
+  R-id trace *existence*. No checker ships yet — until one covers an item, it runs with the
+  judgment subset below (the checker is a roadmap item, not a prerequisite).
+- **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
+  reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this
+  checklist, take back only the violation list; the orchestrator fixes what's flagged, which
+  re-verifies each finding.
+- **Right after an edit, inline is fine** — the docs are already in context, so a self-check
+  costs little. Delegation pays off on a standalone `check`, after `resume`, or a full sweep
+  of a large card.
+
+## Checklist
+- [ ] **Links resolve** — every `[[wiki/<project>/<slug>]]` resolves (KB raw/concept); every
+      relative link (`./design.md`, `./adr/NNNN-*.md`) points to an existing file.
+- [ ] **ADRs wired + hygienic** — each `adr/NNNN-*.md` is linked from `design.md`; superseded
+      ADRs carry the right status; **no `## Amendment` block** (decision changes are new
+      superseding ADRs, not appended); a superseded ADR's forward cross-ref is **≤2 lines**;
+      body stays lean (≤ ~200 lines).
+- [ ] **Indexes current** — the requirement has a row in `<project>/index.md` with the
+      right phase + status; the project appears in `<dev_root>/index.md`.
+- [ ] **项目根无散件** — the project root holds only `index.md` / `roadmap.md` and the spec'd
+      dirs (`NNN-*/`, `investigations/`, `reviews/`, `notes/`, `legacy/`); a stray file at the
+      project (or dev_root) root gets flagged with its suggested home (notes/ scratch ·
+      investigations/ findings · legacy/ pre-workflow) — don't silently leave it.
+- [ ] **Board (kanban) consistency** — **仅对已迁移到看板格式（含 `整体状态`/`Deps` 列）的 per-project
+      `index.md` 生效**；旧格式（`NNN|Title|Phase|Status`）的项目索引**免检**，直到自愿迁移（迁移是 per-project
+      opt-in，见 index 模板向后兼容注）。对已迁移的：card 依赖图（Deps 的 NNN）**无环**；`整体状态` 满足单调约束
+      —— `done` ⇒ test 通过 且 `Phase=测试` 且各 gate 已过 且 close-out review doc 或 `XS/S — review
+      skipped` 注已存在（即下方 Close-out review 项）; `backlog` ⇒ 没有超出 requirement 脚手架的阶段文档;
+      `paused/blocked` ⇒ 至少一个阶段已起步. `整体状态` 是调度轴，**不**强映射内部阶段 status 值（那些不上看板）。
+- [ ] **Phase consistency** — requirement↔design↔detail↔plan↔test don't contradict each
+      other (e.g. a success criterion with no test; a plan task with no design basis; a
+      `detail.md` structure/mechanism with no design home or no upward trace to a requirement
+      条目 (R-id); a frozen design edited without a change-management entry; **a design interface
+      op / contract invariant with no test** once `test.md` exists; an acceptance criterion or test result recorded as a subjective
+      `done`/`pass` instead of the binary `[x]/[!]/[ ]` walk).
+- [ ] **需求条目 (R-id) traceability** — every `requirement.md`「需求条目」`R-id` has a design home
+      (`design.md`「How it meets」), ≥1 `plan.md` task (`Implements:`), and ≥1 `test.md` row, once
+      those docs exist; each Effect criterion cites its `R-id`; IDs are stable (no renumber — retired
+      items carry a note). A requirement still on the old prose-only template (no「需求条目」) is exempt
+      until it's voluntarily migrated — don't flag its absence.
+- [ ] **Provenance marked** — load-bearing claims in requirement/design/detail carry a provenance
+      marker (evidence-cited / 推断 / 假设); an uncited non-trivial assertion is flagged `UNVERIFIED:`
+      or `(assumption)`, not left bare (M1).
+- [ ] **Comparison tables carry provenance** — any 方案/alternatives comparison or evaluation
+      table in a decision-zone doc (design/detail/ADR/proposal note) marks each comparative
+      claim about existing code (VERIFIED / INFERRED / 推断); a bare Pros/Cons table with
+      unverified code claims fails (design-grill 方案优先 — verify-before-table).
+- [ ] **Grill-log codename legend** — a persisted `notes/grill-*.md` that uses session-local
+      codenames (方案 T/S, N1 …) carries a legend line up top defining each (grill.md
+      「Codename legend」).
+- [ ] **Reasoning shown (human-first docs)** — in requirement/design/detail/ADR/review and
+      investigation-notes prose, each
+      load-bearing conclusion is *derived in the text* (evidence → mechanism → conclusion), not
+      bolted onto a fact table; a section that is only citations + a verdict is flagged — the
+      approver must be able to check the inference, not just the sources (SKILL.md「Conventions」).
+- [ ] **Part traceability (split designs only)** — each part in `design.md`「Decomposition/Parts」
+      traces to its `plan.md` tasks (`Part:` 字段) and `test.md` 分节; each **seam** contract has a
+      **联调级 (real-neighbor)** test (扩自上一条 "每个 interface op/invariant 都要有测试"). An
+      **un-split** design is **not required** to have a Parts section — do **not** flag its absence.
+- [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it.
+- [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
+      TL;DR, the **diagrams** (module-interaction + data-flow; **Mermaid preferred**, ASCII fallback),
+      the **影响面 (impact surface)** section, and — if it introduces a module — that module's
+      **interface contract** (operations + invariants, not signatures).
+- [ ] **Close-out review** — a requirement at `done` / Phase=测试 complete has **either** a close-out
+      review doc under `notes/review-*.md` **or** an explicit skip/grandfather note in `progress.md`
+      (`XS/S — review skipped`, or `pre-gate done` for cards finished before the gate existed —
+      both satisfy the gate and are honored by `workflow-status.py`). Size (XS/S vs M+) is a human judgment (see SKILL.md「Requirement sizing」); M3
+      checks only that **one of the two is present** — so it needs no size signal of its own, and an
+      M+ card that silently lacks both is the violation. (Mirrors the board `done` monotonic constraint.)
+- [ ] **Status/dates** — frontmatter `status` and `updated` reflect reality; design is
+      `frozen` only if approved.
+- [ ] **Terminology consistent** — each domain term in the doc has a **single canonical
+      form** within its bounded context (no same-concept-many-names; no same-word-two-meanings
+      *inside one context*). Terms match the canonical term of their KB concept
+      (`[[wiki/<project>/<slug>]]`) / the project-or-common `CONTEXT-MAP.md`. A word reused across
+      **different contexts** is fine if each is scoped (note the homonym) — don't false-flag it.
+      **Form follows the global Language rule** — an established EN technical term stays EN
+      (`heap`, not 堆): a force-translated term is drift **even when used consistently**.
+      Drift → pin canonical term + `_Avoid_` (+ `_Context_` for scoped terms), record the
+      durable ones in the KB concept / CONTEXT-MAP, rewrite the doc. Makes "sharpen language" a
+      verified gate, not hoped-for behavior.
+      **术语纠正 (human-initiated):** the human flagging a term while reading any doc ("这里该写
+      heap") is this check firing out-of-band. Order matters — **pin in the project/common
+      `CONTEXT-MAP.md` first** (`heap` + `_Avoid_ 堆`; create the map lazily): that is the anchor
+      every later M3 run reads, so one correction propagates to all future docs. Then update the
+      owning KB concept if one exists, rewrite the current card's docs now (other cards heal
+      lazily at their next M3), and append a `log.md` entry when inside a card.
+- [ ] **Superseded phrasing swept（换语义类 change 后）** — if the round included an M2
+      mode-变更/撤销（or an ADR that retires phrasings）, the supersede sweep ran
+      (`tools/check-superseded-phrases.py`, terms from the ADR's 被取代表述 section) and every
+      hit was rewritten / annotated as 历史表述 / justified; module & term names re-checked
+      against their new responsibilities (a name asserts nothing false, so plain consistency
+      reads miss its drift). Change-log entries quoting old semantics are exempt (history).
+- [ ] **Knowledge captured & compiled** — any reusable module insight discovered this round was
+      written to xg-knowledge-lite **via its Write flow (compliant frontmatter — not a bare file
+      write), and either compiled to a concept or explicitly marked deferred** (`compiled_to:
+      deferred — <why>` in the raw's frontmatter); not left only in the requirement dir, and not
+      left as an uncompiled raw (which `kb-backlog.py` will flag each
+      session). Compile back-annotates `compiled_to:` and updates `wiki/index.md`.
+- [ ] **Roadmap fed** — deferred work this card surfaced (Future / Discovered issues) is captured
+      in `<project>/roadmap.md`, not only buried in the card; a graduated roadmap item links its NNN.
+- [ ] **Architecture / invariants current (KB)** — a frozen design that changed the system's shape
+      updated `[[wiki/<project>/architecture]]`, and any durable invariant it established reached the
+      subsystem `*-invariants` ledger (the as-built KB didn't silently drift).
+- [ ] **Scope** — no out-of-scope changes crept in (cf. requirement Scope + cbdb Change
+      Rules).
+
+Report what's missing and fix it (or list it) before considering the edit done.
