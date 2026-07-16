@@ -50,7 +50,10 @@ Each entry says *what changed* and *why*, not the raw diff.
   layers, `MS<n>` milestones (a live design used bare M1/M2/M3 for milestones — ambiguous
   against mechanism M2 in the same doc), grill ids continuous across rounds (a past grill
   escalated G→H→I letters per round; H also reads as a High finding), parts named with
-  long-form `Part <n> (<名>)` only, Mermaid node ids diagram-local/exempt.
+  long-form `Part <n> (<名>)` only, Mermaid node ids diagram-local/exempt. Third sweep:
+  `D<n>` design decisions/子决策 registered (organic in two projects' designs, incl. the
+  ADR-scoped form `ADR-NNNN D<n>`); modules confirmed **named** like parts (`Mod<n>` only
+  for a compact table/diagram id).
 - **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
   recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
   TDD vs test-after before slice 1 instead of silently inferring; record the answer as the

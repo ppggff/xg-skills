@@ -46,6 +46,9 @@ citations (SKILL.md「Conventions」Reasoning-shown).
 **At module altitude** (no concrete code — defer functions/locks/hooks/files to `plan.md`):
 modules + responsibilities, boundaries, contracts, key invariants. Build on existing modules;
 contract-first. Cite load-bearing claims via KB `[[wiki/<project>/<slug>]]`.
+Refer to modules **by name**; number in-design decisions/子决策 `D<n>` when other sections or
+ADRs need to reference them (`ADR-NNNN D<n>` for a decision inside an ADR — SKILL.md
+「Fixed ID prefixes」).
 
 State the **essential 思路** and the **abstraction layers** it realises (each layer's job + which
 modules live in it) before listing flat modules — the right layering simplifies the problem.
