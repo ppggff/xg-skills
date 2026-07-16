@@ -22,7 +22,7 @@ retro lands a fix in this skill. Each entry says *what changed* and *why*, not t
   name the file). The incremental-no-hash design fact had four homes → one (the Compile
   section). Project resolution generalized to "when an *action* needs a project" so Orient
   points instead of restating. Orient's double-log sentence deduplicated to Usage logging
-  (which now also names `diagnose`). Writing-style line collapsed. SKILL.md 2607 → ~2100 words.
+  (which now also names `diagnose`). Writing-style line collapsed. SKILL.md 2607 → 2209 words.
 
 ## 2026-07-08
 
