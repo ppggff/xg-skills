@@ -1,6 +1,6 @@
 ---
 name: xg-knowledge-lite
-description: "Cross-project code-knowledge base: raw investigation write-ups compiled into concept articles (Karpathy two-layer), per project. Use when recording a finding ('capture this finding' / '记下来' / '沉淀知识'), updating a note ('update the <X> note'), compiling the wiki ('compile'), querying knowledge ('what do I know about <X>'), orienting on a project ('orient me on <project>' / '项目知识大纲'), or linting the KB."
+description: "Cross-project code-knowledge base: raw investigation write-ups compiled into concept articles (Karpathy two-layer), per project. Use when recording a finding ('记下来' / 'capture this finding'), updating a note ('update the <X> note'), compiling the wiki ('compile'), querying knowledge ('what do I know about <X>'), orienting on a project ('orient me on <project>' / '项目知识大纲'), or linting the KB."
 ---
 
 # xg-knowledge-lite
@@ -97,7 +97,9 @@ Karpathy-style incremental: **no full rebuild, no hash stamp** — only the conc
    `compiled_to:` back-annotation; Lint §1 owns the check (incl. the `deferred — <why>` marker).
 3. Contradictory hits → flag to the user.
 
-Don't write files during Query unless asked to save the answer (then Write).
+Don't write files during Query. Asked to save the answer → distill the **durable findings**
+into raw via Write (a synthesized answer is not itself raw — save what was learned, not the
+Q&A); there is no separate archive-page layer (see Out of scope).
 
 ## Orient — warm up on a project's knowledge (read-only outline)
 
@@ -124,11 +126,17 @@ Query is **pull** (you already have a question); Orient is **push** — it surfa
    **evidence-cited** (`func()` in `file.c` or a raw link); a subsystem with concepts but no
    invariant ledger is a **soft** flag (best-effort, don't force one where there are no invariants).
 
+Authority (two levels, from karpathy-llm-wiki): **deterministic findings are auto-fixed** —
+§2 index rows, §3 link paths, §4 frontmatter fields, §1's mechanical `compiled_to:`
+back-annotations; **judgment findings are report-only** — contradictions, concept-promotion
+(§1), terminology/scope calls (§5), size splits (§6), designated-doc gaps (§7) go to the user
+with a suggestion, never silently fixed.
+
 Execution (cost): §2 / §3 / §4 / §6 are deterministic — script them when tooling exists; run
 the rest (and any unscripted deterministic item) via one cheaper-model agent (Agent tool
-`model: sonnet`) that returns only the violation list — the orchestrator fixes what's flagged,
-re-verifying each finding. (Same principle as xg-dev-workflow's「Subagent model assignment」;
-restated here so this skill stays self-contained.)
+`model: sonnet`) that returns only the violation list — the orchestrator re-verifies each
+finding, then applies it per the authority split above. (Same principle as xg-dev-workflow's
+「Subagent model assignment」; restated here so this skill stays self-contained.)
 
 Append `## [YYYY-MM-DD] lint | <N> issues, <M> fixed` to `wiki/log.md`.
 
@@ -155,7 +163,7 @@ Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging) — follow it.
 
 ## Out of scope (deliberately)
 
-graph, changes-timeline, compile-stamp / hash-based drift tracking (Compile diffs raw `updated` vs concepts — no hashing), similarity-probe, probe/graph-driven or multi-round cascade (Compile does a light same-project ripple only, Karpathy-style), external-source (web/Notion) ingestion, slash commands. If you outgrow this, that's the full `xg-knowledge-wiki`.
+graph, changes-timeline, compile-stamp / hash-based drift tracking (Compile diffs raw `updated` vs concepts — no hashing), similarity-probe, probe/graph-driven or multi-round cascade (Compile does a light same-project ripple only, Karpathy-style), external-source (web/Notion) ingestion, slash commands, archive pages (karpathy-style `[Archived]` snapshots of Query answers — durable content routes into raw via Write instead; see Query). If you outgrow this, that's the full `xg-knowledge-wiki`.
 
 ## References
 

@@ -35,7 +35,7 @@ A deliberately deferred raw is marked `compiled_to: deferred — <why>` in its f
 - **Write** — record raw from investigation (or update it), then run Compile scoped to the concept(s) that raw touches.
 - **Compile** — the single routine that synthesizes concepts from raw, incrementally (re-synthesize only the in-scope concepts + cascade to materially-affected same-project neighbors). Called scoped by Write, or batch (standalone) to bootstrap from a pile of raw / repair drift. No full rebuild, no hash stamp.
 - **Query** — read concept articles → cite + drill into their Sources raw; grep raw as fallback.
-- **Lint** — raw↔concept coverage, index consistency, dangling wikilinks, frontmatter.
+- **Lint** — raw↔concept coverage, index consistency, dangling wikilinks, frontmatter (deterministic findings auto-fixed; judgment findings report-only).
 
 See `SKILL.md` for the full workflow, `references/FORMAT.md` (raw) and `references/concept-template.md` (concept) for formats.
 
