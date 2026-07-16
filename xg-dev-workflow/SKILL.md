@@ -24,6 +24,7 @@ Reusable module knowledge does **not** live here — it lands in **xg-knowledge-
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设 (assumption). Only the claims a decision rests on (M1).
 - **Reasoning shown (human-first docs)** — requirement/design/detail/ADR/review and investigation-notes prose carries the logical analysis, **evidence → mechanism → conclusion**, so the approver can check the inference, not just trust the citations — a fact table with a conclusion bolted on is a grep-hit list at doc level. Execution-zone docs stay terse: link the reasoning, don't restate it.
 - **Reader-aware** — write each doc for its primary reader (each template states its Reader); the audience split is「Two zones」below.
+- **Fixed ID prefixes (one letter, one meaning):** `NNN` card dir · `R<n>` requirement 条目 (R is reserved for requirements) · `ADR-NNNN` decision records · `T<n>` plan tasks · `G<n>` grill-log questions · `M1`–`M6` this skill's cross-cutting mechanisms · `P<n>` implement's principles (`implement.md` Principles). Review findings: `#<n>` within a report's 修复决策表, severity spelled out (High/Med/Low — no M/L shorthand). Parts are **named**, never numbered. A new scheme picks an unused letter.
 
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 

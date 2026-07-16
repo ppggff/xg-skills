@@ -38,7 +38,7 @@ Per task slice: **RED → GREEN → REFACTOR → record → commit → next**.
 1. **RED** — write a failing behavior test for the slice's acceptance criterion. It **must fail**
    (a test that passes immediately proves nothing). **Bug fix → Prove-It:** reproduce the bug with
    a failing test *before* attempting the fix.
-2. **GREEN** — the minimal code to make it pass; don't over-engineer (R0).
+2. **GREEN** — the minimal code to make it pass; don't over-engineer (P0).
 3. **REFACTOR** — with tests green: extract duplication, **deepen modules** (small interface over
    deep implementation — the `codebase-design` skill has the vocabulary + testability checks), apply
    SOLID where natural; rerun the tests after each refactor step. **Never refactor while RED.**
@@ -47,7 +47,7 @@ Acceptance `[x]` only once the test is **observed passing**.
 
 ### Cycle B — test-after mode (forked from `incremental-implementation`, for "describe, don't run")
 Per task slice: **Implement → Test → Verify → record → commit → next**.
-1. **Implement** the smallest complete slice (R0 simplest-thing-that-works).
+1. **Implement** the smallest complete slice (P0 simplest-thing-that-works).
 2. **Test** — write the behavior test right after the code (or, where it can't be authored without
    running, *describe* it); list the exact run commands as **suggested steps**, don't execute.
 3. **Verify** — build/type/lint where those are runnable; the test's pass/fail is **deferred** —
@@ -79,7 +79,7 @@ last binding human decision; `plan.md` was the one-time autonomy handoff.
 - **Commit after each task** once the slice is complete and its runnable checks pass — acceptance
   `[x]` in **TDD mode**, or `[ ]` pending-run in **test-after mode** (build/type/lint green, test
   written/described) — and **after each review fix** (when applying close-out-review fixes). **One
-  concern per commit** (R1), additive & revertable (R5) — a clean per-task history is part of the
+  concern per commit** (P1), additive & revertable (P5) — a clean per-task history is part of the
   autonomous run, and it's what lets a single task be reverted later.
 - **Commits are autonomous local commits** — don't ask before each (this cadence is the human's
   standing authorization for the execution zone). **`push` stays human-gated** — the irreversible,
@@ -90,18 +90,18 @@ last binding human decision; `plan.md` was the one-time autonomy handoff.
   absent that, the per-task / per-fix cadence is the default. English commit message following the
   project's convention.
 
-## Rules
-- **R0 简单可靠 (首要)** — the simplest thing that is *reliable*; simple = easy to implement,
+## Principles (P-rules; P — R stays reserved for requirement 条目)
+- **P0 简单可靠 (首要)** — the simplest thing that is *reliable*; simple = easy to implement,
   test, and verify-correct. No abstraction before the third use; don't chase elegant-but-complex.
-- **R0.6 Carry design qualities forward; don't over-handle anomalies** — performance / scale-up
+- **P0.6 Carry design qualities forward; don't over-handle anomalies** — performance / scale-up
   performance / testability / observability are set at design time — keep them in view, don't drop
   them in implementation. But **don't re-handle anomalies the design already eliminated or
   assigned** — implement the fallback the design specified, no redundant extra guards (反过度设计).
-- **R0.5 Scope discipline** — touch only what the task needs; note adjacent issues, don't
+- **P0.5 Scope discipline** — touch only what the task needs; note adjacent issues, don't
   fix them (spawn a new requirement/KB note instead).
-- **R1 One thing at a time** — don't mix concerns in one increment/commit.
-- **R2 Keep it compilable** — system builds and existing behavior holds after each slice.
-- **R5 Rollback-friendly** — additive, independently revertable increments.
+- **P1 One thing at a time** — don't mix concerns in one increment/commit.
+- **P2 Keep it compilable** — system builds and existing behavior holds after each slice.
+- **P5 Rollback-friendly** — additive, independently revertable increments.
 
 ## Review lens (apply before marking a slice done)
 Slice-level self-review lives here; a formal review of the whole change (at phase end /

@@ -39,7 +39,7 @@ priorities and tactics (see "Phase-specific layers").
   correctness envelope's **axis enumeration** (per-field/per-condition precision) belongs to the
   NEXT phase's grill. *Why (2026-07-11 retro):* card 002's requirement grill spent 3+ of its 8
   rounds enumerating LLD-grade axes (opfamily/collation/indoption/scan-direction) for a
-  mechanism injected at Q4 — each round's new text fed the next round's findings; the principle
+  mechanism injected at G4 — each round's new text fed the next round's findings; the principle
   that eventually stopped the class (symmetric closure) could have been pinned at injection.
 - **Don't grill to death** — if one point won't converge in ~3 rounds, record it as an Open
   question and move on; an honest "still ambiguous" beats grinding.

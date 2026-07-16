@@ -32,7 +32,7 @@ One paragraph: what this plan builds, against which design.
 <!-- If the design is split into parts (design.md「Decomposition/Parts」), tag each task with
      its `Part:`; cross-part tasks list the **seam** under Dependencies. Omit `Part:` when un-split. -->
 
-### Task 1: <title>
+### T1: <title>
 - **Description:** what this slice accomplishes.
 - **Implements:** R1, R2 — the `requirement.md`「需求条目」this slice delivers (— if purely scaffolding).
 - **Part:** <part name> | —   (optional; only when the design is split into parts)
@@ -40,11 +40,11 @@ One paragraph: what this plan builds, against which design.
   failed; `[ ]` unverified. No subjective `[x]`.)
   - [ ] <testable condition>
 - **Verification:** test / build / manual check (cbdb: describe, do not run, unless asked).
-- **Dependencies:** None | Task N
+- **Dependencies:** None | T<n>
 - **Files likely touched:** `path/...`
 - **Scope:** XS | S | M | L  (L → break down further)
 
-### Checkpoint: after Tasks 1–N
+### Checkpoint: after T1–T<n>
 - [ ] builds / tests green; system works end-to-end so far.
 
 ## Risks & mitigations

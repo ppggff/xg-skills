@@ -39,6 +39,13 @@ Each entry says *what changed* and *why*, not the raw diff.
 - **Templates:** roadmap gains the「Rejected / won't do」section (requirement-level rejections;
   design-level ones stay in ADRs); progress gains a no-secrets redact note; split-isolate gains
   the card-vs-fog test (can the question be stated precisely, not answered — from `wayfinder`).
+- **Fixed ID-prefix registry** (SKILL.md Conventions): one letter, one meaning — `NNN` card ·
+  `R<n>` requirement 条目 (reserved) · `ADR-NNNN` · `T<n>` plan tasks · `G<n>` grill questions ·
+  `M1–M6` mechanisms · `P<n>` implement principles; review findings `#<n>` + severity spelled
+  out; parts named, never numbered. Collisions fixed: implement.md's forked rule set
+  R0/R0.5/R0.6/R1/R2/R5 renamed to P* (numbers kept — R1 "one concern per commit" read as
+  requirement R1 in the same phase docs); grill.md's stray `Q4` → `G4`; plan template's
+  "Task 1 / Task N" formalized as `T1` / `T<n>` (user rule, 2026-07-16).
 - **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
   recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
   TDD vs test-after before slice 1 instead of silently inferring; record the answer as the
