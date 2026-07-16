@@ -53,7 +53,10 @@ Each entry says *what changed* and *why*, not the raw diff.
   long-form `Part <n> (<名>)` only, Mermaid node ids diagram-local/exempt. Third sweep:
   `D<n>` design decisions/子决策 registered (organic in two projects' designs, incl. the
   ADR-scoped form `ADR-NNNN D<n>`); modules confirmed **named** like parts (`Mod<n>` only
-  for a compact table/diagram id).
+  for a compact table/diagram id). Mapping direction pinned: cross-scheme mappings are
+  recorded **downstream→upstream only** in each doc's designated field (design How-it-meets ·
+  detail 可追溯 · plan `Implements:` · test Coverage · `ADR-NNNN D<n>`); reverse maps are
+  derived, never hand-maintained (hand-kept reverse lists drift on every plan edit).
 - **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
   recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
   TDD vs test-after before slice 1 instead of silently inferring; record the answer as the
