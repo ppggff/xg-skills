@@ -79,6 +79,18 @@ interface, lots hidden) at a clean **seam** (Feathers — _Avoid_ "boundary" **f
 itself**; "boundary" stays the word for a module's own perimeter, as in "modules /
 responsibilities / boundaries"). Depth = leverage per unit of interface a caller must learn.
 
+### 存储足迹 (Storage footprint — 按模块; required when the design touches any storage)
+
+Every store the design adds or touches, **organized by module** (one module's 责任/操作/存储 all
+hang off its name): what exists, who owns it, how durable. Design altitude only — concrete
+schema / keys / indexes stay in `detail.md`「数据结构」. This table feeds 影响面's 兼容/ABI 面
+(on-disk / catalog changes surface here first). Omit the section when the design touches no
+storage (same convention as Parts).
+
+| 模块 | 存储 (file / shmem / catalog / DB / 内存态 / GUC) | 持久性 (persistent / ephemeral) | 归属 / 生命周期 |
+|------|--------------------------------------------------|--------------------------------|----------------|
+| … | … | … | … |
+
 ### Decomposition / Parts (optional — only when this design is split into independently-built parts)
 
 When the design splits into **parts** (each part = ≥1 module built & tested as one independent

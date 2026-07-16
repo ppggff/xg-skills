@@ -20,7 +20,9 @@ updated: YYYY-MM-DD
 
 ## 数据结构 (data structures)
 
-For each structure: definition + **why**. One row per field where it helps.
+For each structure: definition + **why**. One row per field where it helps. (Division with
+design: `design.md`「存储足迹」says *which* stores exist / who owns / durability; this section
+holds the concrete schema.)
 
 | 结构 / 字段 | 定义 (类型 / 键 / 索引 / 布局) | 为什么 |
 |---|---|---|

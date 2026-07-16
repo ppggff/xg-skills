@@ -61,6 +61,13 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Storage footprint section in design.md** (存储足迹, by module; required when the design
+  touches any storage): every store added/touched — file / shmem / catalog / DB / 内存态 / GUC —
+  with owner module, durability, lifecycle. *Why:* ops + I/O already had a per-module home
+  (Interface/contract table) but storage was scattered across Scope/Constraints/ADRs in real
+  designs (hatch-deck's 内存态+ring lived in Constraints, its persistence decision in an ADR).
+  Design altitude = which/who/durability; concrete schema stays detail.md 数据结构 (division
+  noted there). Feeds 影响面's 兼容/ABI 面 (user go, 2026-07-16).
 - **Ask with receipts — write first, then ask** (Stop-at-gate; wired into grill round-end,
   investigate close/pause, review report reply): an advance ask or verb-closing reply names the
   artifacts just written (doc paths + dev_root commit) — no receipts, no ask. *Why:* M3 is
