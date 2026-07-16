@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-16 (karpathy-guidelines comparison — two Surgical-Changes points adopted)
+
+- **Orphan asymmetry added to P0.5** (`implement.md`): scope discipline now states both
+  directions — clean up imports / variables / functions your own change orphans; pre-existing
+  dead code stays (note it, don't delete unless asked). Previously only the
+  don't-touch-adjacent half was written.
+- **Changed-line traceability test added to the Spec axis** (`review.md` step 4): every changed
+  line traces to a requirement / design item; an untraceable line is creep or an unrecorded
+  decision. Applies at light and standard tiers (light reviews inline against the same axes).
+- *Why / source:* comparison against the `andrej-karpathy-skills:karpathy-guidelines` plugin —
+  its other principles (surface assumptions, simplicity-first, goal-driven verification) were
+  already covered more operationally here (grill/requirement gates, P0/P0.6 + deletion test,
+  plan/test verification); these two were the only genuine gaps.
+
 ## 2026-07-16 (close-out review fixes — same-day standard-tier review of the retro batch)
 
 - **Round-end order respects grill-log proportionality** (`grill.md`): the ask-with-receipts

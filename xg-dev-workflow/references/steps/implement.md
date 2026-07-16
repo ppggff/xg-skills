@@ -106,7 +106,9 @@ way, under the same rule.
   them in implementation. But **don't re-handle anomalies the design already eliminated or
   assigned** — implement the fallback the design specified, no redundant extra guards (反过度设计).
 - **P0.5 Scope discipline** — touch only what the task needs; note adjacent issues, don't
-  fix them (spawn a new requirement/KB note instead).
+  fix them (spawn a new requirement/KB note instead). Orphan asymmetry: clean up what your
+  own change orphans (imports / variables / functions it made unused); pre-existing dead
+  code stays — note it, don't delete unless asked.
 - **P1 One thing at a time** — don't mix concerns in one increment/commit.
 - **P2 Keep it compilable** — system builds and existing behavior holds after each slice.
 - **P5 Rollback-friendly** — additive, independently revertable increments.

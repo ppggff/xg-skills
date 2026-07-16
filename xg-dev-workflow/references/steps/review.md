@@ -67,10 +67,12 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      `code-review` skill's two-axis economy + our KB axis; each gets a complete self-contained
      brief — paste the checklist/context pack in full, assume no shared memory; ~400-word cap):
      **Spec axis** (session model) — does the change do what requirement/design say: R-id trace,
-     missing/partial items, scope creep. **Standards axis** (`model: sonnet`) — conventions +
-     comment/tests/docs hygiene (incl. the check-code-refs run). **Invariants axis** (session
-     model) — context-pack invariants, concurrency, fail-safe, security. No model-diversity
-     sweep at this tier; findings carry their axis into adjudication.
+     missing/partial items, scope creep (test: every changed line traces to a requirement /
+     design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
+     (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
+     run). **Invariants axis** (session model) — context-pack invariants, concurrency,
+     fail-safe, security. No model-diversity sweep at this tier; findings carry their axis
+     into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the full
      lens fan-out below + adversarial trio + the standing different-model sweep + saturation
      repeat passes (5b).
