@@ -4,6 +4,19 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-16 (retro batch — comparison against the ~/.agents/skills 2026-07-09 set)
+
+- **Lint authority split** (from karpathy-llm-wiki): deterministic findings (index rows, link
+  paths, frontmatter fields, mechanical `compiled_to:` back-annotations) are **auto-fixed**;
+  judgment findings (contradictions, concept-promotion, terminology/scope calls, size splits,
+  designated-doc gaps) are **report-only** — surfaced with a suggestion, never silently fixed.
+  Previously the orchestrator fixed everything flagged, which let judgment calls land without a
+  human decision.
+- **Query save semantics closed**: "save the answer" now routes the durable findings into raw
+  via Write (a synthesized answer is not itself raw — save what was learned, not the Q&A);
+  karpathy-style `[Archived]` answer pages are explicitly Out of scope.
+- **Description pruned** (one trigger per branch; 444 → 427 bytes).
+
 ## 2026-07-08
 
 - **Lint execution note (cost):** §2/§3/§4/§6 are deterministic — script when tooling

@@ -4,6 +4,42 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-16 (retro batch — comparison against the ~/.agents/skills 2026-07-09 set)
+
+- **New `diagnose` verb + vendored step** (`references/steps/diagnose.md`, forked from
+  `diagnosing-bugs`): feedback-loop-first defect localization — a red-capable repro loop before
+  any theory (trap rule: reading code to build a theory before the loop exists → stop), 3–5
+  ranked falsifiable hypotheses shown to the human, tagged instrumentation (`[DBG-*]`, one-grep
+  cleanup), minimise-until-load-bearing, fix routed through Prove-It as an 实现 slice. Context
+  branching mirrors `investigate`. *Why:* the workflow had no step for "why is this behavior
+  wrong" — bug localization sat ad-hoc between investigate (read-only) and implement. Wired:
+  SKILL.md verb + M5 + logging vocabulary, `investigate.md` cross-ref (defect ≠ spike),
+  `provenance.md`, `log-usage.py` KNOWN_ACTIONS (all three copies).
+- **SKILL.md slimmed ~36%** (5020 → 3229 words; no contract change): stop-at-gate and
+  execution-zone autonomy each converged to one authoritative section (previously restated
+  5×/4×); `status` viewer/gitweb detail pushed down to README; retro-origin parentheticals
+  stripped; phase contracts trimmed to contract level (procedure detail stays in steps).
+  First-use gloss rule gains its other half: after the first gloss, use the term bare. *Why:*
+  writing-great-skills audit — duplication and sediment inflate always-loaded context.
+- **Descriptions pruned** (one trigger per branch, identity statements moved to the body;
+  681 → 508 bytes) and the `diagnose` trigger added.
+- **test.md: tautological-test anti-pattern** — expected values must come from an independent
+  source of truth; an assertion that recomputes the expectation the implementation's way passes
+  by construction (from `tdd`).
+- **plan.md: expand–contract exception** for wide mechanical refactors whose blast radius can't
+  land green as one vertical slice: expand → migrate in blast-radius-sized batches → contract
+  (from `to-tickets`).
+- **review.md: fail-fast + report cap** — resolve the ref (`git rev-parse`) and confirm a
+  non-empty diff before dispatching lens agents; lens reports capped at ~400 words.
+  ("Skip tooling-enforced findings" was already covered by the false-positive exemplars — not
+  duplicated.)
+- **requirement.md: redundancy + prior-rejection checks** before drafting — search for an
+  existing implementation by domain concept (not the ask's wording), and scan the roadmap's new
+  「Rejected / won't do」ledger so rejected proposals don't return unnoticed (from `triage`).
+- **Templates:** roadmap gains the「Rejected / won't do」section (requirement-level rejections;
+  design-level ones stay in ADRs); progress gains a no-secrets redact note; split-isolate gains
+  the card-vs-fog test (can the question be stated precisely, not answered — from `wayfinder`).
+
 ## 2026-07-11 (card-002 retro batch — grill economy + fail-safe discipline)
 
 - **Mid-grill new mechanism → pin principles, defer axes** (`grill.md` Protocol): when an answer
