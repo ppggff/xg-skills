@@ -112,6 +112,8 @@ both run this shared step.
 Verdict format (one line in chat, after the doc is updated):
 `Grill 收敛判定: 继续 — 2 个 ADR 级 open 点 (G7 seam 契约, G9 兼容边界)` ·
 `Grill 收敛判定: 建议收敛 — 本轮 0 决定级变更; 槽位全三态; Open 已记录 (G4, G11)`.
+The ask that follows the verdict uses the advance word **go** (「继续下一轮请回 go」/「收敛,回 go
+进入下一阶段」— SKILL.md Stop-at-gate).
 
 **The verdict reports this round's facts only — never forecast the next round.** "预期下轮
 dry / severity 在衰减" is not information the dry check produces, and it anchors the human's

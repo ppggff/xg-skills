@@ -32,7 +32,8 @@ The **hard stops** are the decision-zone gates — 需求 confirm · 设计 free
 
 - **One phase per invocation.** After producing the phase's doc, STOP — even if you could roll on, even if the prompt mentions later phases. Report the doc + the gate question, then wait. Chaining requires the human to invoke each verb, or to explicitly say "run straight through".
 - **A bare topic with no verb** means **`new` + `requirement` only**, then STOP. "调查 / investigate / explore" means stop at understanding — never auto-advance to a chosen design.
-- **Gate = an explicit human go, in their own words, this turn** — prior approval doesn't carry forward. Produce the doc, ask, and do not create or edit the next phase's doc until then. Unsure which phase is wanted → ask, don't assume the pipeline.
+- **Gate = an explicit human go, this turn** — prior approval doesn't carry forward. Produce the doc, ask, and do not create or edit the next phase's doc until then. Unsure which phase is wanted → ask, don't assume the pipeline.
+- **The advance word is `go` — uniformly.** Phrase every advance ask around it, naming what it authorizes (「确认后回 go,进入设计」/「go = 授权执行区」), and treat the human's `go` (or an equally explicit equivalent in their own words) as the authorization; comments or praise without a go are feedback, not a go. Applies to every advance: phase gates, the execution authorization, continuing after a grill convergence verdict.
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this** phase's doc — not skipping it or jumping to implementation; the authoritative gate is the human approving that doc.
 
 ## Two zones: human-decision vs Claude-execution (one line, two meanings)
