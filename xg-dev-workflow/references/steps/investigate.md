@@ -62,6 +62,10 @@ the question (adapted from the `prototype` skill):
 4. **The answer is the only deliverable**: it upgrades the claims-table row to VERIFIED (evidence
    = probe + output), lands in the notes/KB via the normal routing, and the probe code is deleted.
 
+A **defect is not a spike question**: observed-wrong behavior (bug, crash, perf regression)
+routes to the `diagnose` verb (`diagnose.md`, feedback-loop-first localization) — a spike
+answers a neutral empirical question; a diagnosis chases a failure.
+
 ## Procedure
 1. **Query the KB first** — open with an `xg-knowledge-lite` **Orient** pass (project-scoped
    warm-up: `wiki/index.md` section + `CONTEXT-MAP.md` + uncompiled-raw count) so you know which
