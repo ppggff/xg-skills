@@ -61,6 +61,12 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **workflow-status.py flags off-vocabulary 整体状态** — a board state outside
+  `backlog|todo|active|blocked|paused|done|dropped` gets a visible ⚠ in the text view and a
+  `state_noncanonical` flag in `--json` (viewer-safe extra key). *Why:* the tool passed states
+  through verbatim, so `doing`/`in-progress` sat on live boards unnoticed; only rows too broken
+  to parse degraded to `?` (found while diagnosing three real boards, all three repaired)
+  (user go, 2026-07-16).
 - **Card↔external anchors** (templates): `requirement.md` frontmatter gains optional `issue:`
   (originating tracker issue/ticket — the outward ref code comments may cite; `new` records it
   at scaffold time); `progress.md` frontmatter gains `mr:` and `merged:` beside the existing

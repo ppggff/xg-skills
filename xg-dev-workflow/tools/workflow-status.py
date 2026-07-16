@@ -141,6 +141,10 @@ def card_status(card_dir):
 
 PLACEHOLDERS = {"…", "...", "—", "-", "无", "TBD", "待定"}
 
+# The board's 整体状态 vocabulary (split-isolate.md B). "?" is the missing-row degradation,
+# not a state; anything else off-vocabulary gets flagged instead of passing through silently.
+CANON_STATES = {"backlog", "todo", "active", "blocked", "paused", "done", "dropped"}
+
 
 def effective_next(board_state, g, derived):
     # a human-set done outranks derived gates; progress's own Next-step outranks both
@@ -188,6 +192,7 @@ def iter_cards(root, want=None):
                 "now": g.get("now", ""), "next_progress": g.get("next", ""),
                 "blockers": g.get("blockers", ""),
                 "effective_next": effective_next(state, g, nxt),
+                "state_noncanonical": state != "?" and state not in CANON_STATES,
                 # 003/R6: optional card→branch, deep-linked to that branch in the gitweb companion
                 "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", ""),
             }
@@ -202,6 +207,8 @@ def render_text(cards):
         for c in cs:
             deps = c["deps"]
             print(f"  {c['dir']}  [{c['state']}]" +
+                  ("  ⚠ 整体状态非规范(backlog|todo|active|blocked|paused|done|dropped)"
+                   if c["state_noncanonical"] else "") +
                   (f"  deps:{deps}" if deps not in ("—", "-", "") else ""))
             print(f"      {'  '.join(c['steps'])}")
             if c["now"]:
