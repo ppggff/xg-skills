@@ -22,6 +22,10 @@ mechanics. 两种粒度，互相独立，都可选（够小就不拆，行为与
 `XS/S — review skipped` 注已存在；backlog⇒仅脚手架；paused/blocked⇒已起步）外自由。`new` 设初始
 整体状态=`todo`。`resume` 不变（仍只进单 card 内部、不读看板）。
 
+**Card 还是雾（fog）？**（借 wayfinder 的 fog-of-war 判定）拆出的一项能**精确表述问题**（不必能回答）
+→ 立 card / roadmap Next-up 条目；还表述不清 → 留 roadmap Themes/Someday（雾），随前面 card 的推进再
+具体化——不要把雾预切成 card。给人读的行文里 card 用**名字**指称（NNN 跟在链接里），不用裸编号。
+
 ## 术语
 
 各一个 canonical 形：**part** / **seam** / **联调**(integrate, = `test.md` Integration 下的具名子节) /

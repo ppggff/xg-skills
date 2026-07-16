@@ -25,6 +25,7 @@ updated: YYYY-MM-DD
 > - **Prune superseded detail.** Once an open question is resolved, keep the one-line verdict +
 >   a link; move the long evidence out (KB, or `notes/`). Delete rolled-back/obsolete notes.
 > - Long scratch / blow-by-blow → `notes/` (resume reads it only if needed), not here.
+> - **No secrets.** These docs are committed (dev_root repo): redact API keys / passwords / PII.
 > - What resume actually needs: **State at a glance + Task status**. Everything else stays terse.
 > - **History / why-we-got-here → `log.md`** (append-only). This file is the *snapshot*; the log is the *story*.
 

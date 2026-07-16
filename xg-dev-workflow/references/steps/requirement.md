@@ -23,6 +23,12 @@ not transcribe the words.
 1. **Restate + surface assumptions.** Echo the raw ask in your words, then list the
    assumptions you'd otherwise bake in (性质/动机/语义/范围/约束). Ask the human to
    correct them **before** drafting. This is step 1, not an afterthought.
+   Two checks before drafting anything (from `triage`): **(a) redundancy** — search the
+   codebase for an existing implementation of the asked-for behavior **by domain concept,
+   not the ask's wording**, and report where you looked (already implemented → no card;
+   point at it instead); **(b) prior rejection** — scan the project `roadmap.md`
+   「Rejected / won't do」ledger (and ADRs in the area) so a previously-rejected proposal
+   doesn't return unnoticed; if the ask resembles an entry, surface it before continuing.
 2. **Grill one question at a time** — the shared protocol + **grill-log** + **rollback** + **convergence auto-verdict** live in
    `grill.md`; here, walk the decision tree toward the sections
    (Context/**需求条目**/Scope/Constraints/Effect/Future/Open questions).

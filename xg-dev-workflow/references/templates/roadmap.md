@@ -30,6 +30,13 @@ Uncommitted ideas; no card yet. Prune when dropped (note why).
 
 - <idea> — one line.
 
+## Rejected / won't do
+
+Proposals consciously rejected at requirement level, so they don't return unnoticed — the
+requirement step checks here before drafting (design-level rejections live in ADRs instead).
+
+- <proposal> — why rejected (YYYY-MM-DD).
+
 ## Graduated / shipped (recent tail)
 
 Items that became cards or shipped — keep a short tail for memory, prune the old.
