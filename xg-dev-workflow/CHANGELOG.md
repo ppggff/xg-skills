@@ -4,6 +4,21 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-16 (close-out review fixes — same-day standard-tier review of the retro batch)
+
+- **Round-end order respects grill-log proportionality** (`grill.md`): the ask-with-receipts
+  round-end order unconditionally required a grill-log append, contradicting the small-grill
+  conversation-is-the-log rule; the append (and the receipts list) now applies only when a log
+  is persisted — a small grill's receipts are the phase doc + the checkpoint commit.
+- **Tier-bump calibration landed in `review.md` step 4**: the stake-tiered dispatch's recall
+  backstop (a target class repeatedly reviewed at light/standard whose misses surface later
+  gets its default tier bumped) existed only in the commit message/CHANGELOG — no skill file
+  carried it, so a fresh session couldn't apply it. Mirrors the model-downgrade calibration.
+- Consistency sweep from the same review: HatchDeck milestone citations renamed to `MS<n>` per
+  the ID registry (six bare-M spots + a D/E gap-id rewrite); standing-rules citations count all
+  three; progress template task row `T1`; word-count figures corrected; long prose rewrapped
+  per the short-lines convention.
+
 ## 2026-07-16 (retro batch — comparison against the ~/.agents/skills 2026-07-09 set)
 
 - **New `diagnose` verb + vendored step** (`references/steps/diagnose.md`, forked from
