@@ -48,7 +48,7 @@ updated: YYYY-MM-DD
 
 | Task | Status | Notes |
 |------|--------|-------|
-| 1 | todo / doing / done / blocked | … (a task is `done` only when its acceptance is all `[x]`; an `[!]` failing criterion keeps it `doing`) |
+| T1 | todo / doing / done / blocked | … (a task is `done` only when its acceptance is all `[x]`; an `[!]` failing criterion keeps it `doing`) |
 
 ## Changed files
 
