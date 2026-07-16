@@ -127,3 +127,8 @@ and record once. Phase only when the scope genuinely warrants checkpoints.
 
 `investigate` never edits product code and never advances a phase — it only produces
 understanding and a recorded evidence trail.
+
+**Receipts (write first, then reply):** the reply that closes a run — or a campaign phase's
+pause-for-confirmation — names the files just written (notes/KB paths + the dev_root/KB commit);
+an answer with no named artifact means the recording step was skipped (SKILL.md Stop-at-gate
+「Ask with receipts」).

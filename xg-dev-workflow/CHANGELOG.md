@@ -61,6 +61,12 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Ask with receipts — write first, then ask** (Stop-at-gate; wired into grill round-end,
+  investigate close/pause, review report reply): an advance ask or verb-closing reply names the
+  artifacts just written (doc paths + dev_root commit) — no receipts, no ask. *Why:* M3 is
+  edit-triggered, so an omitted write produces no edit and no check; a past grill ran rounds
+  chat-only and lost its grill-log. Receipts turn a silent omission into an ask that can't be
+  made (user go, 2026-07-16).
 - **Harness task list as display mirror** (implement.md + resume.md): at the execution "go",
   create one harness task per plan `T<n>` (+ Final sweep) and update them at the same beats as
   `progress.md` — display-only; `progress.md` stays the resume truth and a fresh session

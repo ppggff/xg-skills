@@ -173,8 +173,9 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    its provenance (evidence-cited / 推断 / 假设) — an unverified "this wastes X" written as
    fact propagates into later requirements as one. (2026-07-11: a close-out Future item's
    unverified premise survived two phases before being empirically refuted mid-implementation.)
-   Chat reply ≤10 lines pointing at the report (the table may be echoed in chat
-   when the human asks to choose).
+   Chat reply ≤10 lines pointing at the report — **with receipts**: the report path + the
+   dev_root commit (write first, then reply; SKILL.md Stop-at-gate「Ask with receipts」). The
+   table may be echoed in chat when the human asks to choose.
 
 7. **Log usage** — `--action review` (both contexts; unlike `investigate`, a review
    inside a requirement is still a review, not a design step).
