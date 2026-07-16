@@ -155,10 +155,11 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
      your own design. At each design-tree checkpoint run the three fresh-context lenses
      (causal-coverage · invariant-ledger replay · search-before-build) + the three standing rules
      (verify-the-assumption · re-apply-the-signature), so the agent reaches the decisive cuts
-     itself instead of waiting for the human to land them. Dispatch per that step's guidance:
-     **parallel one-agent-per-lens** with the **verified-facts pack** attached on every round
-     after the first; **tiered** — full panel at decision-level checkpoints, a lightweight
-     text-consistency agent for rewrites of already-grilled decisions. The lenses also apply to
+     itself instead of waiting for the human to land them. Dispatch per that step's stake tiers:
+     **M+ decision-level checkpoints → parallel one-agent-per-lens; XS/S designs / edit-only
+     rounds → the single-agent form**, with the **verified-facts pack** attached on every round
+     after the first; rewrites of already-grilled decisions get only a lightweight
+     text-consistency agent. The lenses also apply to
      **every newly proposed remediation/mechanism mid-grill** (run search-before-build on the fix
      itself before designing it), not just the design under test.
    - **Don't grill to death** — ~3 rounds on one point, then record an Open question and move on.

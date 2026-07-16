@@ -55,8 +55,28 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    pack in hand — don't delegate the crown jewels. Delegate breadth to parallel lens
    agents.
 
-4. **Lens fan-out (parallel agents; scale count to diff size, asked effort, and — on a
-   repeat pass — the prior pass's saturation verdict, step 5b).**
+4. **Pick the tier, then dispatch.** Tier by stakes — diff size (step 1), requirement sizing,
+   invariant density of the touched code, and the human's explicit ask (「彻底审」→ deep). State
+   the chosen tier in the report.
+   - **light** (XS/S card, diff <~150 lines, not invariant-heavy) — **no subagents**: the
+     orchestrator reviews inline with the context pack across the three axes below (spec trace ·
+     standards/hygiene · invariants), applying the critic's standing rules (they are inline
+     rules already). No sweep; step 5's adjudication discipline still applies to its own
+     findings; 5b is skipped (single path).
+   - **standard** (M, ~one-sitting diff) — **three axis agents** (axis shape from the external
+     `code-review` skill's two-axis economy + our KB axis; each gets a complete self-contained
+     brief — paste the checklist/context pack in full, assume no shared memory; ~400-word cap):
+     **Spec axis** (session model) — does the change do what requirement/design say: R-id trace,
+     missing/partial items, scope creep. **Standards axis** (`model: sonnet`) — conventions +
+     comment/tests/docs hygiene (incl. the check-code-refs run). **Invariants axis** (session
+     model) — context-pack invariants, concurrency, fail-safe, security. No model-diversity
+     sweep at this tier; findings carry their axis into adjudication.
+   - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the full
+     lens fan-out below + adversarial trio + the standing different-model sweep + saturation
+     repeat passes (5b).
+
+   **Deep tier — lens fan-out (parallel agents; scale count to diff size, asked effort, and —
+   on a repeat pass — the prior pass's saturation verdict, step 5b).**
    Menu — skip lenses that obviously don't apply and note the skips:
    - correctness vs documented invariants/design (the sharp lens);
    - **fresh-context adversarial trio (`adversarial-critic.md`)** — three lenses run from the
@@ -100,7 +120,8 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    not a copied lens prompt: context pack + intentional-changes list + false-positive
    exemplars + "report only what you're confident is real — zero findings is a good
    outcome"; encourage it to *execute* the changed tools/flows where read-only-safe, not
-   just read them. Skip only when the whole review is skipped (step 1 triviality).
+   just read them. Deep tier only (light/standard run without it); within deep, skip only when
+   the whole review is skipped (step 1 triviality).
 
 5. **Adjudicate every finding (non-negotiable).** Before anything enters the report,
    verify it yourself (or via an independent verifier agent) against the actual

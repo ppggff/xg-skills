@@ -61,6 +61,19 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Stake-tiered review & grill dispatch** (review.md step 4, adversarial-critic.md,
+  design-grill.md): the heaviest shape is no longer the only default. Review tiers — **light**
+  (XS/S, <~150 lines, not invariant-heavy): no subagents, orchestrator reviews inline across
+  spec/standards/invariants; **standard** (M): three **axis** agents (axis shape borrowed from
+  the external `code-review` skill's two-axis economy — Spec / Standards / our KB-Invariants
+  axis, each with a complete pasted brief, no sweep); **deep** (L / invariant-heavy / 「彻底审」):
+  the existing full lens fan-out + trio + different-model sweep + saturation. Grill critic —
+  M+ decision-level checkpoints keep one-agent-per-lens (the 2026-07-04 satisficing finding
+  stands there); XS/S and edit-only rounds default to the single-agent form. Adjudication
+  unchanged at every tier (it is the precision backstop that makes cheaper/fewer finders safe);
+  M6 calibration bumps a tier that repeatedly misses what deep catches. *Why:* grill/review
+  cost scaled with the mechanism, not the stakes — 6–9 agents per review pass and 3 per grill
+  checkpoint regardless of diff size (user go, 2026-07-16).
 - **workflow-status.py flags off-vocabulary 整体状态** — a board state outside
   `backlog|todo|active|blocked|paused|done|dropped` gets a visible ⚠ in the text view and a
   `state_noncanonical` flag in `--json` (viewer-safe extra key). *Why:* the tool passed states

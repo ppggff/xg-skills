@@ -23,8 +23,10 @@ subagent that does NOT hold the current design/requirement frame** — give it o
 + the specific claim/mechanism under test}` and one mandate: *attack from first principles —
 what here is unnecessary, what is missing, what already exists?* A fresh context isn't anchored
 to the proposal's assumptions, so it hits the blind spots the author can't see. Run it as a small
-panel of three fixed lenses — **default: one agent per lens, dispatched in parallel** (a single
-agent carrying all three mandates is a fallback for trivial checkpoints only). *Why one-each:*
+panel of three fixed lenses, **dispatched by stakes**: an **M+ design's decision-level
+checkpoints** default to **one agent per lens, in parallel**; **XS/S designs and edit-only
+rounds** default to the **single-agent three-lens form** (accepting some secondary-lens
+satisficing at low stakes — the finding below stands for M+). *Why one-each at M+:*
 a mixed-mandate agent satisfices on its secondary lenses (2026-07-04: search-before-build ran
 against the main mechanism but skipped the remediation design, costing two extra grill rounds),
 and three independent contexts decorrelate blind spots; parallel dispatch cuts wall-clock to
