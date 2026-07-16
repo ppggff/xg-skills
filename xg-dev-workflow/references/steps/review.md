@@ -75,6 +75,11 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      lens fan-out below + adversarial trio + the standing different-model sweep + saturation
      repeat passes (5b).
 
+   **Tier calibration (M6):** like model downgrades, tier choices sit under retro calibration —
+   a target class repeatedly reviewed at light/standard whose misses surface later (a deep pass,
+   a shipped bug, a retro) gets its default tier bumped. SKILL.md「Subagent model assignment」
+   is the model-side analog.
+
    **Deep tier — lens fan-out (parallel agents; scale count to diff size, asked effort, and —
    on a repeat pass — the prior pass's saturation verdict, step 5b).**
    Menu — skip lenses that obviously don't apply and note the skips:
