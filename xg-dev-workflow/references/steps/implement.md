@@ -24,6 +24,10 @@ Pick the mode from the project's **test-execution policy** and **record it in `p
 - **Project is "describe, don't run"** (e.g. cbdb — tests are *described*, executed only when the
   human asks) → **test-after mode** (you can't *observe* red→green without running, so write the
   test after/alongside the code and defer the run).
+- **Policy unknown or ambiguous → ask, don't infer.** No recorded policy (project CLAUDE.md, KB,
+  a prior card's `progress.md`) → ask the human which mode **before slice 1**; record the answer
+  in `progress.md` and capture it as the project's standing policy (project CLAUDE.md or KB) so
+  the next card doesn't re-ask.
 
 Both modes are **vertical / per-slice** — never "all code, then all tests" (that yields tests of
 already-written, imagined behavior). They differ only in **intra-slice ordering** and **whether

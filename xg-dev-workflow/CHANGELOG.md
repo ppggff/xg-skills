@@ -39,6 +39,10 @@ Each entry says *what changed* and *why*, not the raw diff.
 - **Templates:** roadmap gains the「Rejected / won't do」section (requirement-level rejections;
   design-level ones stay in ADRs); progress gains a no-secrets redact note; split-isolate gains
   the card-vs-fog test (can the question be stated precisely, not answered — from `wayfinder`).
+- **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
+  recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
+  TDD vs test-after before slice 1 instead of silently inferring; record the answer as the
+  project's standing policy so the next card doesn't re-ask (user rule, 2026-07-16).
 - **retro.md: KB usage-frequency scan** (periodic extra): tally `[[wiki/…]]`/`[[raw/…]]`
   citations across dev_root (one grep) to see which knowledge pays off — heavily-cited raw
   with no concept → promotion candidate; zero-citation concepts → dead-weight candidates.
