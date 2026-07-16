@@ -112,9 +112,12 @@ both run this shared step.
 Verdict format (one line in chat, after the doc is updated):
 `Grill 收敛判定: 继续 — 2 个 ADR 级 open 点 (G7 seam 契约, G9 兼容边界)` ·
 `Grill 收敛判定: 建议收敛 — 本轮 0 决定级变更; 槽位全三态; Open 已记录 (G4, G11)`.
-**Round-end order (write first, then ask):** verdict row appended to the grill-log → phase doc
-synced with the round's answers → checkpoint commit → **then** the go ask, **with receipts** —
-the ask names the grill-log/doc paths + the commit (SKILL.md Stop-at-gate「Ask with receipts」).
+**Round-end order (write first, then ask):** verdict row appended to the grill-log — when one
+is persisted; a small grill's conversation-is-the-log case has no file to append (Grill-log
+proportionality above), its receipts are the phase doc + the commit → phase doc synced with the
+round's answers → checkpoint commit → **then** the go ask, **with receipts** — the ask names
+the doc paths (grill-log included when persisted) + the commit (SKILL.md Stop-at-gate「Ask with
+receipts」).
 The ask uses the advance word **go** (「继续下一轮请回 go」/「收敛,回 go 进入下一阶段」). A round
 whose artifacts aren't on disk isn't finished — chat-only rounds are how a past grill lost its log.
 
