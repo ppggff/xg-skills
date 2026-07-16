@@ -71,6 +71,16 @@ Deletions in SKILL.md/templates need the same human confirm as additions (step 3
 - Scan `<project>/roadmap.md` for forgotten/stale items — graduate ripe ones to cards (`new`),
   prune dropped ones (note why). Check the KB `architecture` overview + `*-invariants` ledgers
   aren't drifting behind what recent cards actually built.
+- **KB usage-frequency scan** (which knowledge pays off). Reads leave no trace of their own
+  (`wiki/log.md` records mutations only), but every use lands as a wikilink in a workflow doc —
+  so the citation tally across dev_root IS the usage record:
+  ```bash
+  grep -rhoE '\[\[(wiki|raw)/[^]]*\]\]' <dev_root> --include='*.md' | sort | uniq -c | sort -rn
+  ```
+  Read the tally three ways: a heavily-cited **concept** is earning its keep — keep it sharp;
+  a heavily-cited **raw** with no concept is a promotion candidate (same signal as the
+  re-done-investigation check below); a concept with zero citations across recent cards is a
+  dead-weight candidate — verify, then retire or merge (CHANGELOG/log note).
 - Look for steps repeatedly overridden via `use:<skill>` → maybe rebind the default or
   author your own vendored version.
 - Look for the same investigation re-done across requirements → promote a KB concept.

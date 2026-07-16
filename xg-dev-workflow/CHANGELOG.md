@@ -39,6 +39,12 @@ Each entry says *what changed* and *why*, not the raw diff.
 - **Templates:** roadmap gains the「Rejected / won't do」section (requirement-level rejections;
   design-level ones stay in ADRs); progress gains a no-secrets redact note; split-isolate gains
   the card-vs-fog test (can the question be stated precisely, not answered — from `wayfinder`).
+- **retro.md: KB usage-frequency scan** (periodic extra): tally `[[wiki/…]]`/`[[raw/…]]`
+  citations across dev_root (one grep) to see which knowledge pays off — heavily-cited raw
+  with no concept → promotion candidate; zero-citation concepts → dead-weight candidates.
+  *Why:* KB reads leave no trace (`wiki/log.md` records mutations only, by design); the
+  citations workflow docs already carry are the usage record — the retro just has to count
+  them. Chosen over per-read logging (user decision, 2026-07-16).
 - **Second pass — fresh-context writing-great-skills audit** (same day; 15 findings, 13 fully +
   2 partially applied): the batch's slimming had *compressed instead of disclosed* in places —
   M2/phase-6/verb entries still carried step-level procedure inline; converged them to
