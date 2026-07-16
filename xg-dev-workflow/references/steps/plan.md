@@ -15,6 +15,12 @@ Output: `plan.md` (template: `references/templates/plan.md`).
 2. **Dependency graph** — order bottom-up: build foundations first.
 3. **Slice vertically** — each task is one complete path that leaves the system working
    and testable, not a horizontal layer ("all the schema", "all the API").
+   **Wide-refactor exception (expand–contract, from `to-tickets`):** one mechanical change whose
+   blast radius fans across the whole codebase (rename a column, retype a shared symbol) can't
+   land green as a vertical slice. Sequence it instead: **expand** (add the new form beside the
+   old — nothing breaks) → **migrate** in batches sized by blast radius (per package/dir; each
+   batch one task blocked on the expand, checks stay green because the old form still exists) →
+   **contract** (delete the old form once no caller remains, blocked on every migrate batch).
 4. **Write tasks** with: description, **the `R-id`(s) it implements** (traces to `requirement.md`
    「需求条目」), acceptance criteria (testable), verification (test/build/manual), dependencies,
    files likely touched, scope (XS–L; L → split). A task title containing "and" is usually two

@@ -25,6 +25,9 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    "current diff"; in a multi-repo workspace confirm which repo. Skip (and say so) if
    already reviewed and unchanged, or trivially mechanical. Note diff size: ~300 lines
    is one sitting; >1000 suggests reviewing in slices.
+   **Fail fast before any dispatch:** resolve the ref (`git rev-parse <target>`) and confirm
+   the diff is non-empty — a bad ref or an empty diff dies here, not inside parallel lens
+   agents.
    **Anchoring (where the report lands):** active card (human named it, or the session
    resumed into it) → the card's `notes/`. No active card but the target is plainly one
    card's work (its branch/commits implement that card — check the project `index.md`
@@ -80,8 +83,8 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    - docs accuracy (claims in docs/comments match the new behavior).
    Each agent prompt = context pack + its lens + the false-positive exemplars below
    + "verify each finding against actual file content before reporting; return
-   structured findings (severity, file:line, issue, why, suggested fix); return
-   empty if none — don't invent issues."
+   structured findings (severity, file:line, issue, why, suggested fix); keep the
+   report under ~400 words; return empty if none — don't invent issues."
    **Model assignment (cost — the origin of SKILL.md「Subagent model assignment」; this is
    its per-lens application):** checklist/verification-driven lenses default to the cheaper
    model (Agent tool, `model: sonnet`) — **conventions conformance** (comment hygiene,

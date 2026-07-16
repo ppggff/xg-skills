@@ -14,6 +14,11 @@ Output: `test.md` (template: `references/templates/test.md`).
 ## Principles
 - Test **behavior through public interfaces**, not implementation details — a good test
   reads like a spec and survives refactors.
+- **No tautological tests** — an assertion must not recompute the expected value the way the
+  implementation does (`expect(add(a,b)).toBe(a+b)`, a snapshot derived by the same logic, a
+  constant asserted equal to itself): it passes by construction and can never disagree with the
+  code. Expected values come from an **independent source of truth** — a known-good literal, a
+  worked example, the spec (from `tdd`).
 - **Per-slice unit tests come from `实现`** (one test ↔ one slice, per the chosen mode) — never
   "all code then all tests". This phase doesn't re-write them; it **consolidates** and adds what
   spans slices.
