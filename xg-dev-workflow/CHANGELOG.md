@@ -15,7 +15,7 @@ Each entry says *what changed* and *why*, not the raw diff.
   wrong" — bug localization sat ad-hoc between investigate (read-only) and implement. Wired:
   SKILL.md verb + M5 + logging vocabulary, `investigate.md` cross-ref (defect ≠ spike),
   `provenance.md`, `log-usage.py` KNOWN_ACTIONS (all three copies).
-- **SKILL.md slimmed ~36%** (5020 → 3229 words; no contract change): stop-at-gate and
+- **SKILL.md slimmed ~36%** (5020 → 3238 words; no contract change): stop-at-gate and
   execution-zone autonomy each converged to one authoritative section (previously restated
   5×/4×); `status` viewer/gitweb detail pushed down to README; retro-origin parentheticals
   stripped; phase contracts trimmed to contract level (procedure detail stays in steps).
@@ -144,7 +144,7 @@ Each entry says *what changed* and *why*, not the raw diff.
   ~400-word lens cap gains an overflow rule (keep highest-severity + state count omitted —
   silent truncation was an unmeasured recall loss); requirement's Done-when now includes the
   redundancy/prior-rejection checks (they were ungated). Writing-style line collapsed to
-  "plain prose, technical terms intact". SKILL.md 3229 → 3126 words.
+  "plain prose, technical terms intact". SKILL.md 3238 → 3126 words.
 
 ## 2026-07-11 (card-002 retro batch — grill economy + fail-safe discipline)
 
