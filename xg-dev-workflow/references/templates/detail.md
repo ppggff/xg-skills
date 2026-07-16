@@ -60,7 +60,7 @@ The concrete code `design.md` deferred — keep consistent with the design's con
 
 | 详设项 | design 模块/契约 | requirement 条目 (R-id) |
 |---|---|---|
-| … | … | R1 |
+| … | … | [R1](./requirement.md) |
 
 ## Change notes (post-baseline)
 

@@ -45,7 +45,7 @@ Every `requirement.md` success criterion (and its `R-id`) maps to ≥1 test — 
 
 | R-id | Requirement success criterion | Covered by |
 |---|---|---|
-| R1 | … | … |
+| [R1](./requirement.md) | … | … |
 
 ## Coverage vs module interface (when the design introduced a module)
 

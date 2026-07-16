@@ -57,6 +57,10 @@ Each entry says *what changed* and *why*, not the raw diff.
   recorded **downstream→upstream only** in each doc's designated field (design How-it-meets ·
   detail 可追溯 · plan `Implements:` · test Coverage · `ADR-NNNN D<n>`); reverse maps are
   derived, never hand-maintained (hand-kept reverse lists drift on every plan edit).
+  Cross-file id citations are **markdown links to the id's home** (`[R1](./requirement.md)`,
+  `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
+  prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
+  examples updated to the linked form (user rule, 2026-07-16).
 - **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
   recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
   TDD vs test-after before slice 1 instead of silently inferring; record the answer as the

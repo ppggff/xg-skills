@@ -103,7 +103,7 @@ M2 (`change.md` `seam-contract-disproved`), never a silent `plan.md` edit.
 
 ## How it meets the requirement
 
-Trace by **R-id** (from `requirement.md`「需求条目」) so every requirement has a design home:
+Trace by **R-id** (link each id — `[R1](./requirement.md)`; SKILL.md「Conventions」Links) so every requirement has a design home:
 
 - **需求条目** — each `R-id` → which module/contract satisfies it (a small table works well).
 - **Scope** — stays within / why each out-of-scope item is excluded.
