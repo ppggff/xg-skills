@@ -3,6 +3,8 @@ id: NNN
 title: <requirement title>
 project: <project>
 status: drafting | confirmed | superseded
+issue: <optional — originating tracker issue(s)/ticket(s): id or URL, comma-separated. The
+  card↔issue anchor; also the outward ref code comments may cite. Omit when there is none.>
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---

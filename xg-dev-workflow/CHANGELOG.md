@@ -61,6 +61,12 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Card↔external anchors** (templates): `requirement.md` frontmatter gains optional `issue:`
+  (originating tracker issue/ticket — the outward ref code comments may cite; `new` records it
+  at scaffold time); `progress.md` frontmatter gains `mr:` and `merged:` beside the existing
+  `branch:` (card↔code / review-thread / landed-commit anchors; per-task commits stay in git on
+  `branch:` — no hash lists in docs, and a `merged:` SHA is resolved via git, never
+  hand-composed) (user rule, 2026-07-16).
 - **Storage footprint section in design.md** (存储足迹, by module; required when the design
   touches any storage): every store added/touched — file / shmem / catalog / DB / 内存态 / GUC —
   with owner module, durability, lifecycle. *Why:* ops + I/O already had a per-module home
