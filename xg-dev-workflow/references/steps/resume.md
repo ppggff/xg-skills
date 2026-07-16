@@ -22,7 +22,9 @@ history. This is what lets a brand-new session start fast (docs are the core).
    on demand — don't trust prose; verify anything you're about to act on (M1). (This Orient is
    part of the resume run — covered by its log record, not logged separately.)
 5. State back a 3-line situation report (phase / next step / blockers) and continue from
-   `progress.md`'s "Next step".
+   `progress.md`'s "Next step". Resuming into an in-flight 实现 → rebuild the harness task
+   list from `progress.md`'s Task status (display mirror, `implement.md`「Harness task list」);
+   never treat a stale harness list as state.
 
 ## If docs are stale or contradictory
 Run the omission check (M3) first and reconcile before doing new work — a wrong resume

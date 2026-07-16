@@ -75,6 +75,14 @@ implement → test → produce the M+ close-out review **report**, and your next
 is that report's fix decision — not a per-task or per-phase check-in. The design/详设 freeze was the
 last binding human decision; `plan.md` was the one-time autonomy handoff.
 
+## Harness task list (display mirror)
+At the execution "go", TaskCreate one harness task per plan `T<n>` (+ the Final simplify sweep);
+TaskUpdate in_progress/completed at the same beats as the `progress.md` updates. **Display-only
+mirror**: `progress.md` remains the resume truth — never read the harness list as state (a fresh
+session rebuilds it from `progress.md`, see `resume.md`). Other long-running walks (an
+investigate campaign's phases, diagnose's phases, a large M2 affected-set) may mirror the same
+way, under the same rule.
+
 ## Commit cadence
 - **Commit after each task** once the slice is complete and its runnable checks pass — acceptance
   `[x]` in **TDD mode**, or `[ ]` pending-run in **test-after mode** (build/type/lint green, test

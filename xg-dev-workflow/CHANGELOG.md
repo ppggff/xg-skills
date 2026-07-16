@@ -61,6 +61,12 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Harness task list as display mirror** (implement.md + resume.md): at the execution "go",
+  create one harness task per plan `T<n>` (+ Final sweep) and update them at the same beats as
+  `progress.md` — display-only; `progress.md` stays the resume truth and a fresh session
+  rebuilds the list from it. Long walks (investigate campaign, diagnose phases, large M2
+  affected-set) may mirror the same way. Decision-zone grills, M3/Lint checklists, and review
+  fan-out deliberately don't use it (human-paced / scripted / minutes-long) (user go, 2026-07-16).
 - **Simplify sweep closes 实现** (implement.md; M+, XS/S may skip): after the last slice, one
   behavior-preserving pass over the whole change (reuse / dead code / altitude / final comment
   pass) with the green suite as the net, suite re-run, separate commit; bindable `use:simplify`.
