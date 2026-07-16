@@ -39,6 +39,17 @@ Each entry says *what changed* and *why*, not the raw diff.
 - **Templates:** roadmap gains the「Rejected / won't do」section (requirement-level rejections;
   design-level ones stay in ADRs); progress gains a no-secrets redact note; split-isolate gains
   the card-vs-fog test (can the question be stated precisely, not answered — from `wayfinder`).
+- **Second pass — fresh-context writing-great-skills audit** (same day; 15 findings, 13 fully +
+  2 partially applied): the batch's slimming had *compressed instead of disclosed* in places —
+  M2/phase-6/verb entries still carried step-level procedure inline; converged them to
+  contract-level pointers (change.md owns the M2 mechanics; Requirement sizing owns the
+  close-out gate; Usage logging owns the `--action` mappings; Two zones owns the autonomy
+  handoff — Stop-at-gate and Verbs now point). review.md's model-assignment rationale
+  deduplicated to SKILL.md「Subagent model assignment」. Two completion-criterion fixes: the
+  ~400-word lens cap gains an overflow rule (keep highest-severity + state count omitted —
+  silent truncation was an unmeasured recall loss); requirement's Done-when now includes the
+  redundancy/prior-rejection checks (they were ungated). Writing-style line collapsed to
+  "plain prose, technical terms intact". SKILL.md 3229 → 3126 words.
 
 ## 2026-07-11 (card-002 retro batch — grill economy + fail-safe discipline)
 

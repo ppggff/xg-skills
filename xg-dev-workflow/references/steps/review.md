@@ -84,18 +84,15 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    Each agent prompt = context pack + its lens + the false-positive exemplars below
    + "verify each finding against actual file content before reporting; return
    structured findings (severity, file:line, issue, why, suggested fix); keep the
-   report under ~400 words; return empty if none — don't invent issues."
-   **Model assignment (cost — the origin of SKILL.md「Subagent model assignment」; this is
-   its per-lens application):** checklist/verification-driven lenses default to the cheaper
-   model (Agent tool, `model: sonnet`) — **conventions conformance** (comment hygiene,
-   check-code-refs run, terminology), **tests hygiene**, **docs accuracy**, **git-history**;
-   the inference-heavy lenses stay on the session model — **correctness-vs-invariants**, the
-   **adversarial trio**, **security** (perf: judge by the diff). This is low-risk because
-   step 5's adjudication (orchestrator, never downgraded) is the precision backstop — a
-   cheaper finder costs recall at worst, and checklist lenses' recall doesn't lean on
-   inference depth. Calibration (M6): a sonnet lens whose findings repeatedly die in
-   adjudication, or whose axis contributes nothing across reviews (5b overlap stats), gets
-   its downgrade revoked.
+   report under ~400 words — if findings overflow, keep the highest-severity and state the
+   count omitted; return empty if none — don't invent issues."
+   **Model assignment (per-lens application):** checklist/verification-driven lenses default
+   to the cheaper model (Agent tool, `model: sonnet`) — **conventions conformance** (comment
+   hygiene, check-code-refs run, terminology), **tests hygiene**, **docs accuracy**,
+   **git-history**; the inference-heavy lenses stay on the session model —
+   **correctness-vs-invariants**, the **adversarial trio**, **security** (perf: judge by the
+   diff). Rationale + M6 calibration: SKILL.md「Subagent model assignment」(5b's overlap stats
+   feed that calibration).
    **Standing model-diversity agent:** besides the lens agents, dispatch **one light-sweep
    agent on a different model** (Agent tool, `model: sonnet`) — same-model lenses share
    failure modes; a different model decorrelates them (2026-07-03: a sonnet pass caught a

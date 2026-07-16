@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow: gated phases 需求→设计→详设→实现→测试→评审, one requirement = one docs directory (card) under dev_root. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); or reviews new/changed code ('review X' / 'review 这些改动')."
+description: "Design-centric dev workflow: gated phases 需求→设计→详设→实现→测试→评审, one requirement = one card dir under dev_root. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); or reviews new/changed code ('review X' / 'review 这些改动')."
 ---
 
 # xg-dev-workflow
@@ -15,7 +15,7 @@ A thin **orchestrator** for code work, split into five phases. Each phase produc
 
 Reusable module knowledge does **not** live here — it lands in **xg-knowledge-lite** (`~/knowledge` raw/wiki), referenced from these docs via `[[wiki/<project>/<slug>]]` wikilinks. This skill holds only per-requirement docs.
 
-**Writing style (all phase docs): plain wording, but keep the technical term when it's the right word** (不变量 / 契约 / 幂等 stay). Clear-but-professional, not dumbed-down; short sentences, readable in one pass.
+**Writing style (all phase docs): plain prose, technical terms intact** (不变量 / 契约 / 幂等 stay); short sentences.
 
 **Conventions (all docs):**
 - **First-use gloss** — a coined term, codename, or non-standard abbreviation carries a one-line parenthetical at its first use per doc (and per chat session); **after that, use the term bare** — the gloss is paid once. A term used fewer than ~3 times isn't coined at all. Established domain terms need no gloss.
@@ -27,7 +27,7 @@ Reusable module knowledge does **not** live here — it lands in **xg-knowledge-
 
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 
-The **hard stops** are the decision-zone gates — 需求 confirm · 设计 freeze · 详设 baseline — plus the **one-time execution authorization** after `plan.md`; each is a human decision. In the decision zone this skill advances **one phase per invocation, then STOPS**; after the execution authorization, the execution zone flows autonomously with no per-phase stop (see「Two zones」).
+The **hard stops** are the decision-zone gates — 需求 confirm · 设计 freeze · 详设 baseline — plus the **one-time execution authorization** after `plan.md`; each is a human decision. Past that authorization there are no per-phase stops (「Two zones」).
 
 - **One phase per invocation.** After producing the phase's doc, STOP — even if you could roll on, even if the prompt mentions later phases. Report the doc + the gate question, then wait. Chaining requires the human to invoke each verb, or to explicitly say "run straight through".
 - **A bare topic with no verb** means **`new` + `requirement` only**, then STOP. "调查 / investigate / explore" means stop at understanding — never auto-advance to a chosen design.
@@ -108,7 +108,7 @@ Lowers the frozen architecture to **concrete structures with rationale** — wha
 **Consolidation** — per-slice unit tests were written in 实现; here close coverage (**by `R-id`** + every module interface op/invariant), add the tests that span slices (integration / 跨 part 联调 / manual / E2E), balance the pyramid, run the full suite (or describe the commands for "describe, don't run"), record a binary acceptance walk. A bug found here → **Prove-It** (failing test first, fix in an 实现 slice). Step: `references/steps/test.md`.
 
 ### 6. 评审 Close-out review (M+, gate) → `notes/review-*.md`
-After 测试, an M+ requirement runs the `review` verb on the whole change **before the card goes `done`** — non-trivial code earns both a test doc and a review doc (XS/S: record the skip instead; see Requirement sizing). Step: `references/steps/review.md`.
+After 测试, before `done`: run the `review` verb on the whole change. Sizing + skip rule:「Requirement sizing」. Step: `references/steps/review.md`.
 
 ## 拆分与隔离 (split & isolate) — 可选叠加层
 
@@ -124,7 +124,7 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 ## Six cross-cutting mechanisms
 
 - **M1 Evidence** — no guessing, no 望文生义. Every non-trivial claim cites code (`func()` in `file.c`, no line numbers) or a doc/source. Uncertainty → dispatch an Explore subagent to investigate; capture reusable findings to the KB. `references/steps/evidence.md`.
-- **M2 Change management** — requirement changes are **gated at entry** (human-initiated, or Claude presents the fork and waits) → edit `requirement.md` (dated note; each affected 条目's mode: **追加** add-new-R-id / **变更** supersede / **撤销** retire) → **propagate along the R-id spine, mode-specifically and scoped** (design → detail → plan → test; 变更 = superseding ADR + traced `[x]`→`[ ]` resets + proportional re-grill of just the changed contracts — not a wholesale regenerate) → check cross-card Deps → re-approve scoped to what changed. A design-driven 方案变更 with the requirement unchanged takes the same route without touching `requirement.md`; a `detail.md`-only change stays at the baseline gate (dated note); pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`. Full flow: `references/steps/change.md`.
+- **M2 Change management** — requirement changes are **gated at entry** (human-initiated, or Claude presents the fork and waits) → edit `requirement.md` with a dated note → **propagate along the R-id spine, mode-specifically (追加/变更/撤销) and scoped** — never a wholesale regenerate → re-approve scoped to what changed. Design-driven and detail-only changes enter the same route at their own gates; pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`. Full flow: `references/steps/change.md`.
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current; requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept, matching its KB concept); reusable knowledge captured to the KB via xg-knowledge-lite Write and compiled — or explicitly noted as deferred. `references/steps/omission-check.md`.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for resume**; `log.md` = append-only why-history, **never on the resume path**. Never rebuild from chat history. Keep a decision-zone grill in one unbroken window (don't compact mid-grill); in the execution zone prefer `resume` in a fresh session over pushing a degraded one. `references/steps/resume.md`.
 - **M5 Code understanding** — concept-first, layered: query xg-knowledge-lite first, then read-only exploration (Plan Mode / Explore subagent). The deliverable is the logical/causal analysis (Conventions「Reasoning shown」), not a grep-hit list. Existing-code questions enter through `investigate`; defect localization through `diagnose`; judging new/changed code → `review`. `references/steps/understand.md`.
@@ -139,9 +139,9 @@ Checklist / gather / verification-driven subagent work defaults to the cheaper m
 Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 
 - `new <slug>` — resolve project + next `NNN` (zero-padded per project — scan the project dir for the highest, increment), scaffold from templates, register project if missing, add an `index.md` card row (初始整体状态 `todo`); a roadmap-sourced slug is marked graduated there. **Create files lazily**: `requirement.md` now; each later doc when its phase starts; `progress.md` on first need (a mid-grill checkpoint may create it early); `adr/` on the first ADR.
-- `requirement` | `design` | `detail` | `plan` | `test` — advance **exactly one** phase, then stop at its gate (Stop-at-gate). After the `plan` gate's one-time "go", the execution zone flows autonomously — you normally don't invoke `test` by hand.
-- `investigate <topic>` — **the front door for any code-behavior question** (feasibility, runtime/concurrency, "调查 X"). KB-first, full M1 discipline; branches on context — active requirement → its design step (logs `design`); standalone → findings to the KB (logs `investigate`). Read-only on product code (an empirical question may run a throwaway **spike**). Step: `references/steps/investigate.md`.
-- `diagnose <symptom>` — **the front door for defect localization** (bug, crash, perf regression): feedback-loop-first — build a tight red-capable repro loop before any theory, 3–5 ranked falsifiable hypotheses, tagged instrumentation, fix lands via Prove-It. Branches like investigate (active card → the fix is an 实现 slice; standalone → propose the fix and wait). Step: `references/steps/diagnose.md`.
+- `requirement` | `design` | `detail` | `plan` | `test` — advance **exactly one** phase, then stop at its gate (Stop-at-gate). Past the `plan` gate the zone flows autonomously (「Two zones」) — you normally don't invoke `test` by hand.
+- `investigate <topic>` — **the front door for any code-behavior question** (feasibility, runtime/concurrency, "调查 X"). KB-first, full M1 discipline; branches on context — active requirement → it is that requirement's design step; standalone → findings to the KB. Read-only on product code (an empirical question may run a throwaway **spike**). Step: `references/steps/investigate.md`.
+- `diagnose <symptom>` — **the front door for defect localization** (bug, crash, perf regression): feedback-loop-first — a red-capable repro loop before any theory; the fix lands via Prove-It. Branches like investigate (active card → the fix is an 实现 slice; standalone → propose the fix and wait). Step: `references/steps/diagnose.md`.
 - `review <target>` — **the front door for judging new/changed code** (commit range, branch, PR, or current diff): KB context pack + parallel lens agents (+ one different-model sweep), every finding adjudicated against actual code; report ends with a 修复决策表 and lands in dev_root (requirement `notes/review-*.md`, or standalone `<project>/reviews/`). Also the M+ close-out gate. Read-only. Step: `references/steps/review.md`.
 - `change` — drive the M2 flow.
 - `resume [<slug>]` — rebuild state from `progress.md` + the phase docs (M4).

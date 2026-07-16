@@ -19,7 +19,7 @@ The split that matters: **raw = "what I learned in investigation X" (may mix con
 
 ## Actions
 
-Write (record raw + refresh its concepts), Compile (synthesize concepts from raw, incrementally), Query (search), Orient (project knowledge outline / warm-up), Lint (check). No external-source ingestion. Compilation is **incremental, Karpathy-style** — no full rebuild, no hash stamp.
+Write (record raw + refresh its concepts), Compile (synthesize concepts from raw, incrementally), Query (search), Orient (project knowledge outline / warm-up), Lint (check). No external-source ingestion.
 
 ## Initialization (on first Write)
 
@@ -36,11 +36,11 @@ Two **curated project-global docs** — siblings of `CONTEXT-MAP.md`: **directly
 - **architecture** — `wiki/<project>/architecture.md`: the system's **overall design** (layers, modules, responsibilities, seams, key data flows) — the big-picture **map** that `See Also`s the detail concepts. xg-dev-workflow's design step links each card's `design.md` to it (`[[wiki/<project>/architecture]]`) and refreshes it **as-built** when a design freezes.
 - **invariant ledgers** — `wiki/<project>/<subsystem>-invariants.md`: one line per established system invariant, **evidence-cited** — the ledger xg-dev-workflow's adversarial-critic **loads & replays**. Append to it whenever an investigation establishes a durable invariant; that is how the next design's starting point gets sharper.
 
-They live in `wiki/<project>/` beside the concepts but are **hand-maintained docs, not concept index rows** — Query reaches them via Orient, not the concept index (Lint excludes them from the index check, see Lint §2).
+They live in `wiki/<project>/` beside the concepts but are **hand-maintained docs, not concept index rows** — Query reaches them via Orient, not the concept index (Lint excludes them from the index check — `references/lint.md` §2).
 
 ## Project resolution
 
-When a write needs a `project` and none is given: `--project <name>` → use it; else `tools/resolve-project.py [<cwd>]` (config `projects:` map, longest-prefix); on miss → ask once + `tools/register-project.py`. **Never auto-pick `common`.**
+When an action needs a `project` and none is given: `--project <name>` → use it; else `tools/resolve-project.py [<cwd>]` (config `projects:` map, longest-prefix); on miss → ask once + `tools/register-project.py`. **Never auto-pick `common`.**
 
 ## Write — record raw, then refresh its concepts
 
@@ -82,8 +82,6 @@ Karpathy-style incremental: **no full rebuild, no hash stamp** — only the conc
    - batch: `## [YYYY-MM-DD] compile | +<new> ~<resynth> -<removed> concepts`
 6. (Batch) suggest Lint afterward.
 
-"What changed" is computed by comparing raw `updated` to the concepts that cite them — no stamp file, only the delta is rebuilt.
-
 ## Query — search the knowledge
 
 1. **Concepts first** (primary): read `wiki/index.md` → read the relevant `wiki/<project>/<concept>.md`. Synthesize an answer with `[[wiki/<project>/<concept>]]` citations; drill into a concept's **Sources** raw for detail. Prefer KB knowledge over training knowledge for repo facts.
@@ -94,7 +92,8 @@ Karpathy-style incremental: **no full rebuild, no hash stamp** — only the conc
    Report `<project>/<slug> @ line` + snippet. Catches raw recorded but not yet compiled into a concept.
    **Backlog visibility:** `tools/kb-backlog.py` lists per-project uncompiled raw (SessionStart-hook
    friendly; wiring example in README). Its reliability contract: Compile step 5 owns the
-   `compiled_to:` back-annotation; Lint §1 owns the check (incl. the `deferred — <why>` marker).
+   `compiled_to:` back-annotation; Lint §1 (`references/lint.md`) owns the check (incl. the
+   `deferred — <why>` marker).
 3. Contradictory hits → flag to the user.
 
 Don't write files during Query. Asked to save the answer → distill the **durable findings**
@@ -105,9 +104,9 @@ Q&A); there is no separate archive-page layer (see Out of scope).
 
 Query is **pull** (you already have a question); Orient is **push** — it surfaces *what is even knowable* about a project up front, so investigation starts knowing which concepts exist and reuses them instead of re-deriving. The outline already exists as `wiki/index.md` + the project's `CONTEXT-MAP.md`; Orient **reads and presents** them scoped to one project — it never regenerates or caches an outline file (that would drift from the index — see Out of scope).
 
-**When:** on demand (`orient me on <project>`, `项目知识大纲`, `warm up the KB`); and as the project-scoped front of an investigation / review / new requirement (xg-dev-workflow calls it as its "KB first" step). Auto-warm-up inside a dev-workflow run is covered by that run — don't double-log.
+**When:** on demand (`orient me on <project>`, `项目知识大纲`, `warm up the KB`); and as the project-scoped front of an investigation / review / new requirement (xg-dev-workflow calls it as its "KB first" step; logging for that case: Usage logging below).
 
-1. **Resolve project** — `--project <name>` → use it; else `tools/resolve-project.py [<cwd>]`. On miss, say so and offer to register; never default to `common`. Always pull `common` alongside the resolved project.
+1. **Resolve project** (per「Project resolution」). Always pull `common` alongside the resolved project.
 2. **Read the outline** — `wiki/index.md`, the resolved project's section + `common`: the one-line project description + every concept row (title + summary). This *is* the outline — don't open concept bodies here (that's Query, once a topic is picked).
 3. **Read the project-global docs** (`wiki/<project>/`, and `common`'s, if present): the **`CONTEXT-MAP.md`** glossary (bounded contexts + canonical terms — names to use, `_Avoid_` terms), the **`architecture`** overview (the map), and any **`*-invariants`** ledgers (the rules). **Lead with the map + the rules** — the concepts hang off them.
 4. **Flag uncompiled raw** — list count + slugs so the reader knows there's detail below the outline (`tools/kb-backlog.py` computes exactly this).
@@ -115,28 +114,11 @@ Query is **pull** (you already have a question); Orient is **push** — it surfa
 
 ## Lint — minimal health check
 
-1. **Coverage** — every `raw/<project>/*.md` is cited by at least one concept's Sources **or carries `compiled_to:` frontmatter** (else it's uncompiled → suggest Compile; `compiled_to: deferred — <why>` is an explicit deferral, not a gap). A Sources-cited raw missing its `compiled_to:` back-annotation → add it; a `compiled_to:` pointing at a non-existent concept → dangling. Every concept's Sources point to existing raw. Also flag **concept-promotion**: an idea recurring across several raw files (or repeatedly mentioned inside concepts) with no dedicated concept article → suggest extracting one.
-2. **Index consistency** — every `wiki/<project>/*.md` **concept** has an index row; every row points to an existing concept. (Exclude the **curated docs** — `CONTEXT-MAP.md`, `architecture.md`, `*-invariants.md` — they're not concepts and carry no index row; they're checked in §7.) Report drift → suggest Compile.
-3. **Dangling wikilinks** — every `[[<layer>/<project>/<slug>]]` resolves to an existing file `<layer>/<project>/<slug>.md` (`<layer>`∈`wiki`/`raw`). Flag any legacy `[[project:slug]]` / bare `[[slug]]` → migrate to the full path form.
-4. **Frontmatter** — raw + concept articles have `title` / `project` / `updated`; `project` matches parent dir; `aliases` don't collide across files (within a layer+project).
-5. **Terminology / contexts** — each concept with a glossary entry has **one** canonical term + `_Avoid_`, defined by what it IS (not what it does); within a bounded context (a `CONTEXT-MAP.md` heading) no two concepts claim the same term and no word carries two meanings; the **same word across different contexts is fine** (scoped homonym) — verify each is scoped. Every concept's `_Context_` resolves to a context in the project/common CONTEXT-MAP; every context "Governs" existing concepts. **CONTEXT-MAP purity** — it holds only terms / scopes / relationships, no implementation details or design decisions (those belong in workflow `design.md`/ADRs). Drift → fix the term, record the scope, or move out non-glossary content.
-6. **Size** — flag raw articles > 400 lines (FORMAT.md size guidance: split by sub-topic).
-7. **Designated docs** — a project with several concepts but **no `architecture` overview** →
-   suggest creating one (it's the entry map). Every line in a `*-invariants` ledger is
-   **evidence-cited** (`func()` in `file.c` or a raw link); a subsystem with concepts but no
-   invariant ledger is a **soft** flag (best-effort, don't force one where there are no invariants).
-
-Authority (two levels, from karpathy-llm-wiki): **deterministic findings are auto-fixed** —
-§2 index rows, §3 link paths, §4 frontmatter fields, §1's mechanical `compiled_to:`
-back-annotations; **judgment findings are report-only** — contradictions, concept-promotion
-(§1), terminology/scope calls (§5), size splits (§6), designated-doc gaps (§7) go to the user
-with a suggestion, never silently fixed.
-
-Execution (cost): §2 / §3 / §4 / §6 are deterministic — script them when tooling exists; run
-the rest (and any unscripted deterministic item) via one cheaper-model agent (Agent tool
-`model: sonnet`) that returns only the violation list — the orchestrator re-verifies each
-finding, then applies it per the authority split above. (Same principle as xg-dev-workflow's
-「Subagent model assignment」; restated here so this skill stays self-contained.)
+Seven checks — §1 coverage (raw↔concept, `compiled_to:`, concept-promotion) · §2 index
+consistency · §3 dangling wikilinks · §4 frontmatter · §5 terminology/contexts · §6 size ·
+§7 designated docs. **Deterministic findings are auto-fixed; judgment findings are
+report-only** (surfaced with a suggestion, never silently fixed). Full checklist + authority
+split + execution notes: `references/lint.md`.
 
 Append `## [YYYY-MM-DD] lint | <N> issues, <M> fixed` to `wiki/log.md`.
 
@@ -155,19 +137,20 @@ Append `## [YYYY-MM-DD] lint | <N> issues, <M> fixed` to `wiki/log.md`.
 - Cross-references: **fully-qualified** `[[<layer>/<project>/<slug>]]` wikilinks (`<layer>`∈`wiki`/`raw`) — e.g. `[[wiki/cbdb/fdbobj-vacuum]]`, `[[raw/cbdb/vacuum_internals]]`. (No legacy `[[project:slug]]` / bare `[[slug]]`.)
 - **Link direction = dependency direction.** The load-bearing link is **concept→raw** (Sources) — it drives recompile. `raw→raw` and `concept↔concept` (See Also) are navigation. A `raw→concept` link is allowed but **navigation only — raw must never *depend on* a concept** (the model's invariant is "wiki is recomputable from raw"; if a concept vanished, raw must still stand). Keep dependencies pointing source→… never derived→source.
 - Today's date for `updated` and log entries.
-- **Writing style: lean plain, keep technical terms** — prefer everyday phrasing where it doesn't lose precision, but don't force-replace established technical terms (不变量/契约/幂等…) with folksy paraphrases. Clear-but-professional, not dumbed-down. Short sentences.
+- **Writing style: plain prose, technical terms intact** (不变量/契约/幂等 stay); short sentences.
 
 ## Usage logging (self-feedback)
 
-Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging) — follow it. This skill's `--action` values: `write|compile|query|orient|lint` (the logging tool warns on anything else). **One event = one record:** a KB write — *or an Orient warm-up* — that happens inside an xg-dev-workflow `investigate`/`review` run is covered by that run's record; don't double-log here. Only standalone KB work logs under this skill (`orient` only when run as a deliberate standalone warm-up).
+Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging) — follow it. This skill's `--action` values: `write|compile|query|orient|lint` (the logging tool warns on anything else). **One event = one record:** a KB write — *or an Orient warm-up* — that happens inside an xg-dev-workflow `investigate`/`diagnose`/`review` run is covered by that run's record; don't double-log here. Only standalone KB work logs under this skill (`orient` only when run as a deliberate standalone warm-up).
 
 ## Out of scope (deliberately)
 
-graph, changes-timeline, compile-stamp / hash-based drift tracking (Compile diffs raw `updated` vs concepts — no hashing), similarity-probe, probe/graph-driven or multi-round cascade (Compile does a light same-project ripple only, Karpathy-style), external-source (web/Notion) ingestion, slash commands, archive pages (karpathy-style `[Archived]` snapshots of Query answers — durable content routes into raw via Write instead; see Query). If you outgrow this, that's the full `xg-knowledge-wiki`.
+graph, changes-timeline, compile-stamp / hash-based drift tracking, similarity-probe, probe/graph-driven or multi-round cascade (Compile does a light same-project ripple only, Karpathy-style), external-source (web/Notion) ingestion, slash commands, archive pages (karpathy-style `[Archived]` snapshots of Query answers — durable content routes into raw via Write instead; see Query). If you outgrow this, that's the full `xg-knowledge-wiki`.
 
 ## References
 
 - `references/FORMAT.md` — raw article format (copied to `$KB/FORMAT.md` on init).
+- `references/lint.md` — the Lint checklist (§1–§7 + authority split + execution notes).
 - `references/concept-template.md` — wiki concept article format (canonical term / `_Avoid_` / `_Context_` / Sources / See Also).
 - `references/context-map-template.md` — `wiki/<project|common>/CONTEXT-MAP.md`: bounded contexts + scoped glossary.
 - `references/index-template.md` — `wiki/index.md` layout.

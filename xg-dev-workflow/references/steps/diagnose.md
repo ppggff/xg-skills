@@ -30,7 +30,7 @@ version, diff outputs) → HITL script as last resort (a human must click → dr
 structured loop).
 
 - **Trap rule:** catching yourself reading code to build a theory before this command exists —
-  **stop**; jumping straight to a hypothesis is the exact failure this step prevents.
+  **stop**.
 - **Tighten it:** faster (cache setup, skip unrelated init), sharper (assert the specific
   symptom, not "didn't crash"), deterministic (pin time, seed RNG, isolate fs/network). A
   2-second deterministic loop is a debugging superpower; a 30-second flaky one barely beats none.

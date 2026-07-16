@@ -99,6 +99,7 @@ not transcribe the words.
 (relentless branch-resolving) · `use:<your-skill>`.
 
 ## Done when
-- Assumptions confirmed; the sections filled; **需求条目 itemized with stable `R-id`s**; boundaries
+- Redundancy + prior-rejection checks run (where-looked / ledger scan reported); assumptions
+  confirmed; the sections filled; **需求条目 itemized with stable `R-id`s**; boundaries
   sharp; success criteria specific, testable, and each citing its `R-id`; load-bearing claims
   evidence-backed (provenance marked); `status: confirmed`. Then run the omission check (M3).

@@ -16,6 +16,13 @@ retro lands a fix in this skill. Each entry says *what changed* and *why*, not t
   via Write (a synthesized answer is not itself raw — save what was learned, not the Q&A);
   karpathy-style `[Archived]` answer pages are explicitly Out of scope.
 - **Description pruned** (one trigger per branch; 444 → 427 bytes).
+- **Second pass — fresh-context writing-great-skills audit** (same day): **Lint checklist
+  disclosed to `references/lint.md`** (branch-only reference — Write/Query/Orient paths no
+  longer wade past 26 lines of Lint detail; §1–§7 numbering preserved, cross-references now
+  name the file). The incremental-no-hash design fact had four homes → one (the Compile
+  section). Project resolution generalized to "when an *action* needs a project" so Orient
+  points instead of restating. Orient's double-log sentence deduplicated to Usage logging
+  (which now also names `diagnose`). Writing-style line collapsed. SKILL.md 2607 → ~2100 words.
 
 ## 2026-07-08
 
