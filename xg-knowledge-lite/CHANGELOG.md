@@ -16,6 +16,9 @@ retro lands a fix in this skill. Each entry says *what changed* and *why*, not t
   via Write (a synthesized answer is not itself raw — save what was learned, not the Q&A);
   karpathy-style `[Archived]` answer pages are explicitly Out of scope.
 - **Description pruned** (one trigger per branch; 444 → 427 bytes).
+- **Short-lines convention** (shared with xg-dev-workflow, same-day batch): KB articles and
+  this skill's own files wrap prose around ~100 chars; a long list item splits into
+  sub-bullets. Landed as a Conventions bullet in SKILL.md.
 - **Second pass — fresh-context writing-great-skills audit** (same day): **Lint checklist
   disclosed to `references/lint.md`** (branch-only reference — Write/Query/Orient paths no
   longer wade past 26 lines of Lint detail; §1–§7 numbering preserved, cross-references now
