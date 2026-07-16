@@ -116,6 +116,17 @@ Self-review against the angles that catch real systems bugs — verify each agai
 - **Dead abstraction / deletion test** (`codebase-design`) — is each hook/abstraction load-bearing? **Delete it in your head:** if complexity vanishes it was a pass-through (remove it); if it reappears across N callers it earns its keep. One adapter = hypothetical seam, two = real — don't keep a seam/port that only ever has one implementation.
 - **Causal chain** — don't claim "it deadlocks / works because X" without tracing the mechanism.
 
+## Simplify sweep (once, after the last slice — M+; XS/S may skip)
+All slices done and checks green → run one **behavior-preserving** simplification pass over the
+whole change — reuse, dead code, altitude/abstraction cleanups, a final comment pass — with the
+green suite as the safety net; re-run the full suite after; commit it separately (P1). Bindable:
+`use:simplify` (or a code-simplifier agent). The per-slice guards (P0, deletion test) still apply
+during slices — the sweep is the whole-diff pass they can't do.
+**test-after / "describe, don't run" projects: non-structural cleanups only** (comments, dead
+code, naming) — a structural refactor without a runnable net carries asymmetric risk; note the
+skipped candidates in `progress.md` for the human. Record the sweep (or its skip) in
+`progress.md`; then 测试.
+
 ## Diagnosis (when a fix isn't landing)
 - **Stop blind-iterating on a black-box dependency after ~2 misses — read its shipped source.** Two failed guesses at *why* a third-party component (CSS / renderer / library) misbehaves means you're modeling it wrong; open its shipped CSS/JS/source for its actual model instead of guessing a third time. (HatchDeck M2: 5 blind CSS iterations failed on a tmux-green background; the fix came only from reading `@wterm/dom`'s shipped CSS — `.term-grid` inherited the bottom-right cell's color. Same shape in M1/M3 — prior-art source drove the ADRs; don't assume a dep's capabilities, e.g. modernc JSON1.)
 - **If a bug reproduces on the reference engine, it's your code, not the platform.** A symptom you'd pin on the target platform (mobile Safari, a specific OS) that *also* reproduces on desktop Chromium is your own logic — use the reference engine as a forensic oracle: read computed styles / bytes / values on both for differential diagnosis, get ground-truth data on the real device before editing, and don't change what you can't reproduce. (HatchDeck M2: per-char scroll "vibration" reproduced on desktop → own snap overshooting a 12px padding, not iOS; Chromium-vs-iOS diff proved the green background was iOS-paint-specific.)

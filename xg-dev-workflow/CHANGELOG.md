@@ -61,6 +61,13 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Simplify sweep closes 实现** (implement.md; M+, XS/S may skip): after the last slice, one
+  behavior-preserving pass over the whole change (reuse / dead code / altitude / final comment
+  pass) with the green suite as the net, suite re-run, separate commit; bindable `use:simplify`.
+  test-after projects restrict to non-structural cleanups (no runnable net → asymmetric risk),
+  noting skipped candidates. Per-slice P0 + deletion test stay — the sweep is the whole-diff
+  pass they can't do; refactoring stays out of the red-green loop (tdd's rule). Wired: plan
+  template gains a Final checklist block; SKILL.md phase 4 names the sweep (user go, 2026-07-16).
 - **The advance word is `go`, uniformly** (Stop-at-gate): every advance ask is phrased around
   `go` and names what it authorizes (「回 go 进入设计」); the human's `go` (or an equally
   explicit equivalent) is the authorization — comments/praise without a go are feedback, not
