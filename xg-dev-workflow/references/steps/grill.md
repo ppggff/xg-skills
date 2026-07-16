@@ -61,6 +61,9 @@ keeps it current; in chat, re-expand each codename on first use per session ("�
 "T和S是什么意思?" / "N1什么意思?".
 
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
+**Ids run continuous across rounds** (`G<n>` keeps counting in round 3; round-scoped form
+`G<round>.<n>` if wanted) — never mint a new letter per round (a past grill's G→H→I escalation
+collided with other prefixes; see SKILL.md「Fixed ID prefixes」).
 
 | id | question | recommended | chosen | why | depends-on | status |
 |----|----------|-------------|--------|-----|------------|--------|

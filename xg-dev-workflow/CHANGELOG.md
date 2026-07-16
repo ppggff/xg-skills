@@ -46,6 +46,11 @@ Each entry says *what changed* and *why*, not the raw diff.
   R0/R0.5/R0.6/R1/R2/R5 renamed to P* (numbers kept — R1 "one concern per commit" read as
   requirement R1 in the same phase docs); grill.md's stray `Q4` → `G4`; plan template's
   "Task 1 / Task N" formalized as `T1` / `T<n>` (user rule, 2026-07-16).
+  Second sweep over *real* design docs added the design-side schemes: `L<n>` abstraction
+  layers, `MS<n>` milestones (a live design used bare M1/M2/M3 for milestones — ambiguous
+  against mechanism M2 in the same doc), grill ids continuous across rounds (a past grill
+  escalated G→H→I letters per round; H also reads as a High finding), parts named with
+  long-form `Part <n> (<名>)` only, Mermaid node ids diagram-local/exempt.
 - **implement.md: test-mode uncertainty asks** — when the project's test-execution policy isn't
   recorded anywhere (project CLAUDE.md / KB / a prior card's progress.md), ask the human
   TDD vs test-after before slice 1 instead of silently inferring; record the answer as the

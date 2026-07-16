@@ -49,6 +49,8 @@ contract-first. Cite load-bearing claims via KB `[[wiki/<project>/<slug>]]`.
 
 State the **essential 思路** and the **abstraction layers** it realises (each layer's job + which
 modules live in it) before listing flat modules — the right layering simplifies the problem.
+Number layers `L1..Ln` (bottom-up) when other sections need to reference them; milestones/分期
+use `MS<n>` (SKILL.md「Fixed ID prefixes」— bare `M<n>` means the skill mechanisms).
 
 ### Diagrams (required)
 
