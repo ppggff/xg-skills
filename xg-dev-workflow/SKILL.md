@@ -20,11 +20,37 @@ Reusable module knowledge does **not** live here — it lands in **xg-knowledge-
 **Conventions (all docs):**
 - **First-use gloss** — a coined term, codename, or non-standard abbreviation carries a one-line parenthetical at its first use per doc (and per chat session); **after that, use the term bare** — the gloss is paid once. A term used fewer than ~3 times isn't coined at all. Established domain terms need no gloss.
 - **Diagrams — Mermaid preferred** (renders in GitHub/Obsidian/VS Code, diffs as text); ASCII only for the trivial or what Mermaid can't express (CJK-width rules in `design-grill.md`).
-- **Links** — intra-requirement/project references use standard markdown links (`[design](./design.md)`); **KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink** — load-bearing for the KB's incremental recompile, don't swap it for a markdown link. **An ID cited from another file is a markdown link to its home** — `[R1](./requirement.md)`, `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`; designated mapping fields and a doc's first mention always link, repeat prose mentions may stay bare (same-file citations stay bare).
+- **Links — clickable where cheap:**
+  - Intra-requirement/project references: standard markdown links (`[design](./design.md)`).
+  - KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink — load-bearing for the
+    KB's incremental recompile; don't swap it for a markdown link.
+  - **An ID cited from another file is a markdown link to its home** — `[R1](./requirement.md)`,
+    `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`. Designated mapping fields and a
+    doc's first mention always link; repeat prose mentions and same-file citations stay bare.
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设 (assumption). Only the claims a decision rests on (M1).
 - **Reasoning shown (human-first docs)** — requirement/design/detail/ADR/review and investigation-notes prose carries the logical analysis, **evidence → mechanism → conclusion**, so the approver can check the inference, not just trust the citations — a fact table with a conclusion bolted on is a grep-hit list at doc level. Execution-zone docs stay terse: link the reasoning, don't restate it.
 - **Reader-aware** — write each doc for its primary reader (each template states its Reader); the audience split is「Two zones」below.
-- **Fixed ID prefixes (one letter, one meaning):** `NNN` card dir · `R<n>` requirement 条目 (R is reserved for requirements) · `ADR-NNNN` decision records · `T<n>` plan tasks · `G<n>` grill-log questions (**continuous across rounds**; round-scoped form `G<round>.<n>` — never a new letter per round) · `L<n>` abstraction layers (design) · `D<n>` design decisions/子决策 (scoped inside an ADR: `ADR-NNNN D<n>`) · `MS<n>` milestones/分期 (bare `M<n>` stays this skill's mechanisms `M1`–`M6`) · `P<n>` implement's principles (`implement.md` Principles). **Modules are named, like parts** (the name carries the meaning); `Mod<n>` only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>` for a module. Review findings: `#<n>` within a report's 修复决策表, severity spelled out (High/Med/Low — no H/M/L shorthand). Parts are **named** (long form `Part <n> (<名>)` ok, no bare `P<n>`). Mermaid node ids are diagram-local — exempt. A new scheme picks an unused letter and lands here. **Cross-scheme mappings are recorded downstream→upstream only**, each in its doc's designated field (design「How it meets」R-id table · detail 可追溯 · plan `Implements:` · test Coverage rows · `ADR-NNNN D<n>`); the reverse map is derived (grep / M3), never hand-maintained — an upstream doc doesn't list who cites it (same one-way principle as workflow→KB links; M2 propagates along exactly these fields).
+- **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
+  sub-bullets** (one clause per line) instead of one long line. Applies to phase docs and this
+  skill's own files (rewrap existing long lines opportunistically when editing them).
+- **Fixed ID prefixes** (one letter, one meaning; a new scheme picks an unused letter and lands here):
+  - `NNN` card dir · `ADR-NNNN` decision records · `T<n>` plan tasks.
+  - `R<n>` requirement 条目 — R is **reserved** for requirements.
+  - `G<n>` grill-log questions — **continuous across rounds**; round-scoped form `G<round>.<n>`,
+    never a new letter per round.
+  - `L<n>` abstraction layers (design) · `D<n>` design decisions/子决策 (ADR-scoped: `ADR-NNNN D<n>`).
+  - `MS<n>` milestones/分期 — bare `M<n>` stays this skill's mechanisms `M1`–`M6`.
+  - `P<n>` implement's principles (`implement.md` Principles).
+  - Review findings: `#<n>` within a report's 修复决策表, severity spelled out
+    (High/Med/Low — no H/M/L shorthand).
+  - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
+    only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
+    Mermaid node ids are diagram-local — exempt.
+  - **Cross-scheme mappings are recorded downstream→upstream only**, each in its doc's designated
+    field (design「How it meets」· detail 可追溯 · plan `Implements:` · test Coverage rows ·
+    `ADR-NNNN D<n>`); the reverse map is derived (grep / M3), never hand-maintained — an upstream
+    doc doesn't list who cites it (same one-way principle as workflow→KB links; M2 propagates
+    along exactly these fields).
 
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 

@@ -61,6 +61,11 @@ Each entry says *what changed* and *why*, not the raw diff.
   `[ADR-0006 D5](./adr/0006-….md)`) — designated fields and first mention always link, repeat
   prose mentions may stay bare; same-file citations stay bare. Templates' mapping-field
   examples updated to the linked form (user rule, 2026-07-16).
+- **Short-lines convention** (both skills' Conventions): wrap prose ~100 chars; a long list
+  item splits into sub-bullets rather than one long line — applies to authored docs and the
+  skill files themselves (existing long lines rewrap opportunistically on edit). The two worst
+  offenders restructured as the exemplar: SKILL.md's Fixed-ID-prefixes and Links mega-bullets
+  are now sub-lists (user rule, 2026-07-16).
 - **Stake-tiered review & grill dispatch** (review.md step 4, adversarial-critic.md,
   design-grill.md): the heaviest shape is no longer the only default. Review tiers — **light**
   (XS/S, <~150 lines, not invariant-heavy): no subagents, orchestrator reviews inline across

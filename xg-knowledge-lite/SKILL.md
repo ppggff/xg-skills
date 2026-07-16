@@ -138,6 +138,8 @@ Append `## [YYYY-MM-DD] lint | <N> issues, <M> fixed` to `wiki/log.md`.
 - **Link direction = dependency direction.** The load-bearing link is **concept→raw** (Sources) — it drives recompile. `raw→raw` and `concept↔concept` (See Also) are navigation. A `raw→concept` link is allowed but **navigation only — raw must never *depend on* a concept** (the model's invariant is "wiki is recomputable from raw"; if a concept vanished, raw must still stand). Keep dependencies pointing source→… never derived→source.
 - Today's date for `updated` and log entries.
 - **Writing style: plain prose, technical terms intact** (不变量/契约/幂等 stay); short sentences.
+- **Short lines** — wrap around ~100 chars; a long list item splits into sub-bullets instead of
+  one long line (applies to KB articles and this skill's own files alike).
 
 ## Usage logging (self-feedback)
 
