@@ -103,10 +103,10 @@ notes, the better the starting points — invest there.
 
 ## When to run
 
-- **requirement grill** — lenses 1 (causal, against the *real* intent/effect) + 3, and both
-  standing rules, at each branch checkpoint; lens 2 once the touched subsystem is known.
-- **design-grill** — full three-lens panel + both rules at each design-tree checkpoint, before
-  freezing. **Tiered:** the full panel targets **decision-level** checkpoints (a new or changed
+- **requirement grill** — lenses 1 (causal, against the *real* intent/effect) + 3, and the
+  three standing rules, at each branch checkpoint; lens 2 once the touched subsystem is known.
+- **design-grill** — full three-lens panel + the standing rules at each design-tree
+  checkpoint, before freezing. **Tiered:** the full panel targets **decision-level** checkpoints (a new or changed
   ADR-class mechanism). A doc **rewrite that implements an already-grilled decision** gets a
   **lightweight consistency pass** instead: one agent (Agent tool `model: sonnet`, low
   effort — SKILL.md「Subagent model assignment」), mandate =

@@ -154,8 +154,8 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
    - **Fresh-context adversarial panel (`adversarial-critic.md`)** — don't only grill from inside
      your own design. At each design-tree checkpoint run the three fresh-context lenses
      (causal-coverage · invariant-ledger replay · search-before-build) + the three standing rules
-     (verify-the-assumption · re-apply-the-signature), so the agent reaches the decisive cuts
-     itself instead of waiting for the human to land them. Dispatch per that step's stake tiers:
+     (verify-the-assumption · re-apply-the-signature · class-to-constraint), so the agent
+     reaches the decisive cuts itself instead of waiting for the human to land them. Dispatch per that step's stake tiers:
      **M+ decision-level checkpoints → parallel one-agent-per-lens; XS/S designs / edit-only
      rounds → the single-agent form**, with the **verified-facts pack** attached on every round
      after the first; rewrites of already-grilled decisions get only a lightweight
