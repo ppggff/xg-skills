@@ -66,7 +66,9 @@ Each entry says *what changed* and *why*, not the raw diff.
   at scaffold time); `progress.md` frontmatter gains `mr:` and `merged:` beside the existing
   `branch:` (card↔code / review-thread / landed-commit anchors; per-task commits stay in git on
   `branch:` — no hash lists in docs, and a `merged:` SHA is resolved via git, never
-  hand-composed) (user rule, 2026-07-16).
+  hand-composed). Follow-up (same day): `progress.md` also carries an `issue:` mirror
+  (requirement.md stays the owner) and an optional `repo:` — required in a multi-repo
+  workspace so `branch:`/`merged:` are unambiguous (user rule, 2026-07-16).
 - **Storage footprint section in design.md** (存储足迹, by module; required when the design
   touches any storage): every store added/touched — file / shmem / catalog / DB / 内存态 / GUC —
   with owner module, durability, lifecycle. *Why:* ops + I/O already had a per-module home

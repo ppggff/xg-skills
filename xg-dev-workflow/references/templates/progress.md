@@ -5,6 +5,8 @@ project: <project>
 plan: ./plan.md
 status: not-started | in-progress | blocked | done
 current_task: <N>
+issue: <optional — mirror of requirement.md `issue:` for resume/viewer convenience; requirement.md is the owner, keep in sync>
+repo: <optional — the product repo `branch:`/`merged:` belong to (path or remote name); required in a multi-repo workspace, omit when unambiguous>
 branch: <optional product branch — the card↔code anchor; the viewer's gitweb "code" link deep-links here>
 mr: <optional — MR/PR URL once one exists; the card↔review-thread anchor>
 merged: <optional — the merged commit / range once landed (resolve via git, never hand-compose a SHA)>
