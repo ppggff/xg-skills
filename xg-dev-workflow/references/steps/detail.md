@@ -69,8 +69,8 @@ algorithms whose correctness depends on the details.
    *architecture* (`design.md`) does it route back through change-management (M2).
    **Convergence signal for review rounds:** a review/grill round that surfaces only
    detail-level fixes with **no architecture回弹** (frozen `design.md` stays valid) means the LLD
-   has converged — bank the fixes and baseline; don't spin further rounds. (HatchDeck M1: 2 detail
-   rounds fixed real concurrency gaps D1-12/E1-6, all detail-level → baseline.)
+   has converged — bank the fixes and baseline; don't spin further rounds. (HatchDeck MS1: 2 detail
+   rounds fixed 12+6 real concurrency gaps, all detail-level → baseline.)
 
 ## Relationship to neighbours
 

@@ -41,7 +41,7 @@ Output: `test.md` (template: `references/templates/test.md`).
 - **Check setup/constructor errors in tests that spawn real resources** (pty, ports, files,
   processes). A `sess, _ := Create(...)` there turns a transient resource failure into a
   nil-deref panic that masquerades as a flaky race under `-count`/`-race` — fail loud with the
-  error instead. (HatchDeck M1 retro: an ignored `Create` error was the cause of a `-count=5` flake.)
+  error instead. (HatchDeck MS1 retro: an ignored `Create` error was the cause of a `-count=5` flake.)
 - **Verify UI/frontend slices in a real browser**, not only headless — Playwright / chrome-devtools
   MCP. A DOM-rendered terminal/output appears in the accessibility snapshot (directly assertable);
   drive input via the real input element (e.g. the hidden `<textarea>`, not a `role=textbox` wrapper).
@@ -52,7 +52,7 @@ Output: `test.md` (template: `references/templates/test.md`).
   nested flex dropping `min-width:0`, `visualViewport`/soft-keyboard layout shifts, a dependency's
   shipped CSS painting differently on iOS. For a mobile-facing flow, a real-device pass is a
   non-skippable acceptance gate: mark a criterion `[x]` only after the device walk; if it's verified
-  only by mechanism or desktop, say so explicitly rather than claiming `[x]`. (HatchDeck M2/M3/M4
+  only by mechanism or desktop, say so explicitly rather than claiming `[x]`. (HatchDeck MS2/MS3/MS4
   each shipped desktop-green, then the real device exposed dialog / zoom / flex / paint bugs.)
 
 ## Procedure

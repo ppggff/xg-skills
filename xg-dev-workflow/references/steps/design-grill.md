@@ -166,7 +166,7 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
    - **Convergence — run the shared auto-verdict** (`grill.md`「Convergence」, the canonical
      rule): end every round with the one-line 继续/建议收敛 verdict — decision-level dry check
      against the doc's diff since the last grill checkpoint + ADR-weighted open points; the
-     human still gates. (Calibration example — HatchDeck M1: design round 3 yielded only
+     human still gates. (Calibration example — HatchDeck MS1: design round 3 yielded only
      detail-level items, a dry round; that was the stop signal.)
    - **Update `design.md` inline** — as each decision crystallises, write it into the doc
      right then; don't batch edits to the end. The doc tracks convergence in real time.
