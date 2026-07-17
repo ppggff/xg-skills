@@ -123,6 +123,22 @@ Trace by **R-id** (link each id — `[R1](./requirement.md)`; SKILL.md「Convent
 - **Effect** — how each success criterion will be satisfied.
 - **Future** — what this leaves open for the deferred work.
 
+## 验证策略 (Verification strategy — 主体 E2E; required for M+, XS/S may omit)
+
+How we will know it works, fixed **at design time** — testability is a design property: the
+design must provide the observation points, and discovering "R3 can't be verified end-to-end"
+during 测试 is too late. **Strategy/mapping altitude only** — scenarios + observation points;
+concrete test cases, commands, and fixtures stay in `detail.md` / `test.md`.
+
+| R-id / Effect 项 | E2E 场景 (最短的端到端证明路径) | 观测点 (设计提供的) | 备注 / gap 决策 |
+|---|---|---|---|
+| [R1](./requirement.md) | … | … | … |
+
+An item with **no cheap E2E path is an explicit design decision** — either accept a unit-level
+proxy (state why it suffices) or change the design for observability; never leave the row blank.
+`test.md` consumes this table as its coverage skeleton, and the close-out review checks the
+promised scenarios ran.
+
 ## 影响面 (Impact surface — blast radius)
 
 What this change reaches beyond the new code — the surface a reviewer/operator must watch.

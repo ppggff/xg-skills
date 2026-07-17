@@ -173,6 +173,10 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
 4. **Map to the requirement by R-id** — fill "How it meets the requirement": each
    `requirement.md`「需求条目」`R-id` → the module/contract that satisfies it (plus scope/
    constraints/effect/future). An R-id with no design home is a gap → back to 需求 or change-management.
+   **Then fill the 验证策略 table (M+; XS/S may omit)** — per R-id/Effect item: the shortest E2E
+   scenario that would prove it + the observation point the design provides. Grill each row: an
+   item with no cheap E2E path becomes an **explicit decision** (unit-level proxy accepted with a
+   why, or the design changes for observability) — never a blank silently deferred to 测试.
 5. **Analyse the 影响面 (impact surface)** — fill the design's 影响面 section: changed/added
    modules, existing callers & downstream consumers, compat/ABI surface, cross-card/cross-project
    ripples (cf. `index.md` Deps), and behaviors to re-verify. Grep for callers rather than

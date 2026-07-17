@@ -58,7 +58,10 @@ Output: `test.md` (template: `references/templates/test.md`).
 ## Procedure
 1. **Inventory the per-slice tests** already written in `实现` (per the chosen mode) — don't rewrite them.
 2. **Close coverage by `R-id`** — every `requirement.md` success criterion maps to ≥1 test; fill
-   the "Coverage vs success criteria" table. An unmapped `R-id` is a hole → add the missing test.
+   the "Coverage vs success criteria" table, **starting from the design's 验证策略 table when one
+   exists** (each promised E2E scenario becomes a test/manual row; note any deviation from a
+   promised scenario or observation point — silently substituting a weaker proof is a hole). An
+   unmapped `R-id` is a hole → add the missing test.
 3. **If the design introduced a module**, fill "Coverage vs module interface": every interface
    **operation** (inputs→outputs) + every contract **invariant** (uniqueness, idempotency,
    self-heal, degradation…) maps to ≥1 test, through the **public interface** (that is what
