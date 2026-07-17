@@ -367,6 +367,8 @@ behavior; the **contract never changes**, only the implementation behind it. For
   auto-verdict; resume can continue a grill mid-phase.
 - `references/steps/adversarial-critic.md` — shared sharp-cut finder (fresh-context three-lens
   critic + invariant-ledger replay + standing rules); used by requirement, design-grill, and review.
+- `references/steps/gate-digest.md` — shared decision-card presentation for every decision-zone
+  gate ask (load-bearing decisions + least-confident spots + open questions before the go ask).
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.
 - **`codebase-design`** (external skill, referenced not vendored) — deep-module vocabulary +

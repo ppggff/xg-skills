@@ -89,7 +89,9 @@ not transcribe the words.
    input → Open questions; anything deliberately deferred → Future. **Don't grill to death**:
    if one point won't converge after ~3 rounds, record it in Open questions and move on —
    an honest "still ambiguous" beats grinding the same branch forever.
-8. **GATE — hard stop.** Present `requirement.md` for confirmation, then **STOP this turn**.
+8. **GATE — hard stop.** Present `requirement.md` for confirmation **via the gate digest**
+   (`gate-digest.md`: load-bearing decisions + least-confident spots + open questions + the go
+   ask with receipts), then **STOP this turn**.
    Do **not** create/scaffold/edit `design.md` (or any later-phase doc) until the human
    explicitly confirms in a later turn. Keep `status: drafting`; set `status: confirmed`
    only after the human signs off.

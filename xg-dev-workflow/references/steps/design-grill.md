@@ -179,7 +179,9 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
    guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out review.
 6. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
    (see `adr.md`).
-7. **Freeze gate:** on human approval set `status: frozen`. From here, `design.md` changes
+7. **Freeze gate:** present via the gate digest (`gate-digest.md` — decision cards citing doc
+   sections, least-confident spots, open questions, then the go ask with receipts); on human
+   approval set `status: frozen`. From here, `design.md` changes
    only through change-management (M2). On freeze, **update the KB** (as-built): refresh the
    `[[wiki/<project>/architecture]]` overview to the shape this card establishes, and add any
    **durable invariant** it established to the subsystem's `*-invariants` ledger — so the next

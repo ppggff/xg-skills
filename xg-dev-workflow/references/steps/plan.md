@@ -27,6 +27,10 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    tasks. Cross-check: every `R-id` is implemented by ≥1 task.
 5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works).
 6. **Risks & open questions** table.
+7. **Execution-authorization ask** — present via the gate digest (`gate-digest.md`); for this
+   gate the cards are: scope of what will be touched (files/modules), the riskiest slices, the
+   test mode chosen, and any plan-level open risk. The human's go here is the one-time autonomy
+   handoff (SKILL.md「Two zones」).
 
 Guardrail: this plan must stay faithful to the frozen design. If planning reveals the
 design is wrong, **stop and run change-management (M2)** — don't quietly diverge. The plan is
