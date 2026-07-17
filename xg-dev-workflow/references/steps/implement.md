@@ -89,6 +89,11 @@ way, under the same rule.
   written/described) — and **after each review fix** (when applying close-out-review fixes). **One
   concern per commit** (P1), additive & revertable (P5) — a clean per-task history is part of the
   autonomous run, and it's what lets a single task be reverted later.
+- **Task-tag the subject, card-qualified** — a per-task product commit's subject carries
+  `(<NNN> T<n>)` (e.g. `viewer: quick-open exact-substring operator (005 T3)`); a review-fix
+  commit cites the finding instead (`(005 review #2)`). This is the last link of the derived
+  trace chain — `workflow-status.py --trace` resolves R→task→commit through it; a bare `T<n>`
+  without the card NNN collides across cards and only rates a loose match.
 - **Commits are autonomous local commits** — don't ask before each (this cadence is the human's
   standing authorization for the execution zone). **`push` stays human-gated** — the irreversible,
   outward act — never push without an explicit request (global Git & MR Safety).

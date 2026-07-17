@@ -14,7 +14,10 @@ Usage:
   workflow-status.py [<project> ...]   # default: every project under dev_root
   workflow-status.py --root DIR        # override dev_root
   workflow-status.py --json            # machine-readable board ({project: [card…]}); backs the viewer
+  workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
+                                       # (<card> = NNN or a slug fragment; a card-dir path works too)
 """
+import fnmatch
 import glob
 import json
 import os
@@ -219,21 +222,238 @@ def render_text(cards):
         print()
 
 
+# ---- trace (--trace): the R→design→task→test→commit matrix over the designated fields ----
+# Derived on demand, never hand-maintained (SKILL.md「Conventions」: downstream→upstream mappings
+# are recorded once; the reverse map is derived). Commit tracing rides implement.md's commit
+# convention (product commit subjects carry the plan task id).
+
+TASK_HEAD = re.compile(r"^###\s+(?:Task\s*|T)(\d+)\s*[::]?\s*(.*)$", re.M)
+RID = re.compile(r"\bR(\d+)\b")
+
+
+def _read(path):
+    try:
+        return open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
+
+
+def _section(text, title_pat):
+    """Body of the first `## …` section whose title matches title_pat, else ""."""
+    for m in re.finditer(r"^##\s+(.+)$", text, re.M):
+        if re.search(title_pat, m.group(1)):
+            start = m.end()
+            nxt = re.search(r"^##\s", text[start:], re.M)
+            return text[start:start + nxt.start()] if nxt else text[start:]
+    return ""
+
+
+def trace_requirement(card):
+    """R-id → statement, from the 需求条目 table (first cell carries the id)."""
+    items = {}
+    for m in re.finditer(r"^\|\s*\[?(R\d+)\]?[^|]*\|([^|]*)\|",
+                         _read(os.path.join(card, "requirement.md")), re.M):
+        items.setdefault(m.group(1), re.sub(r"\*\*", "", m.group(2)).strip())
+    return items
+
+
+def _rows_by_rid(sect):
+    out = {}
+    for line in sect.splitlines():
+        if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
+            continue
+        for rid in RID.findall(line):
+            out.setdefault("R" + rid, re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
+    return out
+
+
+def trace_design(card):
+    """R-id → its How-it-meets row (design home) and its 验证策略 row."""
+    text = _read(os.path.join(card, "design.md"))
+    return (_rows_by_rid(_section(text, r"How it meets|如何满足")),
+            _rows_by_rid(_section(text, r"验证策略|Verification strategy")))
+
+
+def trace_plan(card):
+    """T-id → {title, rids, state}, from plan.md task blocks (`### T<n>:` / `### Task <n>:`)."""
+    text = _read(os.path.join(card, "plan.md"))
+    tasks, heads = {}, list(TASK_HEAD.finditer(text))
+    for i, m in enumerate(heads):
+        block = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        nxt = re.search(r"^###\s", block, re.M)  # cut at Checkpoint/Final headings
+        if nxt:
+            block = block[:nxt.start()]
+        imp = re.search(r"\*\*Implements:?\*\*[::]?\s*(.+)", block)
+        boxes = re.findall(r"^\s*-\s*\[([ x!])\]", block, re.M)
+        tasks[m.group(1)] = {
+            "title": m.group(2).strip(),
+            "rids": ["R" + r for r in RID.findall(imp.group(1))] if imp else [],
+            "state": ("done" if boxes and all(b == "x" for b in boxes)
+                      else "failed" if "!" in boxes else "todo" if boxes else "?"),
+        }
+    return tasks
+
+
+def trace_test(card):
+    """R-id → covered-by, from test.md coverage rows (first cell cites the id; last cell = test)."""
+    cov = {}
+    for line in _read(os.path.join(card, "test.md")).splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or set(cells[0]) <= set("-: "):
+            continue
+        for rid in RID.findall(cells[0]):
+            cov.setdefault("R" + rid, cells[-1])
+    return cov
+
+
+def project_repo(project):
+    """The project's first configured path (shared config) — the --trace repo fallback."""
+    cfg = os.path.expanduser("~/.config/xg-knowledge-wiki/config.yaml")
+    try:
+        lines = open(cfg, encoding="utf-8").read().splitlines()
+    except OSError:
+        return None
+    in_projects = in_target = False
+    for line in lines:
+        if not line.strip() or line.strip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent == 0:
+            in_projects, in_target = line.strip().startswith("projects:"), False
+            continue
+        if not in_projects:
+            continue
+        if indent == 2:
+            in_target = line.strip().rstrip(":") == project
+            continue
+        if in_target and line.strip().startswith("paths:"):
+            tail = line.split(":", 1)[1].strip()
+            if tail.startswith("["):
+                first = tail.strip("[]").split(",")[0].strip().strip("\"'")
+                if first:
+                    return os.path.expanduser(first)
+            continue
+        if in_target and line.lstrip().startswith("-"):
+            return os.path.expanduser(line.lstrip()[1:].strip().strip("\"'"))
+    return None
+
+
+def task_commits(repo, tid, nnn=None):
+    """Product commits citing T<n>/Task <n> (implement.md commit convention); best-effort.
+
+    Two tiers: commits also naming the card NNN are strict hits (the card-qualified
+    convention); bare T<n> hits are loose — cross-card T-ids collide, so they render
+    with a ? marker. Returns (lines, "strict"|"loose").
+    """
+    import subprocess
+    pat = r"(^|[^A-Za-z0-9])T(ask ?)?%s([^0-9]|$)" % tid
+    try:
+        out = subprocess.run(["git", "-C", repo, "log", "--all", "--oneline", "-E", "--grep", pat],
+                             capture_output=True, text=True, timeout=10)
+        lines = [ln for ln in out.stdout.splitlines() if ln.strip()]
+    except Exception:
+        return [], "strict"
+    if nnn:
+        strict = [ln for ln in lines if nnn in ln]
+        if strict:
+            return strict, "strict"
+    return lines, "loose"
+
+
+def resolve_card(root, arg):
+    """`<project>/<card>` (card = NNN or slug fragment) or a card-dir path → (project, card_dir)."""
+    if os.path.isdir(arg) and glob.glob(os.path.join(arg, "*.md")):
+        d = os.path.abspath(arg)
+        return os.path.basename(os.path.dirname(d)), d
+    proj, _, card = arg.partition("/")
+    pdir = os.path.join(root, proj)
+    if not os.path.isdir(pdir):
+        raise SystemExit(f"trace: no such project dir {pdir}")
+    pats = [card + "*", "*" + card + "*"] if card else ["*"]
+    for pat in pats:
+        hits = sorted(glob.glob(os.path.join(pdir, "[0-9][0-9][0-9]-*")))
+        hits = [h for h in hits if fnmatch.fnmatch(os.path.basename(h), pat)]
+        if len(hits) == 1:
+            return proj, hits[0]
+        if len(hits) > 1:
+            raise SystemExit("trace: ambiguous card, matches: " +
+                             ", ".join(os.path.basename(h) for h in hits))
+    raise SystemExit(f"trace: no card matching '{card}' under {pdir}")
+
+
+def render_trace(project, card_dir):
+    reqs = trace_requirement(card_dir)
+    home, verify = trace_design(card_dir)
+    tasks = trace_plan(card_dir)
+    cov = trace_test(card_dir)
+    repo = frontmatter(os.path.join(card_dir, "progress.md")).get("repo", "") or \
+        project_repo(project)
+    if repo:
+        repo = os.path.expanduser(repo)
+        if not os.path.isdir(os.path.join(repo, ".git")):
+            repo = None
+    nnn = os.path.basename(card_dir)[:3]
+    commits = {tid: (task_commits(repo, tid, nnn) if repo else ([], "strict"))
+               for tid in tasks}
+
+    by_r = {}
+    for tid, t in tasks.items():
+        for r in t["rids"]:
+            by_r.setdefault(r, []).append(tid)
+    all_r = sorted(set(reqs) | set(home) | set(by_r) | set(cov), key=lambda r: int(r[1:]))
+
+    print(f"🔗 {project}/{os.path.basename(card_dir)}" + (f"  repo: {repo}" if repo else ""))
+    W = 100
+    for r in all_r:
+        flags = [w for cond, w in ((r not in reqs, "⚠ not-in-需求条目"),
+                                   (r not in home, "⚠ no-design-home"),
+                                   (r not in by_r, "⚠ no-task"),
+                                   (r not in cov, "⚠ no-test-coverage")) if cond]
+        print(f"{r}  {reqs.get(r, '')[:64]}" + ("  " + " ".join(flags) if flags else ""))
+        if r in home:
+            print(f"    design : {home[r][:W]}")
+        if r in verify:
+            print(f"    verify : {verify[r][:W]}")
+        for tid in by_r.get(r, []):
+            t = tasks[tid]
+            print(f"    task   : T{tid} [{t['state']}] {t['title'][:64]}")
+            lines, tier = commits[tid]
+            label = "commit" if tier == "strict" else "commit?"  # loose = bare-T cross-card risk
+            for c in lines[:6]:
+                print(f"      {label}: {c[:W]}")
+    orphans = [t for t, v in sorted(tasks.items(), key=lambda kv: int(kv[0])) if not v["rids"]]
+    if orphans:
+        print("—  tasks with no R-id (scaffolding?): " + ", ".join("T" + t for t in orphans))
+    if not repo:
+        print("(commits skipped — no git repo anchor: progress.md `repo:` or config projects path)")
+    return 0
+
+
 def main():
-    args, want, root_arg, as_json, i = sys.argv[1:], [], None, False, 0
+    args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
     while i < len(args):
         a = args[i]
-        if a == "--root" and i + 1 < len(args):
-            root_arg, i = args[i + 1], i + 2
+        if a in ("--root", "--trace") and i + 1 < len(args):
+            if a == "--root":
+                root_arg = args[i + 1]
+            else:
+                trace_arg = args[i + 1]
+            i += 2
             continue
         if a.startswith("--root="):
             root_arg = a.split("=", 1)[1]
+        elif a.startswith("--trace="):
+            trace_arg = a.split("=", 1)[1]
         elif a == "--json":
             as_json = True
         elif not a.startswith("--"):
             want.append(a)
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
+    if trace_arg:
+        return render_trace(*resolve_card(root, trace_arg))
     cards = list(iter_cards(root, want or None))
     if as_json:
         grouped = {}

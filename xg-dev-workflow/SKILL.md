@@ -338,9 +338,10 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 - `check [<slug>]` — run the M3 check.
 - `status [<project> …]` — the card view: every card's pipeline position, board 整体状态/Deps, progress
   Now/Next/Blockers, and the gate-derived next step; read-only, computed on demand by
-  `tools/workflow-status.py` (`--json` for scripts). `tools/viewer.py` serves the same data as a
-  browsable localhost HTML view, with an optional gitweb companion for the project repos' code —
-  details in README.
+  `tools/workflow-status.py` (`--json` for scripts; `--trace <project>/<card>` renders the derived
+  R→design→task→test→commit trace matrix from the designated mapping fields, flagging unimplemented
+  / uncovered R-ids). `tools/viewer.py` serves the same data as a browsable localhost HTML view,
+  with an optional gitweb companion for the project repos' code — details in README.
 - `retro` — review and enhance the skill/docs (M6).
 
 Any phase verb accepts a `use:<skill>` suffix to override that step's implementation for this run.
