@@ -320,7 +320,7 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
   wait). Step: `references/steps/diagnose.md`.
 - `review <target>` — **the front door for judging new/changed code** (commit range, branch, PR, or
   current diff): KB context pack + **stake-tiered dispatch** (light: orchestrator-only · standard:
-  three axis agents · deep: full lens fan-out + different-model sweep), every finding adjudicated
+  three axis agents · deep: staged lens fan-out + different-model sweep), every finding adjudicated
   against actual code; report ends with a 修复决策表 and lands in dev_root (requirement
   `notes/review-*.md`, or standalone `<project>/reviews/`). Also the M+ close-out gate. Read-only.
   Step: `references/steps/review.md`.
