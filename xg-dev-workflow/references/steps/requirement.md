@@ -104,6 +104,10 @@ not transcribe the words.
 8. **GATE — hard stop.** Present `requirement.md` for confirmation **via the gate digest**
    (`gate-digest.md`: load-bearing decisions + least-confident spots + open questions + the go
    ask with receipts), then **STOP this turn**.
+   **XS gate merge** (SKILL.md「Requirement sizing」Gate merging): when the human opted into the
+   combined 需求+设计 gate, continue into the design draft in this same invocation and present
+   both docs at one combined gate — requirement-level decision cards first; if the work outgrows
+   XS mid-run, stop at this confirm gate as usual.
    Do **not** create/scaffold/edit `design.md` (or any later-phase doc) until the human
    explicitly confirms in a later turn. Keep `status: drafting`; set `status: confirmed`
    only after the human signs off.

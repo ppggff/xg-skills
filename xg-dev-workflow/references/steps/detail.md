@@ -64,7 +64,9 @@ algorithms whose correctness depends on the details.
 6. **Traceability.** Each detail item ↔ a design module/contract ↔ a requirement 条目 (R-id). A row
    with no upward link is a smell (either dead detail or missing design).
 7. **Baseline gate:** present `detail.md` via the gate digest (`gate-digest.md`) and STOP for
-   human review. On approval set `status: baseline`. Thereafter it is **mutable** — refine it as implementation reality bites,
+   human review. On approval set `status: baseline`. **M gate merge** (SKILL.md「Requirement
+   sizing」Gate merging): with the human's opt-in, this baseline may be presented together with
+   `plan.md`'s execution authorization — one go covers both. Thereafter it is **mutable** — refine it as implementation reality bites,
    but **append a dated note** for each change explaining why. Only when a change implicates the
    *architecture* (`design.md`) does it route back through change-management (M2).
    **Convergence signal for review rounds:** a review/grill round that surfaces only

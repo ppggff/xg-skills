@@ -30,7 +30,8 @@ Output: `plan.md` (template: `references/templates/plan.md`).
 7. **Execution-authorization ask** — present via the gate digest (`gate-digest.md`); for this
    gate the cards are: scope of what will be touched (files/modules), the riskiest slices, the
    test mode chosen, and any plan-level open risk. The human's go here is the one-time autonomy
-   handoff (SKILL.md「Two zones」).
+   handoff (SKILL.md「Two zones」). May arrive merged with the 详设 baseline when the human
+   opted in (SKILL.md「Requirement sizing」Gate merging).
 
 Guardrail: this plan must stay faithful to the frozen design. If planning reveals the
 design is wrong, **stop and run change-management (M2)** — don't quietly diverge. The plan is

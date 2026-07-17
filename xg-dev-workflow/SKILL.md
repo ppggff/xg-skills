@@ -78,7 +78,8 @@ authorization there are no per-phase stops (「Two zones」).
 
 - **One phase per invocation.** After producing the phase's doc, STOP — even if you could roll on,
   even if the prompt mentions later phases. Report the doc + the gate question, then wait. Chaining
-  requires the human to invoke each verb, or to explicitly say "run straight through".
+  requires the human to invoke each verb, or to explicitly say "run straight through". (Exception:
+  the human-opted, sizing-scoped gate mergers —「Requirement sizing」Gate merging.)
 - **A bare topic with no verb** means **`new` + `requirement` only**, then STOP. "调查 / investigate /
   explore" means stop at understanding — never auto-advance to a chosen design.
 - **Gate = an explicit human go, this turn** — prior approval doesn't carry forward. Produce the
@@ -187,6 +188,14 @@ may skip **详设** and the **评审** close-out (record the skip). **M+** = mul
 introduces/changes a module/contract → does 详设 when structural, and **must** pass 评审 before `done`.
 Judged at design time, not a board column; M3's done-time signal is "a review doc exists **or** an
 explicit `XS/S — review skipped` note does".
+
+**Gate merging (sizing-scoped, human opt-in).** **XS**: 需求+设计 may run in one invocation with
+**one combined gate** — Claude offers it when the ask is plainly XS; the human's yes is the
+standing go for the combined run; the docs stay separate files and the digest presents
+requirement-level decisions before design-level ones. **M**: the 详设 baseline gate may merge with
+the execution authorization (detail.md + plan.md presented together, one go covers both). The
+default stays one gate per phase; a merged run that outgrows its sizing (the XS turns out M+)
+splits back — stop at the earlier gate as usual.
 
 ### 1. 需求 Requirement → `requirement.md`
 Input: a raw ask. **Elicited interactively, not written in one shot** — the grill loop (`grill.md`)
