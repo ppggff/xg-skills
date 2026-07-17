@@ -31,14 +31,20 @@ config xg-knowledge-lite uses, so project names line up.
 ## Key rules
 
 - **Design freezes on approval.** Changing it requires the change-management flow; the
-  implementation plan, by contrast, is freely mutable (but dropping a task is logged).
+  implementation plan, by contrast, is freely mutable (but dropping a task is logged). An M+
+  design also fixes its **验证策略** (per-R E2E scenario + observation point) — verifiability is
+  decided at design time, and the test phase inherits it as the coverage skeleton.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);
   plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).
   The human re-enters the execution zone only at `log.md` (audit) and the close-out review
-  (decision).
+  (decision). Every gate asks via a **decision digest** (load-bearing decisions + least-confident
+  spots + open questions) so approving doesn't require re-reading the whole doc; small work can
+  opt into **merged gates** (XS: 需求+设计 · M: 详设+执行授权 — sizing rules).
 - **需求条目 are the traceability spine.** The requirement is an itemized list with stable `R-id`s;
-  design / detail / plan / test reference the IDs, so a change localises and coverage holes surface.
+  design / detail / plan / test reference the IDs, so a change localises and coverage holes surface;
+  `tools/workflow-status.py --trace <project>/<card>` renders the derived
+  R→design→task→test→commit matrix.
 - **Evidence only, with provenance.** No guessing, no 望文生义 — every load-bearing claim cites code or
   a doc, marked evidence / 推断 / 假设; doubts are investigated by a subagent. Investigation means
   **logical/causal analysis** (trace the running path, build the mechanism), not a grep-hit list.

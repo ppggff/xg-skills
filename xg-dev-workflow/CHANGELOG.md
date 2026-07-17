@@ -4,6 +4,38 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-17 (gate-experience batch — decision digest, trace view, sketch, gate merging, 验证策略)
+
+Source: same-day user feedback — decision-zone docs exceed gate-time reading bandwidth (gates
+approved on grill-trust, 详设/plan waved through, tests uninspected, R-spine invisible), plus the
+sequenced-production analysis (requirement quality needs solution-shape feedback). Five landings
+(MS1 of the decision-ledger direction note in dev_root); contracts intact except the sizing-scoped
+gate-merge opt-in, which SKILL.md Stop-at-gate names as an explicit exception.
+
+- **Gate digest** (`steps/gate-digest.md`, new shared step; wired into the requirement/design/
+  detail gates + plan's execution-authorization ask): every decision-zone gate ask leads with
+  decision cards — load-bearing decisions citing their doc section, least-confident spots, open
+  questions — before the go-with-receipts. The doc becomes the drill-in reference, not the
+  reading assignment; a decision existing only in the digest is an omission (M3).
+- **Trace view** (`tools/workflow-status.py --trace <project>/<card>`): derives the
+  R→design→task→test→commit matrix from the designated mapping fields and flags unimplemented /
+  uncovered R-ids and R-less tasks. New commit convention (implement.md Commit cadence): per-task
+  product commit subjects carry the card-qualified tag `(<NNN> T<n>)`; bare `T<n>` collides
+  across cards and renders as a loose match.
+- **Disposable design sketch** (requirement grill tactic): a shape question (feasibility, cost
+  magnitude, scope size) gets a throwaway 非约束 sketch feeding R-item gaps and price tags back
+  before the confirm gate — the solution-shape sibling of the spike; never presented at the gate,
+  never renamed into design.md; sketch-leaning R items carry 推断/假设 until design verifies.
+- **Gate merging, sizing-scoped + human opt-in** (SKILL.md Requirement sizing): XS may take
+  需求+设计 in one invocation with one combined gate; M may merge the 详设 baseline with the
+  execution authorization. Formalizes the observed usage (详设/plan being waved through) without
+  weakening decision authority — default stays one gate per phase.
+- **验证策略 section** (design template; design-grill fills+grills it, test.md consumes it):
+  per R-id/Effect item the shortest E2E proof scenario + the design-provided observation point;
+  an item with no cheap E2E path is an explicit decision (unit proxy with a why, or redesign for
+  observability). The human approves the verification contract at the freeze; the test phase
+  reports promised-scenario results instead of inventing coverage post-hoc.
+
 ## 2026-07-17 (model-capability calibration retro — three compensatory mechanisms retuned)
 
 Source: the 2026-07-17 skills-vs-model-capability analysis (dev_root note) — the skill's
