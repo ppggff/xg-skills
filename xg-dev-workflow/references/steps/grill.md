@@ -174,7 +174,8 @@ from the phase doc's current state.
 
 ## Phase-specific layers (defined in the phase steps, not here)
 - **requirement** (`requirement.md`) — semantics-first priorities (why-now / 语义 / boundaries),
-  sharpen-language → canonical term + `_Avoid_`, stress-test scenarios, grep-before-accepting.
+  sharpen-language → canonical term + `_Avoid_`, stress-test scenarios, grep-before-accepting,
+  disposable design sketch (shape questions get a throwaway 非约束 sketch, not a parked 待验).
 - **design** (`design-grill.md`) — module altitude, 方案优先 + the hack/补丁/重做 spectrum,
   design-quality + module-depth lenses, required diagrams.
 

@@ -56,6 +56,18 @@ not transcribe the words.
      works today, verify (≥1 grep + 1 read for the named term) before taking it as fact;
      hallucinated agreement is worse than an honest "didn't check". When the code disagrees,
      raise it on the spot, don't silently take either side.
+   - **Disposable design sketch (前瞻草图)** — when a question can't settle without seeing a
+     solution shape (feasibility, cost magnitude, scope size — is this R item cheap, or does it
+     force a new mechanism?), draft a **throwaway sketch**: a solution outline at module
+     altitude, explicitly marked 非约束 — in chat for small ones, `notes/sketch-design.md` when
+     it needs to survive the session. It is the solution-shape sibling of the spike (spike =
+     empirical questions; sketch = shape questions): its only job is to feed back into the
+     requirement — surface R-item gaps/ambiguities and price tags **before** the confirm gate,
+     instead of discovering them in the design phase as M2 churn. Rules: the sketch is **never
+     presented at the confirm gate** and never becomes `design.md` by rename (the design phase
+     authors `design.md` fresh, taking the sketch as input evidence); an R item whose content
+     leans on the sketch is marked 推断/假设 until the design phase verifies it; the requirement
+     must stand if the sketch is thrown away — it states the problem, the sketch only tests it.
    - **Fresh-context adversarial pass (`adversarial-critic.md`)** — don't grill the ask only
      from inside your own framing of it. At each branch checkpoint apply the *causal-coverage*
      lens (against the real intent/effect — is each requested thing tied to the actual goal;
