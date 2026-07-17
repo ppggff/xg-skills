@@ -73,9 +73,14 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      run). **Invariants axis** (session model) — context-pack invariants, concurrency,
      fail-safe, security. No model-diversity sweep at this tier; findings carry their axis
      into adjudication.
-   - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the full
-     lens fan-out below + adversarial trio + the standing different-model sweep + saturation
-     repeat passes (5b).
+   - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens
+     fan-out below + adversarial trio + the standing different-model sweep + saturation repeat
+     passes (5b). **Start lean, expand on evidence:** pass 1 dispatches the sharp core
+     (correctness-vs-invariants · adversarial trio · the sonnet sweep) plus only the menu lenses
+     the diff plainly indicates; the remaining lenses join a later pass only if 5b judges the
+     space under-sampled. *(2026-07-17 calibration: recent deep passes came back
+     overlap-dominant or 0-confirmed on pass 1 — max fan-out upfront buys redundancy, not
+     recall.)*
 
    **Tier calibration (M6):** like model downgrades, tier choices sit under retro calibration —
    a target class repeatedly reviewed at light/standard whose misses surface later (a deep pass,
@@ -142,14 +147,18 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    reintroduces a forbidden cross-space comparison); correct or replace such fixes
    before they enter the report, and note the correction. Findings killed on review
    go to a 误报澄清 section — recording why a plausible finding is false is part of
-   the deliverable. False-positive exemplars (give to agents verbatim): pre-existing
+   the deliverable; tag each killed finding with its source lens + model, so the
+   per-model survive/die tally (with 5b's confirmed side) is computable at retro
+   time — that tally is what SKILL.md「Subagent model assignment」's M6 calibration
+   reads. False-positive exemplars (give to agents verbatim): pre-existing
    issues; linter/compiler-catchable; lines the change didn't modify; intentional
    behavior changes tied to the broader change; **designed semantics documented in
    the KB / design docs**.
 
 5b. **Saturation verdict — decide "another pass?" from overlap, not gut feel.** During
    adjudication, record for each confirmed finding **how many independent paths hit it**
-   (which lens agents + the orchestrator's own deep-read). "A re-review found something"
+   (which lens agents + the orchestrator's own deep-read, each path tagged with its model —
+   the confirmed side of step 5's per-model survive/die tally). "A re-review found something"
    is sampling variance — a review is a bounded search over a generative defect space,
    not an exhaustive proof — so the overlap statistics, not the existence of new
    findings, are the signal (capture-recapture intuition):
@@ -163,6 +172,10 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      hunt-bugs), or a **different model** (a further model beyond step 4's standing sonnet
      agent). Re-running an existing lens prompt raises confidence (voting), **not**
      recall — don't count it as diversity.
+   - **Standard-tier caveat:** the three axes are disjoint by design, so singleton-heavy is
+     the *expected* shape there (2026-07-16 run: 7/7 singletons on a review the human accepted
+     verbatim) — at standard tier judge stop by the dry-stop rule, not overlap; overlap stats
+     carry signal at deep tier.
    - **Dry-stop:** a pass whose confirmed findings all fall below the action bar (nothing
      that would add a 修复决策表 row) is **dry** → stop regardless of overlap. A new
      High on a later pass is a genuine earlier miss → send to retro (which lens/slice

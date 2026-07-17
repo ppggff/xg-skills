@@ -4,6 +4,32 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-17 (model-capability calibration retro — three compensatory mechanisms retuned)
+
+Source: the 2026-07-17 skills-vs-model-capability analysis (dev_root note) — the skill's
+governance rules are model-independent, but three mechanisms were calibrated for weaker single-pass
+models and needed retuning. Contracts untouched; all edits are step-file level.
+
+- **Sonnet-downgrade calibration check run — downgrades retained.** Evidence across recent review
+  reports: sonnet lenses keep producing adjudication-surviving findings (fresh-eyes contributed to
+  overlap hits on 2026-07-11; an all-sonnet 4-lens run produced the F1/F3/F5/F6 fixes; kill cases
+  were normal-rate, e.g. one pre-existing-issue call). No lens meets the revocation bar. To make
+  future checks computable instead of anecdotal, `review.md` now tags **both sides** of the tally
+  with source lens + model: killed findings in 误报澄清 (step 5) and confirmed findings' hit paths
+  (step 5b).
+- **Deep tier starts lean, expands on 5b evidence** (`review.md` step 4): pass 1 = sharp core
+  (correctness-vs-invariants · adversarial trio · sonnet sweep) + only plainly-indicated menu
+  lenses; the rest join a later pass only on a 5b under-sampled verdict. Why: recent deep passes
+  came back overlap-dominant (5-path redundant hits, 2026-07-06) or 0-confirmed (2026-07-15) —
+  with a stronger session model, max fan-out upfront buys redundancy, not recall.
+- **Standard-tier 5b caveat** (`review.md` step 5b): the three axes are disjoint by design, so
+  singleton-heavy is the expected shape at standard tier — judge stop by dry-stop there, not
+  overlap (usage log 2026-07-16: 7/7 singletons on a review accepted verbatim).
+- **Grill sibling-batch opt-in** (`grill.md`): 2–3 mutually-independent questions (no `depends-on`
+  links, none gating another's framing) may go out in one round; per-question recommendation +
+  grill-log row unchanged; dependencies stay sequenced. Default remains one-question-at-a-time —
+  a throughput-only relaxation now that batched questions no longer cost quality.
+
 ## 2026-07-16 (karpathy-guidelines comparison — two Surgical-Changes points adopted)
 
 - **Orphan asymmetry added to P0.5** (`implement.md`): scope discipline now states both

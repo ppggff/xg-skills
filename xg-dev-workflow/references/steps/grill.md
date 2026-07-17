@@ -12,8 +12,15 @@ file owns the *protocol*, the *grill-log* (history), and *rollback*; each phase 
 priorities and tactics (see "Phase-specific layers").
 
 ## Protocol (one question at a time)
-- **One question at a time**, never a batch. Walk the tree **resolving dependencies in order** —
+- **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
+- **Sibling batch (opt-in):** 2–3 questions may go out in one round **only when mutually
+  independent** — no `depends-on` between them, none gating another's framing; each still
+  carries its own recommendation + trade-off and gets its own grill-log row. Offer it when a
+  round surfaces several independent siblings; the human sets the pace and can drop back to
+  single-question any time. Anything dependent stays sequenced — batching never reorders the
+  tree walk. *(2026-07-17 calibration: a throughput-only relaxation; question quality and the
+  dependency discipline are unchanged.)*
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
 - **Recommendation pre-check (self-proposals get the same rigor as external ones).** Before
   recommending an approach/idea of your own — inline in discussion, not only in dispatched
