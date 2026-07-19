@@ -815,7 +815,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
       markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(pane.querySelector(".docbody"));
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
-      highlightInTree(v.tree, v.rel);
+      markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
     }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
       var is404 = / → 404$/.test(e.message);
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
@@ -1161,7 +1161,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     applyTreeOpen();
     updateFilterUI();
     // rebuilding innerHTML drops the open-doc highlight; restore it (same as refreshTree) so sort/filter/scope keep it
-    visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") highlightInTree(v.tree, v.rel); });
+    visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") markInTree(v.tree, v.rel); });
   }
   function updateFilterUI() {   // R3/R4: hit count over the scoped-in sections
     if (!document.getElementById("filterbox")) return;
@@ -1209,7 +1209,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function refreshTree() {
     var sc = treeEl.scrollTop;
     return loadTree().then(function () {
-      visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") highlightInTree(v.tree, v.rel); });
+      visiblePanes().forEach(function (side) { var v = PANES[side]._view; if (v && v.kind === "doc") markInTree(v.tree, v.rel); });
       treeEl.scrollTop = sc;
     });
   }
@@ -1251,11 +1251,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
     });
     return h;
   }
-  function highlightInTree(tree, rel) {
+  // 006 T4: mark is the read-only half — every re-render path (refresh/sort/filter/scope/theme/
+  // history/mirror) may only re-tag the active doc; changing fold state from those paths is what
+  // made the tree "drift" (and the async toggle chain then persisted the drift as user state).
+  function markInTree(tree, rel) {
     treeEl.querySelectorAll(".file.active").forEach(function (a) { a.classList.remove("active"); });
     var a = treeEl.querySelector('a.file[data-tree="' + tree + '"][data-rel="' + cssEsc(rel) + '"]');
-    if (!a) return;
+    if (!a) return null;
     a.classList.add("active");
+    a.scrollIntoView({ block: "nearest" });
+    return a;
+  }
+  // reveal = the user actively opened a doc (tree/doc link click, quick-open — the only two entry
+  // points): expand its ancestor chain; persistence rides the normal toggle → merge-persist chain.
+  function revealInTree(tree, rel) {
+    var a = markInTree(tree, rel); if (!a) return;   // not in the current scope → fail-safe no-op
     for (var el = a.parentElement; el && el !== treeEl; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true;
     a.scrollIntoView({ block: "nearest" });
   }
@@ -1371,7 +1381,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
     if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
       var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
-      if (kind === "doc") navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });
+      if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });
+        revealInTree(t.dataset.tree, t.dataset.rel); }   // 006 T4: user-opened → expand ancestors
       else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
       return; }
     if ((t = e.target.closest(".card")) && t.dataset.key) {                 // R64: select a card → detail drawer
@@ -1587,6 +1598,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (c.kind === "search") { RecentStore.record("search", c.q); fillDatalist("recent-searches", "search"); navigate(side, { kind: "search", q: c.q }); return; }  // fall-through (feeds R8 search history too)
     RecentStore.record("opened", c.full);   // R7: quick-open (incl. ⇧-right) feeds the recent-opened history
     navigate(side, { kind: "doc", tree: c.tree, rel: c.path });                    // file
+    revealInTree(c.tree, c.path);   // 006 T4: user-opened → expand ancestors
   }
   function openQuick() { qoBack.classList.add("show"); qoEl.classList.add("show"); qoInput.value = ""; qoSel = 0; qoRender(""); qoInput.focus(); }
   function qoClose() { qoBack.classList.remove("show"); qoEl.classList.remove("show"); }
