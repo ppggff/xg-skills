@@ -4,6 +4,26 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-19 (viewer interaction fixes — band unit, hotkey guards, tree-state authority)
+
+Source: daily-use defect reports (card 006). Three behavior fixes in the status viewer
+(`tools/viewer/shell.html`), no data-contract changes:
+
+- **Current-line band picks the semantic unit.** Rect choice goes through `SV.pickLineRect`
+  (smallest rect containing the click, not the first — container border boxes precede text-line
+  rects in Range client-rect lists), and a click inside a table highlights the clicked `<tr>`.
+  Fixes whole-table banding; multi-line list items now band a single line too.
+- **Global bare-key hotkeys ignore modifier combos** (`c` comment-basket, `/` focus-search):
+  cmd+c no longer loses the selection into the basket, cmd+/ is not hijacked. Rule for future
+  hotkeys: bare key only.
+- **Tree fold state changes only on user interaction.** `highlightInTree` split into mark
+  (re-render paths: refresh/sort/filter/scope/theme — active tag only) and reveal (expand
+  ancestors; only on doc-link click and quick-open). Persist merges over the saved set
+  (`SV.mergeTreeOpen`) instead of overwriting, so a project-scoped toggle no longer wipes other
+  projects' saved folds, and stray async `<details>` toggle persists are idempotent (the
+  `treeApplying` flag is gone). Note: current Chromium fires toggle for parser-inserted open
+  `<details>` — first visit materializes the default fold state into localStorage, harmlessly.
+
 ## 2026-07-17 (gate-experience batch — decision digest, trace view, sketch, gate merging, 验证策略)
 
 Source: same-day user feedback — decision-zone docs exceed gate-time reading bandwidth (gates
