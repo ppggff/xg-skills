@@ -288,4 +288,27 @@ t("pickLineRect: empty rects → null", () => {
   assert.equal(SV.pickLineRect([], 10), null);
 });
 
+// --- mergeTreeOpen (006: scope-safe persist merge) ---------------------------
+t("mergeTreeOpen: out-of-scope saved keys survive a scoped persist", () => {
+  // project A rendered; B's saved keys are NOT present in the DOM and must survive
+  const saved = ["dev", "dev/projA", "dev/projB", "dev/projB/sub"];
+  const present = ["dev", "dev/projA", "dev/projA/sub"];
+  const open = ["dev", "dev/projA/sub"];
+  assert.deepEqual(SV.mergeTreeOpen(saved, present, open).sort(),
+    ["dev", "dev/projA/sub", "dev/projB", "dev/projB/sub"].sort());
+});
+t("mergeTreeOpen: closing a present folder removes it from saved", () => {
+  assert.deepEqual(SV.mergeTreeOpen(["dev", "dev/a"], ["dev", "dev/a"], ["dev"]), ["dev"]);
+});
+t("mergeTreeOpen: empty saved → just the open set", () => {
+  assert.deepEqual(SV.mergeTreeOpen([], ["dev", "dev/a"], ["dev/a"]), ["dev/a"]);
+});
+t("mergeTreeOpen: no duplicates when an open key was already saved", () => {
+  const out = SV.mergeTreeOpen(["dev/a"], ["dev/a"], ["dev/a"]);
+  assert.deepEqual(out, ["dev/a"]);
+});
+t("mergeTreeOpen: everything closed in a full render → empty", () => {
+  assert.deepEqual(SV.mergeTreeOpen(["dev", "dev/a"], ["dev", "dev/a"], []), []);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");

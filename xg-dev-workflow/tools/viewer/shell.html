@@ -657,6 +657,18 @@ var SV = (function () {
     blocked: "blocked", superseded: "backlog" };
   function statusTone(s) { return STATUS_TONE[String(s).toLowerCase()] || "backlog"; }   // R3: doc-status → pill tone
 
+  // 006: scope-safe persist merge — saved' = (saved − present) ∪ open. `present` is the set of
+  // folder keys in the current render: a scoped/filtered render must only rewrite the keys it can
+  // see, or persisting under a project scope wipes every other project's saved open state. Also
+  // what makes stray async-toggle persists idempotent (they re-write the state they just applied).
+  function mergeTreeOpen(saved, present, open) {
+    var inPresent = {}, out = [], seen = {};
+    present.forEach(function (k) { inPresent[k] = 1; });
+    saved.forEach(function (k) { if (!inPresent[k] && !seen[k]) { seen[k] = 1; out.push(k); } });
+    open.forEach(function (k) { if (!seen[k]) { seen[k] = 1; out.push(k); } });
+    return out;
+  }
+
   // 006: pick the band rect for a click at `y` — the SMALLEST rect containing y, not the first.
   // Range client rects list container border boxes (tbody / li / blockquote children) before their
   // text-line rects, so "first containing" always lands on the enclosing box. ±2px edge tolerance.
@@ -674,7 +686,8 @@ var SV = (function () {
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
-           stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect };
+           stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
+           mergeTreeOpen: mergeTreeOpen };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1171,21 +1184,26 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   // R65: persist which folders are open (localStorage). Toggle → save; render → apply (so it survives reloads
   // AND the R63 live-refresh). No saved state yet → keep the HTML defaults (roots open, nested closed).
-  var treeApplying = false;
+  // 006 T3: persist MERGES over the saved set (SV.mergeTreeOpen) instead of overwriting it — a
+  // scoped render only rewrites the keys it shows, and programmatic-toggle persists are idempotent
+  // (which is why no flag guards them; toggle events are async, flags can't — see collapseSection).
   function persistTreeOpen() {
-    if (treeApplying || treeFilter) return;   // R3: folds shown while filtering are transient (force-open) — never persist them
-    var open = []; treeEl.querySelectorAll("details").forEach(function (d) { if (d.open) open.push(treePathKey(d)); });
-    lsSet("sv-tree-open", JSON.stringify(open));
+    if (treeFilter) return;   // R3: folds shown while filtering are transient (force-open) — never persist them
+    var saved = [];
+    try { saved = JSON.parse(lsGet("sv-tree-open") || "[]"); } catch (e) { saved = []; }
+    var present = [], open = [];
+    treeEl.querySelectorAll("details").forEach(function (d) {
+      var k = treePathKey(d); present.push(k); if (d.open) open.push(k);
+    });
+    lsSet("sv-tree-open", JSON.stringify(SV.mergeTreeOpen(saved, present, open)));
   }
   function applyTreeOpen() {
     var raw = lsGet("sv-tree-open"); if (!raw) return;
     var set = {}; try { JSON.parse(raw).forEach(function (k) { set[k] = 1; }); } catch (e) { return; }
-    treeApplying = true;
     treeEl.querySelectorAll("details").forEach(function (d) {
       if (d.closest("[data-filtered]")) return;   // R3: a filtered section keeps its force-open render (don't restore saved folds)
       d.open = !!set[treePathKey(d)];
     });
-    treeApplying = false;
   }
   // R63: live-refresh the tree (file add/remove) without yanking — open folders come back via applyTreeOpen.
   function refreshTree() {
@@ -1457,7 +1475,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function collapseSection(tree, sectionDet) {
     var folders = sectionDet.querySelectorAll("details");   // descendants only (not the section <details> itself)
     var anyOpen = false; folders.forEach(function (d) { if (d.open) anyOpen = true; });
-    treeApplying = true;
     if (anyOpen) {                                            // snapshot the open set, then collapse
       var cur = {}; folders.forEach(function (d) { if (d.open) cur[treePathKey(d)] = 1; });
       treeSnap[tree] = cur;
@@ -1466,7 +1483,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var snap = treeSnap[tree]; treeSnap[tree] = null;
       folders.forEach(function (d) { d.open = !!snap[treePathKey(d)]; });
     }
-    treeApplying = false; persistTreeOpen();
+    persistTreeOpen();
   }
   var treeFilterEl = document.getElementById("treeFilter");   // R3: bottom filename filter
   treeFilterEl.addEventListener("input", function () { treeFilter = treeFilterEl.value.trim(); renderTree(); });
