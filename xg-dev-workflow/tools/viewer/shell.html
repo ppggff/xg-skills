@@ -1388,7 +1388,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     window.getSelection().removeAllRanges(); cmtBtn.style.display = "none";
   }
   document.addEventListener("keydown", function (e) {
-    if (e.key !== "c") return;
+    if (e.key !== "c" || e.metaKey || e.ctrlKey || e.altKey) return;   // bare key only — never intercept cmd/ctrl+c (copy)
     var t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
     addComment();
   });
@@ -1577,7 +1577,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
     var t = e.target;
-    if (e.key === "/" && !(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) { e.preventDefault(); searchBox.focus(); }
+    if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) &&
+        !(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) { e.preventDefault(); searchBox.focus(); }
   });
 
   searchBox.addEventListener("keydown", function (e) {
