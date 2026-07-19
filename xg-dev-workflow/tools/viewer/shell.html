@@ -657,10 +657,24 @@ var SV = (function () {
     blocked: "blocked", superseded: "backlog" };
   function statusTone(s) { return STATUS_TONE[String(s).toLowerCase()] || "backlog"; }   // R3: doc-status → pill tone
 
+  // 006: pick the band rect for a click at `y` — the SMALLEST rect containing y, not the first.
+  // Range client rects list container border boxes (tbody / li / blockquote children) before their
+  // text-line rects, so "first containing" always lands on the enclosing box. ±2px edge tolerance.
+  function pickLineRect(rects, y) {
+    if (!rects.length) return null;
+    if (y == null) return rects[0];
+    var best = null;
+    for (var i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      if (y >= r.top - 2 && y <= r.bottom + 2 && (!best || r.height < best.height)) best = r;
+    }
+    return best || rects[0];
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
-           stName: stName, stepFill: stepFill, statusTone: statusTone };
+           stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1069,25 +1083,27 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   // R2: the current line is a SINGLE wrapped line, not the whole block. Find the line-box rect in
   // `blk` under clientY (or the block's first line when set programmatically / as the default).
+  // 006 T2: rect choice delegated to SV.pickLineRect (smallest containing, not first containing).
   function lineBand(blk, clientY) {
     var range = document.createRange(); range.selectNodeContents(blk);
     var rects = [].slice.call(range.getClientRects()).filter(function (r) { return r.width > 1 && r.height > 1; });
-    if (!rects.length) return blk.getBoundingClientRect();
-    if (clientY == null) return rects[0];
-    for (var i = 0; i < rects.length; i++) if (clientY >= rects[i].top - 2 && clientY <= rects[i].bottom + 2) return rects[i];
-    return rects[0];
+    return SV.pickLineRect(rects, clientY) || blk.getBoundingClientRect();
   }
   // The current marker is set ONLY by a click / TOC jump / default (R40/R52) — never by scroll (R6).
   // It drives the TOC's active entry and dims when the pane is unfocused (R3). The overlay is a pane
   // child (so it scrolls with the content, under the sticky header) covering a single wrapped line in
   // a doc, or the whole clicked block (card / hit / commit) in board / search / recent.
-  function setCurLine(side, blk, clientY) {
+  function setCurLine(side, blk, clientY, target) {
     var p = PANES[side]; if (!blk) return;
     var ov = p.querySelector(".curline-ov");
     if (!ov) { ov = document.createElement("div"); ov.className = "curline-ov"; p.appendChild(ov); }
     var paneR = p.getBoundingClientRect(), isDoc = p._view && p._view.kind === "doc" && blk.closest(".docbody");
     var top, height, left, width;
-    if (isDoc) { var dbR = blk.closest(".docbody").getBoundingClientRect(), lb = lineBand(blk, clientY);
+    if (isDoc) { var dbR = blk.closest(".docbody").getBoundingClientRect();
+      // 006 T2: a click inside a table highlights the clicked ROW (G1); tr rect also covers
+      // cell-padding clicks where no text-line rect contains clientY.
+      var row = target && target.closest && target.closest("tr");
+      var lb = (row && blk.contains(row)) ? row.getBoundingClientRect() : lineBand(blk, clientY);
       top = lb.top; height = lb.height; left = dbR.left; width = dbR.width; }
     else { var r = blk.getBoundingClientRect(); top = r.top; height = r.height; left = r.left; width = r.width; }
     ov.style.top = (top - paneR.top + p.scrollTop) + "px"; ov.style.height = height + "px";
@@ -1107,7 +1123,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block
       var sel = PANES[s]._blockSel; if (!sel) return;
-      var blk = e.target.closest(sel); if (blk && PANES[s].contains(blk)) setCurLine(s, blk, e.clientY);
+      var blk = e.target.closest(sel); if (blk && PANES[s].contains(blk)) setCurLine(s, blk, e.clientY, e.target);
     });
   });
 

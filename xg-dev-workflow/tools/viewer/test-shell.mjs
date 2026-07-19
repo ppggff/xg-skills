@@ -259,4 +259,33 @@ t("statusTone: doc statuses → pill tone · unknown → backlog", () => {
   assert.equal(SV.statusTone("whatever"), "backlog");
 });
 
+// --- pickLineRect (006: current-line band unit) ------------------------------
+const rr = (top, bottom) => ({ top, bottom, height: bottom - top });
+t("pickLineRect: smallest containing rect wins over enclosing container box", () => {
+  const rects = [rr(0, 100), rr(0, 20), rr(20, 40), rr(40, 100)];   // container first, content order
+  assert.equal(SV.pickLineRect(rects, 25), rects[2]);
+  assert.equal(SV.pickLineRect(rects, 5), rects[1]);
+});
+t("pickLineRect: y outside all rects → first rect (default fallback)", () => {
+  const rects = [rr(10, 30), rr(30, 50)];
+  assert.equal(SV.pickLineRect(rects, 500), rects[0]);
+});
+t("pickLineRect: null/undefined y → first rect", () => {
+  const rects = [rr(10, 30), rr(30, 50)];
+  assert.equal(SV.pickLineRect(rects, null), rects[0]);
+  assert.equal(SV.pickLineRect(rects, undefined), rects[0]);
+});
+t("pickLineRect: equal-height candidates → first in content order", () => {
+  const rects = [rr(0, 40), rr(10, 30), rr(10, 30)];
+  assert.equal(SV.pickLineRect(rects, 15), rects[1]);
+});
+t("pickLineRect: ±2px tolerance at rect edges", () => {
+  const rects = [rr(0, 100), rr(10, 30)];
+  assert.equal(SV.pickLineRect(rects, 8), rects[1]);    // top-2
+  assert.equal(SV.pickLineRect(rects, 32), rects[1]);   // bottom+2
+});
+t("pickLineRect: empty rects → null", () => {
+  assert.equal(SV.pickLineRect([], 10), null);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
