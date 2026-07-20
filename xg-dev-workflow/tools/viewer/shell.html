@@ -1130,6 +1130,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
                     cell.state === "q" ? ' title="仅 loose 命中"' : "";
           return '<span class="trcell ' + cell.state + '"' + tip + ">" + TR_MARK[cell.state] + " " + cell.k + "</span>";
         }).join("");
+        // the one gap flag with no cell equivalent (design/task/test flags read off their ✗ cells)
+        if ((r.flags || []).indexOf("not-in-需求条目") !== -1)
+          cells += '<span class="trcell miss">⚠ not-in-需求条目</span>';
         return '<div class="cd-trrow"><span class="trid" title="' + esc(r.text) + '">' + esc(r.rid) + "</span>" + cells + "</div>";
       }).join("") + "</div>";
       return sec("trace", "Trace", "plan 推导", head, body);
