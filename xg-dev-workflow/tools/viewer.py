@@ -135,6 +135,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_board()
         elif path == "/api/diff":
             self._serve_diff(qs.get("card", [""])[0])
+        elif path == "/api/trace":
+            self._serve_trace(qs.get("card", [""])[0])
         elif path == "/api/log":
             self._serve_log(qs.get("n", ["20"])[0])
         elif path == "/api/search":
@@ -216,6 +218,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             out = _git(self.dev_root, "-c", "core.quotepath=false", "diff", base, "--", rel)
         self._send(200, out or "(no changes since %s)\n" % (base or "card start"))
 
+    def _serve_trace(self, card):
+        # 007: always 200 + pinned-schema JSON with an `error` field — a non-2xx here
+        # would surface as the shell's broken pane instead of the drawer's empty state.
+        proj, _nnn, card_dir, err = _locate_card(self.dev_root, card)
+        if err:
+            self._json(_trace_empty(card, err))
+            return
+        try:
+            self._json(_ws.trace_data(proj, str(card_dir)))
+        except Exception as e:
+            self._json(_trace_empty(card, "trace failed: %s" % e))
+
     def _serve_log(self, n):
         try:
             n = max(1, min(LOG_MAX, int(n)))
@@ -249,6 +263,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except OSError:
                 mt = 0
         self._json({"mtime": mt})
+
+
+def _trace_empty(card, err):
+    """Pinned /api/trace shape (fields always present) for the error path."""
+    return {"card": card or "", "repo": "", "repo_anchor": False,
+            "generated_at": "", "rows": [], "orphans": [], "error": err}
 
 
 def _rev_token(root: Path):
@@ -324,23 +344,34 @@ def _card_dir(dev_root: Path, proj, nnn):
     return matches[0].resolve(strict=False) if matches else None
 
 
-def resolve_card(dev_root: Path, card: str):
-    """Validate '<proj>/<NNN>' and locate its card dir + diff base. Returns (base, dir, err)."""
+def _locate_card(dev_root: Path, card: str):
+    """Validate '<proj>/<NNN>' and locate its card dir. Returns (proj, nnn, dir, err).
+
+    Shared by /api/diff (which adds the gate-commit base) and /api/trace (which must
+    not pay _gate_commit's git call — 007 design)."""
     m = re.match(r"^([^/]+)/(\d{3})$", card or "")
     if not m:
-        return None, None, "expected <project>/<NNN>"
+        return None, None, None, "expected <project>/<NNN>"
     proj, nnn = m.group(1), m.group(2)
     cp = _rp.config_path()
     text = cp.read_text(encoding="utf-8") if cp.exists() else ""
     if proj not in {name for name, _ in _rp.parse_projects(text)}:
-        return None, None, "unregistered project"
+        return None, None, None, "unregistered project"
     card_dir = _card_dir(dev_root, proj, nnn)
     if card_dir is None:
-        return None, None, "no such card dir"
+        return None, None, None, "no such card dir"
     try:
         card_dir.relative_to(dev_root)
     except ValueError:
-        return None, None, "card dir escapes dev_root"
+        return None, None, None, "card dir escapes dev_root"
+    return proj, nnn, card_dir, None
+
+
+def resolve_card(dev_root: Path, card: str):
+    """Validate '<proj>/<NNN>' and locate its card dir + diff base. Returns (base, dir, err)."""
+    proj, nnn, card_dir, err = _locate_card(dev_root, card)
+    if err:
+        return None, None, err
     return _gate_commit(dev_root, proj, nnn, card_dir), card_dir, None
 
 

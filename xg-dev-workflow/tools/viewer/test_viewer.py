@@ -168,6 +168,27 @@ class T345Endpoints(unittest.TestCase):
             self.assertEqual(get(self.base, "/api/diff?card=" +
                                  urllib.parse.quote(bad))[0], 400, bad)
 
+    def test_board_tasks_field_pinned(self):        # 007 T3/T4: tasks always present
+        _, body = get(self.base, "/api/board")
+        self.assertIn("tasks", json.loads(body)["foo"][0])
+
+    def test_trace_ok_card(self):                    # 007 T4
+        code, body = get(self.base, "/api/trace?card=foo/001")
+        self.assertEqual(code, 200)
+        d = json.loads(body)
+        for k in ("card", "repo", "repo_anchor", "generated_at", "rows", "orphans", "error"):
+            self.assertIn(k, d)
+        self.assertEqual(d["error"], "")
+        self.assertEqual(d["card"], "foo/001-x")
+
+    def test_trace_bad_card_is_200_with_error(self):  # 007 R8: never-throw, pinned shape
+        for bad in ("foo/2", "nope/001", "", "../etc"):
+            code, body = get(self.base, "/api/trace?card=" + urllib.parse.quote(bad))
+            self.assertEqual(code, 200, bad)
+            d = json.loads(body)
+            self.assertTrue(d["error"], bad)
+            self.assertEqual(d["rows"], [], bad)
+
     def test_log_excludes_snapshot_subjects(self):
         _, body = get(self.base, "/api/log?n=5")
         # subject lines are 'commit <hash>' followed by author/date/blank/message; check the
