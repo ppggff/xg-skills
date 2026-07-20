@@ -1104,7 +1104,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
         ' <span class="cd-src">· ' + srcTag + "</span></span></div>" +
         '<div class="cd-secbody">' + bodyHtml + "</div></div>";
     }
-    function tasksHtml() {                          // 007 R1–R3: task table + summary (source: progress.md, D7)
+    function tasksHtml() {                          // 007 R1–R3: task table + summary, from progress.md's live snapshot
+                                                    // (trace below reads plan.md — sources deliberately not reconciled)
       var counts = SV.taskCounts(c.tasks);
       if (!counts.total) return '<div class="cd-row"><span class="cd-k">Tasks</span>' +
         '<span class="cd-v"><span class="cd-src">无 task 表 · progress</span></span></div>';
@@ -1115,7 +1116,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       }).join("") + "</table>";
       return sec("tasks", "Tasks", "progress", counts.done + "/" + counts.total + " done", body);
     }
-    function traceHtml() {                          // 007 R4/R7: per-R five-cell summary (source: plan 推导, D7)
+    function traceHtml() {                          // 007 R4/R7: per-R five-cell summary, derived from plan.md
       var tkey = c.project + "/" + c.nnn, d = traceCache[tkey];
       if (!d) { ensureTrace(tkey); return sec("trace", "Trace", "plan 推导", '<span class="cd-src">计算中…</span>', ""); }
       if (d.error) return sec("trace", "Trace", "plan 推导", '<span class="cd-src">' + esc(d.error) + "</span>" +
@@ -1217,7 +1218,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<div class="tr-cells">' + cells + '</div><div class="tr-block">' + lines + "</div>";
     }).join("");
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
-      d.orphans.map(function (t) { return "T" + t; }).join(", ") + "</p>" : "";
+      esc(d.orphans.map(function (t) { return "T" + t; }).join(", ")) + "</p>" : "";
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
     pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + blocks + orph;
     var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
