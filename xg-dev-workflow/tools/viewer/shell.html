@@ -1118,7 +1118,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     function traceHtml() {                          // 007 R4/R7: per-R five-cell summary (source: plan 推导, D7)
       var tkey = c.project + "/" + c.nnn, d = traceCache[tkey];
       if (!d) { ensureTrace(tkey); return sec("trace", "Trace", "plan 推导", '<span class="cd-src">计算中…</span>', ""); }
-      if (d.error) return sec("trace", "Trace", "plan 推导", '<span class="cd-src">' + esc(d.error) + "</span>", "");
+      if (d.error) return sec("trace", "Trace", "plan 推导", '<span class="cd-src">' + esc(d.error) + "</span>" +
+        ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>', "");
       var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
       var head = d.rows.length + " R · " + esc(asof || "—") +
         (d.repo_anchor ? "" : ' <span class="cd-src">(commit 未检查)</span>') +
