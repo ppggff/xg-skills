@@ -992,8 +992,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
                                      rows: [], orphans: [], error: String(e.message || e) }; })
       .then(function (d) {
         traceCache[key] = d; delete traceInflight[key];
-        // late responses for a no-longer-selected card are cached but never painted
-        if (boardSelected === key) rerenderTrace(key);
+        // unconditional: rerenderTrace keys trace panes by card and the drawer re-reads the
+        // CURRENT selection, so a late response can't paint another card — but a matrix pane
+        // showing this card must repaint even when the board selection moved on (007 review #1)
+        rerenderTrace(key);
       });
   }
   function rerenderTrace(key) {   // completion/重算 re-queries the DOM by current state (no stale refs)
