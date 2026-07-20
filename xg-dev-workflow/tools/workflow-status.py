@@ -340,6 +340,16 @@ def project_repo(project):
     return None
 
 
+def card_in_message(nnn, oneline):
+    """True when the card number appears in the commit message text of a --oneline row.
+
+    The abbreviated hash is excluded from the match: its hex digits can contain the
+    card number by coincidence (e.g. hash a400654 vs card 006).
+    """
+    msg = oneline.split(" ", 1)[1] if " " in oneline else ""
+    return nnn in msg
+
+
 def task_commits(repo, tid, nnn=None):
     """Product commits citing T<n>/Task <n> (implement.md commit convention); best-effort.
 
@@ -356,7 +366,7 @@ def task_commits(repo, tid, nnn=None):
     except Exception:
         return [], "strict"
     if nnn:
-        strict = [ln for ln in lines if nnn in ln]
+        strict = [ln for ln in lines if card_in_message(nnn, ln)]
         if strict:
             return strict, "strict"
     return lines, "loose"
