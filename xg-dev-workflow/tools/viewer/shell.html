@@ -980,7 +980,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   try { boardSelected = localStorage.getItem("sv-detail-card") || null; detailOpen = localStorage.getItem("sv-detail-open") !== "0"; } catch (e) {}
   // 007: drawer sub-section open state (tasks/trace); missing key falls back to open.
   var cdSecOpen = (function () { try { return JSON.parse(lsGet("sv-cd-sec")) || {}; } catch (e) { return {}; } })();
-  // 007 D3: per-card trace snapshots. Lifecycle is independent of boardCardMap (which is
+  // 007: per-card trace snapshots. Lifecycle is independent of boardCardMap (which is
   // rebuilt from a fresh fetch on every renderBoard) — a poll rebuild re-renders from this
   // cache without refetching; only selection change or 重算 fetches.
   var traceCache = {}, traceInflight = {};
@@ -1007,6 +1007,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // R62: each sub-phase step ("label:state") links to its fixed doc; 评审 (notes/review-*.md is
   // date-stamped) and not-yet-started phases (state "—") stay plain, non-linked.
   var STEP_FILE = { "需求": "requirement.md", "设计": "design.md", "详设": "detail.md", "实现": "plan.md", "测试": "test.md" };
+  var TR_MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };   // 007: trace-cell display marks
   function renderBoard(side, v) {
     var pane = PANES[side]; pane._doc = null;
     api("/api/board").then(function (r) { return r.json(); }).then(function (board) {
@@ -1121,12 +1122,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
         (d.repo_anchor ? "" : ' <span class="cd-src">(commit 未检查)</span>') +
         ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>' +
         ' <a class="cd-phase" data-nav="trace" data-card="' + esc(tkey) + '">矩阵</a>';
-      var MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };
       var body = '<div class="cd-trace">' + d.rows.map(function (r) {
         var cells = SV.traceCells(r).map(function (cell) {
           var tip = cell.k === "commit" && cell.state === "na" ? ' title="未检查"' :
                     cell.state === "q" ? ' title="仅 loose 命中"' : "";
-          return '<span class="trcell ' + cell.state + '"' + tip + ">" + MARK[cell.state] + " " + cell.k + "</span>";
+          return '<span class="trcell ' + cell.state + '"' + tip + ">" + TR_MARK[cell.state] + " " + cell.k + "</span>";
         }).join("");
         return '<div class="cd-trrow"><span class="trid" title="' + esc(r.text) + '">' + esc(r.rid) + "</span>" + cells + "</div>";
       }).join("") + "</div>";
@@ -1179,7 +1179,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var d = traceCache[v.card];
     if (!d) { ensureTrace(v.card);
       pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>'; return; }
-    var base = d.card + "/", MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };
+    var base = d.card + "/";
     function doc(file, label) { return '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' +
       esc(base + file) + '">' + esc(label) + "</a>"; }
     var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
@@ -1189,7 +1189,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var blocks = d.rows.map(function (r) {
       var flags = r.flags.map(function (f) { return ' <span class="badge state st-blocked">⚠ ' + esc(f) + "</span>"; }).join("");
       var cells = SV.traceCells(r).map(function (cell) {
-        return '<span class="trcell ' + cell.state + '">' + MARK[cell.state] + " " + cell.k + "</span>";
+        return '<span class="trcell ' + cell.state + '">' + TR_MARK[cell.state] + " " + cell.k + "</span>";
       }).join(" ");
       var lines = "";
       if (r.design) lines += '<div class="tr-line"><span class="tr-k">design</span>' + doc("design.md", r.design) + "</div>";
@@ -1552,7 +1552,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
       detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
       var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
-    if ((t = e.target.closest("[data-cd-retrace]"))) { e.preventDefault();  // 007 D3: manual recompute (click-only)
+    if ((t = e.target.closest("[data-cd-retrace]"))) { e.preventDefault();  // 007: manual recompute (click-only)
       var rk = t.dataset.cdRetrace;
       delete traceCache[rk]; ensureTrace(rk); rerenderTrace(rk);
       return; }
