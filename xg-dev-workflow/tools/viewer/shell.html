@@ -260,6 +260,20 @@
   .cd-k { flex: none; width: 4em; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .cd-v { color: var(--body); }
   .cd-phases { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  /* 007: collapsible drawer sub-sections (tasks / trace) — div+class idiom, NOT <details>
+     (async-toggle trap); open state persisted in sv-cd-sec and re-read on every rebuild. */
+  .cd-sechead { cursor: pointer; }
+  .cd-scaret { flex: none; width: .8em; color: var(--muted); }
+  .cd-scaret::before { content: "\25B8"; }
+  .cd-sec.open .cd-scaret::before { content: "\25BE"; }
+  .cd-sec .cd-secbody { display: none; }
+  .cd-sec.open .cd-secbody { display: block; }
+  .cd-src { color: var(--muted); font-size: 10.5px; font-family: var(--chrome); }
+  .cd-tasks { border-collapse: collapse; margin: 2px 0 6px 1.6em; font-size: 12px; }
+  .cd-tasks td { padding: 2px 10px 2px 0; vertical-align: baseline; }
+  .cd-tasks .tid { font-family: var(--chrome); color: var(--muted); }
+  .cd-tasks .badge { max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+  .cd-tasks .tnotes { color: var(--body); }
   .cd-phase { font-family: var(--chrome); font-size: 11.5px; color: var(--body); text-decoration: none; }
   a.cd-phase:hover { color: var(--accent); text-decoration: underline; }
   .cd-phase.diff { color: var(--accent); }
@@ -683,11 +697,25 @@ var SV = (function () {
     return best || rects[0];
   }
 
+  // 007: drawer task summary — counts over server-parsed rows (done judged server-side, R3).
+  function taskCounts(tasks) {
+    var done = 0;
+    (tasks || []).forEach(function (t) { if (t.done) done++; });
+    return { done: done, total: (tasks || []).length };
+  }
+  function taskTone(t) {                             // 007: task-row status → badge tone
+    if (t.done) return "done";
+    var s = String(t.status || "").toLowerCase();
+    if (/block|\[!\]|fail/.test(s)) return "blocked";
+    if (/doing|active|wip|进行/.test(s)) return "active";
+    return "backlog";
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
-           mergeTreeOpen: mergeTreeOpen };
+           mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -917,6 +945,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // R64: board detail drawer — click a card to show its full details in a collapsible bottom drawer.
   var boardCardMap = {}, boardSelected = null, detailOpen = true;
   try { boardSelected = localStorage.getItem("sv-detail-card") || null; detailOpen = localStorage.getItem("sv-detail-open") !== "0"; } catch (e) {}
+  // 007: drawer sub-section open state (tasks/trace); missing key falls back to open.
+  var cdSecOpen = (function () { try { return JSON.parse(lsGet("sv-cd-sec")) || {}; } catch (e) { return {}; } })();
   var STATE_ORDER = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
   // R62: each sub-phase step ("label:state") links to its fixed doc; 评审 (notes/review-*.md is
   // date-stamped) and not-yet-started phases (state "—") stay plain, non-linked.
@@ -1006,13 +1036,34 @@ if (typeof window !== "undefined" && window.marked) (function () {
         : '<span class="cd-phase">' + body + "</span>";
     }).join("");
     function row(k, v) { return v && v !== "—" ? '<div class="cd-row"><span class="cd-k">' + k + '</span><span class="cd-v">' + esc(v) + "</span></div>" : ""; }
+    // 007: collapsible sub-section (tasks/trace) — head row toggles, body persists via cdSecOpen.
+    function sec(key, label, srcTag, headHtml, bodyHtml) {
+      var open = cdSecOpen[key] !== false;
+      return '<div class="cd-sec' + (open ? " open" : "") + '">' +
+        '<div class="cd-row cd-sechead" data-cd-sec="' + key + '"><span class="cd-scaret"></span>' +
+        '<span class="cd-k">' + label + '</span><span class="cd-v">' + headHtml +
+        ' <span class="cd-src">· ' + srcTag + "</span></span></div>" +
+        '<div class="cd-secbody">' + bodyHtml + "</div></div>";
+    }
+    function tasksHtml() {                          // 007 R1–R3: task table + summary (source: progress.md, D7)
+      var counts = SV.taskCounts(c.tasks);
+      if (!counts.total) return '<div class="cd-row"><span class="cd-k">Tasks</span>' +
+        '<span class="cd-v"><span class="cd-src">无 task 表 · progress</span></span></div>';
+      var body = "<table class='cd-tasks'>" + c.tasks.map(function (t) {
+        return "<tr><td class='tid'>" + esc(t.id) + "</td><td><span class='badge state st-" +
+          SV.taskTone(t) + "'>" + esc(t.status || "—") + "</span></td><td class='tnotes'>" +
+          esc(t.notes || "") + "</td></tr>";
+      }).join("") + "</table>";
+      return sec("tasks", "Tasks", "progress", counts.done + "/" + counts.total + " done", body);
+    }
     return '<div class="card-detail' + (detailOpen ? " open" : "") + '">' +
       '<div class="cd-bar" data-cd-toggle><span class="cd-caret"></span>' +
         '<span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
         '<span class="cd-title">' + esc(c.project) + " · " + esc(c.nnn) + " — " + title + "</span>" +
         '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
-      '<div class="cd-body">' + row("Now", c.now) + row("Next", c.effective_next) + row("Deps", c.deps) + row("Branch", c.branch) +
+      '<div class="cd-body">' + row("Now", c.now) + row("Next", c.effective_next) + row("Blockers", c.blockers) + row("Deps", c.deps) + row("Branch", c.branch) +
         '<div class="cd-row"><span class="cd-k">阶段</span><span class="cd-phases">' + phases + "</span></div>" +
+        tasksHtml() +
         '<div class="cd-row"><span class="cd-k">文档</span><span class="cd-phases">' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +
@@ -1379,6 +1430,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
       detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
       var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
+    if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
+      var sk = t.dataset.cdSec;
+      cdSecOpen[sk] = !(cdSecOpen[sk] !== false);
+      lsSet("sv-cd-sec", JSON.stringify(cdSecOpen));
+      var se = t.closest(".cd-sec"); if (se) se.classList.toggle("open", cdSecOpen[sk] !== false);
+      return; }
     if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
       var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
       if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });

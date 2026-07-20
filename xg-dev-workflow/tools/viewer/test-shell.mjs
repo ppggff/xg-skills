@@ -311,4 +311,20 @@ t("mergeTreeOpen: everything closed in a full render → empty", () => {
   assert.deepEqual(SV.mergeTreeOpen(["dev", "dev/a"], ["dev", "dev/a"], []), []);
 });
 
+// --- taskCounts / taskTone (007: drawer task summary) -------------------------
+t("taskCounts: done/total over parsed rows; empty and missing degrade to 0/0", () => {
+  assert.deepEqual(SV.taskCounts([{ done: true }, { done: false }, { done: true }]),
+    { done: 2, total: 3 });
+  assert.deepEqual(SV.taskCounts([]), { done: 0, total: 0 });
+  assert.deepEqual(SV.taskCounts(undefined), { done: 0, total: 0 });
+});
+t("taskTone: done wins; blocked/doing recognized; unknown → backlog", () => {
+  assert.equal(SV.taskTone({ done: true, status: "blocked" }), "done");
+  assert.equal(SV.taskTone({ done: false, status: "blocked" }), "blocked");
+  assert.equal(SV.taskTone({ done: false, status: "[!]" }), "blocked");
+  assert.equal(SV.taskTone({ done: false, status: "doing" }), "active");
+  assert.equal(SV.taskTone({ done: false, status: "???" }), "backlog");
+  assert.equal(SV.taskTone({ done: false }), "backlog");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
