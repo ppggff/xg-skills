@@ -283,6 +283,14 @@
   .trcell.q { color: var(--s-paused); }
   .trcell.na { color: var(--muted); }
   .cd-retrace { font-size: 10.5px; }
+  /* 007 R5: trace matrix view */
+  .tr-asof { margin: 10px 0; font-family: var(--chrome); font-size: 11.5px; color: var(--muted); }
+  .tr-cells { margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .tr-block { margin: 0 0 16px; font-size: 12.5px; display: grid; gap: 3px; }
+  .tr-line { display: flex; gap: 10px; align-items: baseline; }
+  .tr-k { flex: none; width: 4.5em; font-family: var(--chrome); font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
+  .tr-sha { font-family: var(--chrome); font-size: 11px; color: var(--body); }
+  .tr-orph, .tr-loading { color: var(--muted); font-size: 12px; }
   .cd-phase { font-family: var(--chrome); font-size: 11.5px; color: var(--body); text-decoration: none; }
   a.cd-phase:hover { color: var(--accent); text-decoration: underline; }
   .cd-phase.diff { color: var(--accent); }
@@ -822,6 +830,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     else if (v.kind === "search") renderSearch(side, v);
     else if (v.kind === "recent") renderRecent(side, v);
     else if (v.kind === "diff") renderDiff(side, v);
+    else if (v.kind === "trace") renderTraceView(side, v);
     else renderBoard(side, v);
     if (side === "left") highlightNav();
   }
@@ -830,6 +839,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (v.kind === "doc") return "📄 " + v.rel.split("/").pop();
     if (v.kind === "search") return "🔍 " + v.q;
     if (v.kind === "diff") return "± " + v.card;
+    if (v.kind === "trace") return "🔗 " + v.card;
     return (v.kind === "recent" ? "commits" : "board");
   }
   function paneHead(side, crumb, extra) {
@@ -1109,7 +1119,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
       var head = d.rows.length + " R · " + esc(asof || "—") +
         (d.repo_anchor ? "" : ' <span class="cd-src">(commit 未检查)</span>') +
-        ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>';
+        ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>' +
+        ' <a class="cd-phase" data-nav="trace" data-card="' + esc(tkey) + '">矩阵</a>';
       var MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };
       var body = '<div class="cd-trace">' + d.rows.map(function (r) {
         var cells = SV.traceCells(r).map(function (cell) {
@@ -1160,6 +1171,52 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return '<div class="col" style="--lane:var(' + stVar(k) + ')"><h3><span class="sw"></span><span class="nm">' +
         esc(k) + '</span><span class="ct">' + cols[k].length + "</span></h3>" +
         cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
+  }
+
+  // --- trace matrix view (007 R5): full per-R matrix from the same cached JSON --
+  function renderTraceView(side, v) {
+    var pane = PANES[side]; pane._doc = null;
+    var d = traceCache[v.card];
+    if (!d) { ensureTrace(v.card);
+      pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>'; return; }
+    var base = d.card + "/", MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };
+    function doc(file, label) { return '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' +
+      esc(base + file) + '">' + esc(label) + "</a>"; }
+    var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
+    var head = '<div class="tr-asof">取数 ' + esc(asof || "—") +
+      (d.repo_anchor ? "" : ' · <span class="trcell na">commit 未检查</span>') +
+      ' <button class="iconbtn" data-cd-retrace="' + esc(v.card) + '">重算</button></div>';
+    var blocks = d.rows.map(function (r) {
+      var flags = r.flags.map(function (f) { return ' <span class="badge state st-blocked">⚠ ' + esc(f) + "</span>"; }).join("");
+      var cells = SV.traceCells(r).map(function (cell) {
+        return '<span class="trcell ' + cell.state + '">' + MARK[cell.state] + " " + cell.k + "</span>";
+      }).join(" ");
+      var lines = "";
+      if (r.design) lines += '<div class="tr-line"><span class="tr-k">design</span>' + doc("design.md", r.design) + "</div>";
+      if (r.verify) lines += '<div class="tr-line"><span class="tr-k">verify</span><span>' + esc(r.verify) + "</span></div>";
+      r.tasks.forEach(function (tk) {
+        lines += '<div class="tr-line"><span class="tr-k">task</span>' +
+          doc("plan.md", "T" + tk.tid + " [" + tk.state + "] " + tk.title) + "</div>";
+        if (tk.commit_state === "unchecked")
+          lines += '<div class="tr-line"><span class="tr-k"></span><span class="trcell na">(未检查)</span></div>';
+        else if (!tk.commits.length)
+          lines += '<div class="tr-line"><span class="tr-k"></span><span class="trcell miss">(无 commit)</span></div>';
+        else tk.commits.forEach(function (cm) {
+          lines += '<div class="tr-line"><span class="tr-k">' + (tk.commit_state === "strict" ? "commit" : "commit?") +
+            '</span><span class="tr-sha">' + esc(cm) + "</span></div>";
+        });
+      });
+      if (r.test) lines += '<div class="tr-line"><span class="tr-k">test</span>' + doc("test.md", r.test) + "</div>";
+      return '<h2 class="sec">' + esc(r.rid) + " · " + esc(r.text) + flags + "</h2>" +
+        '<div class="tr-cells">' + cells + '</div><div class="tr-block">' + lines + "</div>";
+    }).join("");
+    var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
+      d.orphans.map(function (t) { return "T" + t; }).join(", ") + "</p>" : "";
+    var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
+    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + blocks + orph;
+    var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
+    tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
+    afterRender(side, "h2.sec");
   }
 
   // --- recent view (R32): commit list, TOC = subjects ------------------------
@@ -1499,17 +1556,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var rk = t.dataset.cdRetrace;
       delete traceCache[rk]; ensureTrace(rk); rerenderTrace(rk);
       return; }
-    if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
-      var sk = t.dataset.cdSec;
-      cdSecOpen[sk] = !(cdSecOpen[sk] !== false);
-      lsSet("sv-cd-sec", JSON.stringify(cdSecOpen));
-      var se = t.closest(".cd-sec"); if (se) se.classList.toggle("open", cdSecOpen[sk] !== false);
-      return; }
     if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
       var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
       if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });
         revealInTree(t.dataset.tree, t.dataset.rel); }   // 006 T4: user-opened → expand ancestors
       else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
+      else if (kind === "trace") navigate(side, { kind: "trace", card: t.dataset.card });   // 007 R5
+      return; }
+    if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
+      // after [data-nav]: the section head hosts nav links (矩阵) that must win over the toggle
+      var sk = t.dataset.cdSec;
+      cdSecOpen[sk] = !(cdSecOpen[sk] !== false);
+      lsSet("sv-cd-sec", JSON.stringify(cdSecOpen));
+      var se = t.closest(".cd-sec"); if (se) se.classList.toggle("open", cdSecOpen[sk] !== false);
       return; }
     if ((t = e.target.closest(".card")) && t.dataset.key) {                 // R64: select a card → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
