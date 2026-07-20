@@ -341,4 +341,15 @@ t("traceCells: missing present degrades to all-miss + na commit", () => {
   assert.deepEqual(cells.map(c => c.state), ["miss", "miss", "miss", "miss", "na"]);
 });
 
+t("traceGaps: counts rows with a miss or the no-cell flag; loose/unchecked are hints", () => {
+  const full = { present: { design: true, verify: true, task: true, test: true, commit: "strict" }, flags: [] };
+  const missTest = { present: { design: true, verify: true, task: true, test: false, commit: "strict" }, flags: [] };
+  const loose = { present: { design: true, verify: true, task: true, test: true, commit: "loose" }, flags: [] };
+  const unchecked = { present: { design: true, verify: true, task: true, test: true, commit: "unchecked" }, flags: [] };
+  const flagOnly = { present: { design: true, verify: true, task: true, test: true, commit: "strict" }, flags: ["not-in-需求条目"] };
+  assert.equal(SV.traceGaps([full, missTest, loose, unchecked, flagOnly]), 2);
+  assert.equal(SV.traceGaps([]), 0);
+  assert.equal(SV.traceGaps(undefined), 0);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");

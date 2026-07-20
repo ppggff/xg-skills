@@ -244,15 +244,12 @@
   .card.st-dropped { border-left-color: var(--s-dropped); opacity: .6; }
   .card.st-unknown { border-left-color: var(--s-unknown); border-left-style: dashed; }
   .card { cursor: pointer; }   /* R64: click selects → detail drawer */
-  /* R64: selected-card highlight + a collapsible detail drawer at the board pane's bottom.
-     The board scrolls inside .board-wrap; the drawer is a flex sibling BELOW it — always
-     visible, never covering cards, and immune to the board's own horizontal scroll. */
-  .board-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
-  #left > .board-wrap, #right > .board-wrap { flex-shrink: 1; }
+  /* R64: selected-card highlight + a collapsible detail drawer pinned to the board pane's bottom.
+     Compact (one-line rows only — task/trace detail lives on the trace page), so the sticky
+     float covers little. */
   .card.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .card-detail { margin: 0 -28px -20px; padding: 0 28px 4px; background: var(--side);
-    border-top: 1px solid var(--line2); }
-  .cd-body { overflow-x: auto; }   /* the drawer's own wide content scrolls internally */
+  .card-detail { position: sticky; bottom: -20px; margin: auto -28px -20px; padding: 0 28px 4px; background: var(--side);
+    border-top: 1px solid var(--line2); box-shadow: 0 -6px 16px -12px rgba(0,0,0,.6); }   /* margin-top:auto pins to the bottom when the board is short; bottom:-20 + sticky pins it while scrolling a tall board */
   .cd-bar { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; cursor: pointer; }
   .cd-caret { flex: none; width: .8em; color: var(--muted); }
   .cd-caret::before { content: "\25B8"; }
@@ -265,20 +262,10 @@
   .cd-k { flex: none; width: 4em; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .cd-v { color: var(--body); }
   .cd-phases { display: flex; flex-wrap: wrap; gap: 4px 12px; }
-  /* 007: collapsible drawer sub-sections (tasks / trace) — div+class idiom, NOT <details>
-     (async-toggle trap); open state persisted in sv-cd-sec and re-read on every rebuild. */
-  .cd-sechead { cursor: pointer; position: relative; }
-  /* caret sits in the pane-padding gutter so the section label aligns with the other cd-k's */
-  .cd-scaret { position: absolute; left: -1em; color: var(--muted); }
-  .cd-scaret::before { content: "\25B8"; }
-  .cd-sec.open .cd-scaret::before { content: "\25BE"; }
-  .cd-sec .cd-secbody { display: none; }
-  .cd-sec.open .cd-secbody { display: block; }
   .cd-src { color: var(--muted); font-size: 10.5px; font-family: var(--chrome); }
-  /* tasks 表与 trace 行共用一套几何:同 1.6em 缩进、首列同宽零左衬、同 2px 行距,
-     标题/需求名同 muted 11.5px —— 两区看起来是一种表 */
-  .cd-tasks { border-collapse: collapse; margin: 2px 0 6px 1.6em; font-size: 12px; width: calc(100% - 1.6em); table-layout: auto; }
-  .cd-tasks td { padding: 2px 10px 2px 0; vertical-align: baseline; border: none; }   /* opt out of the global td border */
+  /* 007: the trace page's task table (the drawer keeps one-line summaries only) */
+  .cd-tasks { border-collapse: collapse; margin: 2px 0 16px; font-size: 12px; width: 100%; }
+  .cd-tasks td { padding: 3px 14px 3px 0; vertical-align: baseline; border: none; border-bottom: 1px solid var(--line); }
   .cd-tasks .tid { font-family: var(--chrome); color: var(--muted); min-width: 2.6em; }
   /* status = plain tone-colored text (a background badge won't baseline-align in a table cell) */
   .cd-tasks .tstat { font-family: var(--chrome); font-size: 11px; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
@@ -287,10 +274,6 @@
   .cd-tasks .tstat.st-blocked { color: var(--s-blocked); }
   .cd-tasks .tstat.st-backlog { color: var(--muted); }
   .cd-tasks .tnotes { color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; }
-  .cd-trace { margin: 2px 0 6px 1.6em; font-size: 12px; display: grid; gap: 0; }
-  .cd-trrow { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
-  .cd-trrow .trid { font-family: var(--chrome); color: var(--muted); min-width: 2.6em; }
-  .cd-trrow .trtext { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11.5px; }
   .trcell { font-family: var(--chrome); font-size: 11px; white-space: nowrap; }
   .trcell.ok { color: var(--s-done); }
   .trcell.miss { color: var(--s-blocked); }
@@ -311,6 +294,7 @@
   .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
   .trm .trm-drow td { background: var(--side); padding: 8px 14px 10px 0; }
   .tr-block { font-size: 12.5px; display: grid; gap: 3px; }
+  .tr-src { font: 400 10.5px var(--chrome); color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 8px; }
   .tr-line { display: flex; gap: 10px; align-items: baseline; }
   .tr-k { flex: none; width: 4.5em; font-family: var(--chrome); font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
   .tr-sha { font-family: var(--chrome); font-size: 11px; color: var(--body); }
@@ -765,12 +749,22 @@ var SV = (function () {
     ];
   }
 
+  // 007: drawer one-line summary — rows with ≥1 real gap (loose/unchecked commit is a hint, not a gap).
+  function traceGaps(rows) {
+    var n = 0;
+    (rows || []).forEach(function (r) {
+      if (traceCells(r).some(function (c) { return c.state === "miss"; }) ||
+          (r.flags || []).indexOf("not-in-需求条目") !== -1) n++;
+    });
+    return n;
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
-           traceCells: traceCells };
+           traceCells: traceCells, traceGaps: traceGaps };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1002,8 +996,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // R64: board detail drawer — click a card to show its full details in a collapsible bottom drawer.
   var boardCardMap = {}, boardSelected = null, detailOpen = true;
   try { boardSelected = localStorage.getItem("sv-detail-card") || null; detailOpen = localStorage.getItem("sv-detail-open") !== "0"; } catch (e) {}
-  // 007: drawer sub-section open state (tasks/trace); missing key falls back to open.
-  var cdSecOpen = (function () { try { return JSON.parse(lsGet("sv-cd-sec")) || {}; } catch (e) { return {}; } })();
   // 007: per-card trace snapshots. Lifecycle is independent of boardCardMap (which is
   // rebuilt from a fresh fetch on every renderBoard) — a poll rebuild re-renders from this
   // cache without refetching; only selection change or 重算 fetches.
@@ -1033,7 +1025,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // R62: each sub-phase step ("label:state") links to its fixed doc; 评审 (notes/review-*.md is
   // date-stamped) and not-yet-started phases (state "—") stay plain, non-linked.
   var STEP_FILE = { "需求": "requirement.md", "设计": "design.md", "详设": "detail.md", "实现": "plan.md", "测试": "test.md" };
-  var TR_MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };   // 007: trace-cell display marks
   function renderBoard(side, v) {
     var pane = PANES[side]; pane._doc = null;
     api("/api/board").then(function (r) { return r.json(); }).then(function (board) {
@@ -1051,13 +1042,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
         body = list(order, byProj); tf = { set: boardHideProj, keys: order };
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
-      var oldWrap = pane.querySelector(".board-wrap");   // the wrap is the scroller now — preserve across rebuilds
-      var wst = oldWrap ? oldWrap.scrollTop : 0, wsl = oldWrap ? oldWrap.scrollLeft : 0;
       pane.innerHTML = paneHead(side, "Board",
         '<button class="iconbtn" id="tog_' + side + '">' + (boardKanban ? "list" : "kanban") + "</button>") +
-        '<div class="board-wrap">' + boardFilters(states) + body + "</div>" + cardDetailHtml();
-      var wrap = pane.querySelector(".board-wrap");
-      wrap.scrollTop = wst; wrap.scrollLeft = wsl;
+        boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       var tog = document.getElementById("tog_" + side);
       if (tog) tog.onclick = function () { boardKanban = !boardKanban; lsSet("sv-board-kanban", boardKanban ? "1" : "0"); render(side); };
@@ -1123,52 +1110,28 @@ if (typeof window !== "undefined" && window.marked) (function () {
         : '<span class="cd-phase">' + body + "</span>";
     }).join("");
     function row(k, v) { return v && v !== "—" ? '<div class="cd-row"><span class="cd-k">' + k + '</span><span class="cd-v">' + esc(v) + "</span></div>" : ""; }
-    // 007: collapsible sub-section (tasks/trace) — head row toggles, body persists via cdSecOpen.
-    // actionsHtml (buttons/links) renders last so the head reads data → source → actions.
-    function sec(key, label, srcTag, headHtml, bodyHtml, actionsHtml) {
-      var open = cdSecOpen[key] === true;   // default collapsed
-      return '<div class="cd-sec' + (open ? " open" : "") + '">' +
-        '<div class="cd-row cd-sechead" data-cd-sec="' + key + '"><span class="cd-scaret"></span>' +
-        '<span class="cd-k">' + label + '</span><span class="cd-v">' + headHtml +
-        ' <span class="cd-src">· ' + srcTag + "</span>" +
-        (actionsHtml ? ' <span class="cd-src">·</span>' + actionsHtml : "") + "</span></div>" +
-        '<div class="cd-secbody">' + bodyHtml + "</div></div>";
-    }
-    function tasksHtml() {                          // 007 R1–R3: task table + summary, from progress.md's live snapshot
-                                                    // (trace below reads plan.md — sources deliberately not reconciled)
+    // 007: one-line summaries only — task/trace detail lives on the trace page (详情).
+    function tasksRow() {
       var counts = SV.taskCounts(c.tasks);
-      if (!counts.total) return '<div class="cd-row"><span class="cd-k">Tasks</span>' +
-        '<span class="cd-v"><span class="cd-src">无 task 表 · progress</span></span></div>';
-      var body = "<table class='cd-tasks'>" + c.tasks.map(function (t) {
-        return "<tr><td class='tid'>" + esc(t.id) + "</td><td><span class='tstat st-" +
-          SV.taskTone(t) + "'>" + esc(t.status || "—") + "</span></td><td class='tnotes'>" +
-          esc(t.notes || "") + "</td></tr>";
-      }).join("") + "</table>";
-      return sec("tasks", "Tasks", "progress", counts.done + "/" + counts.total + " done", body);
+      return '<div class="cd-row"><span class="cd-k">Tasks</span><span class="cd-v">' +
+        (counts.total ? counts.done + "/" + counts.total + " done" : '<span class="cd-src">无 task 表</span>') +
+        ' <span class="cd-src">· progress</span></span></div>';
     }
-    function traceHtml() {                          // 007 R4/R7: per-R five-cell summary, derived from plan.md
-      var tkey = c.project + "/" + c.nnn, d = traceCache[tkey];
-      var retrace = ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>';
-      if (!d) { ensureTrace(tkey); return sec("trace", "Trace", "plan 推导", '<span class="cd-src">计算中…</span>', ""); }
-      if (d.error) return sec("trace", "Trace", "plan 推导",
-        '<span class="cd-src">' + esc(d.error) + "</span>", "", retrace);
-      var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
-      var head = d.rows.length + " R · " + esc(asof || "—") +
-        (d.repo_anchor ? "" : ' <span class="cd-src">(commit 未检查)</span>');
-      var actions = retrace + ' <button class="iconbtn" data-nav="trace" data-card="' + esc(tkey) + '">矩阵</button>';
-      var body = '<div class="cd-trace">' + d.rows.map(function (r) {
-        var cells = SV.traceCells(r).map(function (cell) {
-          var tip = cell.k === "commit" && cell.state === "na" ? ' title="未检查"' :
-                    cell.state === "q" ? ' title="仅 loose 命中"' : "";
-          return '<span class="trcell ' + cell.state + '"' + tip + ">" + TR_MARK[cell.state] + " " + cell.k + "</span>";
-        }).join("");
-        // the one gap flag with no cell equivalent (design/task/test flags read off their ✗ cells)
-        if ((r.flags || []).indexOf("not-in-需求条目") !== -1)
-          cells += '<span class="trcell miss">⚠ not-in-需求条目</span>';
-        return '<div class="cd-trrow"><span class="trid" title="' + esc(r.text) + '">' + esc(r.rid) + "</span>" + cells +
-          '<span class="trtext" title="' + esc(r.text) + '">' + esc(r.text) + "</span></div>";
-      }).join("") + "</div>";
-      return sec("trace", "Trace", "plan 推导", head, body, actions);
+    function traceRow() {
+      var tkey = c.project + "/" + c.nnn, d = traceCache[tkey], inner;
+      if (!d) { ensureTrace(tkey); inner = '<span class="cd-src">计算中…</span>'; }
+      else if (d.error) inner = '<span class="cd-src">' + esc(d.error) + "</span>";
+      else {
+        var gaps = SV.traceGaps(d.rows);
+        var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
+        inner = d.rows.length + " R · " +
+          (gaps ? '<span class="trcell miss">缺口 ' + gaps + "</span>" : '<span class="trcell ok">全齐</span>') +
+          (d.repo_anchor ? "" : ' · <span class="cd-src">commit 未检查</span>') +
+          ' <span class="cd-src">· ' + esc(asof) + "</span>";
+      }
+      return '<div class="cd-row"><span class="cd-k">Trace</span><span class="cd-v">' + inner +
+        ' <span class="cd-src">·</span> <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>' +
+        ' <button class="iconbtn" data-nav="trace" data-card="' + esc(tkey) + '">详情</button></span></div>';
     }
     return '<div class="card-detail' + (detailOpen ? " open" : "") + '">' +
       '<div class="cd-bar" data-cd-toggle><span class="cd-caret"></span>' +
@@ -1184,7 +1147,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
           (window.GITWEB_URL ? '<a class="cd-phase diff" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
             "?p=" + encodeURIComponent(c.project) + ";a=summary" + (c.branch ? ";h=refs/heads/" + encodeURIComponent(c.branch) : "") + '">code ↗</a>' : "") +
         "</span></div>" +
-        tasksHtml() + traceHtml() +
+        tasksRow() + traceRow() +
       "</div></div>";
   }
   // R64: reflect selection + drawer in place (no board re-fetch).
@@ -1211,13 +1174,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
         cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
   }
 
-  // --- trace matrix view (007 R5, V1 shape): one row per R, five-dimension columns,
-  //     click a row to expand its detail (design/verify/tasks/commits/test) inline. ---
+  // --- trace/detail view (007 R5, V1 shape): the card's task table + per-R matrix.
+  //     One matrix row per R, five-dimension columns; click a row to expand its detail. ---
+  function fillBoardMap(board) {
+    boardCardMap = {};
+    Object.keys(board).forEach(function (p) {
+      board[p].forEach(function (c) { boardCardMap[c.project + "/" + c.nnn] = c; });
+    });
+  }
   function renderTraceView(side, v) {
     var pane = PANES[side]; pane._doc = null;
     var d = traceCache[v.card];
     if (!d) { ensureTrace(v.card);
       pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>'; return; }
+    if (!boardCardMap[v.card]) {   // deep entry without a rendered board: fetch once for the task table
+      api("/api/board").then(function (r) { return r.json(); })
+        .then(function (b) { fillBoardMap(b); render(side); })
+        .catch(function () {});
+    }
     var base = d.card + "/";
     function doc(file, label) { return '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' +
       esc(base + file) + '">' + esc(label) + "</a>"; }
@@ -1269,7 +1243,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
       esc(d.orphans.map(function (t) { return "T" + t; }).join(", ")) + "</p>" : "";
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
-    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + table + orph;
+    var card = boardCardMap[v.card], tasksSec = "";
+    if (card) {   // the drawer's former task table lives here now (source: progress.md, vs trace = plan.md)
+      var counts = SV.taskCounts(card.tasks);
+      tasksSec = '<h2 class="sec">Tasks · ' + (counts.total ? counts.done + "/" + counts.total + " done" : "无 task 表") +
+        ' <span class="tr-src">progress.md</span></h2>' +
+        (counts.total ? "<table class='cd-tasks'>" + card.tasks.map(function (tk) {
+          return "<tr><td class='tid'>" + esc(tk.id) + "</td><td><span class='tstat st-" +
+            SV.taskTone(tk) + "'>" + esc(tk.status || "—") + "</span></td><td class='tnotes' title='" + esc(tk.notes || "") + "'>" +
+            esc(tk.notes || "") + "</td></tr>";
+        }).join("") + "</table>" : "");
+    }
+    var traceHead = '<h2 class="sec">Trace <span class="tr-src">plan.md 推导</span></h2>';
+    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + tasksSec + traceHead + table + orph;
     var secs = [].slice.call(pane.querySelectorAll("tr[data-trx]"));
     tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
     afterRender(side, "tr[data-trx]");
@@ -1622,13 +1608,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("tr[data-trx]"))) {                           // 007 V1: matrix row → toggle detail
       var dr = t.nextElementSibling;
       if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden); }
-      return; }
-    if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
-      // after [data-nav]: the section head hosts nav links (矩阵) that must win over the toggle
-      var sk = t.dataset.cdSec;
-      cdSecOpen[sk] = !(cdSecOpen[sk] === true);
-      lsSet("sv-cd-sec", JSON.stringify(cdSecOpen));
-      var se = t.closest(".cd-sec"); if (se) se.classList.toggle("open", cdSecOpen[sk] === true);
       return; }
     if ((t = e.target.closest(".card")) && t.dataset.key) {                 // R64: select a card → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
