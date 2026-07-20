@@ -1242,21 +1242,41 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
     var card = boardCardMap[v.card], tasksSec = "";
     if (card) {   // the drawer's former task table lives here now (source: progress.md, vs trace = plan.md)
+      var planTasks = {};   // tid → plan-side info, so a task row can expand with its commits
+      d.rows.forEach(function (r) { r.tasks.forEach(function (tk) { planTasks["T" + tk.tid] = tk; }); });
       var counts = SV.taskCounts(card.tasks);
       tasksSec = '<h2 class="sec">Tasks · ' + (counts.total ? counts.done + "/" + counts.total + " done" : "无 task 表") +
         ' <span class="tr-src">progress.md</span></h2>' +
         (counts.total ? '<table class="trm"><tr><th>task</th><th>status</th><th>notes</th></tr>' +
           card.tasks.map(function (tk) {
-            return '<tr><td class="rid">' + esc(tk.id) + '</td><td><span class="tstat st-' +
-              SV.taskTone(tk) + '">' + esc(tk.status || "—") + '</span></td><td class="tnotes" title="' + esc(tk.notes || "") + '">' +
-              esc(tk.notes || "") + "</td></tr>";
+            var open = expanded[tk.id];
+            var lines = '<div class="tr-line"><span class="tr-k">notes</span><span>' + esc(tk.notes || "—") + "</span></div>";
+            var pt = planTasks[tk.id];
+            if (pt) {
+              lines += '<div class="tr-line"><span class="tr-k">plan</span>' +
+                doc("plan.md", "T" + pt.tid + " [" + pt.state + "] " + pt.title) + "</div>";
+              if (pt.commit_state === "unchecked")
+                lines += '<div class="tr-line"><span class="tr-k"></span><span class="trcell na">(未检查)</span></div>';
+              else if (!pt.commits.length)
+                lines += '<div class="tr-line"><span class="tr-k"></span><span class="trcell miss">(无 commit)</span></div>';
+              else pt.commits.forEach(function (cm) {
+                lines += '<div class="tr-line"><span class="tr-k">' + (pt.commit_state === "strict" ? "commit" : "commit?") +
+                  '</span><span class="tr-sha">' + esc(cm) + "</span></div>";
+              });
+            } else {
+              lines += '<div class="tr-line"><span class="tr-k">plan</span><span class="trcell na">plan.md 无对应 T-id</span></div>';
+            }
+            return '<tr data-trx="' + esc(tk.id) + '"' + (open ? ' class="x"' : "") + '><td class="rid">' + esc(tk.id) +
+              '</td><td><span class="tstat st-' + SV.taskTone(tk) + '">' + esc(tk.status || "—") +
+              '</span></td><td class="tnotes" title="' + esc(tk.notes || "") + '">' + esc(tk.notes || "") + "</td></tr>" +
+              '<tr class="trm-drow"' + (open ? "" : " hidden") + '><td></td><td colspan="2"><div class="tr-block">' + lines + "</div></td></tr>";
           }).join("") + "</table>" : "");
     }
     var traceHead = '<h2 class="sec">Trace <span class="tr-src">plan.md 推导</span></h2>';
     pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + tasksSec + traceHead + table + orph;
-    var secs = [].slice.call(pane.querySelectorAll("tr[data-trx]"));
+    var secs = [].slice.call(pane.querySelectorAll('tr[data-trx^="R"]'));   // TOC lists R rows; task rows expand only
     tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
-    afterRender(side, "tr[data-trx]");
+    afterRender(side, 'tr[data-trx^="R"]');
   }
 
   // --- recent view (R32): commit list, TOC = subjects ------------------------
