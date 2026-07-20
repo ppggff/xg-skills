@@ -297,10 +297,20 @@
   .trcell.q { color: var(--s-paused); }
   .trcell.na { color: var(--muted); }
   .cd-retrace { font-size: 10.5px; }
-  /* 007 R5: trace matrix view */
+  /* 007 R5: trace matrix view — V1 shape: compact table, click a row to expand detail */
   .tr-asof { margin: 10px 0; font-family: var(--chrome); font-size: 11.5px; color: var(--muted); }
-  .tr-cells { margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
-  .tr-block { margin: 0 0 16px; font-size: 12.5px; display: grid; gap: 3px; }
+  .trm { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 4px 0 16px; }
+  .trm th, .trm td { border: none; border-bottom: 1px solid var(--line); background: none;
+    padding: 5px 14px 5px 0; text-align: left; vertical-align: baseline; }
+  .trm th { font: 500 10.5px var(--chrome); text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); border-bottom-color: var(--line2); }
+  .trm tr[data-trx] { cursor: pointer; }
+  .trm tr[data-trx]:hover td { background: var(--side); }
+  .trm .rid { font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap; }
+  .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
+  .trm .trm-drow td { background: var(--side); padding: 8px 14px 10px 0; }
+  .tr-block { font-size: 12.5px; display: grid; gap: 3px; }
   .tr-line { display: flex; gap: 10px; align-items: baseline; }
   .tr-k { flex: none; width: 4.5em; font-family: var(--chrome); font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
   .tr-sha { font-family: var(--chrome); font-size: 11px; color: var(--body); }
@@ -1201,7 +1211,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
         cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
   }
 
-  // --- trace matrix view (007 R5): full per-R matrix from the same cached JSON --
+  // --- trace matrix view (007 R5, V1 shape): one row per R, five-dimension columns,
+  //     click a row to expand its detail (design/verify/tasks/commits/test) inline. ---
   function renderTraceView(side, v) {
     var pane = PANES[side]; pane._doc = null;
     var d = traceCache[v.card];
@@ -1210,15 +1221,25 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var base = d.card + "/";
     function doc(file, label) { return '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' +
       esc(base + file) + '">' + esc(label) + "</a>"; }
+    function mark(ok) { return '<span class="trcell ' + (ok ? "ok" : "miss") + '">' + (ok ? "✓" : "✗") + "</span>"; }
     var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
     var head = '<div class="tr-asof">取数 ' + esc(asof || "—") +
       (d.repo_anchor ? "" : ' · <span class="trcell na">commit 未检查</span>') +
       ' <button class="iconbtn" data-cd-retrace="' + esc(v.card) + '">重算</button></div>';
-    var blocks = d.rows.map(function (r) {
-      var flags = r.flags.map(function (f) { return ' <span class="badge state st-blocked">⚠ ' + esc(f) + "</span>"; }).join("");
-      var cells = SV.traceCells(r).map(function (cell) {
-        return '<span class="trcell ' + cell.state + '">' + TR_MARK[cell.state] + " " + cell.k + "</span>";
-      }).join(" ");
+    var expanded = {};   // survive 重算 re-render within this pane
+    pane.querySelectorAll("tr[data-trx].x").forEach(function (tr) { expanded[tr.dataset.trx] = 1; });
+    var rows = d.rows.map(function (r) {
+      var p = r.present, n = 0;
+      r.tasks.forEach(function (tk) { n += tk.commits.length; });
+      var commit = p.commit === "unchecked" ? '<span class="trcell na">—</span>' :
+        p.commit === "none" ? '<span class="trcell miss">✗</span>' :
+        '<span class="trcell ' + (p.commit === "strict" ? "ok" : "q") + '">' + n + (p.commit === "loose" ? "?" : "") + "</span>";
+      var taskCell = r.tasks.length
+        ? '<span class="trcell ok">' + esc(r.tasks.map(function (tk) { return "T" + tk.tid; }).join(" ")) + "</span>"
+        : '<span class="trcell miss">✗</span>';
+      var flags = [];
+      if (r.flags.indexOf("not-in-需求条目") !== -1) flags.push("⚠ not-in-需求条目");
+      if (p.commit === "unchecked") flags.push('<span class="trcell na">未检查</span>');
       var lines = "";
       if (r.design) lines += '<div class="tr-line"><span class="tr-k">design</span>' + doc("design.md", r.design) + "</div>";
       if (r.verify) lines += '<div class="tr-line"><span class="tr-k">verify</span><span>' + esc(r.verify) + "</span></div>";
@@ -1235,17 +1256,23 @@ if (typeof window !== "undefined" && window.marked) (function () {
         });
       });
       if (r.test) lines += '<div class="tr-line"><span class="tr-k">test</span>' + doc("test.md", r.test) + "</div>";
-      return '<h2 class="sec">' + esc(r.rid) + " · " + esc(r.text) + flags + "</h2>" +
-        '<div class="tr-cells">' + cells + '</div><div class="tr-block">' + lines + "</div>";
+      var open = expanded[r.rid];
+      return '<tr data-trx="' + esc(r.rid) + '"' + (open ? ' class="x"' : "") + '><td class="rid">' + esc(r.rid) + "</td>" +
+        '<td class="name" title="' + esc(r.text) + '">' + esc(r.text) + "</td>" +
+        "<td>" + mark(p.design) + "</td><td>" + mark(p.verify) + "</td>" +
+        "<td>" + taskCell + "</td><td>" + mark(p.test) + "</td><td>" + commit + "</td>" +
+        '<td class="tflag">' + flags.join(" ") + "</td></tr>" +
+        '<tr class="trm-drow"' + (open ? "" : " hidden") + '><td></td><td colspan="7"><div class="tr-block">' + lines + "</div></td></tr>";
     }).join("");
+    var table = '<table class="trm"><tr><th>R</th><th>需求</th><th>design</th><th>verify</th><th>task</th><th>test</th><th>commit</th><th></th></tr>' + rows + "</table>";
+    if (!d.rows.length && !d.error) table = emptyHtml("此卡暂无 trace 数据", "requirement/design/plan 各表齐备后可推导");   // R8 (007 review #7)
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
       esc(d.orphans.map(function (t) { return "T" + t; }).join(", ")) + "</p>" : "";
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
-    if (!d.rows.length && !d.error) blocks = emptyHtml("此卡暂无 trace 数据", "requirement/design/plan 各表齐备后可推导");   // R8 (007 review #7)
-    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + blocks + orph;
-    var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
+    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + table + orph;
+    var secs = [].slice.call(pane.querySelectorAll("tr[data-trx]"));
     tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
-    afterRender(side, "h2.sec");
+    afterRender(side, "tr[data-trx]");
   }
 
   // --- recent view (R32): commit list, TOC = subjects ------------------------
@@ -1591,6 +1618,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
         revealInTree(t.dataset.tree, t.dataset.rel); }   // 006 T4: user-opened → expand ancestors
       else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
       else if (kind === "trace") navigate(side, { kind: "trace", card: t.dataset.card });   // 007 R5
+      return; }
+    if ((t = e.target.closest("tr[data-trx]"))) {                           // 007 V1: matrix row → toggle detail
+      var dr = t.nextElementSibling;
+      if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden); }
       return; }
     if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
       // after [data-nav]: the section head hosts nav links (矩阵) that must win over the toggle
