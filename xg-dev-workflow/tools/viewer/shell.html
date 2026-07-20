@@ -1220,6 +1220,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
       esc(d.orphans.map(function (t) { return "T" + t; }).join(", ")) + "</p>" : "";
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
+    if (!d.rows.length && !d.error) blocks = emptyHtml("此卡暂无 trace 数据", "requirement/design/plan 各表齐备后可推导");   // R8 (007 review #7)
     pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + blocks + orph;
     var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
     tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
