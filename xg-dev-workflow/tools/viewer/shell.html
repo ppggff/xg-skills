@@ -274,6 +274,15 @@
   .cd-tasks .tid { font-family: var(--chrome); color: var(--muted); }
   .cd-tasks .badge { max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
   .cd-tasks .tnotes { color: var(--body); }
+  .cd-trace { margin: 2px 0 6px 1.6em; font-size: 12px; display: grid; gap: 2px; }
+  .cd-trrow { display: flex; gap: 12px; align-items: baseline; }
+  .cd-trrow .trid { font-family: var(--chrome); color: var(--muted); min-width: 2.6em; }
+  .trcell { font-family: var(--chrome); font-size: 11px; white-space: nowrap; }
+  .trcell.ok { color: var(--s-done); }
+  .trcell.miss { color: var(--s-blocked); }
+  .trcell.q { color: var(--s-paused); }
+  .trcell.na { color: var(--muted); }
+  .cd-retrace { font-size: 10.5px; }
   .cd-phase { font-family: var(--chrome); font-size: 11.5px; color: var(--body); text-decoration: none; }
   a.cd-phase:hover { color: var(--accent); text-decoration: underline; }
   .cd-phase.diff { color: var(--accent); }
@@ -710,12 +719,26 @@ var SV = (function () {
     if (/doing|active|wip|进行/.test(s)) return "active";
     return "backlog";
   }
+  // 007 R4/R7: per-R presence → five display cells. commit is four-valued; "unchecked"
+  // (no repo anchor) maps to "na", never to a gap.
+  var COMMIT_CELL = { strict: "ok", loose: "q", none: "miss", unchecked: "na" };
+  function traceCells(row) {
+    var p = (row && row.present) || {};
+    return [
+      { k: "design", state: p.design ? "ok" : "miss" },
+      { k: "verify", state: p.verify ? "ok" : "miss" },
+      { k: "task", state: p.task ? "ok" : "miss" },
+      { k: "test", state: p.test ? "ok" : "miss" },
+      { k: "commit", state: COMMIT_CELL[p.commit] || "na" },
+    ];
+  }
 
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
-           mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone };
+           mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
+           traceCells: traceCells };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -947,6 +970,29 @@ if (typeof window !== "undefined" && window.marked) (function () {
   try { boardSelected = localStorage.getItem("sv-detail-card") || null; detailOpen = localStorage.getItem("sv-detail-open") !== "0"; } catch (e) {}
   // 007: drawer sub-section open state (tasks/trace); missing key falls back to open.
   var cdSecOpen = (function () { try { return JSON.parse(lsGet("sv-cd-sec")) || {}; } catch (e) { return {}; } })();
+  // 007 D3: per-card trace snapshots. Lifecycle is independent of boardCardMap (which is
+  // rebuilt from a fresh fetch on every renderBoard) — a poll rebuild re-renders from this
+  // cache without refetching; only selection change or 重算 fetches.
+  var traceCache = {}, traceInflight = {};
+  function ensureTrace(key) {
+    if (traceCache[key] || traceInflight[key]) return;
+    traceInflight[key] = 1;
+    api("/api/trace?card=" + encodeURIComponent(key)).then(function (r) { return r.json(); })
+      .catch(function (e) { return { card: key, repo: "", repo_anchor: false, generated_at: "",
+                                     rows: [], orphans: [], error: String(e.message || e) }; })
+      .then(function (d) {
+        traceCache[key] = d; delete traceInflight[key];
+        // late responses for a no-longer-selected card are cached but never painted
+        if (boardSelected === key) rerenderTrace(key);
+      });
+  }
+  function rerenderTrace(key) {   // completion/重算 re-queries the DOM by current state (no stale refs)
+    ["left", "right"].forEach(function (s) {
+      var v = PANES[s]._hist && PANES[s]._hist[PANES[s]._hi];
+      if (v && v.kind === "board") updateDetail(s);   // never inject a drawer into a non-board pane
+      if (v && v.kind === "trace" && v.card === key) render(s);
+    });
+  }
   var STATE_ORDER = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
   // R62: each sub-phase step ("label:state") links to its fixed doc; 评审 (notes/review-*.md is
   // date-stamped) and not-yet-started phases (state "—") stay plain, non-linked.
@@ -1056,6 +1102,25 @@ if (typeof window !== "undefined" && window.marked) (function () {
       }).join("") + "</table>";
       return sec("tasks", "Tasks", "progress", counts.done + "/" + counts.total + " done", body);
     }
+    function traceHtml() {                          // 007 R4/R7: per-R five-cell summary (source: plan 推导, D7)
+      var tkey = c.project + "/" + c.nnn, d = traceCache[tkey];
+      if (!d) { ensureTrace(tkey); return sec("trace", "Trace", "plan 推导", '<span class="cd-src">计算中…</span>', ""); }
+      if (d.error) return sec("trace", "Trace", "plan 推导", '<span class="cd-src">' + esc(d.error) + "</span>", "");
+      var asof = (d.generated_at || "").replace("T", " ").slice(0, 16);
+      var head = d.rows.length + " R · " + esc(asof || "—") +
+        (d.repo_anchor ? "" : ' <span class="cd-src">(commit 未检查)</span>') +
+        ' <button class="iconbtn cd-retrace" data-cd-retrace="' + esc(tkey) + '">重算</button>';
+      var MARK = { ok: "✓", miss: "✗", q: "?", na: "—" };
+      var body = '<div class="cd-trace">' + d.rows.map(function (r) {
+        var cells = SV.traceCells(r).map(function (cell) {
+          var tip = cell.k === "commit" && cell.state === "na" ? ' title="未检查"' :
+                    cell.state === "q" ? ' title="仅 loose 命中"' : "";
+          return '<span class="trcell ' + cell.state + '"' + tip + ">" + MARK[cell.state] + " " + cell.k + "</span>";
+        }).join("");
+        return '<div class="cd-trrow"><span class="trid" title="' + esc(r.text) + '">' + esc(r.rid) + "</span>" + cells + "</div>";
+      }).join("") + "</div>";
+      return sec("trace", "Trace", "plan 推导", head, body);
+    }
     return '<div class="card-detail' + (detailOpen ? " open" : "") + '">' +
       '<div class="cd-bar" data-cd-toggle><span class="cd-caret"></span>' +
         '<span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
@@ -1063,7 +1128,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
       '<div class="cd-body">' + row("Now", c.now) + row("Next", c.effective_next) + row("Blockers", c.blockers) + row("Deps", c.deps) + row("Branch", c.branch) +
         '<div class="cd-row"><span class="cd-k">阶段</span><span class="cd-phases">' + phases + "</span></div>" +
-        tasksHtml() +
+        tasksHtml() + traceHtml() +
         '<div class="cd-row"><span class="cd-k">文档</span><span class="cd-phases">' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +
@@ -1430,6 +1495,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
       detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
       var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
+    if ((t = e.target.closest("[data-cd-retrace]"))) { e.preventDefault();  // 007 D3: manual recompute (click-only)
+      var rk = t.dataset.cdRetrace;
+      delete traceCache[rk]; ensureTrace(rk); rerenderTrace(rk);
+      return; }
     if ((t = e.target.closest("[data-cd-sec]"))) {                          // 007: drawer sub-section toggle
       var sk = t.dataset.cdSec;
       cdSecOpen[sk] = !(cdSecOpen[sk] !== false);

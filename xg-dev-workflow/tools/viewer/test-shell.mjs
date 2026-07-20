@@ -327,4 +327,18 @@ t("taskTone: done wins; blocked/doing recognized; unknown → backlog", () => {
   assert.equal(SV.taskTone({ done: false }), "backlog");
 });
 
+// --- traceCells (007: per-R five-cell presence display) ------------------------
+t("traceCells: booleans map ok/miss; commit four values map ok/q/miss/na", () => {
+  const cells = SV.traceCells({ present: { design: true, verify: false, task: true, test: false, commit: "strict" } });
+  assert.deepEqual(cells.map(c => c.k), ["design", "verify", "task", "test", "commit"]);
+  assert.deepEqual(cells.map(c => c.state), ["ok", "miss", "ok", "miss", "ok"]);
+  assert.equal(SV.traceCells({ present: { commit: "loose" } })[4].state, "q");
+  assert.equal(SV.traceCells({ present: { commit: "none" } })[4].state, "miss");
+  assert.equal(SV.traceCells({ present: { commit: "unchecked" } })[4].state, "na");
+});
+t("traceCells: missing present degrades to all-miss + na commit", () => {
+  const cells = SV.traceCells({});
+  assert.deepEqual(cells.map(c => c.state), ["miss", "miss", "miss", "miss", "na"]);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
