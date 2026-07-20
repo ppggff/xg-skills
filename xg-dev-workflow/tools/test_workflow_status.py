@@ -127,5 +127,71 @@ class TraceData(unittest.TestCase):
         self.assertEqual(r1["tasks"][0]["commit_state"], "unchecked")
 
 
+class ParseTasks(unittest.TestCase):
+    def _parse(self, body):
+        d = tempfile.mkdtemp()
+        p = os.path.join(d, "progress.md")
+        open(p, "w").write(body)
+        return ws.parse_tasks(p)
+
+    def test_canonical_template_shape(self):
+        rows = self._parse("## Task status\n\n| Task | Status | Notes |\n|---|---|---|\n"
+                           "| T1 | done | first |\n| T2 | doing | second |\n")
+        self.assertEqual([r["id"] for r in rows], ["T1", "T2"])
+        self.assertEqual([r["done"] for r in rows], [True, False])
+        self.assertEqual(rows[0]["notes"], "first")
+
+    def test_postgresql_variant_part_column_checkbox_status(self):
+        rows = self._parse("## Task status\n\n| Task | Part | 状态 | 备注 |\n|---|---|---|---|\n"
+                           "| T0 环境+脚手架 | builder | [x] | note |\n"
+                           "| T1 exec | runtime | [ ] | wip |\n")
+        self.assertEqual([r["id"] for r in rows], ["T0", "T1"])
+        self.assertEqual([r["done"] for r in rows], [True, False])
+
+    def test_hashdata_variant_bare_numeric_id(self):
+        rows = self._parse("## Task status\n\n| Task | Part | Status | Notes |\n|---|---|---|---|\n"
+                           "| 1 | Catalog | done | ok |\n| 2 | Clog | PASS(manual) | ok |\n")
+        self.assertEqual([r["id"] for r in rows], ["T1", "T2"])
+        self.assertTrue(all(r["done"] for r in rows))
+
+    def test_hatchdeck_variant_phase_rows_degrade_empty(self):
+        rows = self._parse("## Task status\n\n| Task | Status |\n|---|---|\n"
+                           "| 需求 | confirmed |\n| 设计 | frozen |\n")
+        self.assertEqual(rows, [])
+
+    def test_missing_section_or_file(self):
+        self.assertEqual(self._parse("## State at a glance\n- x\n"), [])
+        self.assertEqual(ws.parse_tasks("/nonexistent/progress.md"), [])
+
+    def test_date_like_cell_is_not_a_task_id(self):
+        rows = self._parse("## Task status\n\n| Task | Status |\n|---|---|\n"
+                           "| 2026-07-20 | done |\n")
+        self.assertEqual(rows, [])
+
+
+class BoardFields(unittest.TestCase):
+    def test_tasks_field_pinned_and_blockers_normalized(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "001-x")
+        os.makedirs(card)
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 001 | 需求 | todo | — |\n")
+        open(os.path.join(card, "progress.md"), "w").write(
+            "---\nid: 001\n---\n## State at a glance\n\n- **Blockers:** 无。\n\n"
+            "## Task status\n\n| Task | Status | Notes |\n|---|---|---|\n| T1 | done | ok |\n")
+        cards = list(ws.iter_cards(root, ["proj"]))
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]["blockers"], "")
+        self.assertEqual(cards[0]["tasks"][0], {"id": "T1", "status": "done",
+                                                "done": True, "notes": "ok"})
+
+    def test_no_progress_md_degrades_to_empty_list(self):
+        root = tempfile.mkdtemp()
+        os.makedirs(os.path.join(root, "proj", "002-y"))
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 002 | 需求 | todo | — |\n")
+        cards = list(ws.iter_cards(root, ["proj"]))
+        self.assertEqual(cards[0]["tasks"], [])
+        self.assertEqual(cards[0]["blockers"], "")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

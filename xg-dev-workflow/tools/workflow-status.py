@@ -74,6 +74,60 @@ def glance(progress_path):
     return out
 
 
+TASK_ROW_ID = re.compile(r"^(?:T|Task ?)?(\d{1,3})(?![\d-])", re.I)
+DONE_PREFIXES = ("done", "[x]", "✅", "pass")
+
+
+def _status_done(status):
+    """007 R3 done-mapping: canonical + observed variants; unjudgeable → not done."""
+    return status.strip().lower().startswith(DONE_PREFIXES)
+
+
+def parse_tasks(progress_path):
+    """Tolerant Task-status table parser (007 R9): columns keyed by header names, task
+    rows identified by the id grammar; unrecognized shapes (e.g. phase rows under the
+    heading) degrade to [] — never wrong-semantics rows.
+    """
+    sect = _section(_read(progress_path), r"Task status")
+    lines = [ln for ln in sect.splitlines() if ln.lstrip().startswith("|")]
+    if len(lines) < 2:
+        return []
+    header = [c.strip().lower() for c in lines[0].strip().strip("|").split("|")]
+
+    def col(*names):
+        for n in names:
+            for i, h in enumerate(header):
+                if n in h:
+                    return i
+        return None
+
+    id_i = col("task", "id", "编号") or 0
+    st_i = col("status", "状态", "state")
+    no_i = col("notes", "备注", "说明")
+    tasks = []
+    for line in lines[1:]:
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) <= id_i or set(cells[id_i]) <= set("-: "):
+            continue
+        first = re.sub(r"[*`]", "", cells[id_i]).strip()
+        m = TASK_ROW_ID.match(first)
+        if not m:
+            continue
+        rest = first[m.end():].strip()
+        status = cells[st_i] if st_i is not None and st_i < len(cells) else ""
+        notes = cells[no_i] if no_i is not None and no_i < len(cells) else rest
+        tasks.append({"id": "T" + m.group(1), "status": status,
+                      "done": _status_done(status), "notes": notes})
+    return tasks
+
+
+def norm_blockers(value):
+    """007 R1: placeholder blockers (无/None/—/…) normalize to "" at the data source,
+    so renderers only test non-emptiness (no second placeholder vocabulary)."""
+    s = value.strip().rstrip("。.")
+    return "" if not s or s in PLACEHOLDERS or s.lower() == "none" else value
+
+
 def board(project_dir):
     rows = {}
     try:
@@ -193,7 +247,8 @@ def iter_cards(root, want=None):
                 "phase": row.get("phase", "?"), "state": state, "deps": row.get("deps", "—"),
                 "steps": steps,
                 "now": g.get("now", ""), "next_progress": g.get("next", ""),
-                "blockers": g.get("blockers", ""),
+                "blockers": norm_blockers(g.get("blockers", "")),
+                "tasks": parse_tasks(os.path.join(c, "progress.md")),
                 "effective_next": effective_next(state, g, nxt),
                 "state_noncanonical": state != "?" and state not in CANON_STATES,
                 # 003/R6: optional card→branch, deep-linked to that branch in the gitweb companion
