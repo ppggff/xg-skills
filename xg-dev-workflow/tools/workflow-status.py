@@ -449,8 +449,8 @@ def resolve_card(root, arg):
 
 
 def trace_data(project, card_dir):
-    """Single-source trace derivation (007 design, ADR-0001): per-R rows consumed by
-    the CLI text renderer, `--trace --json`, and the viewer's /api/trace.
+    """Single-source trace derivation (007): per-R rows consumed by the CLI text
+    renderer, `--trace --json`, and the viewer's /api/trace.
 
     Per-task / per-R `commit_state` is four-valued: strict / loose / none (checked,
     no hit) / unchecked (no repo anchor — never counted as a gap). Commit lists are
