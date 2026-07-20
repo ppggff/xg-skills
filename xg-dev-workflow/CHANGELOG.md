@@ -4,6 +4,32 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-20 (board drawer progress + trace status — card 007)
+
+Source: roadmap Card B. The board drawer becomes a per-card progress/trace surface, backed by
+a new trace data pipeline; one CLI defect fixed on the way:
+
+- **Board JSON gains `tasks`** (`workflow-status.py parse_tasks()`): tolerant Task-status-table
+  parsing — columns keyed by header names, rows by id grammar (`T`-prefixed or bare numeric,
+  date-safe); shapes that aren't one-row-per-task degrade to `[]` rather than rendering
+  wrong-semantics rows. `blockers` placeholder values normalize to `""` at the source.
+- **`trace_data()` single-source builder** extracted from `render_trace()` (CLI text output
+  byte-equivalent; `--trace --json` now works). Per-task/per-R `commit_state` is four-valued
+  strict/loose/none/**unchecked** (no repo anchor — excluded from presence judgment); the old
+  no-repo `("strict", [])` mislabel is gone.
+- **Strict commit-card matching excludes the abbreviated hash** (`card_in_message()`): hex
+  digits could contain the card number (a400654 vs 006) — cross-card commits no longer pollute
+  strict trace rows.
+- **New `/api/trace` endpoint** (viewer.py): per-card on-demand, always 200 + pinned-schema
+  JSON with an `error` field, card located without the diff gate-commit git call.
+- **Drawer sections** (shell.html): Blockers row (non-empty only), task table + x/y-done
+  summary (source-labeled `progress`), per-R five-cell trace summary (design/verify/task/test/
+  commit + gap flag) with as-of badge and click-only 重算; per-card client cache survives poll
+  rebuilds without refetching. **Matrix view** `kind:"trace"` renders the same JSON with
+  data-nav doc links; not in the poll's auto-refresh whitelist (snapshot semantics).
+- New tests: `tools/test_workflow_status.py` (16, first coverage of workflow-status internals);
+  test_viewer +3; test-shell.mjs +4.
+
 ## 2026-07-19 (viewer interaction fixes — band unit, hotkey guards, tree-state authority)
 
 Source: daily-use defect reports (card 006). Three behavior fixes in the status viewer
