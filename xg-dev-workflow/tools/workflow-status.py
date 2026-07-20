@@ -393,7 +393,15 @@ def resolve_card(root, arg):
     raise SystemExit(f"trace: no card matching '{card}' under {pdir}")
 
 
-def render_trace(project, card_dir):
+def trace_data(project, card_dir):
+    """Single-source trace derivation (007 design, ADR-0001): per-R rows consumed by
+    the CLI text renderer, `--trace --json`, and the viewer's /api/trace.
+
+    Per-task / per-R `commit_state` is four-valued: strict / loose / none (checked,
+    no hit) / unchecked (no repo anchor — never counted as a gap). Commit lists are
+    complete; display truncation belongs to renderers.
+    """
+    import datetime
     reqs = trace_requirement(card_dir)
     home, verify = trace_design(card_dir)
     tasks = trace_plan(card_dir)
@@ -405,8 +413,16 @@ def render_trace(project, card_dir):
         if not os.path.isdir(os.path.join(repo, ".git")):
             repo = None
     nnn = os.path.basename(card_dir)[:3]
-    commits = {tid: (task_commits(repo, tid, nnn) if repo else ([], "strict"))
-               for tid in tasks}
+
+    task_rows = {}
+    for tid, t in tasks.items():
+        if repo:
+            lines, tier = task_commits(repo, tid, nnn)
+            commit_state = tier if lines else "none"
+        else:
+            lines, commit_state = [], "unchecked"
+        task_rows[tid] = {"tid": tid, "title": t["title"], "state": t["state"],
+                          "commits": lines, "commit_state": commit_state}
 
     by_r = {}
     for tid, t in tasks.items():
@@ -414,29 +430,51 @@ def render_trace(project, card_dir):
             by_r.setdefault(r, []).append(tid)
     all_r = sorted(set(reqs) | set(home) | set(by_r) | set(cov), key=lambda r: int(r[1:]))
 
-    print(f"🔗 {project}/{os.path.basename(card_dir)}" + (f"  repo: {repo}" if repo else ""))
-    W = 100
+    rows = []
     for r in all_r:
-        flags = [w for cond, w in ((r not in reqs, "⚠ not-in-需求条目"),
-                                   (r not in home, "⚠ no-design-home"),
-                                   (r not in by_r, "⚠ no-task"),
-                                   (r not in cov, "⚠ no-test-coverage")) if cond]
-        print(f"{r}  {reqs.get(r, '')[:64]}" + ("  " + " ".join(flags) if flags else ""))
-        if r in home:
-            print(f"    design : {home[r][:W]}")
-        if r in verify:
-            print(f"    verify : {verify[r][:W]}")
-        for tid in by_r.get(r, []):
-            t = tasks[tid]
-            print(f"    task   : T{tid} [{t['state']}] {t['title'][:64]}")
-            lines, tier = commits[tid]
-            label = "commit" if tier == "strict" else "commit?"  # loose = bare-T cross-card risk
-            for c in lines[:6]:
+        tids = by_r.get(r, [])
+        states = [task_rows[t]["commit_state"] for t in tids]
+        commit_state = ("unchecked" if not repo else
+                        "strict" if "strict" in states else
+                        "loose" if "loose" in states else "none")
+        flags = [w for cond, w in ((r not in reqs, "not-in-需求条目"),
+                                   (r not in home, "no-design-home"),
+                                   (r not in by_r, "no-task"),
+                                   (r not in cov, "no-test-coverage")) if cond]
+        rows.append({"rid": r, "text": reqs.get(r, ""),
+                     "design": home.get(r, ""), "verify": verify.get(r, ""),
+                     "test": cov.get(r, ""), "tasks": [task_rows[t] for t in tids],
+                     "flags": flags,
+                     "present": {"design": r in home, "verify": r in verify,
+                                 "task": bool(tids), "test": r in cov,
+                                 "commit": commit_state}})
+    orphans = [t for t, v in sorted(tasks.items(), key=lambda kv: int(kv[0]))
+               if not v["rids"]]
+    return {"card": f"{project}/{os.path.basename(card_dir)}", "repo": repo or "",
+            "repo_anchor": bool(repo),
+            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "rows": rows, "orphans": orphans, "error": ""}
+
+
+def render_trace(project, card_dir):
+    d = trace_data(project, card_dir)
+    print(f"🔗 {d['card']}" + (f"  repo: {d['repo']}" if d["repo"] else ""))
+    W = 100
+    for row in d["rows"]:
+        flags = ["⚠ " + f for f in row["flags"]]
+        print(f"{row['rid']}  {row['text'][:64]}" + ("  " + " ".join(flags) if flags else ""))
+        if row["design"]:
+            print(f"    design : {row['design'][:W]}")
+        if row["verify"]:
+            print(f"    verify : {row['verify'][:W]}")
+        for t in row["tasks"]:
+            print(f"    task   : T{t['tid']} [{t['state']}] {t['title'][:64]}")
+            label = "commit" if t["commit_state"] == "strict" else "commit?"  # loose = bare-T cross-card risk
+            for c in t["commits"][:6]:
                 print(f"      {label}: {c[:W]}")
-    orphans = [t for t, v in sorted(tasks.items(), key=lambda kv: int(kv[0])) if not v["rids"]]
-    if orphans:
-        print("—  tasks with no R-id (scaffolding?): " + ", ".join("T" + t for t in orphans))
-    if not repo:
+    if d["orphans"]:
+        print("—  tasks with no R-id (scaffolding?): " + ", ".join("T" + t for t in d["orphans"]))
+    if not d["repo_anchor"]:
         print("(commits skipped — no git repo anchor: progress.md `repo:` or config projects path)")
     return 0
 
@@ -463,6 +501,9 @@ def main():
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
     if trace_arg:
+        if as_json:
+            print(json.dumps(trace_data(*resolve_card(root, trace_arg)), ensure_ascii=False))
+            return 0
         return render_trace(*resolve_card(root, trace_arg))
     cards = list(iter_cards(root, want or None))
     if as_json:

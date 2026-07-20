@@ -64,5 +64,68 @@ class TaskCommits(unittest.TestCase):
         self.assertEqual(len(lines), 1)
 
 
+def make_card(root, project, dirname, repo=None, plan=True):
+    """Fixture card with R1 (designed/planned/tested) and R2 (requirement-only)."""
+    card = os.path.join(root, project, dirname)
+    os.makedirs(card)
+    write = lambda name, text: open(os.path.join(card, name), "w").write(text)
+    write("requirement.md", "## 需求条目\n\n| ID | 条目 | 类型 |\n|---|---|---|\n"
+          "| R1 | first item | 功能 |\n| R2 | second item | 约束 |\n")
+    write("design.md", "## How it meets the requirement\n\n| R-id | home |\n|---|---|\n"
+          "| [R1](./requirement.md) | mod-a |\n\n"
+          "## 验证策略\n\n| R-id | E2E |\n|---|---|\n| [R1](./requirement.md) | walk |\n")
+    if plan:
+        write("plan.md", "### T1: slice one\n- **Implements:** [R1](./requirement.md)\n"
+              "- **Acceptance:**\n  - [x] ok\n")
+    write("test.md", "| Coverage | test |\n|---|---|\n| R1 | test_one |\n")
+    if repo:
+        write("progress.md", "---\nid: 099\nrepo: %s\n---\n" % repo)
+    return card
+
+
+class TraceData(unittest.TestCase):
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def _repo(self, subjects):
+        return TaskCommits._repo_with(self, subjects)
+
+    def _row(self, data, rid):
+        return next(r for r in data["rows"] if r["rid"] == rid)
+
+    def test_strict_and_flags(self):
+        repo = self._repo(["fix band (099 T1)"])
+        card = make_card(self.root, "p", "099-fix", repo=repo)
+        d = ws.trace_data("p", card)
+        r1, r2 = self._row(d, "R1"), self._row(d, "R2")
+        self.assertEqual(r1["present"],
+                         {"design": True, "verify": True, "task": True,
+                          "test": True, "commit": "strict"})
+        self.assertEqual(r1["flags"], [])
+        self.assertEqual(r2["present"]["commit"], "none")
+        self.assertIn("no-design-home", r2["flags"])
+        self.assertIn("no-task", r2["flags"])
+        self.assertTrue(d["repo_anchor"])
+        self.assertTrue(d["generated_at"])
+
+    def test_loose_and_none(self):
+        repo = self._repo(["mentions T1 without card"])
+        card = make_card(self.root, "p", "099-fix", repo=repo)
+        d = ws.trace_data("p", card)
+        self.assertEqual(self._row(d, "R1")["present"]["commit"], "loose")
+        repo2 = self._repo(["unrelated subject"])
+        card2 = make_card(self.root, "q", "098-fix", repo=repo2)
+        d2 = ws.trace_data("q", card2)
+        self.assertEqual(self._row(d2, "R1")["present"]["commit"], "none")
+
+    def test_unchecked_without_repo_anchor(self):
+        card = make_card(self.root, "noproj", "097-fix")
+        d = ws.trace_data("noproj", card)
+        self.assertFalse(d["repo_anchor"])
+        r1 = self._row(d, "R1")
+        self.assertEqual(r1["present"]["commit"], "unchecked")
+        self.assertEqual(r1["tasks"][0]["commit_state"], "unchecked")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
