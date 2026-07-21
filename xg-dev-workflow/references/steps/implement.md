@@ -128,7 +128,15 @@ Self-review against the angles that catch real systems bugs — verify each agai
 - **Authority / namespace ownership** — a value owned by one node/space is validated by that authority; consumers record it, never re-derive a guard in the wrong space (e.g. no cross-XID-space comparison).
 - **Concurrency** — any decision using a snapshot taken before a lock can race with concurrent mutation between snapshot and use. **Read-then-write / check-then-act is atomic only inside one transaction**: a connection-pool serialization cap (e.g. `SetMaxOpenConns(1)`) serializes individual statements, not multi-statement sequences — the connection returns to the pool between calls, so a concurrent request can interleave between your read and the dependent write. Wrap dependent read→write in a single tx, or collapse to one conditional statement.
 - **Lock discipline** — no blocking syscalls / I/O (e.g. fsync) under an LWLock.
-- **Dead abstraction / deletion test** (`codebase-design`) — is each hook/abstraction load-bearing? **Delete it in your head:** if complexity vanishes it was a pass-through (remove it); if it reappears across N callers it earns its keep. One adapter = hypothetical seam, two = real — don't keep a seam/port that only ever has one implementation. **Same test on a new function's own generality — caller audit:** for each new static/private function, check every parameter (and mode/branch) against its actual callers; a parameter every caller passes constant/NULL, or a mode no caller reaches, is unused generality — delete it and add it back when the second caller needs it (YAGNI, P0). (2026-07-21: a 4-value dispatch helper whose only caller always asked for 2.)
+- **Dead abstraction / deletion test** (`codebase-design`) — is each hook/abstraction load-bearing?
+  - **Delete it in your head:** if complexity vanishes it was a pass-through (remove it); if it
+    reappears across N callers it earns its keep. One adapter = hypothetical seam, two = real —
+    don't keep a seam/port that only ever has one implementation.
+  - **Same test on a new function's own generality — caller audit:** for each new static/private
+    function, check every parameter (and mode/branch) against its actual callers; a parameter
+    every caller passes constant/NULL, or a mode no caller reaches, is unused generality — delete
+    it and add it back when the second caller needs it (YAGNI, P0). (2026-07-21: a 4-value
+    dispatch helper whose only caller always asked for 2.)
 - **Causal chain** — don't claim "it deadlocks / works because X" without tracing the mechanism.
 
 ## Simplify sweep (once, after the last slice — M+; XS/S may skip)
