@@ -170,6 +170,10 @@ commit-if-dirty.
   task's `progress.md` update, `test`, `review`, a `change`/M2 entry, investigate/diagnose notes,
   each grill-round verdict (checkpoint). Run M3 first, then commit. Message: `<project>/NNN-slug:
   <verb> — <one line>`.
+- **Gate commits are scoped to the acting project**: `tools/commit-data-repos.py --project
+  <name>` (or, when running git directly, an equivalently scoped `add`/`commit` in both repos) —
+  a parallel session's own uncommitted docs in another project must never ride along in this
+  commit (the un-scoped `add -A` this replaced could pull them in).
 - **Autonomous local commit; `push` stays human-gated;** history append-only (no amend/rebase).
 - An implement task yields **two** commits — product code → its own repo, docs → the dev_root repo.
   Don't cross them.

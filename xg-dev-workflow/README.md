@@ -56,8 +56,11 @@ config xg-knowledge-lite uses, so project names line up.
   several — the per-project `index.md` is a **kanban** of cards (Phase + 整体状态 + Deps) and
   `roadmap.md` holds not-yet-card work (next-up / themes / someday; items graduate via `new`).
 - **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** — lazily init'd,
-  with autonomous **local** commits at every gate / doc boundary (KB: per Write/Compile/Lint);
-  `push` stays manual. An optional session-end hook sweeps any leftovers — wire it in
+  with autonomous **local** commits at every gate / doc boundary (KB: per Write/Compile/Lint),
+  scoped to the acting project (`--project <name>`) so a parallel session's own uncommitted work
+  in another project never rides along. `push` stays manual. An optional session-end hook sweeps
+  any leftovers — without `--project` it groups dirty paths by project and commits one group at a
+  time (message suffixed ` [<group>]`), so the safety net can't mix projects either. Wire it in
   `settings.json`:
 
   ```json

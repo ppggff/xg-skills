@@ -4,6 +4,24 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-21 (commit-data-repos scoped to project — card 008)
+
+Two parallel Claude sessions working different projects could pull each other's still-uncommitted
+docs into a gate commit: `commit_repo()`'s `git add -A` had no path scoping at all, so any dirty
+file anywhere in the repo rode along regardless of which project the commit was for. Two
+same-day accidents surfaced it (a postgresql/004 gate commit pulling in xg-skills/007's `design.md`
++ notes, and a vagrant-qemu/002 gate commit pulling in xg-skills/007's `log.md`).
+
+- `commit-data-repos.py` gains `--project <name>`: commits only that project's paths in both data
+  repos (dev_root: bare project-name prefix; KB: `raw/<project>` + `wiki/<project>`), scoped on
+  **both** `add` and `commit` — scoping only `add` would still let a path a concurrent session
+  staged in its own add→commit window get swept into this commit at commit time. Paths outside the
+  scope stay uncommitted, warned rather than silently dropped.
+- Without `--project` (the session-end safety-net sweep), dirty paths are now grouped by project
+  and committed one group per commit (message suffixed ` [<group>]`) instead of one whole-repo
+  commit; unowned stragglers land in a `(root)` group. Existing `--message`/`--reason`/`--only`
+  behavior is unchanged.
+
 ## 2026-07-21 (sweep substance + a standard-tier reuse lens — follow-up to the card-005 retro below)
 
 vagrant-qemu card 002 hit the **same class** the card-005 retro (below) had just addressed —
