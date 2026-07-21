@@ -213,6 +213,8 @@
   .card .eyebrow { display: flex; align-items: baseline; gap: 8px; font-family: var(--chrome);
     font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .card .eyebrow .dep { margin-left: auto; }
+  .card .title { display: block; text-decoration: none; cursor: pointer; }
+  .card a.title:hover { color: var(--accent); text-decoration: underline; }
   .card .title { font: 600 13.5px/1.35 var(--chrome); color: var(--fg); margin: var(--sp2) 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .nn { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 12.5px; line-height: 1.5; }
@@ -283,7 +285,7 @@
   .trm tr[data-trx]:hover td { background: var(--side); }
   .trm .rid { font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap; }
   .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-  .tr-note { color: var(--muted); }
+  .tr-note { color: var(--body); }   /* matches the sibling plan/doc-link lines */
   .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
   /* task-table cells (same .trm geometry); status = plain tone-colored text */
   .trm .tstat { font-family: var(--chrome); font-size: 11px; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
@@ -1046,6 +1048,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<button class="iconbtn" id="tog_' + side + '">' + (boardKanban ? "list" : "kanban") + "</button>") +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
+      padForDrawer(pane);
       var tog = document.getElementById("tog_" + side);
       if (tog) tog.onclick = function () { boardKanban = !boardKanban; lsSet("sv-board-kanban", boardKanban ? "1" : "0"); render(side); };
       pane.querySelectorAll("[data-fstate]").forEach(function (b) {
@@ -1100,7 +1103,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var nn = '<dl class="nn">' + (c.now ? '<dd class="now" title="' + esc(c.now) + '">' + esc(c.now) + "</dd>" : "") +
       '<dd class="next" title="' + esc(c.effective_next) + '">' + esc(c.effective_next) + "</dd></dl>";
     return '<div class="card ' + st + sel + '" data-key="' + esc(key) + '">' + eyebrow +
-      '<div class="title" title="' + title + '">' + title + "</div>" + nn +
+      '<a class="title" data-nav="trace" data-card="' + esc(key) + '" title="' + title + ' — 打开详情">' + title + "</a>" + nn +
       '<div class="steps">' + stepHtml(c) + "</div></div>";
   }
   // R64: the detail drawer for the currently-selected card (empty string when none selected / not in view).
@@ -1150,12 +1153,20 @@ if (typeof window !== "undefined" && window.marked) (function () {
       "</div></div>";
   }
   // R64: reflect selection + drawer in place (no board re-fetch).
+  function padForDrawer(pane) {
+    // spacer above the sticky drawer, sized to it: content can always scroll clear of the
+    // temporary overlap while the drawer stays pinned to the viewport bottom.
+    var cd = pane.querySelector(".card-detail"), sp = pane.querySelector(".cd-spacer");
+    if (cd && !sp) { cd.insertAdjacentHTML("beforebegin", '<div class="cd-spacer"></div>'); sp = pane.querySelector(".cd-spacer"); }
+    if (sp) { if (cd) sp.style.height = cd.offsetHeight + "px"; else sp.remove(); }
+  }
   function updateDetail(side) {
     var pane = PANES[side];
     pane.querySelectorAll(".card").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
+    padForDrawer(pane);
   }
   function list(order, byProj) {                    // R61: each project group wrapped so the TOC can hide it
     return order.map(function (p) {
