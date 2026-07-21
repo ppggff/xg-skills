@@ -137,6 +137,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      (2026-07-11: two silent-wrong-results bugs — a dropped joinqual on dump and varchar keys
      degrading every direction check — both born from lifting v1 refusals without this walk.);
    - performance (hot paths, N+1 dispatch, lock scope);
+   - git history (blame, prior fixes and review comments, in-code guidance comments);
    - **quality/simplify (one bundled sonnet agent, deep tier only)** — the review-side backstop
      to implement's simplify sweep, for the low-inference cleanup family that a diff-first read
      catches: **dead code / unused generality** (a static-fn parameter every caller passes
