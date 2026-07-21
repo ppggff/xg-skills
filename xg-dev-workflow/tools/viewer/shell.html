@@ -282,7 +282,8 @@
   .trm tr[data-trx] { cursor: pointer; }
   .trm tr[data-trx]:hover td { background: var(--side); }
   .trm .rid { font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap; }
-  .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+  .tr-note { color: var(--muted); }
   .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
   /* task-table cells (same .trm geometry); status = plain tone-colored text */
   .trm .tstat { font-family: var(--chrome); font-size: 11px; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
@@ -1067,9 +1068,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function stClass(state) { return "st-" + SV.stName(state); }   // pure mappings live in SV (unit-tested)
   function stVar(state) { return "--s-" + SV.stName(state); }
-  function stepHtml(c) {                           // R4/R62: gate-track — compact label+mark per phase, linked to its doc
-    var base = c.project + "/" + c.dir + "/";
-    var line = c.steps.map(function (s) {
+  function phasesCompact(c) {                      // compact gate-track: label+✓/●/— linked to its doc
+    var base = c.project + "/" + c.dir + "/";      // (shared by the card face and the detail page)
+    return c.steps.map(function (s) {
       var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1);
       var file = STEP_FILE[label], fill = SV.stepFill(state);
       var title = esc(label + (state ? ": " + state : ""));
@@ -1079,6 +1080,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
         ? '<a class="pc" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"
         : '<span class="pc" title="' + title + '">' + inner + "</span>";
     }).join(" ");
+  }
+  function stepHtml(c) {                           // R4/R62: gate-track on the card face
+    var line = phasesCompact(c);
     var tail = '<a class="step" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>';
     if (window.GITWEB_URL) {   // R3/R6: cross-origin deep-link into the gitweb companion (+ card branch)
       tail += ' <a class="step" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
@@ -1211,7 +1215,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (p.commit === "unchecked") flags.push('<span class="trcell na">未检查</span>');
       var lines = "";
       if (r.design) lines += '<div class="tr-line"><span class="tr-k">design</span>' + doc("design.md", r.design) + "</div>";
-      if (r.verify) lines += '<div class="tr-line"><span class="tr-k">verify</span><span>' + esc(r.verify) + "</span></div>";
+      if (r.verify) lines += '<div class="tr-line"><span class="tr-k">verify</span>' + doc("design.md", r.verify) + "</div>";
       r.tasks.forEach(function (tk) {
         lines += '<div class="tr-line"><span class="tr-k">task</span>' +
           doc("plan.md", "T" + tk.tid + " [" + tk.state + "] " + tk.title) + "</div>";
@@ -1238,8 +1242,27 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
       esc(d.orphans.map(function (t) { return "T" + t; }).join(", ")) + "</p>" : "";
     var err = d.error ? '<p class="broken">' + esc(d.error) + "</p>" : "";
-    var card = boardCardMap[v.card], tasksSec = "";
-    if (card) {   // the drawer's former task table lives here now (source: progress.md, vs trace = plan.md)
+    var card = boardCardMap[v.card], infoSec = "", tasksSec = "";
+    if (card) {   // 全量镜像:卡面 + 抽屉的信息在详情页各有一份,单看本页即得完整状态
+      function irow(k, val) { return val && val !== "—" ? '<div class="cd-row"><span class="cd-k">' + k +
+        '</span><span class="cd-v">' + esc(val) + "</span></div>" : ""; }
+      var cbase = card.project + "/" + card.dir + "/";
+      infoSec = '<h2 class="sec">Card</h2>' +
+        '<div class="cd-row"><span class="cd-k">State</span><span class="cd-v"><span class="badge state ' +
+          stClass(card.state) + '">' + esc(card.state) + "</span>" +
+          (card.branch ? ' <span class="cd-chip">' + esc(card.branch) + "</span>" : "") +
+          (card.deps && card.deps !== "—" ? ' <span class="cd-chip">deps ' + esc(card.deps) + "</span>" : "") +
+          "</span></div>" +
+        '<div class="cd-row"><span class="cd-k">Phases</span><span class="cd-phases">' + phasesCompact(card) + "</span></div>" +
+        irow("Now", card.now) + irow("Next", card.effective_next) + irow("Block", card.blockers) +
+        '<div class="cd-row"><span class="cd-k">Docs</span><span class="cd-phases">' +
+          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(cbase + "progress.md") + '">progress</a>' +
+          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(cbase + "log.md") + '">log</a>' +
+          '<a class="cd-phase diff" data-nav="diff" data-card="' + esc(v.card) + '">±diff</a>' +
+          (window.GITWEB_URL ? '<a class="cd-phase diff" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
+            "?p=" + encodeURIComponent(card.project) + ";a=summary" +
+            (card.branch ? ";h=refs/heads/" + encodeURIComponent(card.branch) : "") + '">code ↗</a>' : "") +
+        "</span></div>";
       var planTasks = {};   // tid → plan-side info, so a task row can expand with its commits
       d.rows.forEach(function (r) { r.tasks.forEach(function (tk) { planTasks["T" + tk.tid] = tk; }); });
       var counts = SV.taskCounts(card.tasks);
@@ -1248,7 +1271,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         (counts.total ? '<table class="trm"><tr><th>task</th><th>status</th><th>notes</th></tr>' +
           card.tasks.map(function (tk) {
             var open = expanded[tk.id];
-            var lines = '<div class="tr-line"><span class="tr-k">notes</span><span>' + esc(tk.notes || "—") + "</span></div>";
+            var lines = '<div class="tr-line"><span class="tr-k">notes</span><span class="tr-note">' + esc(tk.notes || "—") + "</span></div>";
             var pt = planTasks[tk.id];
             if (pt) {
               lines += '<div class="tr-line"><span class="tr-k">plan</span>' +
@@ -1271,10 +1294,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
           }).join("") + "</table>" : "");
     }
     var traceHead = '<h2 class="sec">Trace <span class="tr-src">plan.md 推导</span></h2>';
-    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + tasksSec + traceHead + table + orph;
-    var secs = [].slice.call(pane.querySelectorAll('tr[data-trx^="R"]'));   // TOC lists R rows; task rows expand only
-    tagSections(side, secs, d.rows.map(function (r) { return { text: r.rid + " " + r.text.slice(0, 40), depth: 1 }; }));
-    afterRender(side, 'tr[data-trx^="R"]');
+    pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + infoSec + tasksSec + traceHead + table + orph;
+    var els = [].slice.call(pane.querySelectorAll("h2.sec, tr[data-trx]"));   // TOC = 全部 section + 行
+    tagSections(side, els, els.map(function (el) {
+      if (el.tagName === "H2") return { text: el.textContent.trim().slice(0, 40), depth: 1 };
+      var nm = el.querySelector(".name, .tnotes");
+      return { text: el.dataset.trx + " " + (nm ? nm.textContent.slice(0, 36) : ""), depth: 2 };
+    }));
+    afterRender(side, "h2.sec, tr[data-trx]");
   }
 
   // --- recent view (R32): commit list, TOC = subjects ------------------------
