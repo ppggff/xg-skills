@@ -156,21 +156,23 @@ def is_repo(repo: Path) -> bool:
         return False
 
 
-def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool) -> list:
-    """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit.
+def _add_commit(repo: Path, pathspecs: list, message: str) -> subprocess.CompletedProcess:
+    """Stage and commit exactly `pathspecs` (D4: the same pathspec on both `add` and
+    `commit` — scoping only `add` would still let a path a concurrent session staged in
+    its own add→commit window get swept into this commit at commit time)."""
+    git(repo, "add", "-A", "--", *pathspecs)
+    return git(repo, "commit", "-m", message, "--", *pathspecs)
 
-    D4: pathspec is scoped on **both** `add` and `commit` — a concurrent session's own
-    add→commit window shares this same git index; scoping only `add` would still let a
-    path it staged in that window get swept into this commit at commit time.
-    """
+
+def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool) -> list:
+    """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit."""
     pathspecs = existing_pathspecs(repo, scoped_pathspecs(kind, project))
     if inited:
         pathspecs = pathspecs + [".gitignore"]  # D3: never lost to scoping
     if not pathspecs:
         return [f"{label}: nothing to commit for project {project}"]
     msg = ("init: " + label + " repo\n\n" + message) if inited else message
-    git(repo, "add", "-A", "--", *pathspecs)
-    res = git(repo, "commit", "-m", msg, "--", *pathspecs)
+    res = _add_commit(repo, pathspecs, msg)
     if res.returncode != 0:
         return [f"{label}: nothing committed for project {project} "
                 f"({res.stdout.strip() or res.stderr.strip()})"]
@@ -205,8 +207,7 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool)
         if not pathspecs:
             continue
         msg = f"{message} [{group}]"
-        git(repo, "add", "-A", "--", *pathspecs)
-        res = git(repo, "commit", "-m", msg, "--", *pathspecs)
+        res = _add_commit(repo, pathspecs, msg)
         if res.returncode != 0:
             lines.append(f"{label}: nothing committed for group {group} "
                           f"({res.stdout.strip() or res.stderr.strip()})")
