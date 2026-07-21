@@ -156,6 +156,14 @@ def is_repo(repo: Path) -> bool:
         return False
 
 
+def _tag_subject(message: str, tag: str) -> str:
+    """Insert `tag` at the end of the commit message's subject (first) line, not
+    wherever the string happens to end — `git log --oneline` shows only the subject,
+    so a suffix appended after a multi-line `--reason` body would never surface there."""
+    subject, sep, body = message.partition("\n")
+    return f"{subject} {tag}" + sep + body
+
+
 def _add_commit(repo: Path, pathspecs: list, message: str) -> subprocess.CompletedProcess:
     """Stage and commit exactly `pathspecs` (D4: the same pathspec on both `add` and
     `commit` — scoping only `add` would still let a path a concurrent session staged in
@@ -206,7 +214,7 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool)
         pathspecs = existing_pathspecs(repo, group_pathspecs(group, kind, groups[group]))
         if not pathspecs:
             continue
-        msg = f"{message} [{group}]"
+        msg = _tag_subject(message, f"[{group}]")
         res = _add_commit(repo, pathspecs, msg)
         if res.returncode != 0:
             lines.append(f"{label}: nothing committed for group {group} "

@@ -13,15 +13,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
+# Isolate from the developer machine's global git config (aliases, excludesfile — a stray
+# global gitignore rule can shadow a fixture directory name on a case-insensitive filesystem).
+# Set process-wide, not just on GIT_ENV below: cdr.commit_repo() runs in-process and its own
+# git() calls inherit os.environ directly, so a GIT_ENV-only override wouldn't reach them.
+os.environ["GIT_CONFIG_GLOBAL"] = os.devnull
+os.environ["GIT_CONFIG_SYSTEM"] = os.devnull
+
 TOOLS = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("commit_data_repos", str(TOOLS / "commit-data-repos.py"))
 cdr = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cdr)
 
-# Isolate from the developer machine's global git config (aliases, excludesfile — a stray
-# global gitignore rule can shadow a fixture directory name on a case-insensitive filesystem).
 GIT_ENV = dict(os.environ,
-               GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
                GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
                GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 
@@ -268,13 +272,81 @@ class CommitRepoSweep(unittest.TestCase):
         dirty(docs, "projA/f.txt")
         lines_kb = cdr.commit_repo(kb, "knowledge (KB)", "kb", "custom msg\n\nbecause reasons")
         self.assertTrue(any("committed" in l for l in lines_kb))
-        subject = subprocess.run(["git", "-C", str(kb), "log", "-1", "--format=%B"],
+        subject = subprocess.run(["git", "-C", str(kb), "log", "-1", "--format=%s"],
                                   capture_output=True, text=True, env=GIT_ENV).stdout
+        body = subprocess.run(["git", "-C", str(kb), "log", "-1", "--format=%B"],
+                               capture_output=True, text=True, env=GIT_ENV).stdout
+        # D2: the [group] tag is what `git log --oneline` shows for sweep attribution —
+        # it must land on the subject line, not get buried after a multi-line --reason body.
         self.assertIn("custom msg", subject)
-        self.assertIn("because reasons", subject)
+        self.assertIn("[cbdb]", subject)
+        self.assertIn("because reasons", body)
         status = subprocess.run(["git", "-C", str(docs), "status", "--porcelain"],
                                  capture_output=True, text=True, env=GIT_ENV).stdout
         self.assertNotEqual(status, "")  # untouched by the kb-only call
+
+
+class CLIIntegration(unittest.TestCase):
+    """Drives the real script via subprocess — main()'s argparse/config wiring is the
+    tool's actual public interface; the rest of this suite exercises commit_repo()
+    directly and never proves --only/config-loading/--project actually connect."""
+
+    def _fake_home(self, kb_files, docs_files):
+        home = tempfile.mkdtemp()
+        cfg_dir = Path(home) / ".config" / "xg-knowledge-wiki"
+        cfg_dir.mkdir(parents=True)
+        kb, docs = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        (cfg_dir / "config.yaml").write_text(f"root: {kb}\ndev_root: {docs}\n", encoding="utf-8")
+        for rel, content in kb_files.items():
+            p = kb / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        for rel, content in docs_files.items():
+            p = docs / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        return home, kb, docs
+
+    def _run(self, home, *args):
+        env = dict(GIT_ENV, HOME=home)
+        return subprocess.run(["python3", str(TOOLS / "commit-data-repos.py"), *args],
+                               capture_output=True, text=True, env=env)
+
+    def test_project_flag_scopes_both_repos(self):
+        # same project name ("cbdb") dirty in both repos — R4: --project applies to both
+        home, kb, docs = self._fake_home({"raw/cbdb/note.md": "1\n"}, {"cbdb/plan.md": "1\n"})
+        res = self._run(home, "--project", "cbdb")
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("committed", res.stdout)
+        # both repos are freshly created here, so D3 rides .gitignore along in each
+        self.assertEqual(log_paths(kb), [".gitignore", "raw/cbdb/note.md"])
+        self.assertEqual(log_paths(docs), [".gitignore", "cbdb/plan.md"])
+
+    def test_only_selects_a_single_repo(self):
+        home, kb, docs = self._fake_home({"raw/cbdb/note.md": "1\n"}, {"projA/f.txt": "1\n"})
+        res = self._run(home, "--only", "kb", "--project", "cbdb")
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("knowledge (KB)", res.stdout)
+        self.assertNotIn("dev-workflow (docs)", res.stdout)
+        # docs repo was never even touched — not yet a git repo at all
+        self.assertFalse((docs / ".git").exists())
+
+    def test_message_and_reason_reach_the_commit(self):
+        home, kb, docs = self._fake_home({}, {"projA/f.txt": "1\n"})
+        res = self._run(home, "--message", "custom subject", "--reason", "because reasons")
+        self.assertEqual(res.returncode, 0)
+        body = subprocess.run(["git", "-C", str(docs), "log", "-1", "--format=%B"],
+                               capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("custom subject", body)
+        self.assertIn("because reasons", body)
+
+    def test_clean_repos_exit_zero_with_no_error(self):
+        home, kb, docs = self._fake_home({}, {})
+        for repo in (kb, docs):
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, env=GIT_ENV)
+        res = self._run(home)
+        self.assertEqual(res.returncode, 0)
+        self.assertEqual(res.stderr, "")
 
 
 if __name__ == "__main__":
