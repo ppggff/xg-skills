@@ -46,6 +46,20 @@ def dirty(repo, rel, content="changed\n"):
     p.write_text(content, encoding="utf-8")
 
 
+def commits_with_files(repo):
+    """[(subject, [files]), ...] tip-first — NUL-delimited to survive git's own blank-line
+    formatting inside `--name-only` output (no separator otherwise distinguishes a file list
+    from the next commit's subject)."""
+    out = subprocess.run(["git", "-C", str(repo), "log", "--name-only", "--format=%x00%s"],
+                          capture_output=True, text=True, env=GIT_ENV).stdout
+    result = []
+    for chunk in out.split("\x00"):
+        lines = [l for l in chunk.splitlines() if l.strip()]
+        if lines:
+            result.append((lines[0], lines[1:]))
+    return result
+
+
 def log_paths(repo):
     """Files touched by the tip commit."""
     out = subprocess.run(["git", "-C", str(repo), "show", "--stat", "--format=", "HEAD"],
@@ -188,6 +202,79 @@ class CommitRepoScoped(unittest.TestCase):
         cdr.commit_repo(repo, "label", "docs", "msg", project="projA")
         self.assertTrue((repo / ".gitignore").exists())
         self.assertEqual(sorted(log_paths(repo)), [".gitignore", "projA/f.txt"])
+
+
+class CommitRepoSweep(unittest.TestCase):
+    def test_sweep_splits_into_one_commit_per_group_and_leaves_repo_clean(self):
+        repo = init_repo({"projA/f.txt": "1\n", "projB/g.txt": "1\n"})
+        dirty(repo, "projA/f.txt")
+        dirty(repo, "projB/g.txt")
+        cdr.commit_repo(repo, "label", "docs", "msg")
+        log = subprocess.run(["git", "-C", str(repo), "log", "--oneline"],
+                              capture_output=True, text=True, env=GIT_ENV).stdout.splitlines()
+        self.assertEqual(len(log), 3)  # fixture init + 2 group commits
+        subjects = [l.split(" ", 1)[1] for l in log]
+        self.assertTrue(any("[projA]" in s for s in subjects))
+        self.assertTrue(any("[projB]" in s for s in subjects))
+        status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                                 capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertEqual(status, "")
+
+    def test_each_commit_touches_only_its_own_group(self):
+        repo = init_repo({"projA/f.txt": "1\n", "projB/g.txt": "1\n"})
+        dirty(repo, "projA/f.txt")
+        dirty(repo, "projB/g.txt")
+        cdr.commit_repo(repo, "label", "docs", "msg")
+        by_subject = dict(commits_with_files(repo))
+        self.assertEqual(next(f for s, f in by_subject.items() if "[projA]" in s), ["projA/f.txt"])
+        self.assertEqual(next(f for s, f in by_subject.items() if "[projB]" in s), ["projB/g.txt"])
+
+    def test_root_stragglers_get_their_own_commit(self):
+        repo = init_repo({"projA/f.txt": "1\n", "index.md": "1\n"})
+        dirty(repo, "projA/f.txt")
+        dirty(repo, "index.md")
+        cdr.commit_repo(repo, "label", "docs", "msg")
+        by_subject = dict(commits_with_files(repo))
+        self.assertEqual(next(f for s, f in by_subject.items() if "[(root)]" in s), ["index.md"])
+
+    def test_fresh_repo_init_sweep_commits_gitignore(self):
+        d = tempfile.mkdtemp()
+        repo = Path(d)
+        (repo / "projA").mkdir()
+        (repo / "projA" / "f.txt").write_text("1\n", encoding="utf-8")
+        lines = cdr.commit_repo(repo, "label", "docs", "msg")
+        self.assertTrue((repo / ".gitignore").exists())
+        by_subject = dict(commits_with_files(repo))
+        self.assertEqual(next(f for s, f in by_subject.items() if "[(root)]" in s), [".gitignore"])
+        self.assertEqual(next(f for s, f in by_subject.items() if "[projA]" in s), ["projA/f.txt"])
+        status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                                 capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertEqual(status, "")
+        self.assertFalse(any("nothing committed" in l for l in lines))
+
+    def test_clean_repo_reports_nothing_to_commit(self):
+        repo = init_repo({"projA/f.txt": "1\n"})
+        lines = cdr.commit_repo(repo, "label", "docs", "msg")
+        self.assertTrue(any("clean" in l or "nothing to commit" in l for l in lines))
+
+    def test_message_and_reason_regression(self):
+        # mirrors what main() does with --message/--reason before calling commit_repo;
+        # --only is main()'s target-list filter (untested here — commit_repo has no
+        # notion of it), exercised by calling commit_repo for just one repo and
+        # checking the other, untouched, stays dirty.
+        kb = init_repo({"raw/cbdb/note.md": "1\n"})
+        docs = init_repo({"projA/f.txt": "1\n"})
+        dirty(kb, "raw/cbdb/note.md")
+        dirty(docs, "projA/f.txt")
+        lines_kb = cdr.commit_repo(kb, "knowledge (KB)", "kb", "custom msg\n\nbecause reasons")
+        self.assertTrue(any("committed" in l for l in lines_kb))
+        subject = subprocess.run(["git", "-C", str(kb), "log", "-1", "--format=%B"],
+                                  capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("custom msg", subject)
+        self.assertIn("because reasons", subject)
+        status = subprocess.run(["git", "-C", str(docs), "status", "--porcelain"],
+                                 capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertNotEqual(status, "")  # untouched by the kb-only call
 
 
 if __name__ == "__main__":

@@ -9,9 +9,12 @@ Reads the shared config (~/.config/xg-knowledge-wiki/config.yaml):
   root:     -> KB repo        (default ~/knowledge)
   dev_root: -> workflow docs  (default ~/dev-workflow)
 
-For each existing dir: lazily `git init` (+ a minimal .gitignore) if it isn't a repo yet,
-then `git add -A && git commit` only if there's something to commit. **Never pushes, never
-amends/rebases** (push + history-rewrite stay human-gated, per global Git & MR Safety).
+For each existing dir: lazily `git init` (+ a minimal .gitignore) if it isn't a repo yet.
+`--project NAME` commits only that project's paths (>=1 commit per repo); without it,
+dirty paths are grouped by project and committed one group per commit (message suffixed
+` [<group>]`), so one call never mixes two projects' — or two parallel sessions' — files
+into the same commit. **Never pushes, never amends/rebases** (push + history-rewrite stay
+human-gated, per global Git & MR Safety).
 
 NOT a byte-identical synced script — it lives only here (xg-dev-workflow/tools/).
 
@@ -180,6 +183,39 @@ def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str
     return lines
 
 
+def group_pathspecs(group: str, kind: str, paths: list) -> list:
+    """Pathspec for one sweep group — a project prefix, or the literal paths for '(root)'
+    (unowned files share no common prefix to scope by)."""
+    if group == "(root)":
+        return paths
+    return scoped_pathspecs(kind, group)
+
+
+def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool) -> list:
+    """No `--project`: safety-net sweep (R2) — one commit per project group, `(root)`
+    catching unowned stragglers (R6). A freshly-`init`-ed `.gitignore` is itself unowned,
+    so `sweep_groups()` already places it in `(root)` — D3 falls out for free, no
+    special-casing needed."""
+    groups = sweep_groups(repo, kind)
+    if not groups and not inited:
+        return [f"{label}: clean — nothing to commit"]
+    lines = []
+    for group in sorted(groups, key=lambda g: (g == "(root)", g)):
+        pathspecs = existing_pathspecs(repo, group_pathspecs(group, kind, groups[group]))
+        if not pathspecs:
+            continue
+        msg = f"{message} [{group}]"
+        git(repo, "add", "-A", "--", *pathspecs)
+        res = git(repo, "commit", "-m", msg, "--", *pathspecs)
+        if res.returncode != 0:
+            lines.append(f"{label}: nothing committed for group {group} "
+                          f"({res.stdout.strip() or res.stderr.strip()})")
+            continue
+        head = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()
+        lines.append(f"{label}: committed {head} [{group}]")
+    return lines or [f"{label}: clean — nothing to commit"]
+
+
 def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None) -> list:
     if not repo.exists():
         return [f"{label}: {repo} does not exist — skipped"]
@@ -194,21 +230,7 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
 
     if project is not None:
         return _commit_scoped(repo, label, kind, message, project, inited)
-
-    # sweep / whole-repo path — T3 replaces this with per-project grouped commits.
-    status = git(repo, "status", "--porcelain")
-    if status.returncode != 0:
-        return [f"{label}: git status failed — skipped"]
-    if not status.stdout.strip() and not inited:
-        return [f"{label}: clean — nothing to commit"]
-    git(repo, "add", "-A")
-    msg = ("init: " + label + " repo\n\n" + message) if inited else message
-    res = git(repo, "commit", "-m", msg)
-    if res.returncode != 0:
-        # e.g. nothing staged after add (rare) — report, don't fail hard
-        return [f"{label}: nothing committed ({res.stdout.strip() or res.stderr.strip()})"]
-    head = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()
-    return [f"{label}: committed {head}{' (initialized)' if inited else ''}"]
+    return _commit_sweep(repo, label, kind, message, inited)
 
 
 def main():
