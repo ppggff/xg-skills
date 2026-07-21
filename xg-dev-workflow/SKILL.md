@@ -304,6 +304,14 @@ recall at worst. Corollaries: **deterministic checks are scripted, not delegated
 sits under M6 calibration — a sonnet dispatch whose findings repeatedly die in adjudication gets its
 downgrade revoked. Per-lens application: `review.md` step 4.
 
+**Session-model tiering follows the two zones.** Decision-zone gates deserve the strong session
+model; the execution zone runs well on a cheaper one — the plan gate digest reminds the human to
+optionally switch `/model sonnet` + `/advisor opus` after go (the skill cannot switch models
+itself; a fresh session via `resume` makes the switch free — prompt caches are per-model). The
+tradeoff is explicit: with a cheap session model the 评审 adjudication also runs on it
+(advisor-assisted); like every downgrade this sits under M6 calibration — weak adjudication
+verdicts revoke it.
+
 ## Verbs
 
 Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.

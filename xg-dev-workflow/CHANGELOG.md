@@ -4,6 +4,54 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-21 (catch quality/altitude issues earlier — prevention default-on + a merged review lens)
+
+From a cbdb card-005 retro: a batch of manual-review findings that were all quality/altitude,
+not bugs (dead code, duplication, expensive work above a guard, over-built internals, a missing
+why-note). Root cause = the quality passes the skill already had weren't reliably run, plus one
+genuinely-uncovered check. Fixes, minimal-diff (fold/gate over adding new blocks, per the
+anti-sediment pruning rule):
+
+- **Simplify sweep is now a `Done when` gate item** (`implement.md`) — it existed as a phase step
+  and a harness task but wasn't in the done gate, so it could be silently skipped; a skip must
+  now be recorded in `progress.md`.
+- **Deletion test extended from module seams to a function's own generality and a mechanism's
+  internals** — `implement.md` review lens adds a **caller audit** (a static-fn parameter/mode no
+  caller exercises is unused generality → delete, add back at the second caller; YAGNI);
+  `design-grill.md`'s module-depth lens now runs the same delete-it-in-your-head test on internal
+  machinery (extra field/flag, multi-pass state machine, ranking, cache) — catching over-built
+  internals at design is far cheaper than at review.
+- **Two why-note cases named** (`implement.md` comment hygiene): a load-bearing field/guard with
+  no line saying *why* it exists (a reviewer then burns a round confirming), and code that
+  diverges from / repairs a patched-fork upstream (this tree is PG 14.4 + Greenplum) — the latter
+  may cite the **upstream commit SHA** as a stable public anchor (like an issue ref).
+- **New `quality/simplify` review lens, deep tier only, one bundled sonnet agent** (`review.md`):
+  the review-side backstop to the implement sweep, bundling the low-inference cleanup family
+  (dead code / duplication / efficiency-hoist / altitude) into a **single** cheap agent — recall
+  loss on a missed cleanup is cheap, which is exactly why merging is safe here and not for
+  correctness/concurrency/security (those stay separate session-model agents). Not added at
+  light/standard (their Standards axis already carries hygiene), keeping the token cost bounded.
+
+Why the shape: prevention (sweep gate, deletion test, why-notes) is near-zero marginal cost and
+short-circuits the expensive implement→manual-review→fix round-trip; the one paid addition (the
+review lens) is confined to deep tier and a cheap model.
+
+## 2026-07-21 (session-model tiering — execution zone on a cheaper model)
+
+- **Plan-gate digest gains a model tip** (`plan.md` step 7): alongside scope/risk/test-mode
+  cards, the execution-authorization ask now reminds the human they can switch
+  `/model sonnet` + `/advisor opus` for the execution zone after go — ideally in a fresh
+  session via `resume` (prompt caches are per-model, so a fresh session makes the switch
+  free) — and switch back at the next decision gate.
+- **SKILL.md「Subagent model assignment」extended to session-model tiering**: decision zone
+  keeps the strong session model; the execution zone runs on a cheaper one with the advisor
+  covering decision points. The tradeoff that 评审 adjudication also runs on the cheap model
+  (advisor-assisted) is stated explicitly and placed under M6 calibration like every other
+  downgrade — weak adjudication verdicts revoke it.
+- Why: a strong model end-to-end costs roughly 3-5x Sonnet while the post-freeze execution
+  zone is spec-driven work with low judgment density; existing gates (tests, review report)
+  bound the cost of executor mistakes.
+
 ## 2026-07-20 (board drawer progress + trace status — card 007)
 
 Source: roadmap Card B. The board drawer becomes a per-card progress/trace surface, backed by

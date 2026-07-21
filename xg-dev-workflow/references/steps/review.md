@@ -111,7 +111,19 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      (2026-07-11: two silent-wrong-results bugs — a dropped joinqual on dump and varchar keys
      degrading every direction check — both born from lifting v1 refusals without this walk.);
    - performance (hot paths, N+1 dispatch, lock scope);
-   - git history (blame, prior fixes and review comments, in-code guidance comments);
+   - **quality/simplify (one bundled sonnet agent, deep tier only)** — the review-side backstop
+     to implement's simplify sweep, for the low-inference cleanup family that a diff-first read
+     catches: **dead code / unused generality** (a static-fn parameter every caller passes
+     constant/NULL, an unreachable mode), **duplication** (a copy-pasted call shape that wants
+     one helper), **efficiency-hoist** (side-effect-free/expensive work sitting above the guard
+     that skips it; per-row work that belongs in one-time setup), **altitude/over-abstraction**
+     (a pass-through layer, or a flag/state-machine/ranking a simpler check replaces). These are
+     one coherent family — bundle them in **one** agent, not one-per-check; recall loss is
+     cheap here (a missed cleanup is a nice-to-have, not a bug), which is exactly why merging is
+     safe for this family and not for correctness/concurrency/security. **Deep tier only** —
+     standard's Standards axis already carries hygiene; don't add this lens at light/standard.
+     Distinct from the adversarial trio (which reads problem-first): this reads the diff for
+     local cleanups, so note the boundary and don't double-report a finding both surface;
    - docs accuracy (claims in docs/comments match the new behavior).
    Each agent prompt = context pack + its lens + the false-positive exemplars below
    + "verify each finding against actual file content before reporting; return
@@ -121,7 +133,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    **Model assignment (per-lens application):** checklist/verification-driven lenses default
    to the cheaper model (Agent tool, `model: sonnet`) — **conventions conformance** (comment
    hygiene, check-code-refs run, terminology), **tests hygiene**, **docs accuracy**,
-   **git-history**; the inference-heavy lenses stay on the session model —
+   **git-history**, **quality/simplify**; the inference-heavy lenses stay on the session model —
    **correctness-vs-invariants**, the **adversarial trio**, **security** (perf: judge by the
    diff). Rationale + M6 calibration: SKILL.md「Subagent model assignment」(5b's overlap stats
    feed that calibration).

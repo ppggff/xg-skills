@@ -29,7 +29,11 @@ Output: `plan.md` (template: `references/templates/plan.md`).
 6. **Risks & open questions** table.
 7. **Execution-authorization ask** — present via the gate digest (`gate-digest.md`); for this
    gate the cards are: scope of what will be touched (files/modules), the riskiest slices, the
-   test mode chosen, and any plan-level open risk. The human's go here is the one-time autonomy
+   test mode chosen, any plan-level open risk, and a one-line **model tip** — the execution
+   zone is spec-driven work suited to a cheaper session model: after go, optionally switch
+   `/model sonnet` + `/advisor opus` (Sonnet executes; Opus is consulted at decision points;
+   subagents inherit the advisor), ideally in a fresh session (`resume <slug>`); switch back
+   when re-entering a decision gate. The human's go here is the one-time autonomy
    handoff (SKILL.md「Two zones」). May arrive merged with the 详设 baseline when the human
    opted in (SKILL.md「Requirement sizing」Gate merging).
 

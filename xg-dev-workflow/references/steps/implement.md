@@ -128,7 +128,7 @@ Self-review against the angles that catch real systems bugs — verify each agai
 - **Authority / namespace ownership** — a value owned by one node/space is validated by that authority; consumers record it, never re-derive a guard in the wrong space (e.g. no cross-XID-space comparison).
 - **Concurrency** — any decision using a snapshot taken before a lock can race with concurrent mutation between snapshot and use. **Read-then-write / check-then-act is atomic only inside one transaction**: a connection-pool serialization cap (e.g. `SetMaxOpenConns(1)`) serializes individual statements, not multi-statement sequences — the connection returns to the pool between calls, so a concurrent request can interleave between your read and the dependent write. Wrap dependent read→write in a single tx, or collapse to one conditional statement.
 - **Lock discipline** — no blocking syscalls / I/O (e.g. fsync) under an LWLock.
-- **Dead abstraction / deletion test** (`codebase-design`) — is each hook/abstraction load-bearing? **Delete it in your head:** if complexity vanishes it was a pass-through (remove it); if it reappears across N callers it earns its keep. One adapter = hypothetical seam, two = real — don't keep a seam/port that only ever has one implementation.
+- **Dead abstraction / deletion test** (`codebase-design`) — is each hook/abstraction load-bearing? **Delete it in your head:** if complexity vanishes it was a pass-through (remove it); if it reappears across N callers it earns its keep. One adapter = hypothetical seam, two = real — don't keep a seam/port that only ever has one implementation. **Same test on a new function's own generality — caller audit:** for each new static/private function, check every parameter (and mode/branch) against its actual callers; a parameter every caller passes constant/NULL, or a mode no caller reaches, is unused generality — delete it and add it back when the second caller needs it (YAGNI, P0). (2026-07-21: a 4-value dispatch helper whose only caller always asked for 2.)
 - **Causal chain** — don't claim "it deadlocks / works because X" without tracing the mechanism.
 
 ## Simplify sweep (once, after the last slice — M+; XS/S may skip)
@@ -154,6 +154,12 @@ skipped candidates in `progress.md` for the human. Record the sweep (or its skip
   does, restates a docstring, or argues the change is correct. **Density = the surrounding
   file's.** Follow the surrounding code's idioms (prior-art from 详设); don't invent new usage
   without a reason. Both design and code should be clean and elegant.
+  Two why-note cases the last review round showed get missed (2026-07-21): a **field/guard with
+  several load-bearing uses but no single line naming why it exists** (a reviewer can't tell it's
+  load-bearing → wastes a round confirming) — name the why once at its definition; and **code
+  that diverges from, or repairs a bug in, a patched-fork upstream** (this tree is PostgreSQL 14.4
+  + Greenplum) — a one-line why-note with the **upstream commit SHA** is allowed (a stable public
+  anchor, like an issue ref) so a later fork-merge can reconcile.
 - **Comment pass (per slice, same sweep as the grep above)** — re-read every comment this slice
   added and delete the ones outside the allowed set. Generation defaults over-comment; the pass is
   mandatory, not optional polish (global CLAUDE.md「Code Comments」states the same rule for all
@@ -179,5 +185,8 @@ only** — skip its Planning step (interface / behaviors-to-test / approval are 
 需求/设计/详设; re-running it would re-litigate the design).
 
 ## Done when
-- All plan tasks done & verified; `progress.md` current; no out-of-scope churn. Then run
-  the omission check (M3) and proceed to 测试.
+- All plan tasks done & verified; `progress.md` current; no out-of-scope churn; **the simplify
+  sweep ran (or its skip is recorded in `progress.md`)** — it's a gate item, not optional polish,
+  because a skipped sweep is exactly how altitude/dead-code/dup cleanups slip to a later manual
+  review (2026-07-21 retro: card 005 shipped 5 such items an end-of-phase sweep would have
+  caught). Then run the omission check (M3) and proceed to 测试.

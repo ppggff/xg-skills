@@ -135,7 +135,13 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
      hidden) rather than **shallow** (pass-through)? Apply the **deletion test**: delete it — if
      complexity vanishes it was a pass-through; if it reappears across N callers it earns its keep.
      **Don't introduce a seam/port for a single implementation** — one adapter is a *hypothetical*
-     seam, two is a *real* one (反过度设计).
+     seam, two is a *real* one (反过度设计). **Run the same test on a mechanism's internals, not
+     just module seams** — for each piece of internal machinery (an extra field/flag, a
+     multi-pass state machine, a ranking/sort, a cache), ask what breaks if removed: often a
+     simpler check answers the same question. Catching over-built internals here is far cheaper
+     than at review. (2026-07-21: a two-pass pending-removal flag replaceable by one catalog
+     re-check; an age-sort across candidates when the consumer processes one at a time — both
+     shipped, both caught only in manual review.)
    - **方案优先 / explore solutions before structure** — surface multiple candidate approaches and
      grill their trade-offs before committing; pick on trade-off, not first idea. Identify whether
      the **normal flow or a dominant anomaly flow** is the hard part — either may drive the design.
