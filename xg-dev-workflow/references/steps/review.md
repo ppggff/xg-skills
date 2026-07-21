@@ -9,7 +9,11 @@ draws on agent-skills `code-review-and-quality`.
 
 Read-only: never edits product code, never advances a phase. Fixes happen only on an
 explicit human go afterwards — and when applied, **each fix is committed** (one concern per
-commit, per implement's Commit cadence; `push` stays human-gated).
+commit, per implement's Commit cadence; `push` stays human-gated). **A fix that changes
+behavior updates `test.md` (a coverage row + suggested-verification) like an implement slice,
+then runs M3** — applying fixes as a quick commit batch bypasses the per-slice test-write
+discipline, and M3's test-consistency check only fires if you actually run it after the edit
+(2026-07-21: 6 review-fix commits changed behavior with no test.md row until the human asked).
 
 **Two ways it runs:** (1) **ad-hoc** — invoked any time on any diff/PR (standalone); (2) **the
 standard close-out gate** for an M-or-larger requirement — run after 测试, before the card goes

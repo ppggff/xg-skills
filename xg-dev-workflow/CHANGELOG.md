@@ -28,6 +28,17 @@ blocks, per anti-sediment):
 - **Standard review tier gains a reuse/cohesion check in the Standards axis** (`review.md`): the same
   two named checks, so it isn't only correctness + convention.
 
+## 2026-07-21 (review fix-application must sync test.md + run M3)
+
+`review.md`'s fix-application clause said only "each fix is committed" — silent, at the site
+where fixes land, on updating `test.md` for a behavior-changing fix. Applying fixes as a quick
+commit batch bypasses implement's per-slice test-write, and M3's test-consistency check fires
+only if actually run after the edit; the two blind spots combined let 6 card-005 review-fix
+commits change behavior with no `test.md` coverage row until the human noticed. Added one line
+requiring a behavior-changing fix to update `test.md` (coverage row + suggested-verification)
+like an implement slice and then run M3. (Mostly an execution miss of existing mechanisms — the
+addition just names the obligation at the one place the fix-application flow lives.)
+
 ## 2026-07-21 (pin the base ref for review + simplify scope)
 
 Both the close-out review and the implement simplify sweep said they cover "the whole change"
