@@ -151,7 +151,8 @@ HEAD)..HEAD` is the diff to sweep.
     concern X a backend/interface hook, concern Y of the same shape is a hook too — not an
     `if type == :foo` special-case in the caller.
   A comments-only sweep diff on a change that introduced helpers/abstractions didn't run: state
-  the reuse/cohesion you checked, not just "swept".
+  the reuse/cohesion you checked, not just "swept". (These two checks mirror the standard review
+  tier's Standards axis, `review.md` step 4 — keep the two in sync.)
 **test-after / "describe, don't run" projects: non-structural cleanups only** (comments, dead
 code, naming) — a structural refactor without a runnable net carries asymmetric risk; note the
 skipped candidates in `progress.md` for the human. Record the sweep (or its skip) in

@@ -96,9 +96,10 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      `if type == :foo` special-case)? (2026-07-21, card 002: the correctness + convention axes were
      blind to both — a duplicated prefix helper and a special-cased preflight — the human caught
      them post-merge; an embedded shared sub-expression evades a whole-function dup scan, so name
-     these two checks explicitly.) **Invariants axis** (session model) — context-pack invariants,
-     concurrency, fail-safe, security. No model-diversity sweep at this tier; findings carry their
-     axis into adjudication.
+     these two checks explicitly.) (The same two checks mirror implement.md's simplify-sweep
+     reuse/cohesion checklist — keep the two in sync.) **Invariants axis** (session model) —
+     context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
+     tier; findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens
      fan-out below + adversarial trio + the standing different-model sweep + saturation repeat
      passes (5b). **Start lean, expand on evidence:** pass 1 dispatches the sharp core
