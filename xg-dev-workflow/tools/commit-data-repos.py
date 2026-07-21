@@ -64,6 +64,80 @@ def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
     )
 
 
+def scoped_pathspecs(kind: str, project: str) -> list:
+    """project name -> pathspec prefixes for this repo's layout (R4).
+
+    Pure prefix mapping — dev_root/KB lay out by project as the first path level, so
+    this needs no read of the shared config's `projects:` map (that maps product-repo
+    paths, not these data-repo subdirs).
+    """
+    if kind == "kb":
+        return [f"raw/{project}", f"wiki/{project}"]
+    return [project]
+
+
+def parse_porcelain_z(raw: str) -> list:
+    """`git status --porcelain -z` output -> flat list of touched paths.
+
+    -z avoids core.quotePath mangling non-ASCII paths. A rename/copy entry (XY where
+    X or Y is R/C) carries an extra NUL-terminated orig-path field after the path;
+    skip it — the new path is what matters for scoping.
+    """
+    fields = raw.split("\0")
+    paths = []
+    i = 0
+    while i < len(fields) and fields[i]:
+        entry = fields[i]
+        status, path = entry[:2], entry[3:]
+        paths.append(path)
+        if status[0] in ("R", "C"):
+            i += 1
+        i += 1
+    return paths
+
+
+def group_of(path: str, kind: str) -> str:
+    """First-level project group for a touched path; '(root)' for unowned files (R6)."""
+    parts = path.split("/")
+    if kind == "kb":
+        if len(parts) >= 3 and parts[0] in ("raw", "wiki"):
+            return parts[1]
+        return "(root)"
+    if len(parts) >= 2:
+        return parts[0]
+    return "(root)"
+
+
+def existing_pathspecs(repo: Path, pathspecs: list) -> list:
+    """Filter to pathspecs git actually knows about (on disk or tracked) — R1/R4 guard.
+
+    `git add -A -- <ps>...` / `git commit -- <ps>...` abort the WHOLE call if ANY
+    pathspec matches nothing at all (fatal, exit 128) — even when other pathspecs in
+    the same call would have matched. Filtering first turns an unknown project, or a
+    project missing one of the two KB subdirs, into a clean empty/partial scope
+    instead of a hard git failure (verified against real git, not assumed).
+    """
+    kept = []
+    for ps in pathspecs:
+        if (repo / ps).exists() or git(repo, "ls-files", "--", ps).stdout.strip():
+            kept.append(ps)
+    return kept
+
+
+def sweep_groups(repo: Path, kind: str) -> dict:
+    """All touched paths in `repo`, grouped by project ('(root)' for unowned) — R2/R6.
+
+    `-uall` expands a brand-new untracked directory into its individual files —
+    without it git reports just the directory (e.g. `wiki/`), which would misgroup an
+    entirely-new project's files into '(root)'.
+    """
+    status = git(repo, "status", "--porcelain", "-uall", "-z")
+    groups = {}
+    for path in parse_porcelain_z(status.stdout):
+        groups.setdefault(group_of(path, kind), []).append(path)
+    return groups
+
+
 def is_repo(repo: Path) -> bool:
     # Must be its own work-tree toplevel: merely being inside an ancestor's
     # work tree would send `git add -A` up into that repo.
