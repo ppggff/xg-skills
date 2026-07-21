@@ -25,6 +25,22 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    "current diff"; in a multi-repo workspace confirm which repo. Skip (and say so) if
    already reviewed and unchanged, or trivially mechanical. Note diff size: ~300 lines
    is one sitting; >1000 suggests reviewing in slices.
+   **Pin the base ref (what "the change" is measured against) — state it in the report.**
+   The human's explicit range/PR always wins. When none is given:
+   - **Close-out gate for a card** → base = the card's **integration point**: `origin/<main>`
+     (or the merge-base with it, `git merge-base origin/<main> HEAD`) — the whole set of commits
+     this card adds on top of trunk, so the review sees the card as it will land, not just the
+     latest session's slices. `progress.md` frontmatter (repo/branch) names the branch; a
+     recorded design-freeze / branch-start SHA, if present, is the base when the card shares a
+     branch with earlier merged work.
+   - **Repeat review of the same card** → base = the **tip the last `notes/review-*.md` covered**
+     (record the reviewed-through SHA in each report so the next round is incremental) — review
+     only commits since, plus any file the prior round flagged and a fix touched.
+   - **Ad-hoc / standalone** → base = whatever the human named; if only a branch is given, its
+     merge-base with trunk.
+   Cross-session cards are the trap: a multi-session card's "latest changes" is **not** the card's
+   change — always base on the integration point, or a sweep/review silently misses the earlier
+   sessions' commits (2026-07-21).
    **Fail fast before any dispatch:** resolve the ref (`git rev-parse <target>`) and confirm
    the diff is non-empty — a bad ref or an empty diff dies here, not inside parallel lens
    agents.

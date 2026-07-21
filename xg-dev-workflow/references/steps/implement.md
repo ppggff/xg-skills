@@ -137,6 +137,11 @@ whole change — reuse, dead code, altitude/abstraction cleanups, a final commen
 green suite as the safety net; re-run the full suite after; commit it separately (P1). Bindable:
 `use:simplify` (or a code-simplifier agent). The per-slice guards (P0, deletion test) still apply
 during slices — the sweep is the whole-diff pass they can't do.
+**"Whole change" = the card's whole diff vs its integration point** (`origin/<main>` or the
+merge-base with it), the same base the close-out review pins (`review.md` step 1) — **not** the
+last session's slices. A multi-session card is the trap: sweeping only the latest commits leaves
+earlier sessions' reuse/dead-code/altitude untouched. `git diff $(git merge-base origin/<main>
+HEAD)..HEAD` is the diff to sweep.
 - **Reuse/cohesion is the sweep's core — a comment pass is not a sweep** (2026-07-21 retro, card
   002: a sweep run as a one-line lint nit let two reuse/cohesion misses reach the human). When the
   change added helpers/abstractions, the pass must concretely answer, over the whole diff:

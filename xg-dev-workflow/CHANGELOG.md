@@ -28,6 +28,24 @@ blocks, per anti-sediment):
 - **Standard review tier gains a reuse/cohesion check in the Standards axis** (`review.md`): the same
   two named checks, so it isn't only correctness + convention.
 
+## 2026-07-21 (pin the base ref for review + simplify scope)
+
+Both the close-out review and the implement simplify sweep said they cover "the whole change"
+without defining what that's measured against — ambiguous for a card whose implementation spans
+many commits across sessions (the trap: basing on the latest session's slices silently drops the
+earlier sessions' commits from the sweep/review).
+
+- **`review.md` step 1 now pins the base ref** and requires stating it in the report: the human's
+  explicit range/PR wins; a close-out gate bases on the card's **integration point**
+  (`origin/<main>` / its merge-base); a **repeat** review is incremental from the tip the last
+  `notes/review-*.md` covered (each report records its reviewed-through SHA); ad-hoc uses what the
+  human named.
+- **`implement.md` simplify sweep** defines "whole change" as the card's diff vs that same
+  integration point, with the concrete `git diff $(git merge-base origin/<main> HEAD)..HEAD`.
+
+Why: without a pinned base, cross-session cards get partially-reviewed/partially-swept — exactly
+how the card-005 quality issues (previous entry) reached manual review.
+
 ## 2026-07-21 (catch quality/altitude issues earlier — prevention default-on + a merged review lens)
 
 From a cbdb card-005 retro: a batch of manual-review findings that were all quality/altitude,
