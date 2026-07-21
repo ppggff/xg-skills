@@ -223,17 +223,10 @@
   .card .nn dd.next { color: var(--muted); }
   /* R4/R62 gate-track (signature): single row, square node + label per phase, pinned to card bottom;
      doc deep-links preserved; ▏ marks the decision→execution zone boundary before 实现. */
-  .card .steps { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; }
-  .card .phase { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
-  .card .phase .node { width: 9px; height: 9px; flex: none; position: relative; top: -2px; border: 1.5px solid var(--s-backlog); background: var(--bg); }   /* -2px optical: PingFang CJK label ink sits high in the line box */
-  .card .phase.done .node { background: var(--s-done); border-color: var(--s-done); }
-  .card .phase.doing .node { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 47%); }
-  .card .phase.pending .node { border-style: dashed; border-color: var(--line2); }
-  .card .phase .lbl { font-family: var(--chrome); font-size: 11px; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
-  .card .phase.done .lbl { color: var(--body); }
-  .card .phase.doing .lbl { color: var(--accent); font-weight: 600; }
-  .card a.phase:hover .lbl { text-decoration: underline; }
-  .card .phase.gate { border-left: 2px solid color-mix(in srgb, var(--accent) 70%, transparent); margin-left: 5px; padding-left: 9px; }
+  /* gate-track = compact label+mark (.pc, shared with the drawer strip) — the old square
+     nodes never quite baseline-aligned with CJK labels */
+  .card .steps { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 8px; margin-top: auto; padding-top: 8px; }
+  .card a.pc:hover { text-decoration: underline; }
   .card .steps .tail { display: flex; gap: 9px; margin-left: auto; }
   .card a.step { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11px; }
   .card a.step:hover { text-decoration: underline; }
@@ -272,7 +265,6 @@
   /* 007 D3: top summary strip — compact phases + chips; body keeps Now/Next/Blockers/Docs */
   .cd-strip { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 2px 0 7px;
     border-bottom: 1px dashed var(--line); margin-bottom: 6px; }
-  .pc-group { display: inline-flex; gap: 8px; }
   .pc { font-family: var(--chrome); font-size: 11px; color: var(--body); text-decoration: none; white-space: nowrap; }
   .pc .pc-m { margin-left: 1px; }
   .pc .pc-m.done { color: var(--s-done); }
@@ -1075,16 +1067,18 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function stClass(state) { return "st-" + SV.stName(state); }   // pure mappings live in SV (unit-tested)
   function stVar(state) { return "--s-" + SV.stName(state); }
-  function stepHtml(c) {                           // R4/R62: gate-track — node+label per phase, linked to its doc
+  function stepHtml(c) {                           // R4/R62: gate-track — compact label+mark per phase, linked to its doc
     var base = c.project + "/" + c.dir + "/";
     var line = c.steps.map(function (s) {
       var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1);
-      var file = STEP_FILE[label], fill = SV.stepFill(state), gate = label === "实现" ? " gate" : "";
-      var title = esc(label + (state ? ": " + state : "")), inner = '<span class="node"></span><span class="lbl">' + esc(label) + "</span>";
+      var file = STEP_FILE[label], fill = SV.stepFill(state);
+      var title = esc(label + (state ? ": " + state : ""));
+      var inner = esc(label) + '<span class="pc-m ' + fill + '">' +
+        (fill === "done" ? "✓" : fill === "doing" ? "●" : "—") + "</span>";
       return (file && state !== "—")
-        ? '<a class="phase ' + fill + gate + '" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"
-        : '<span class="phase ' + fill + gate + '" title="' + title + '">' + inner + "</span>";
-    }).join("");
+        ? '<a class="pc" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"
+        : '<span class="pc" title="' + title + '">' + inner + "</span>";
+    }).join(" ");
     var tail = '<a class="step" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>';
     if (window.GITWEB_URL) {   // R3/R6: cross-origin deep-link into the gitweb companion (+ card branch)
       tail += ' <a class="step" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
@@ -1114,16 +1108,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // the body keeps only Now/Next/Blockers/Docs. Task/trace detail lives on the trace page.
     function stripHtml() {
       var tkey = c.project + "/" + c.nnn, d = traceCache[tkey];
-      var phasesC = c.steps.map(function (s) {
-        var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1);
-        var fill = SV.stepFill(state);
-        var inner = esc(label) + '<span class="pc-m ' + fill + '">' +
-          (fill === "done" ? "✓" : fill === "doing" ? "●" : "—") + "</span>";
-        var file = STEP_FILE[label], title = esc(label + (state ? ": " + state : ""));
-        return (file && state !== "—")
-          ? '<a class="pc" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"
-          : '<span class="pc" title="' + title + '">' + inner + "</span>";
-      }).join(" ");
       var tc = SV.taskCounts(c.tasks);
       var traceInner, asof = "";
       if (!d) { ensureTrace(tkey); traceInner = "Trace <span class='cd-src'>…</span>"; }
@@ -1135,7 +1119,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
           (d.repo_anchor ? "" : ' <span class="trcell na">未检查</span>');
         asof = (d.generated_at || "").replace("T", " ").slice(11, 16);
       }
-      return '<div class="cd-strip"><span class="pc-group">' + phasesC + "</span>" +
+      return '<div class="cd-strip">' +
         '<button class="cd-chip" data-nav="trace" data-card="' + esc(tkey) + '">Tasks ' +
           (tc.total ? tc.done + "/" + tc.total : "—") + "</button>" +
         '<button class="cd-chip" data-nav="trace" data-card="' + esc(tkey) + '"' +
@@ -1151,7 +1135,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
         '<span class="cd-title">' + esc(c.project) + " · " + esc(c.nnn) + " — " + title + "</span>" +
         '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
-      '<div class="cd-body">' + stripHtml() + row("Now", c.now) + row("Next", c.effective_next) + row("Blockers", c.blockers) +
+      '<div class="cd-body">' + stripHtml() + row("Now", c.now) + row("Next", c.effective_next) + row("Block", c.blockers) +
         '<div class="cd-row"><span class="cd-k">Docs</span><span class="cd-phases">' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +
