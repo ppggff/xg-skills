@@ -137,6 +137,16 @@ whole change — reuse, dead code, altitude/abstraction cleanups, a final commen
 green suite as the safety net; re-run the full suite after; commit it separately (P1). Bindable:
 `use:simplify` (or a code-simplifier agent). The per-slice guards (P0, deletion test) still apply
 during slices — the sweep is the whole-diff pass they can't do.
+- **Reuse/cohesion is the sweep's core — a comment pass is not a sweep** (2026-07-21 retro, card
+  002: a sweep run as a one-line lint nit let two reuse/cohesion misses reach the human). When the
+  change added helpers/abstractions, the pass must concretely answer, over the whole diff:
+  - **New helper/constant → grep the touched module for the same logic first.** A new `arch→prefix`
+    helper beside an existing one that already computes it is a *merge*, not a new method.
+  - **New cross-cutting concern → match the shape of its just-built sibling.** If this change made
+    concern X a backend/interface hook, concern Y of the same shape is a hook too — not an
+    `if type == :foo` special-case in the caller.
+  A comments-only sweep diff on a change that introduced helpers/abstractions didn't run: state
+  the reuse/cohesion you checked, not just "swept".
 **test-after / "describe, don't run" projects: non-structural cleanups only** (comments, dead
 code, naming) — a structural refactor without a runnable net carries asymmetric risk; note the
 skipped candidates in `progress.md` for the human. Record the sweep (or its skip) in

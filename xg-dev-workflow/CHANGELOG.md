@@ -4,6 +4,30 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-21 (sweep substance + a standard-tier reuse lens — follow-up to the card-005 retro below)
+
+vagrant-qemu card 002 hit the **same class** the card-005 retro (below) had just addressed —
+manual-review-caught reuse/cohesion, not bugs — but through the residual gap that fix left:
+
+- The simplify-sweep gate checks that the sweep **ran** (or a skip is recorded), not that it had
+  **substance** — a sweep executed as a one-line comment/lint nit satisfies the gate while doing no
+  reuse/cohesion work. Two misses reached the human: a new `homebrew_prefix` helper duplicating the
+  `arch→prefix` logic already in `default_qemu_dir`, and a `preflight` special-cased with
+  `if net_mode == :socket_vmnet` in the driver instead of reusing the backend-hook shape the same
+  change had just built for `launch_prefix`.
+- The **standard** review tier's three axes (spec · convention · invariants) have no reuse/cohesion
+  lens; the close-out review confirmed correctness cleanly and still missed both. An embedded shared
+  sub-expression (not a whole-function dup) also evades a quick dup scan.
+
+Fixes, minimal-diff (sharpen the existing sweep + fold into the existing Standards axis — no new
+blocks, per anti-sediment):
+- **Simplify sweep now carries a concrete reuse/cohesion checklist** (`implement.md`): new helper →
+  grep the touched module for the same logic first; new cross-cutting concern → match its just-built
+  sibling's shape (hook, not caller special-case). A comments-only sweep diff on a change that added
+  abstractions is declared "didn't run" — state the reuse/cohesion checked, not just "swept".
+- **Standard review tier gains a reuse/cohesion check in the Standards axis** (`review.md`): the same
+  two named checks, so it isn't only correctness + convention.
+
 ## 2026-07-21 (catch quality/altitude issues earlier — prevention default-on + a merged review lens)
 
 From a cbdb card-005 retro: a batch of manual-review findings that were all quality/altitude,

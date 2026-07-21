@@ -70,9 +70,15 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      missing/partial items, scope creep (test: every changed line traces to a requirement /
      design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
      (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
-     run). **Invariants axis** (session model) — context-pack invariants, concurrency,
-     fail-safe, security. No model-diversity sweep at this tier; findings carry their axis
-     into adjudication.
+     run) + **reuse/cohesion when the change adds helpers/abstractions**: does a new helper
+     duplicate one in the touched module (grep it), and is a new cross-cutting concern consistent
+     with a sibling pattern the *same change* built (an interface hook vs a caller-side
+     `if type == :foo` special-case)? (2026-07-21, card 002: the correctness + convention axes were
+     blind to both — a duplicated prefix helper and a special-cased preflight — the human caught
+     them post-merge; an embedded shared sub-expression evades a whole-function dup scan, so name
+     these two checks explicitly.) **Invariants axis** (session model) — context-pack invariants,
+     concurrency, fail-safe, security. No model-diversity sweep at this tier; findings carry their
+     axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens
      fan-out below + adversarial trio + the standing different-model sweep + saturation repeat
      passes (5b). **Start lean, expand on evidence:** pass 1 dispatches the sharp core
