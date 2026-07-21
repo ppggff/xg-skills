@@ -16,7 +16,10 @@ amends/rebases** (push + history-rewrite stay human-gated, per global Git & MR S
 NOT a byte-identical synced script — it lives only here (xg-dev-workflow/tools/).
 
 Usage:
-  commit-data-repos.py [--message MSG] [--reason TEXT] [--only kb|docs]
+  commit-data-repos.py [--message MSG] [--reason TEXT] [--only kb|docs] [--project NAME]
+`--project NAME` scopes the commit to that project's paths only (both repos) — the
+gate-commit mode; paths outside NAME stay uncommitted (warned, not lost). Omit it for
+the sweep safety net.
 Exit 0 always (a commit failure on one repo is reported, doesn't abort the other).
 """
 import argparse
@@ -150,31 +153,62 @@ def is_repo(repo: Path) -> bool:
         return False
 
 
-def commit_repo(repo: Path, label: str, message: str) -> str:
+def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool) -> list:
+    """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit.
+
+    D4: pathspec is scoped on **both** `add` and `commit` — a concurrent session's own
+    add→commit window shares this same git index; scoping only `add` would still let a
+    path it staged in that window get swept into this commit at commit time.
+    """
+    pathspecs = existing_pathspecs(repo, scoped_pathspecs(kind, project))
+    if inited:
+        pathspecs = pathspecs + [".gitignore"]  # D3: never lost to scoping
+    if not pathspecs:
+        return [f"{label}: nothing to commit for project {project}"]
+    msg = ("init: " + label + " repo\n\n" + message) if inited else message
+    git(repo, "add", "-A", "--", *pathspecs)
+    res = git(repo, "commit", "-m", msg, "--", *pathspecs)
+    if res.returncode != 0:
+        return [f"{label}: nothing committed for project {project} "
+                f"({res.stdout.strip() or res.stderr.strip()})"]
+    head = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()
+    lines = [f"{label}: committed {head} (project {project}){' (initialized)' if inited else ''}"]
+    leftover = parse_porcelain_z(git(repo, "status", "--porcelain", "-uall", "-z").stdout)
+    if leftover:
+        lines.append(f"{label}: {len(leftover)} path(s) left uncommitted "
+                      f"(out of scope for --project {project}): " + ", ".join(leftover))
+    return lines
+
+
+def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None) -> list:
     if not repo.exists():
-        return f"{label}: {repo} does not exist — skipped"
+        return [f"{label}: {repo} does not exist — skipped"]
     inited = False
     if not is_repo(repo):
         if git(repo, "init").returncode != 0:
-            return f"{label}: git init failed — skipped"
+            return [f"{label}: git init failed — skipped"]
         gi = repo / ".gitignore"
         if not gi.exists():
             gi.write_text(GITIGNORE, encoding="utf-8")
         inited = True
-    # anything to commit?
+
+    if project is not None:
+        return _commit_scoped(repo, label, kind, message, project, inited)
+
+    # sweep / whole-repo path — T3 replaces this with per-project grouped commits.
     status = git(repo, "status", "--porcelain")
     if status.returncode != 0:
-        return f"{label}: git status failed — skipped"
+        return [f"{label}: git status failed — skipped"]
     if not status.stdout.strip() and not inited:
-        return f"{label}: clean — nothing to commit"
+        return [f"{label}: clean — nothing to commit"]
     git(repo, "add", "-A")
     msg = ("init: " + label + " repo\n\n" + message) if inited else message
     res = git(repo, "commit", "-m", msg)
     if res.returncode != 0:
         # e.g. nothing staged after add (rare) — report, don't fail hard
-        return f"{label}: nothing committed ({res.stdout.strip() or res.stderr.strip()})"
+        return [f"{label}: nothing committed ({res.stdout.strip() or res.stderr.strip()})"]
     head = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()
-    return f"{label}: committed {head}{' (initialized)' if inited else ''}"
+    return [f"{label}: committed {head}{' (initialized)' if inited else ''}"]
 
 
 def main():
@@ -182,6 +216,9 @@ def main():
     ap.add_argument("--message", default=None)
     ap.add_argument("--reason", default=None)
     ap.add_argument("--only", choices=["kb", "docs"], default=None)
+    ap.add_argument("--project", default=None,
+                    help="scoped mode (R3): commit only this project's paths, "
+                         "in both repos (R4). Omit for the sweep safety net.")
     a = ap.parse_args()
 
     cp = config_path()
@@ -196,12 +233,13 @@ def main():
 
     targets = []
     if a.only in (None, "kb"):
-        targets.append((kb, "knowledge (KB)"))
+        targets.append((kb, "knowledge (KB)", "kb"))
     if a.only in (None, "docs"):
-        targets.append((docs, "dev-workflow (docs)"))
+        targets.append((docs, "dev-workflow (docs)", "docs"))
 
-    for repo, label in targets:
-        print(commit_repo(repo, label, default_msg))
+    for repo, label, kind in targets:
+        for line in commit_repo(repo, label, kind, default_msg, project=a.project):
+            print(line)
     sys.exit(0)
 
 

@@ -50,7 +50,7 @@ def log_paths(repo):
     """Files touched by the tip commit."""
     out = subprocess.run(["git", "-C", str(repo), "show", "--stat", "--format=", "HEAD"],
                           capture_output=True, text=True, env=GIT_ENV).stdout
-    return [line.strip().split(" |")[0] for line in out.splitlines() if line.strip()]
+    return [line.split(" |")[0].strip() for line in out.splitlines() if " | " in line]
 
 
 class ScopedPathspecs(unittest.TestCase):
@@ -134,6 +134,60 @@ class SweepGroups(unittest.TestCase):
         groups = cdr.sweep_groups(repo, "kb")
         self.assertEqual(set(groups), {"cbdb"})
         self.assertEqual(sorted(groups["cbdb"]), ["raw/cbdb/note.md", "wiki/cbdb/concept.md"])
+
+
+class CommitRepoScoped(unittest.TestCase):
+    def _two_projects_dirty(self):
+        repo = init_repo({"projA/f.txt": "1\n", "projB/g.txt": "1\n"})
+        dirty(repo, "projA/f.txt")
+        dirty(repo, "projB/g.txt")
+        return repo
+
+    def test_scoped_commit_hits_only_project_prefix(self):
+        repo = self._two_projects_dirty()
+        cdr.commit_repo(repo, "label", "docs", "msg", project="projA")
+        self.assertEqual(log_paths(repo), ["projA/f.txt"])
+
+    def test_out_of_scope_files_remain_and_are_warned(self):
+        repo = self._two_projects_dirty()
+        lines = cdr.commit_repo(repo, "label", "docs", "msg", project="projA")
+        status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                                 capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("projB/g.txt", status)
+        self.assertTrue(any("projB/g.txt" in l for l in lines))
+
+    def test_prestaged_out_of_scope_not_swept_in(self):
+        repo = self._two_projects_dirty()
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, env=GIT_ENV)
+        cdr.commit_repo(repo, "label", "docs", "msg", project="projA")
+        self.assertEqual(log_paths(repo), ["projA/f.txt"])
+        status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                                 capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("projB/g.txt", status)
+
+    def test_unknown_project_reports_nothing_to_commit(self):
+        repo = self._two_projects_dirty()
+        lines = cdr.commit_repo(repo, "label", "docs", "msg", project="ghost")
+        self.assertTrue(any("nothing to commit" in l for l in lines))
+        log = subprocess.run(["git", "-C", str(repo), "log", "--oneline"],
+                              capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertEqual(len(log.splitlines()), 1)  # only the fixture's init commit
+
+    def test_kb_kind_commits_both_raw_and_wiki(self):
+        repo = init_repo({"raw/cbdb/note.md": "1\n", "wiki/cbdb/concept.md": "1\n"})
+        dirty(repo, "raw/cbdb/note.md")
+        dirty(repo, "wiki/cbdb/concept.md")
+        cdr.commit_repo(repo, "label", "kb", "msg", project="cbdb")
+        self.assertEqual(sorted(log_paths(repo)), ["raw/cbdb/note.md", "wiki/cbdb/concept.md"])
+
+    def test_fresh_repo_init_commits_gitignore_with_scoped_project(self):
+        d = tempfile.mkdtemp()
+        repo = Path(d)
+        (repo / "projA").mkdir()
+        (repo / "projA" / "f.txt").write_text("1\n", encoding="utf-8")
+        cdr.commit_repo(repo, "label", "docs", "msg", project="projA")
+        self.assertTrue((repo / ".gitignore").exists())
+        self.assertEqual(sorted(log_paths(repo)), [".gitignore", "projA/f.txt"])
 
 
 if __name__ == "__main__":
