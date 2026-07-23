@@ -67,6 +67,13 @@ sequenceDiagram message text and unquoted flowchart labels — the tail parses a
 and the diagram errors. Use fullwidth punctuation in CJK diagram text; after writing, grep the
 mermaid blocks for `\x3b` (2026-07-23, card-005 render failure).
 
+**Mermaid gotcha — subgraph `direction` is ignored when the subgraph has external links**
+(documented limitation): any edge crossing the subgraph boundary makes the subgraph inherit the
+parent graph's direction, so a "two vertical columns" layout built from `direction TB` subgraphs
++ cross edges silently renders flat. Don't fight the layouter with invisible `~~~` chains either
+— if a diagram is too dense, **reduce its semantic node/edge count** (merge same-role nodes,
+move detail to a caption) instead of forcing geometry (2026-07-23, card-005).
+
 **ASCII fallback — CJK width:** every Chinese character and Chinese punctuation occupies **2 columns**; ASCII,
 box-drawing (`┌ ─ ┐ │ └ ┘`), and arrows (`▼ ▲ ▶`) are **1 column** in standard monospace.
 Use the box-drawing/arrow glyphs (nicer than `+ - | v`). The alignment bug is CJK *content* —
