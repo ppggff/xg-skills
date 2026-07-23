@@ -39,12 +39,18 @@ sentences.
     `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`. Designated mapping fields and a
     doc's first mention always link; repeat prose mentions and same-file citations stay bare.
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设
-  (assumption). Only the claims a decision rests on (M1).
+  (assumption). Only the claims a decision rests on (M1). A doc may **centralize** provenance:
+  one「事实清单」section of numbered facts (`F<n>`, each with its source), cited inline as
+  `[F<n>]` — keeps long prose readable; the inline marker form stays for isolated load-bearing
+  sentences. Pick one form per doc, don't mix densely.
 - **Reasoning shown (human-first docs)** — requirement/design/detail/ADR/review and
   investigation-notes prose carries the logical analysis, **evidence → mechanism → conclusion**, so
   the approver can check the inference, not just trust the citations — a fact table with a
   conclusion bolted on is a grep-hit list at doc level. Execution-zone docs stay terse: link the
-  reasoning, don't restate it.
+  reasoning, don't restate it. **Tables carry facts, prose carries reasoning**: tables hold
+  contracts / enumerable facts / comparisons; a compressed phrase in a table cell is a label,
+  not an argument — its rationale lives as prose in the same section. (Learned 2026-07-23:
+  card-005 design tables cost three "what does this cell mean" round-trips.)
 - **Reader-aware** — write each doc for its primary reader (each template states its Reader); the
   audience split is「Two zones」below.
 - **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
@@ -59,8 +65,15 @@ sentences.
   - `L<n>` abstraction layers (design) · `D<n>` design decisions/子决策 (ADR-scoped: `ADR-NNNN D<n>`).
   - `MS<n>` milestones/分期 — bare `M<n>` stays this skill's mechanisms `M1`–`M6`.
   - `P<n>` implement's principles (`implement.md` Principles).
+  - `F<n>` a doc's centralized fact-list (事实清单) entries — the provenance 集中制 form.
   - Review findings: `#<n>` within a report's 修复决策表, severity spelled out
     (High/Med/Low — no H/M/L shorthand).
+  - **Symbol budget** — a prime evolution (`X'`→`X''`) survives **one** generation; the next
+    supersession renames/consolidates instead of adding another prime. Introducing a second
+    staging/tier scheme alongside an existing one requires a one-line statement of their
+    relation at first use, and its letter must not collide with this list. (Learned 2026-07-23:
+    card-005 ran A2'/C2''' three primes deep, and its delivery tiers "T0~T3" collide with
+    plan-task `T<n>`.)
   - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
     only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
     Mermaid node ids are diagram-local — exempt.

@@ -62,6 +62,11 @@ trivial diagram or one Mermaid can't express. Either way: label each box with it
 and each arrow with what flows. A diagram that only restates the prose adds nothing — it must show
 structure the prose can't.
 
+**Mermaid gotcha — ASCII `;`:** a bare ASCII semicolon is a statement separator even inside
+sequenceDiagram message text and unquoted flowchart labels — the tail parses as a new statement
+and the diagram errors. Use fullwidth punctuation in CJK diagram text; after writing, grep the
+mermaid blocks for `\x3b` (2026-07-23, card-005 render failure).
+
 **ASCII fallback — CJK width:** every Chinese character and Chinese punctuation occupies **2 columns**; ASCII,
 box-drawing (`┌ ─ ┐ │ └ ┘`), and arrows (`▼ ▲ ▶`) are **1 column** in standard monospace.
 Use the box-drawing/arrow glyphs (nicer than `+ - | v`). The alignment bug is CJK *content* —

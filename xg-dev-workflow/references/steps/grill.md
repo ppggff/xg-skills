@@ -142,6 +142,18 @@ frozen); anything else lands in Open questions / `roadmap.md` without re-opening
 stopping too early; rounds repeatedly ending dry → stopping too late. The retro tunes the bar
 from this signal (usage log + `log.md`).
 
+## Fold-in (压实) — the phase doc stays current-state
+
+When a round's verdict lands in the phase doc, **fold the correction into the live text**:
+rewrite the affected sentences/sections so the body reads as if written today. Process history
+goes to the grill-log and the doc's Change log — never the body. A superseded alternative
+leaves the body (a one-line final verdict + git/grill-log pointer replaces its full text).
+The body never stacks two generations of corrections — dated inline notes piling on each other
+(「2026-XX-XX 更正…」on top of an earlier 更正) are the smell. The supersede discipline below
+is for the **grill-log** (append-only history); the phase doc is the opposite: always
+current-state. (2026-07-23: card-005's design.md needed a full restructure after 7 append-style
+rounds.)
+
 ## Rollback (回退 — return to a previous question)
 "回退" / "go back" re-opens an earlier decision. Reuse the append-only **supersede** discipline —
 don't delete history:

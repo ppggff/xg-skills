@@ -15,6 +15,10 @@ updated: YYYY-MM-DD
 > never to accommodate implementation convenience.
 > **Reader: human-first** (decision zone — you approve & freeze it; this is the last binding gate
 > before autonomous execution). Write it to be reviewed at module altitude. (SKILL.md「Two zones」.)
+> The body is **current-state only** (grill.md「Fold-in」): superseded alternatives compress to a
+> verdict + git/grill-log pointer. At freeze, an M+ card may optionally emit a one-shot freeform
+> 阅读稿 (reading version, `notes/design-reading.md`) for review/handoff — generated once from the
+> frozen design, never co-maintained.
 
 ## 思路 (Approach in one paragraph)
 
@@ -29,6 +33,17 @@ motivation, alternatives, and constraints — each of those has its own section 
   not the 思路.
 
 Test: a reviewer who reads **only** this paragraph can correctly restate the approach.
+
+## 速览 (Quick reference — fixed first stop)
+
+The anchors a reader needs before the body (keep to one screenful; **regenerated** as the design
+evolves, never appended):
+
+- **术语表** — the doc's load-bearing coined terms, each defined fully enough to stand alone
+  (later table cells may then use them bare — SKILL.md「Reasoning shown」table rule);
+- **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
+  enablement tiers, …), one line stating how they map (SKILL.md「Symbol budget」);
+- **待拍 gates** — the open `G<n>` decisions blocking freeze, one-line asks each.
 
 ## Understanding (concept → layer)
 

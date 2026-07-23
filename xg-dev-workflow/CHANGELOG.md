@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
+
+Seven grill rounds left hashdata/005's design.md archaeological — layered dated corrections,
+superseded plans in the body, reasoning compressed into table cells (three "what does this cell
+mean" user round-trips; user verdict: 凌乱、有的地方过于简略). A freeform rewrite read better;
+these fixes make the template version read well without losing the process anchors
+(full analysis: card 005 `notes/retro-2026-07-23-design-doc-readability.md`):
+
+- `grill.md` gains **Fold-in (压实)**: each round's correction rewrites the phase doc's live
+  text; process history goes to grill-log/Change log only; superseded alternatives leave the
+  body (verdict + pointer); no stacked dated corrections. The append-only supersede discipline
+  is explicitly scoped to the grill-log.
+- SKILL.md conventions: **tables carry facts, prose carries reasoning** (a table cell is a
+  label — its rationale must be prose in the same section; folded into Reasoning-shown);
+  **provenance 集中制** — optional per-doc `F<n>` fact-list cited as `[F<n>]` (new ID prefix);
+  **symbol budget** — a prime evolution survives one generation, the next supersession renames;
+  a second staging scheme must declare its mapping and avoid ID-letter collisions.
+- `templates/design.md`: fixed **速览** first-stop section (terms + staging-vocab map + open
+  gates; regenerated, never appended); body declared current-state-only; optional one-shot
+  freeform 阅读稿 at freeze (never co-maintained).
+- `design-grill.md`: Mermaid gotcha — ASCII `;` is a statement separator inside diagram text;
+  use fullwidth punctuation and grep mermaid blocks for `\x3b`.
+
 ## 2026-07-21 (commit-data-repos scoped to project — card 008)
 
 Two parallel Claude sessions working different projects could pull each other's still-uncommitted
