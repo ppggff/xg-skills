@@ -84,8 +84,7 @@ t("R3: help overlay markup + ?/esc bindings, suppressed while typing", () => {
   assert.match(html, /function openHelp\(\)/, "openHelp exists");
   assert.match(html, /e\.key === "\?"[^\n]*!typing[^\n]*openHelp\(\)/, "? opens help, not while typing");
   assert.match(html, /e\.key === "Escape" && helpEl\.classList\.contains\("show"\)/, "esc closes help");
-  assert.match(html, /class="side-foot"[^>]*><kbd>\?<\/kbd>/, "left sidebar shows the ? help hint");
-  assert.match(html, /sideFoot\.addEventListener\("click", openHelp\)/, "the sidebar hint opens help on click");
+  assert.match(html, /class="hint">shift-click[^<]*<kbd>\?<\/kbd> 帮助/, "the sidebar hint line mentions the ? help shortcut");
 });
 
 // --- R2: internal-link hover preview (hovercard) ---

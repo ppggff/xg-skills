@@ -135,10 +135,7 @@
   .tree-tools { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
   .tree-tools .side-label { font-family: var(--chrome); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .tree-tools .iconbtn { font-size: 10.5px; padding: 1px 7px; }
-  /* R3: left-sidebar footer hint for the ? help overlay */
-  .side-foot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-family: var(--chrome); font-size: 10.5px; color: var(--muted); cursor: pointer; }
-  .side-foot:hover { color: var(--fg); }
-  .side-foot kbd { font-family: var(--chrome); font-size: 10px; background: var(--chip); border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 5px; color: var(--fg); }
+  .hint kbd { font-family: var(--chrome); font-size: 10px; background: var(--chip); border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 5px; color: var(--body); }   /* R3: ? shortcut inline in the sidebar hint */
   .tree { font-family: var(--chrome); font-size: 12.5px; overflow: auto; flex: 1; user-select: none; }   /* R6: mono, denoised */
   /* dev/kb section root = a quiet side-label (uppercase muted), matching the comp */
   .tree > details > summary { text-transform: uppercase; font-size: 10.5px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
@@ -455,7 +452,7 @@
     </div>
     <div class="tree-tools"><span class="side-label">files</span></div>
     <div id="tree" class="tree">loading…</div>
-    <div class="hint">shift-click → open on the right · select text in a doc → 💬 comment</div>
+    <div class="hint">shift-click → open on the right · select text in a doc → 💬 comment · <kbd>?</kbd> 帮助 / 快捷键</div>
     <div id="filterbox">
       <span class="fmag">⌕</span>
       <input id="treeFilter" type="text" list="recent-filters" placeholder="filter files…" aria-label="filter files by name">
@@ -464,7 +461,6 @@
       <button class="fscope" id="fscope-dev" data-tree="dev" title="include DEV in filter">dev</button>
       <button class="fscope" id="fscope-kb" data-tree="kb" title="include KB in filter">kb</button>
     </div>
-    <div class="side-foot" title="用法 / 快捷键"><kbd>?</kbd> 帮助 / 快捷键</div>
   </aside>
   <div class="gutter show" data-resize="side"></div>
   <main id="left" class="pane"><div class="muted">loading…</div></main>
@@ -2057,7 +2053,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function openHelp() { helpBack.classList.add("show"); helpEl.classList.add("show"); }
   function closeHelp() { helpBack.classList.remove("show"); helpEl.classList.remove("show"); }
   helpBack.addEventListener("click", closeHelp);
-  var sideFoot = document.querySelector(".side-foot"); if (sideFoot) sideFoot.addEventListener("click", openHelp);   // R3: sidebar hint opens help
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
