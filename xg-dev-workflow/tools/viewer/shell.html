@@ -849,7 +849,7 @@ var SV = (function () {
     return idx;
   }
 
-  // R5/ADR-0001: build a merged, block-level diff render plan.
+  // R5: build a merged, block-level diff render plan.
   //   spans     = per top-level block source-line span {start, end} (0-based body lines, end exclusive)
   //   addedBody = 0-based body line numbers that are additions
   //   dels      = [{at, lines}] removed-line groups (at = 0-based body line they preceded)
@@ -1695,7 +1695,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
 
   // --- panes: show/collapse/resize (R24/R26/R27) -----------------------------
-  // Layout model (R58 + R8/ADR-0002): #toc is ALWAYS fixed at tocW — never the filler; the doc pane
+  // Layout model (R58 + R8): #toc is ALWAYS fixed at tocW — never the filler; the doc pane
   // (#left, or #right when open) absorbs width changes.
   //   right open   → RIGHT fills;  left = leftW (fixed), toc = tocW (fixed).
   //   right closed → LEFT fills;   toc = tocW (fixed). Closing the right pane hands its width to LEFT,
@@ -1703,7 +1703,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function applyLayout() {
     var L = PANES.left, open = PANES.right.classList.contains("show"), tw = layoutState.tocW || 240;
     if (open && !layoutState.leftW) layoutState.leftW = Math.max(200, Math.round(L.getBoundingClientRect().width / 2));
-    tocPane.style.flex = "none"; tocPane.style.width = tw + "px";   // R8/ADR-0002: #toc never fills
+    tocPane.style.flex = "none"; tocPane.style.width = tw + "px";   // R8: #toc never fills
     if (open) {
       L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
       PANES.right.style.flex = "1 1 0"; PANES.right.style.width = "auto";
@@ -1747,7 +1747,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     gutterFor("side").classList.remove("hidden"); this.classList.remove("show");
   };
   // Each gutter drags the boundary next to it; the doc pane (left/right, the filler) absorbs the
-  // change. #toc is never the filler (R8/ADR-0002) — its divider resizes #toc itself.
+  // change. #toc is never the filler (R8) — its divider resizes #toc itself.
   document.querySelectorAll(".gutter").forEach(function (g) {
     g.addEventListener("mousedown", function (e) {
       e.preventDefault();
@@ -2131,7 +2131,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (sha) renderDiffOverlay(side, sha);
     else renderDoc(side, PANES[side]._view);   // exit diff → normal render of the current doc
   }
-  function renderDiffOverlay(side, sha) {   // R5/ADR-0001: render the after-version with block-level, non-intrusive add/del coloring
+  function renderDiffOverlay(side, sha) {   // R5: render the after-version with block-level, non-intrusive add/del coloring
     var pane = PANES[side], view = pane._view; if (!view || view.kind !== "doc") return;
     var tree = view.tree, rel = view.rel;
     api("/api/filediff?path=" + encodeURIComponent(tree + "/" + rel) + "&sha=" + encodeURIComponent(sha))
@@ -2149,7 +2149,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var dels = (d.dels || []).map(function (g) { return { at: g.at - 1 - fmLines, lines: g.lines }; });
         var tmp = document.createElement("div"); tmp.innerHTML = window.marked.parse(body);
         var blocks = [].slice.call(tmp.children);
-        var useSpans = spans.length === blocks.length ? spans          // aligned; else degrade (ADR-0001 fallback)
+        var useSpans = spans.length === blocks.length ? spans          // aligned; else degrade (best-effort fallback)
           : blocks.map(function (_, i) { return spans[i] || { start: 0, end: 0 }; });
         var segs = SV.diffSegments(useSpans, addedBody, dels);
         var docbody = document.createElement("div"); docbody.className = "docbody" + (docWidth === "full" ? " full" : "");
