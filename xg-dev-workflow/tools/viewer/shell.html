@@ -21,6 +21,7 @@
     --s-active:#2563eb; --s-done:#1f8f4e; --s-blocked:#c9432f; --s-paused:#a86b16;
     --s-todo:#0e8296; --s-backlog:#6c727b; --s-dropped:#9aa0aa; --s-unknown:#8b919a;
     --radius: 0px; --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; --chrome: var(--mono);
+    --code: "Sarasa Fixed SC", var(--mono);   /* R1: code blocks prefer a CJK-fixed-width face; chrome keeps --mono */
     --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px;
   }
   /* dark values duplicated across two selectors (no build step to share a block):
@@ -177,8 +178,8 @@
   input.tocf { flex: none; margin: 5px 0 0; cursor: pointer; }
   table { border-collapse: collapse; margin: 8px 0; } td, th { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
   th { background: var(--chip); }
-  pre { overflow-x: auto; background: var(--chip); padding: 12px; border-radius: var(--radius); font-family: var(--mono); font-size: 12.5px; }
-  code { font-family: var(--mono); font-size: .92em; } :not(pre) > code { background: var(--chip); padding: 1px 5px; border-radius: var(--radius); }
+  pre { overflow-x: auto; background: var(--chip); padding: 12px; border-radius: var(--radius); font-family: var(--code); font-size: 12.5px; }
+  code { font-family: var(--code); font-size: .92em; } :not(pre) > code { background: var(--chip); padding: 1px 5px; border-radius: var(--radius); }
   blockquote { margin: 8px 0; padding: 2px 14px; border-left: 3px solid var(--line2); color: var(--muted); }
   .diff { line-height: 1.45; } .diff .add { color: var(--green); } .diff .del { color: var(--red); }
   .diff .hunk { color: var(--hunk); font-weight: 600; }

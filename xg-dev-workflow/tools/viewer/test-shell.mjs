@@ -28,6 +28,14 @@ t("all inline <script> blocks are syntactically valid", () => {
   for (const b of blocks) new vm.Script(b);   // throws on a syntax error
 });
 
+// --- R1: code blocks use a dedicated --code face (Sarasa Fixed SC first); chrome untouched ---
+t("R1: --code leads with Sarasa Fixed SC and pre/code adopt it, chrome stays --mono", () => {
+  assert.match(html, /--code:\s*"Sarasa Fixed SC"/, "--code should lead with Sarasa Fixed SC");
+  assert.match(html, /pre \{[^}]*font-family: var\(--code\)/, "pre uses var(--code)");
+  assert.match(html, /code \{ font-family: var\(--code\)/, "code uses var(--code)");
+  assert.match(html, /--chrome: var\(--mono\)/, "chrome must stay on --mono, not --code");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {
