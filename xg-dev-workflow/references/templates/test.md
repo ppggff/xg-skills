@@ -68,6 +68,6 @@ from "they actually compose."
 **Log sweep**（套件全绿后扫服务端/进程日志找 silent failure — green ≠ no error lines, step 5）:
 `<sweep command>` → `[x]` / `[!]` / `[ ]`
 
-<!-- cbdb execution policy: describe commands as suggested verification steps;
-     do not run builds/tests by default unless the user asks — the log-sweep
-     command above is listed, not run, under this policy. -->
+<!-- describe-don't-run execution policy (e.g. cbdb): describe commands as suggested
+     verification steps; do not run builds/tests by default unless the user asks — the
+     log-sweep command above is listed, not run, under this policy. -->

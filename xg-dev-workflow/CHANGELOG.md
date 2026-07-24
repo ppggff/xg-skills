@@ -77,6 +77,26 @@ truth」):
   `omission-check.md`「Board (kanban) consistency」 (`split-isolate.md` + the index template now
   point to it).
 
+### P3 — project-name generalization + leading words + description trim
+
+- **Project names generalized** — generic step files and templates that treated `cbdb` as the
+  default project now frame the rule as the *project's*, with cbdb demoted to an "e.g." example
+  (the "describe, don't run" test policy, change rules, retro classification target); the
+  cbdb-specific `FloorTable` schema placeholder in plan/detail became a generic `<SomeTable>`. The
+  load-bearing "describe, don't run" test-mode distinction is preserved; patched-fork examples
+  (Greenplum/Cloudberry on PostgreSQL) stay as concept illustrations.
+- **description trimmed** — SKILL.md frontmatter drops the identity clause already in the body
+  (the phase pipeline + "one card dir"), keeping the leading word + per-branch triggers
+  (writing-great-skills「Cut identity that's already in the body」).
+- **Leading word restored** — `diagnose.md`'s Phase 1 regained the "be aggressive / don't give up"
+  mobilization from the `diagnosing-bugs` source (the default drift is to read code for a theory
+  before the feedback loop exists).
+
+Deferred (standing decisions, not taken here): (1) CONTEXT-MAP / bounded-context glossary overlaps
+the sibling `domain-modeling` skill — pointer-reuse it vs keep xg-knowledge-lite's layer
+self-contained (also noted in that skill's CHANGELOG). (2) Optional: adopt the Fowler 12-smell
+names as leading words in review's quality lens.
+
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 
 Seven grill rounds left hashdata/005's design.md archaeological — layered dated corrections,

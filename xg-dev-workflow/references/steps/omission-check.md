@@ -115,7 +115,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - [ ] **Architecture / invariants current (KB)** — a frozen design that changed the system's shape
       updated `[[wiki/<project>/architecture]]`, and any durable invariant it established reached the
       subsystem `*-invariants` ledger (the as-built KB didn't silently drift).
-- [ ] **Scope** — no out-of-scope changes crept in (cf. requirement Scope + cbdb Change
-      Rules).
+- [ ] **Scope** — no out-of-scope changes crept in (cf. requirement Scope + the project's
+      change rules, e.g. cbdb's).
 
 Report what's missing and fix it (or list it) before considering the edit done.

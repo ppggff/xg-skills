@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow: gated phases 需求→设计→详设→实现→测试→评审, one requirement = one card dir under dev_root. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); or reviews new/changed code ('review X' / 'review 这些改动')."
+description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); or reviews new/changed code ('review X' / 'review 这些改动')."
 ---
 
 # xg-dev-workflow

@@ -3,8 +3,9 @@
 Forked from **incremental-implementation** (the test-after cycle) **+ `tdd`** (the red-green loop),
 with the **Prove-It** bug pattern from **test-driven-development** — this phase carries **both**
 cycles, picked per project (see Test mode). Adjusted: progress is logged to this requirement's
-`progress.md`; respects cbdb change rules (minimal, module-local, reversible; no ABI/interface
-changes unless requested) and its "describe, don't run" execution policy.
+`progress.md`; respects the project's change rules and execution policy — e.g. cbdb's: minimal,
+module-local, reversible changes, no ABI/interface changes unless requested, and tests
+"described, not run" by default.
 
 Updates: `progress.md` (template: `references/templates/progress.md`); code in the repo.
 
@@ -174,8 +175,8 @@ skipped candidates in `progress.md` for the human. Record the sweep (or its skip
   Two why-note cases that get missed: a **field/guard with
   several load-bearing uses but no single line naming why it exists** (a reviewer can't tell it's
   load-bearing → wastes a round confirming) — name the why once at its definition; and **code
-  that diverges from, or repairs a bug in, a patched-fork upstream** (this tree is PostgreSQL 14.4
-  + Greenplum) — a one-line why-note with the **upstream commit SHA** is allowed (a stable public
+  that diverges from, or repairs a bug in, a patched-fork upstream** (e.g. a PostgreSQL 14.4
+  + Greenplum fork) — a one-line why-note with the **upstream commit SHA** is allowed (a stable public
   anchor, like an issue ref) so a later fork-merge can reconcile.
 - **Comment pass (per slice, same sweep as the grep above)** — re-read every comment this slice
   added and delete the ones outside the allowed set. Generation defaults over-comment; the pass is

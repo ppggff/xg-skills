@@ -19,7 +19,8 @@ applies (active only by explicit linkage; default standalone).
 
 Before any theory: **one command with a tight pass/fail signal that goes red on *this* bug.**
 Bisection, hypotheses, and instrumentation all just consume it. Spend disproportionate effort
-here — build the right loop and the bug is mostly found.
+here — be aggressive and creative, and don't give up on the loop; build the right one and the bug
+is mostly found.
 
 Construction menu, roughly in order: failing test at whatever seam reaches the bug → CLI/HTTP
 invocation with a fixture input, diffed against known-good → replay of a captured trace/payload

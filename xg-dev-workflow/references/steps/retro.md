@@ -19,7 +19,7 @@ fixes back into the workflow itself — so the skill compounds.
    - a **step file** (`references/steps/*`) — the procedure was wrong/unclear;
    - a **template** (`references/templates/*`) — a doc was missing a section;
    - **SKILL.md** — a contract/mechanism/gate needs changing;
-   - **cbdb/CLAUDE.md** — a project rule should be explicit;
+   - **the project's CLAUDE.md** (e.g. `cbdb/CLAUDE.md`) — a project rule should be explicit;
    - **xg-knowledge-lite** — recurring module knowledge to capture/promote.
 3. **Propose the edits**, smallest-diff first; confirm with the human before changing
    SKILL.md or templates (they affect every future requirement).

@@ -78,7 +78,7 @@ algorithms whose correctness depends on the details.
 - Upstream `design.md` is **frozen**; `detail.md` must conform to it, never silently extend it.
 - Downstream `plan.md` **references** `detail.md`: tasks point at the structures/algorithms
   defined here instead of redefining them. A task description should read "implement the
-  FloorTable schema (详设 §数据结构)", not restate the columns.
+  `<SomeTable>` schema (详设 §数据结构)", not restate the columns.
 
 ## Runtime override
 `detail use:feature-dev:code-architect` (blueprint generation) or `use:<your-skill>`.

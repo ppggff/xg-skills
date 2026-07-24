@@ -1,7 +1,7 @@
 # Reference: Frontend / mobile testing (browser + real-device)
 
 Branch-specific test principles for **UI / mobile-facing slices**. Load this only when the
-requirement has a browser or mobile-web surface; backend / DB (cbdb-class) projects don't need it.
+requirement has a browser or mobile-web surface; backend / DB projects (e.g. cbdb) don't need it.
 These extend the general test principles in `references/steps/test.md`.
 
 - **Verify UI/frontend slices in a real browser**, not only headless — Playwright / chrome-devtools

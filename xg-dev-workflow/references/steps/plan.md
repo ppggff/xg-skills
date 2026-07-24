@@ -2,14 +2,14 @@
 
 Forked from **planning-and-task-breakdown**. Adjusted: output is this requirement's
 `plan.md` (explicitly **mutable**, vs the frozen `design.md`); tasks reference design ADRs;
-verification respects the cbdb "describe, don't run" policy.
+verification respects the project's test-execution policy (e.g. cbdb's "describe, don't run").
 
 Output: `plan.md` (template: `references/templates/plan.md`).
 
 ## Procedure
 1. **Read-only first** — re-read `design.md` + ADRs + `detail.md` (if the 详设 phase ran);
    map dependencies between the pieces they call for. **Don't redefine structures here** —
-   tasks *reference* `detail.md` for schema/algorithm/signatures ("implement the FloorTable
+   tasks *reference* `detail.md` for schema/algorithm/signatures ("implement the `<SomeTable>`
    schema, 详设 §数据结构"), not restate them. If there's no `detail.md` and the structures are
    non-trivial, consider running `detail` first.
 2. **Dependency graph** — order bottom-up: build foundations first.

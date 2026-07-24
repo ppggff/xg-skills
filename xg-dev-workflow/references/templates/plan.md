@@ -39,7 +39,7 @@ One paragraph: what this plan builds, against which design.
 - **Acceptance:** (binary walk — `[x]` only when its verification test passes; `[!]` if it
   failed; `[ ]` unverified. No subjective `[x]`.)
   - [ ] <testable condition>
-- **Verification:** test / build / manual check (cbdb: describe, do not run, unless asked).
+- **Verification:** test / build / manual check (e.g. cbdb: describe, do not run, unless asked).
 - **Dependencies:** None | T<n>
 - **Files likely touched:** `path/...`
 - **Scope:** XS | S | M | L  (L → break down further)
