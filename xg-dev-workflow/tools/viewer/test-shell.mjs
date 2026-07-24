@@ -36,6 +36,13 @@ t("R1: --code leads with Sarasa Fixed SC and pre/code adopt it, chrome stays --m
   assert.match(html, /--chrome: var\(--mono\)/, "chrome must stay on --mono, not --code");
 });
 
+// --- R7: renderMermaid removes mermaid's orphaned body temp node (the bottom "Syntax error") ---
+t("R7: renderMermaid drops mermaid's orphaned body temp node in both settle paths", () => {
+  assert.match(html, /\["d" \+ gid, "i" \+ gid\]\.forEach/, "cleanup targets #d<gid>/#i<gid>");
+  assert.match(html, /parentNode === document\.body\) el\.remove\(\)/, "only body-level orphans removed");
+  assert.match(html, /\.then\(function \(res\) \{ holder\.innerHTML = res\.svg; dropTemp\(\); \}\)/, "cleanup on success too");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

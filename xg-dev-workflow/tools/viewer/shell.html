@@ -952,8 +952,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
       blocks.forEach(function (code, i) {
         var src = code.textContent, holder = document.createElement("div");
         holder.className = "mermaid"; code.parentNode.replaceWith(holder);
-        mermaid.render("mmd" + Date.now() + i, src).then(function (res) { holder.innerHTML = res.svg; })
-          .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; });
+        var gid = "mmd" + Date.now() + i;
+        // R7: mermaid.render appends a temp measuring node (#d<gid>, or #i<gid> in sandbox mode) to
+        // document.body; on a parse error it draws its "Syntax error in text" graphic there and
+        // rejects WITHOUT removing it, orphaning it at the page bottom — so drop it ourselves.
+        var dropTemp = function () { ["d" + gid, "i" + gid].forEach(function (id) {
+          var el = document.getElementById(id); if (el && el.parentNode === document.body) el.remove(); }); };
+        mermaid.render(gid, src).then(function (res) { holder.innerHTML = res.svg; dropTemp(); })
+          .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; dropTemp(); });
       });
     }).catch(function () {});
   }
