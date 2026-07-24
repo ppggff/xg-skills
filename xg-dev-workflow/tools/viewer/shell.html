@@ -2071,7 +2071,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function lpPlace(a) {
     var el = lp, r = a.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
     var left = Math.max(8, Math.min(r.left, innerWidth - w - 12));
-    var top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);   // flip above if no room below
+    var top = r.bottom + 3; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 3);   // flip above if no room below (small gap so the pointer can bridge into it)
     el.style.left = left + "px"; el.style.top = top + "px";
   }
   function lpRender(a, bodyHtml, label, broken) {
@@ -2096,9 +2096,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
   });
   document.addEventListener("mouseout", function (e) {
     var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
-    clearTimeout(lpShowT); lpHideT = setTimeout(lpHide, 200);   // grace period to move the pointer into the preview
+    clearTimeout(lpShowT); lpHideT = setTimeout(lpHide, 450);   // grace period to move the pointer into the preview
   });
-  window.addEventListener("scroll", function () { lpHide(); }, true);   // any scroll dismisses it
+  window.addEventListener("scroll", function (e) { if (lp && lp.contains(e.target)) return; lpHide(); }, true);   // page scroll dismisses; scrolling the preview itself must not
 
   // R5: change-history dropdown — list a doc's commits; selecting one drives the diff overlay (wired in the overlay).
   var chPanel = null, chSide = null, chSel = {};

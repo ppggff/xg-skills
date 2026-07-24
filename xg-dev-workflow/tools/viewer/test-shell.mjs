@@ -91,7 +91,8 @@ t("R2: hover preview targets resolved internal doc links, read-only, with a grac
   assert.match(html, /'\.docbody a\[data-nav="doc"\]'/, "preview only on resolved internal doc links");
   assert.match(html, /function lpOpen\(a\)/, "lpOpen fetches + renders the target");
   assert.match(html, /el\.querySelectorAll\("a\[href\]"\)\.forEach/, "preview links are made read-only");
-  assert.match(html, /lpHideT = setTimeout\(lpHide, 200\)/, "grace period to move into the preview");
+  assert.match(html, /lpHideT = setTimeout\(lpHide, 450\)/, "grace period to move into the preview");
+  assert.match(html, /if \(lp && lp\.contains\(e\.target\)\) return; lpHide\(\)/, "scrolling the preview itself does not dismiss it");
 });
 
 // --- R5 (T8): change-history dropdown ---
