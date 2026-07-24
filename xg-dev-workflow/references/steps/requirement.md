@@ -22,7 +22,7 @@ not transcribe the words.
 
 1. **Restate + surface assumptions.** Echo the raw ask in your words, then list the
    assumptions you'd otherwise bake in (性质/动机/语义/范围/约束). Ask the human to
-   correct them **before** drafting. This is step 1, not an afterthought.
+   correct them **before** drafting.
    Two checks before drafting anything (from `triage`): **(a) redundancy** — search the
    codebase for an existing implementation of the asked-for behavior **by domain concept,
    not the ask's wording**, and report where you looked (already implemented → no card;
@@ -79,8 +79,7 @@ not transcribe the words.
      **Tiered dispatch on repeat passes** (same as design-grill's): a full fresh-context pass at
      decision-level checkpoints; after a round that only *edited already-grilled text*, a
      **targeted re-verify of the new clauses + a lightweight whole-doc consistency sweep** —
-     not another full pass. *Why (2026-07-11 retro):* card 002's rounds 5–8 each re-swept the
-     whole requirement while every decision-level finding sat in the previous round's new text.
+     not another full pass.
 3. **Interleave code understanding (M5 + M1).** When a question is answerable from the
    codebase ("does X exist?", "how is Y gated?", "is Z enumerable?"), **go find out instead
    of asking or guessing**: query xg-knowledge-lite first, then a read-only Plan Mode /

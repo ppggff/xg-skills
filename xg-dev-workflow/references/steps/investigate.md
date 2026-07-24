@@ -78,7 +78,7 @@ answers a neutral empirical question; a diagnosis chases a failure.
    load-bearing negative/infeasibility yourself.
 3. **Record + log — branches on context:**
 
-   **What counts as "active" (anchoring rule, 2026-06-12):** a requirement is active **only by
+   **What counts as "active" (anchoring rule):** a requirement is active **only by
    explicit linkage** — the human named the requirement (slug/NNN, or its topic unambiguously)
    in this ask, or this session was entered via `resume <slug>` / a phase verb for it. Mere
    existence of an in-flight requirement, topical relevance, or recency does **not** make it

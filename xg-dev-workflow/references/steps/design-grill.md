@@ -22,8 +22,7 @@ Output: `design.md` (template: `references/templates/design.md`) + ADRs via `adr
   **Comparison/evaluation tables carry a provenance column from the first draft**
   (VERIFIED / INFERRED / 推断 per cell-claim, M1) — a comparative claim about existing code
   ("X has no cache") is a code claim and needs the same evidence as any other; an unverified
-  comparison table is how an overstated trade-off gets approved (2026-07-06: "零cache/零save
-  hook" survived into a decision table unread, corrected only on human pushback).
+  comparison table is how an overstated trade-off gets approved.
 - **抵御所有异常 (异常完整性).** Every anomaly gets an owning module or a fallback — a manual-intervention
   floor is acceptable — but a rare case does **not** earn its own structure. Alongside, weigh
   可测试性 (mock 周边、独立可测) · 可观测性 (坏了能定位到本模块) · 性能 + 规模放大后的性能.
@@ -65,14 +64,14 @@ structure the prose can't.
 **Mermaid gotcha — ASCII `;`:** a bare ASCII semicolon is a statement separator even inside
 sequenceDiagram message text and unquoted flowchart labels — the tail parses as a new statement
 and the diagram errors. Use fullwidth punctuation in CJK diagram text; after writing, grep the
-mermaid blocks for `\x3b` (2026-07-23, card-005 render failure).
+mermaid blocks for `\x3b`.
 
 **Mermaid gotcha — subgraph `direction` is ignored when the subgraph has external links**
 (documented limitation): any edge crossing the subgraph boundary makes the subgraph inherit the
 parent graph's direction, so a "two vertical columns" layout built from `direction TB` subgraphs
 + cross edges silently renders flat. Don't fight the layouter with invisible `~~~` chains either
 — if a diagram is too dense, **reduce its semantic node/edge count** (merge same-role nodes,
-move detail to a caption) instead of forcing geometry (2026-07-23, card-005).
+move detail to a caption) instead of forcing geometry.
 
 **ASCII fallback — CJK width:** every Chinese character and Chinese punctuation occupies **2 columns**; ASCII,
 box-drawing (`┌ ─ ┐ │ └ ┘`), and arrows (`▼ ▲ ▶`) are **1 column** in standard monospace.
@@ -151,9 +150,7 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
      just module seams** — for each piece of internal machinery (an extra field/flag, a
      multi-pass state machine, a ranking/sort, a cache), ask what breaks if removed: often a
      simpler check answers the same question. Catching over-built internals here is far cheaper
-     than at review. (2026-07-21: a two-pass pending-removal flag replaceable by one catalog
-     re-check; an age-sort across candidates when the consumer processes one at a time — both
-     shipped, both caught only in manual review.)
+     than at review.
    - **方案优先 / explore solutions before structure** — surface multiple candidate approaches and
      grill their trade-offs before committing; pick on trade-off, not first idea. Identify whether
      the **normal flow or a dominant anomaly flow** is the hard part — either may drive the design.
@@ -184,8 +181,7 @@ each target column accounting for CJK=2), or a later `│` won't line up with th
    - **Convergence — run the shared auto-verdict** (`grill.md`「Convergence」, the canonical
      rule): end every round with the one-line 继续/建议收敛 verdict — decision-level dry check
      against the doc's diff since the last grill checkpoint + ADR-weighted open points; the
-     human still gates. (Calibration example — HatchDeck MS1: design round 3 yielded only
-     detail-level items, a dry round; that was the stop signal.)
+     human still gates.
    - **Update `design.md` inline** — as each decision crystallises, write it into the doc
      right then; don't batch edits to the end. The doc tracks convergence in real time.
 4. **Map to the requirement by R-id** — fill "How it meets the requirement": each

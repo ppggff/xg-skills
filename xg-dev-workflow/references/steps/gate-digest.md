@@ -5,8 +5,8 @@ decision-zone gate ask — 需求 confirm · 设计 freeze · 详设 baseline ·
 after `plan.md`.
 
 Why: a gate is only real if the human can exercise judgment there. Phase docs serve completeness
-and audit, and their volume exceeds gate-time reading bandwidth — in practice gates were being
-approved on grill-trust rather than reading (2026-07-17 feedback). The digest inverts the burden:
+and audit, and their volume exceeds gate-time reading bandwidth — in practice gates get
+approved on grill-trust rather than reading. The digest inverts the burden:
 the model surfaces what deserves human attention; the doc is the reference to drill into, not the
 reading assignment.
 

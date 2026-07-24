@@ -49,8 +49,7 @@ sentences.
   conclusion bolted on is a grep-hit list at doc level. Execution-zone docs stay terse: link the
   reasoning, don't restate it. **Tables carry facts, prose carries reasoning**: tables hold
   contracts / enumerable facts / comparisons; a compressed phrase in a table cell is a label,
-  not an argument — its rationale lives as prose in the same section. (Learned 2026-07-23:
-  card-005 design tables cost three "what does this cell mean" round-trips.)
+  not an argument — its rationale lives as prose in the same section.
 - **Reader-aware** — write each doc for its primary reader (each template states its Reader); the
   audience split is「Two zones」below.
 - **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
@@ -71,9 +70,7 @@ sentences.
   - **Symbol budget** — a prime evolution (`X'`→`X''`) survives **one** generation; the next
     supersession renames/consolidates instead of adding another prime. Introducing a second
     staging/tier scheme alongside an existing one requires a one-line statement of their
-    relation at first use, and its letter must not collide with this list. (Learned 2026-07-23:
-    card-005 ran A2'/C2''' three primes deep, and its delivery tiers "T0~T3" collide with
-    plan-task `T<n>`.)
+    relation at first use, and its letter must not collide with this list.
   - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
     only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
     Mermaid node ids are diagram-local — exempt.
@@ -107,7 +104,7 @@ authorization there are no per-phase stops (「Two zones」).
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
   dev_root commit. No receipts, no ask. This closes M3's trigger blind spot — M3 fires on doc edits,
   so an *omitted* write produces no edit and no check; the receipts requirement makes a missing
-  write impossible to ask past (a past grill ran rounds in chat without landing its grill-log).
+  write impossible to ask past.
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
   phase's doc — not skipping it or jumping to implementation; the authoritative gate is the human
   approving that doc.

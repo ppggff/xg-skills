@@ -12,8 +12,7 @@ explicit human go afterwards — and when applied, **each fix is committed** (on
 commit, per implement's Commit cadence; `push` stays human-gated). **A fix that changes
 behavior updates `test.md` (a coverage row + suggested-verification) like an implement slice,
 then runs M3** — applying fixes as a quick commit batch bypasses the per-slice test-write
-discipline, and M3's test-consistency check only fires if you actually run it after the edit
-(2026-07-21: 6 review-fix commits changed behavior with no test.md row until the human asked).
+discipline, and M3's test-consistency check only fires if you actually run it after the edit.
 
 **Two ways it runs:** (1) **ad-hoc** — invoked any time on any diff/PR (standalone); (2) **the
 standard close-out gate** for an M-or-larger requirement — run after 测试, before the card goes
@@ -44,7 +43,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      merge-base with trunk.
    Cross-session cards are the trap: a multi-session card's "latest changes" is **not** the card's
    change — always base on the integration point, or a sweep/review silently misses the earlier
-   sessions' commits (2026-07-21).
+   sessions' commits.
    **Fail fast before any dispatch:** resolve the ref (`git rev-parse <target>`) and confirm
    the diff is non-empty — a bad ref or an empty diff dies here, not inside parallel lens
    agents.
@@ -93,11 +92,9 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      run) + **reuse/cohesion when the change adds helpers/abstractions**: does a new helper
      duplicate one in the touched module (grep it), and is a new cross-cutting concern consistent
      with a sibling pattern the *same change* built (an interface hook vs a caller-side
-     `if type == :foo` special-case)? (2026-07-21, card 002: the correctness + convention axes were
-     blind to both — a duplicated prefix helper and a special-cased preflight — the human caught
-     them post-merge; an embedded shared sub-expression evades a whole-function dup scan, so name
-     these two checks explicitly.) (The same two checks mirror implement.md's simplify-sweep
-     reuse/cohesion checklist — keep the two in sync.) **Invariants axis** (session model) —
+     `if type == :foo` special-case)? Name these two checks explicitly — an embedded shared
+     sub-expression evades a whole-function dup scan. (The same two checks mirror implement.md's
+     simplify-sweep reuse/cohesion checklist — keep the two in sync.) **Invariants axis** (session model) —
      context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
      tier; findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens
@@ -105,9 +102,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      passes (5b). **Start lean, expand on evidence:** pass 1 dispatches the sharp core
      (correctness-vs-invariants · adversarial trio · the sonnet sweep) plus only the menu lenses
      the diff plainly indicates; the remaining lenses join a later pass only if 5b judges the
-     space under-sampled. *(2026-07-17 calibration: recent deep passes came back
-     overlap-dominant or 0-confirmed on pass 1 — max fan-out upfront buys redundancy, not
-     recall.)*
+     space under-sampled — max fan-out upfront buys redundancy, not recall.
 
    **Tier calibration (M6):** like model downgrades, tier choices sit under retro calibration —
    a target class repeatedly reviewed at light/standard whose misses surface later (a deep pass,
@@ -134,9 +129,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      branch, a whitelist entry, a refusal)? then check (a) the **symmetric surface** picked up
      the load (a build-side lift needs its dump/serialize/reverse-path counterpart, and vice
      versa) and (b) **type-wrapper boundaries** (RelabelType/coercions: does the new positive
-     path still fire when the value is wrapped, or does it silently fall back to a default?).
-     (2026-07-11: two silent-wrong-results bugs — a dropped joinqual on dump and varchar keys
-     degrading every direction check — both born from lifting v1 refusals without this walk.);
+     path still fire when the value is wrapped, or does it silently fall back to a default?);
    - performance (hot paths, N+1 dispatch, lock scope);
    - git history (blame, prior fixes and review comments, in-code guidance comments);
    - **quality/simplify (one bundled sonnet agent, deep tier only)** — the review-side backstop
@@ -167,8 +160,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    feed that calibration).
    **Standing model-diversity agent:** besides the lens agents, dispatch **one light-sweep
    agent on a different model** (Agent tool, `model: sonnet`) — same-model lenses share
-   failure modes; a different model decorrelates them (2026-07-03: a sonnet pass caught a
-   false-positive class three same-model lenses had all missed). Its framing is fresh-eyes,
+   failure modes; a different model decorrelates them. Its framing is fresh-eyes,
    not a copied lens prompt: context pack + intentional-changes list + false-positive
    exemplars + "report only what you're confident is real — zero findings is a good
    outcome"; encourage it to *execute* the changed tools/flows where read-only-safe, not
@@ -213,9 +205,8 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      agent). Re-running an existing lens prompt raises confidence (voting), **not**
      recall — don't count it as diversity.
    - **Standard-tier caveat:** the three axes are disjoint by design, so singleton-heavy is
-     the *expected* shape there (2026-07-16 run: 7/7 singletons on a review the human accepted
-     verbatim) — at standard tier judge stop by the dry-stop rule, not overlap; overlap stats
-     carry signal at deep tier.
+     the *expected* shape there — at standard tier judge stop by the dry-stop rule, not overlap;
+     overlap stats carry signal at deep tier.
    - **Dry-stop:** a pass whose confirmed findings all fall below the action bar (nothing
      that would add a 修复决策表 row) is **dry** → stop regardless of overlap. A new
      High on a later pass is a genuine earlier miss → send to retro (which lens/slice
@@ -252,8 +243,7 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
    明确不修 line below the table, with the reason.
    **Future/deferred items obey M1 like any other claim**: a review-born Future item states
    its provenance (evidence-cited / 推断 / 假设) — an unverified "this wastes X" written as
-   fact propagates into later requirements as one. (2026-07-11: a close-out Future item's
-   unverified premise survived two phases before being empirically refuted mid-implementation.)
+   fact propagates into later requirements as one.
    Chat reply ≤10 lines pointing at the report — **with receipts**: the report path + the
    dev_root commit (write first, then reply; SKILL.md Stop-at-gate「Ask with receipts」). The
    table may be echoed in chat when the human asks to choose.

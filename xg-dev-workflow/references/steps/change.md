@@ -42,8 +42,8 @@ design are allowed to change, so the design stays stable while the plan flexes.
      (with the log line below), not deleted-silently.
 2b. **Supersede sweep（mode 变更/撤销 必跑）.** Trace-driven propagation only touches traced
    items; natural-language docs also carry **restatements** of the old semantics *outside* the
-   trace — a tail sentence in an untouched bullet, a module name, a term (2026-07-05: 「正确性
-   100% 归本地」survived in an untraced Scope bullet; `FloorMerge` survived a full rewrite AND
+   trace — a tail sentence in an untouched bullet, a module name, a term (e.g. a superseded
+   claim surviving in an untraced Scope bullet; a renamed module surviving a full rewrite AND
    a consistency agent, because a *name* asserts nothing false). After propagating:
    - Build the retired-phrasing list from the superseding ADR's **被取代表述** section
      (`adr.md`), extending with old names/terms noticed while editing.

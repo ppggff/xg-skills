@@ -11,15 +11,15 @@ Updates: `progress.md` (template: `references/templates/progress.md`); code in t
 ## Environment recon before the first slice
 Before slice 1, establish and **record in `progress.md`** the exact build/test invocation
 (toolchain location, container/exec wrapper, check command, baseline suite status) — resume must
-be able to rebuild and re-verify from `progress.md` alone. Two hard-won specifics
-(2026-07-11 retro): **run the baseline suite first** (a green baseline is what makes your first
-red meaningful), and **never filter build output to errors only** — an implicit-declaration
-*warning* is a load-time `undefined symbol` in a shared library; surface warnings on every build.
+be able to rebuild and re-verify from `progress.md` alone. Two specifics: **run the baseline
+suite first** (a green baseline is what makes your first red meaningful), and **surface warnings
+on every build** — an implicit-declaration *warning* is a load-time `undefined symbol` in a
+shared library.
 
 ## Test mode — TDD vs test-after (decided per project)
 Pick the mode from the project's **test-execution policy** and **record it in `progress.md`**
 (State at a glance) so resume continues in the same mode:
-- **Project runs tests by default** (most Go/TS/etc. repos — HatchDeck-style) → **TDD mode**
+- **Project runs tests by default** (most Go/TS/etc. repos) → **TDD mode**
   (test-first, red-green observed).
 - **Project is "describe, don't run"** (e.g. cbdb — tests are *described*, executed only when the
   human asks) → **test-after mode** (you can't *observe* red→green without running, so write the
@@ -31,7 +31,7 @@ Pick the mode from the project's **test-execution policy** and **record it in `p
 
 Both modes are **vertical / per-slice** — never "all code, then all tests" (that yields tests of
 already-written, imagined behavior). They differ only in **intra-slice ordering** and **whether
-red→green is observed now**. Unsure which mode → ask once, then record it.
+red→green is observed now**.
 
 ### Cycle A — TDD mode (red-green loop from `tdd`; Prove-It from `test-driven-development`)
 Per task slice: **RED → GREEN → REFACTOR → record → commit → next**.
@@ -135,8 +135,7 @@ Self-review against the angles that catch real systems bugs — verify each agai
   - **Same test on a new function's own generality — caller audit:** for each new static/private
     function, check every parameter (and mode/branch) against its actual callers; a parameter
     every caller passes constant/NULL, or a mode no caller reaches, is unused generality — delete
-    it and add it back when the second caller needs it (YAGNI, P0). (2026-07-21: a 4-value
-    dispatch helper whose only caller always asked for 2.)
+    it and add it back when the second caller needs it (YAGNI, P0).
 - **Causal chain** — don't claim "it deadlocks / works because X" without tracing the mechanism.
 
 ## Simplify sweep (once, after the last slice — M+; XS/S may skip)
@@ -150,8 +149,7 @@ merge-base with it), the same base the close-out review pins (`review.md` step 1
 last session's slices. A multi-session card is the trap: sweeping only the latest commits leaves
 earlier sessions' reuse/dead-code/altitude untouched. `git diff $(git merge-base origin/<main>
 HEAD)..HEAD` is the diff to sweep.
-- **Reuse/cohesion is the sweep's core — a comment pass is not a sweep** (2026-07-21 retro, card
-  002: a sweep run as a one-line lint nit let two reuse/cohesion misses reach the human). When the
+- **Reuse/cohesion is the sweep's core — a comment pass is not a sweep.** When the
   change added helpers/abstractions, the pass must concretely answer, over the whole diff:
   - **New helper/constant → grep the touched module for the same logic first.** A new `arch→prefix`
     helper beside an existing one that already computes it is a *merge*, not a new method.
@@ -167,8 +165,8 @@ skipped candidates in `progress.md` for the human. Record the sweep (or its skip
 `progress.md`; then 测试.
 
 ## Diagnosis (when a fix isn't landing)
-- **Stop blind-iterating on a black-box dependency after ~2 misses — read its shipped source.** Two failed guesses at *why* a third-party component (CSS / renderer / library) misbehaves means you're modeling it wrong; open its shipped CSS/JS/source for its actual model instead of guessing a third time. (HatchDeck MS2: 5 blind CSS iterations failed on a tmux-green background; the fix came only from reading `@wterm/dom`'s shipped CSS — `.term-grid` inherited the bottom-right cell's color. Same shape in MS1/MS3 — prior-art source drove the ADRs; don't assume a dep's capabilities, e.g. modernc JSON1.)
-- **If a bug reproduces on the reference engine, it's your code, not the platform.** A symptom you'd pin on the target platform (mobile Safari, a specific OS) that *also* reproduces on desktop Chromium is your own logic — use the reference engine as a forensic oracle: read computed styles / bytes / values on both for differential diagnosis, get ground-truth data on the real device before editing, and don't change what you can't reproduce. (HatchDeck MS2: per-char scroll "vibration" reproduced on desktop → own snap overshooting a 12px padding, not iOS; Chromium-vs-iOS diff proved the green background was iOS-paint-specific.)
+- **Stop blind-iterating on a black-box dependency after ~2 misses — read its shipped source.** Two failed guesses at *why* a third-party component (CSS / renderer / library) misbehaves means you're modeling it wrong; open its shipped CSS/JS/source for its actual model instead of guessing a third time.
+- **If a bug reproduces on the reference engine, it's your code, not the platform.** A symptom you'd pin on the target platform (mobile Safari, a specific OS) that *also* reproduces on desktop Chromium is your own logic — use the reference engine as a forensic oracle: read computed styles / bytes / values on both for differential diagnosis, get ground-truth data on the real device before editing, and don't change what you can't reproduce.
 
 ## Comment & artifact hygiene
 - **Comments** — no references to uncommitted docs (`plan/`, `problem/`, `progress/`, `knowledge/`, `*.md`), no ADR references (`ADR-NNNN` — they live in dev_root), and no specific line numbers (`file.c:NNN`, "line N"); bare file/function names are fine. An **issue/ticket reference is allowed** (a tracker ID or URL — `#1234`, `JIRA-42`, the issue link): it's stable and public, unlike workflow docs, so it's the right anchor when a comment needs to point outward. After editing, run **`tools/check-code-refs.py`** (no args = the working diff's added lines; deterministic — don't improvise a grep) and strip the leaks it reports. Leave pre-existing hits and issue refs (the script doesn't flag those); a hit in a tool whose domain IS the docs (e.g. a KB script naming `index.md`) is legitimate — judge it, don't auto-strip.
@@ -178,7 +176,7 @@ skipped candidates in `progress.md` for the human. Record the sweep (or its skip
   does, restates a docstring, or argues the change is correct. **Density = the surrounding
   file's.** Follow the surrounding code's idioms (prior-art from 详设); don't invent new usage
   without a reason. Both design and code should be clean and elegant.
-  Two why-note cases the last review round showed get missed (2026-07-21): a **field/guard with
+  Two why-note cases that get missed: a **field/guard with
   several load-bearing uses but no single line naming why it exists** (a reviewer can't tell it's
   load-bearing → wastes a round confirming) — name the why once at its definition; and **code
   that diverges from, or repairs a bug in, a patched-fork upstream** (this tree is PostgreSQL 14.4
@@ -212,5 +210,4 @@ only** — skip its Planning step (interface / behaviors-to-test / approval are 
 - All plan tasks done & verified; `progress.md` current; no out-of-scope churn; **the simplify
   sweep ran (or its skip is recorded in `progress.md`)** — it's a gate item, not optional polish,
   because a skipped sweep is exactly how altitude/dead-code/dup cleanups slip to a later manual
-  review (2026-07-21 retro: card 005 shipped 5 such items an end-of-phase sweep would have
-  caught). Then run the omission check (M3) and proceed to 测试.
+  review. Then run the omission check (M3) and proceed to 测试.

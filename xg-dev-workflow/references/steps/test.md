@@ -28,8 +28,8 @@ Output: `test.md` (template: `references/templates/test.md`).
 - **Data-type diversity for type-generic code paths** — when the code under test is generic over
   key/value types (comparators, hashing, ordering, serialization), the fixtures must include at
   least one type with **non-trivial representation behavior** (e.g. varchar's binary-coercion
-  RelabelType, a collatable type), not int-only tables. (2026-07-11: an all-int suite kept a
-  varchar-only wrong-results path green through 14 TDD slices; the close-out review caught it.)
+  RelabelType, a collatable type), not int-only tables — an all-int suite can silently keep a
+  type-specific wrong-results path green.
 - **Pick the strategy by dependency category** (`codebase-design` DEEPENING) — it decides how you
   cross the seam: **in-process** (pure/in-mem) → test directly through the interface, no double;
   **local-substitutable** (PGLite, in-mem fs) → run the stand-in in the suite; **remote-owned**
@@ -41,7 +41,7 @@ Output: `test.md` (template: `references/templates/test.md`).
 - **Check setup/constructor errors in tests that spawn real resources** (pty, ports, files,
   processes). A `sess, _ := Create(...)` there turns a transient resource failure into a
   nil-deref panic that masquerades as a flaky race under `-count`/`-race` — fail loud with the
-  error instead. (HatchDeck MS1 retro: an ignored `Create` error was the cause of a `-count=5` flake.)
+  error instead.
 - **Verify UI/frontend slices in a real browser**, not only headless — Playwright / chrome-devtools
   MCP. A DOM-rendered terminal/output appears in the accessibility snapshot (directly assertable);
   drive input via the real input element (e.g. the hidden `<textarea>`, not a `role=textbox` wrapper).
@@ -52,8 +52,7 @@ Output: `test.md` (template: `references/templates/test.md`).
   nested flex dropping `min-width:0`, `visualViewport`/soft-keyboard layout shifts, a dependency's
   shipped CSS painting differently on iOS. For a mobile-facing flow, a real-device pass is a
   non-skippable acceptance gate: mark a criterion `[x]` only after the device walk; if it's verified
-  only by mechanism or desktop, say so explicitly rather than claiming `[x]`. (HatchDeck MS2/MS3/MS4
-  each shipped desktop-green, then the real device exposed dialog / zoom / flex / paint bugs.)
+  only by mechanism or desktop, say so explicitly rather than claiming `[x]`.
 
 ## Procedure
 1. **Inventory the per-slice tests** already written in `实现` (per the chosen mode) — don't rewrite them.
@@ -73,8 +72,7 @@ Output: `test.md` (template: `references/templates/test.md`).
    `[!]` failed / `[ ]` unverified, with date; **no subjective `[x]`**).
    **After a full-suite run, sweep the server/process logs for silent failures** — green ≠ no
    error lines; a masked path (fallback, retry, manual-path shadowing) can pass every assertion
-   while logging the real failure. (cbdb 002: suite green, log sweep caught a silent sync
-   failure the manual path was masking.) For "describe, don't run", list the log-sweep command
+   while logging the real failure. For "describe, don't run", list the log-sweep command
    alongside the suite commands.
 6. **Any bug found here → Prove-It** — write the failing reproduction test first, then fix it in an
    `实现` slice (don't patch silently from the 测试 phase).

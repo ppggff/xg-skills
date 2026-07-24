@@ -1,10 +1,8 @@
 # Shared mechanism: adversarial fresh-context critic (the "sharp-cut" finder)
 
-Used by **requirement** (grill), **design-grill**, and **review**. Authored from a 2026-06-23
-retro: in practice the human kept landing the decisive cuts the agent missed while grilling its
-*own* design — because a designer grills inside their own frame and carries the blind spot
-through. This mechanism makes the agent reach those cuts itself: re-derive from the problem, not
-from the proposal.
+Used by **requirement** (grill), **design-grill**, and **review**. A designer grills inside
+their own frame and carries the blind spot through, so this mechanism makes the agent reach the
+decisive cuts itself: re-derive from the problem, not from the proposal.
 
 Each cut the human made fell into one of five shapes. For each, the move that surfaces it:
 
@@ -26,13 +24,11 @@ to the proposal's assumptions, so it hits the blind spots the author can't see. 
 panel of three fixed lenses, **dispatched by stakes**: an **M+ design's decision-level
 checkpoints** default to **one agent per lens, in parallel**; **XS/S designs and edit-only
 rounds** default to the **single-agent three-lens form** (accepting some secondary-lens
-satisficing at low stakes — the finding below stands for M+). *Why one-each at M+:*
-a mixed-mandate agent satisfices on its secondary lenses (2026-07-04: search-before-build ran
-against the main mechanism but skipped the remediation design, costing two extra grill rounds),
-and three independent contexts decorrelate blind spots; parallel dispatch cuts wall-clock to
-~the slowest lens, and token cost stays ≈flat when paired with the verified-facts pack below
-(the lenses' tool-call sets barely overlap — kernel paths vs ledger vs carrier greps — so the
-only duplication is shared background reads, which the pack removes). Cross-lens composites
+satisficing at low stakes — the reasoning below stands for M+). *Why one-each at M+:*
+a mixed-mandate agent satisfices on its secondary lenses, and three independent contexts
+decorrelate blind spots; parallel dispatch keeps wall-clock and token cost roughly flat when
+paired with the verified-facts pack below (it removes the only overlap, shared background
+reads). Cross-lens composites
 (a finding needing two lenses' evidence) are the **orchestrator's** job at adjudication — that
 synthesis step exists anyway; don't keep the panel merged for it.
 
@@ -62,9 +58,7 @@ synthesis step exists anyway; don't keep the panel merged for it.
 - **Class-to-constraint.** The **second** finding of the same *shape* (e.g. two one-sided
   rules, two unguarded wrapper boundaries) is not two bugs — it is an uninstantiated
   **structural constraint**. Name the class, pin it as a rule/invariant in the doc under grill,
-  and let subsequent rounds check the rule instead of hunting instances. *Why (2026-07-11
-  retro):* card 002 took three adversarial rounds of one-sided-rule findings before "symmetric
-  closure" was promoted to a constraint; the promotion trigger should have been round two.
+  and let subsequent rounds check the rule instead of hunting instances.
 
 ## Three artifacts to maintain
 
@@ -75,8 +69,7 @@ synthesis step exists anyway; don't keep the panel merged for it.
   dispatch attaches the pack and scopes the mandate to the delta + integration seams**; agents
   treat packed facts as given (spot-check only when a new finding contradicts one), never
   re-derive them from scratch. This is what keeps multi-round grills from re-verifying the
-  same kernel chains three times (observed 2026-07-04: suppress-only semantics and the
-  aggressive read-point were each re-proven in two separate agent runs).
+  same kernel chains three times.
 
 ## The invariant ledger (per subsystem, lives in the KB)
 
@@ -90,8 +83,7 @@ agent's starting point gets sharper over time.
 **Maintain it as you go, not at as-built.** An invariant confirmed during a grill/adjudication
 lands in the ledger **in the same session** (one evidence-cited line); do not defer the ledger
 to implementation landing. Deferral is what forces the next round's agents to re-verify from
-zero — the 2026-07-04 grill re-proved the same kernel read-points across rounds precisely
-because the ledger refresh had been postponed. (Concept articles may still wait for as-built;
+zero. (Concept articles may still wait for as-built;
 the *ledger line* may not.)
 
 ## Honest limit
@@ -111,7 +103,5 @@ notes, the better the starting points — invest there.
   **lightweight consistency pass** instead: one agent (Agent tool `model: sonnet`, low
   effort — SKILL.md「Subagent model assignment」), mandate =
   hunt surviving old-semantics text and doc↔doc contradictions (no kernel re-verification);
-  escalate a finding to code-verification only when it implicates code truth. (2026-07-04: of
-  8 findings in the post-rewrite pass, 7 were text-consistency; only one needed kernel reading —
-  the full-panel cost was mostly spent re-proving what the decision grill had already proven.)
+  escalate a finding to code-verification only when it implicates code truth.
 - **review** — the three lenses are fixed members of the lens fan-out (see `review.md`).

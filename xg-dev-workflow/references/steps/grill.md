@@ -1,11 +1,10 @@
 # Step: grill (shared interactive elicitation — protocol + history + rollback)
 
-A **shared mechanism** (like `adversarial-critic.md` / `evidence.md`), not a phase. Used by the
-**requirement** step (elicit the real intent) and the **design-grill** step (stress-test the
-approach). Extracted from those steps (which forked interview-me / grill-me / grill-with-docs) to
-de-duplicate the protocol; the rollback models the skill's append-only **supersede** discipline
-(`log.md` correction / ADR supersede). A generic, non-doc grill can still be delegated via
-`use:grill-me` / `use:interview-me`.
+A **shared mechanism** (like `adversarial-critic.md` / `evidence.md`), not a phase — it owns the
+grill **protocol + grill-log + rollback + convergence** and is called by the **requirement** step
+(elicit the real intent) and the **design-grill** step (stress-test the approach). The rollback
+models the skill's append-only **supersede** discipline (`log.md` correction / ADR supersede). A
+generic, non-doc grill can still be delegated via `use:grill-me` / `use:interview-me`.
 
 Grilling is a **walk of a decision tree with dependencies** — each answer constrains the next. This
 file owns the *protocol*, the *grill-log* (history), and *rollback*; each phase step adds its own
@@ -19,8 +18,7 @@ priorities and tactics (see "Phase-specific layers").
   carries its own recommendation + trade-off and gets its own grill-log row. Offer it when a
   round surfaces several independent siblings; the human sets the pace and can drop back to
   single-question any time. Anything dependent stays sequenced — batching never reorders the
-  tree walk. *(2026-07-17 calibration: a throughput-only relaxation; question quality and the
-  dependency discipline are unchanged.)*
+  tree walk.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
 - **Recommendation pre-check (self-proposals get the same rigor as external ones).** Before
   recommending an approach/idea of your own — inline in discussion, not only in dispatched
@@ -33,8 +31,6 @@ priorities and tactics (see "Phase-specific layers").
      proposal than the same lookup in-memory).
   3. **Cost symmetry** — list what the proposal **adds** (writers, schema, state, RPC shapes),
      not only what it saves; a read that becomes a write is a qualitative change.
-  *Why (2026-07-07 retro):* three consecutive design recommendations were overturned by the
-  human on exactly these grounds — each round sold a new idea as "better" without them.
 - **Interleave code understanding** (M5/M1): when a question is answerable from the codebase, go
   read it instead of asking/guessing; bring back evidence (`func()` in `file.c` / `[[wiki/…]]`).
   When it's answerable **only empirically** (runtime/planner behavior reading can't settle), run
@@ -44,10 +40,7 @@ priorities and tactics (see "Phase-specific layers").
   mechanism* into the doc (a new syntax surface, a new subsystem), the current phase pins only
   its **principles and boundaries** (what it guarantees, what it refuses, its consumers); the
   correctness envelope's **axis enumeration** (per-field/per-condition precision) belongs to the
-  NEXT phase's grill. *Why (2026-07-11 retro):* card 002's requirement grill spent 3+ of its 8
-  rounds enumerating LLD-grade axes (opfamily/collation/indoption/scan-direction) for a
-  mechanism injected at G4 — each round's new text fed the next round's findings; the principle
-  that eventually stopped the class (symmetric closure) could have been pinned at injection.
+  NEXT phase's grill.
 - **Don't grill to death** — if one point won't converge in ~3 rounds, record it as an Open
   question and move on; an honest "still ambiguous" beats grinding.
 - Convergence lands **inline in the phase doc** (`requirement.md` / `design.md`) as you go — the
@@ -64,8 +57,7 @@ the grill**, don't tax simple cases:
 **Codename legend.** When a grill coins session-local codenames (方案 T/S, N1/N2 …), a persisted
 grill-log carries a one-line legend at the top (`T = 瘦身版 QD 驱动 · S = floor 方案现状`) and
 keeps it current; in chat, re-expand each codename on first use per session ("方案 T（瘦身版 QD
-驱动）"). A codename without a nearby definition is unreadable after resume — transcript evidence:
-"T和S是什么意思?" / "N1什么意思?".
+驱动）"). A codename without a nearby definition is unreadable after resume.
 
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
 **Ids run continuous across rounds** (`G<n>` keeps counting in round 3; round-scoped form
@@ -130,8 +122,7 @@ whose artifacts aren't on disk isn't finished — chat-only rounds are how a pas
 
 **The verdict reports this round's facts only — never forecast the next round.** "预期下轮
 dry / severity 在衰减" is not information the dry check produces, and it anchors the human's
-continue/stop call on optimism (2026-07-11 retro: a "衰减" forecast after round 4 was refuted
-by round 5's wrong-results-class findings). Say what this round changed; let the mechanical
+continue/stop call on optimism. Say what this round changed; let the mechanical
 criteria carry the recommendation.
 
 **Re-open bar for a later grill:** a subsequent pass's finding re-opens settled ground **only if
@@ -151,8 +142,7 @@ leaves the body (a one-line final verdict + git/grill-log pointer replaces its f
 The body never stacks two generations of corrections — dated inline notes piling on each other
 (「2026-XX-XX 更正…」on top of an earlier 更正) are the smell. The supersede discipline below
 is for the **grill-log** (append-only history); the phase doc is the opposite: always
-current-state. (2026-07-23: card-005's design.md needed a full restructure after 7 append-style
-rounds.)
+current-state.
 
 ## Rollback (回退 — return to a previous question)
 "回退" / "go back" re-opens an earlier decision. Reuse the append-only **supersede** discipline —

@@ -29,9 +29,11 @@ fixes back into the workflow itself — so the skill compounds.
    regression (the omission check alone only covers the doc being edited).
 5. **Record the change history (the skill is git).** When this retro changed skill behavior,
    append a dated, **behavior-level** entry to the skill's `CHANGELOG.md` (what changed + why —
-   the curated view, not a raw git diff), and commit the skill repo (English commit message, per
-   repo convention; new changes as new commits — don't rewrite history). `CHANGELOG.md` is the
-   human-readable evolution log; `git log` remains the full one.
+   the curated view, not a raw git diff) — **this is where the motivating incident lives** (date,
+   card-id, calibration data, transcript quote), never inlined in the step body (Pruning pass
+   「Rule in the body」). Then commit the skill repo (English commit message, per repo convention;
+   new changes as new commits — don't rewrite history). `CHANGELOG.md` is the human-readable
+   evolution log; `git log` remains the full one.
    Also **re-score the usage log** where warranted: a provisional score that later user feedback
    contradicted gets a corrective record appended (per the global Skill Usage Logging rule) —
    don't leave optimistic first impressions standing.
@@ -40,14 +42,27 @@ fixes back into the workflow itself — so the skill compounds.
 
 Retros naturally *add* rules; without a deletion discipline the skill sediments (stale layers
 settle because adding feels safe and removing feels risky — `writing-great-skills` vocabulary).
-So every retro also prunes the docs it touches (periodically: the whole skill):
+So every retro also prunes the docs it touches (periodically: the whole skill).
+
+**Rule in the body, evidence in the CHANGELOG (the anti-sediment root rule).** When a retro adds
+or sharpens a rule, the rule's imperative goes in the step/template/SKILL body; the motivating
+incident — date, card-id, calibration numbers, transcript quote — goes in the CHANGELOG entry
+(step 5), **never inlined in the body** as `(Learned YYYY-MM-DD: card-NNN …)`. An inline dated
+justification is Sediment the moment it lands: the executing agent needs the rule, not the
+incident that birthed it. If a rule is opaque without an example, keep a **bare, undated** example
+and send the date/card-id to the CHANGELOG.
+
+**Prune your own additions first.** Before finishing, run the three tests below on the lines *this
+retro just wrote* — the newest layer is the one most likely to sediment, and the one still cheap
+to cut.
 
 - **No-op test, sentence by sentence** — does this line change behavior versus what the model
   does by default? A failing sentence is deleted whole, not trimmed.
 - **Duplication hunt** — the same meaning stated in more than one place collapses to a single
   source of truth (one authoritative statement; other sites become pointers or go).
 - **Sediment check** — a rule whose justifying friction no longer shows up (usage log / recent
-  cards show the failure mode gone) gets retired, with a CHANGELOG note saying why.
+  cards show the failure mode gone) gets retired, with a CHANGELOG note saying why; and any
+  surviving inline `(Learned …/date/card)` justification moves to the CHANGELOG now.
 
 Deletions in SKILL.md/templates need the same human confirm as additions (step 3).
 

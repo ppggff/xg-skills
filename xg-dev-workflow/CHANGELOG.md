@@ -4,6 +4,38 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-24 (comprehensive skill audit vs writing-great-skills — Sediment/Duplication/Sprawl sweep)
+
+Audited both skills against their `~/.agents/skills` fork sources and the `writing-great-skills`
+standard (six read-only lens agents, one per fork cluster). Verdict: the structure is healthy and
+the forks are actually *condensed* against real source material (~0.22–0.32x for the build
+cluster) — the accreted bloat is not size but three failure modes: **Sediment** (dated incident
+anecdotes inlined as justification), **Duplication** (one meaning restated across SKILL + step +
+template), and **Sprawl** (branch-specific reference resident in every-load files). Root cause:
+the M6 retro kept writing the motivating incident into the step body instead of the CHANGELOG.
+Landed in phases (P0–P3).
+
+### P0 — Sediment sweep + retro policy (the root fix)
+
+- Stripped ~40 dated incident anchors (`(Learned YYYY-MM-DD: card-NNN …)`, retro / calibration /
+  transcript notes) from SKILL.md and the step files (grill, requirement, design-grill, review,
+  adversarial-critic, implement, test, detail, investigate, change, gate-digest). Every rule an
+  anchor justified is kept; a few load-bearing insights were folded into the rule sentence itself
+  — e.g. test.md "an all-int suite can silently keep a type-specific wrong-results path green";
+  review.md "an embedded shared sub-expression evades a whole-function dup scan"; grill.md's
+  mechanism list gained the missing **convergence** item. The 2026-07-04 grill anchor that
+  `adversarial-critic.md` cited four times is now recorded once — here.
+- Dropped an `implement.md` negation ("never filter build output to errors only" → keep the
+  positive "surface warnings on every build" with its undefined-symbol why-note) plus two
+  intra-file duplications; compressed `adversarial-critic.md`'s over-argued parallel-dispatch cost
+  rationale to one sentence.
+- **`retro.md` anti-sediment policy strengthened — the actual root-cause fix.** Added *"Rule in
+  the body, evidence in the CHANGELOG"* (the motivating incident's date / card-id / calibration
+  data goes to the CHANGELOG entry, never inlined as `(Learned …)`; if a rule is opaque without an
+  example, keep a bare undated one) and *"Prune your own additions first"* (run the No-op /
+  Duplication / Sediment tests on the lines the retro just wrote). Step 5 now names the CHANGELOG
+  as where the incident lives.
+
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 
 Seven grill rounds left hashdata/005's design.md archaeological — layered dated corrections,
