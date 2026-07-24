@@ -76,6 +76,14 @@ t("R4: search hit rows navigate and content hits carry their line", () => {
   assert.match(html, /function scrollToLine\(side, fileLine\)/, "scrollToLine wrapper exists");
 });
 
+// --- R3: usage/shortcuts overlay (?) ---
+t("R3: help overlay markup + ?/esc bindings, suppressed while typing", () => {
+  assert.match(html, /id="help"[^>]*role="dialog"/, "help dialog markup present");
+  assert.match(html, /function openHelp\(\)/, "openHelp exists");
+  assert.match(html, /e\.key === "\?"[^\n]*!typing[^\n]*openHelp\(\)/, "? opens help, not while typing");
+  assert.match(html, /e\.key === "Escape" && helpEl\.classList\.contains\("show"\)/, "esc closes help");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

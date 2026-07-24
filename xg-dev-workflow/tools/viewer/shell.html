@@ -375,6 +375,22 @@
   #qo mark { background: transparent; color: var(--accent); font-weight: 700; }
   #qo .qempty { padding: 16px 12px; color: var(--muted); font-family: var(--chrome); font-size: 12px; }
   #qo .qfoot { padding: 6px 12px; border-top: 1px solid var(--line); color: var(--muted); font-family: var(--chrome); font-size: 10.5px; display: flex; gap: 14px; }
+  /* R3: help / shortcuts overlay (?) */
+  #help-back { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; }
+  #help-back.show { display: block; }
+  #help { display: none; position: fixed; z-index: 51; top: 76px; left: 50%; transform: translateX(-50%);
+    width: min(560px, 92vw); max-height: 80vh; overflow: auto; background: var(--side); border: 1px solid var(--line2);
+    border-radius: var(--radius); box-shadow: 0 18px 50px rgba(0,0,0,.4); }
+  #help.show { display: block; }
+  #help .qhead { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  #help .help-title { flex: 1; color: var(--fg); font-family: var(--chrome); font-size: 13px; }
+  #help .help-esc { color: var(--muted); }
+  #help .help-body { padding: 6px 14px 14px; }
+  #help .help-sec h4 { margin: 12px 0 4px; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #help .help-row { display: flex; align-items: baseline; gap: 12px; padding: 3px 0; font-size: 12.5px; color: var(--body); }
+  #help .help-row .key { flex: none; width: 4.4em; }
+  #help .help-row .key.act { font-family: var(--chrome); font-size: 10.5px; color: var(--muted); }
+  #help kbd, #help .help-esc kbd { font-family: var(--chrome); font-size: 11px; background: var(--chip); border: 1px solid var(--line2); border-radius: var(--radius); padding: 1px 6px; color: var(--fg); }
   #qo .qclear { margin-left: auto; cursor: pointer; }
   #qo .qclear:hover { color: var(--fg); }
   #qo kbd { border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 4px; font-family: var(--chrome); font-size: 10px; }
@@ -427,6 +443,31 @@
   <div class="qhead"><span class="qmag">⌕</span><input id="qoInput" type="text" placeholder="quick open — file name / path…" aria-label="quick open" autocomplete="off"></div>
   <div class="qlist" id="qoList"></div>
   <div class="qfoot"><span><kbd>↑↓</kbd> select</span><span><kbd>↵</kbd> open</span><span><kbd>⇧↵</kbd> right</span><span><kbd>⌘↵</kbd> search</span><span><kbd>esc</kbd> close</span><span class="qclear" id="qoClear" title="clear recent history">clear history</span></div>
+</div>
+<div id="help-back"></div>
+<div id="help" role="dialog" aria-label="keyboard shortcuts and usage">
+  <div class="qhead"><span class="qmag">?</span><b class="help-title">用法 / 快捷键</b><span class="help-esc"><kbd>esc</kbd></span></div>
+  <div class="help-body">
+    <div class="help-sec"><h4>导航</h4>
+      <div class="help-row"><span class="key"><kbd>⌘K</kbd></span><span class="desc">快速打开（文件 / 最近 / 搜索）</span></div>
+      <div class="help-row"><span class="key"><kbd>/</kbd></span><span class="desc">聚焦内容搜索</span></div>
+      <div class="help-row"><span class="key"><kbd>↵</kbd></span><span class="desc">搜索；<kbd>⇧↵</kbd> 在右栏打开</span></div>
+      <div class="help-row"><span class="key act">点击</span><span class="desc">树中文件打开；<kbd>⇧</kbd>+点链接 → 右栏</span></div>
+      <div class="help-row"><span class="key act">点击</span><span class="desc">搜索结果任一行 → 跳到匹配行</span></div>
+    </div>
+    <div class="help-sec"><h4>阅读</h4>
+      <div class="help-row"><span class="key"><kbd>↔</kbd></span><span class="desc">阅读宽度 measure / full</span></div>
+      <div class="help-row"><span class="key act">悬停</span><span class="desc">内部链接 → 预览浮层</span></div>
+      <div class="help-row"><span class="key act">历史</span><span class="desc">文档头「历史」→ 选一次变更看增 / 删</span></div>
+      <div class="help-row"><span class="key act">点击</span><span class="desc">右侧目录条目 → 跳转</span></div>
+    </div>
+    <div class="help-sec"><h4>布局 / 其他</h4>
+      <div class="help-row"><span class="key act">拖动</span><span class="desc">分隔条调面板宽（自动记住）</span></div>
+      <div class="help-row"><span class="key"><kbd>↺</kbd></span><span class="desc">重置面板宽度；右侧目录宽度固定</span></div>
+      <div class="help-row"><span class="key act">主题</span><span class="desc">亮 / 暗 / 跟随（顶部切换）</span></div>
+      <div class="help-row"><span class="key"><kbd>?</kbd></span><span class="desc">本帮助；<kbd>esc</kbd> 关闭</span></div>
+    </div>
+  </div>
 </div>
 
 <script>window.GITWEB_URL = "__GITWEB_URL__";</script>  <!-- 003: viewer injects the companion URL ("" = disabled) -->
@@ -1941,11 +1982,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.getElementById("qoClear").addEventListener("click", function () {   // one-tap clear of all recent histories
     RecentStore.clear(); fillDatalist("recent-filters", "filter"); fillDatalist("recent-searches", "search"); qoRender(qoInput.value.trim());
   });
-  document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search (not while typing)
+  var helpBack = document.getElementById("help-back"), helpEl = document.getElementById("help");   // R3
+  function openHelp() { helpBack.classList.add("show"); helpEl.classList.add("show"); }
+  function closeHelp() { helpBack.classList.remove("show"); helpEl.classList.remove("show"); }
+  helpBack.addEventListener("click", closeHelp);
+  document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
-    var t = e.target;
-    if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) &&
-        !(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) { e.preventDefault(); searchBox.focus(); }
+    if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
+    var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
+    if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
   });
 
   searchBox.addEventListener("keydown", function (e) {
