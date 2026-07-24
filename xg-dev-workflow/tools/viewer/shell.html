@@ -1016,14 +1016,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
 
   // --- doc view (R2/R3/R22/R29) ----------------------------------------------
-  function scrollToLine(side, fileLine) {        // R4: scroll to the section covering a full-file line
-    var pane = PANES[side], doc = pane._doc; if (!doc) return;
-    var idx = SV.sectionForLine(doc.headings, fileLine, doc.fmLines || 0);
+  function scrollToSection(side, idx) {          // shared: scroll to a heading-section + sync current line/TOC (R4 + TOC jump)
     var sec = idx >= 0 ? document.getElementById("sec_" + side + "_" + idx) : null;
-    if (sec) { sec.scrollIntoView({ block: "start",
-        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      pane._cur = idx; setCurLine(side, sec); markCurrent(); }
-    else pane.scrollTop = 0;                      // before the first heading → top of the doc
+    if (!sec) return false;
+    sec.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    PANES[side]._cur = idx; setCurLine(side, sec); markCurrent(); return true;
+  }
+  function scrollToLine(side, fileLine) {        // R4: scroll to the section covering a full-file line
+    var doc = PANES[side]._doc; if (!doc) return;
+    if (!scrollToSection(side, SV.sectionForLine(doc.headings, fileLine, doc.fmLines || 0))) PANES[side].scrollTop = 0;
   }
   function renderDoc(side, v) {
     var pane = PANES[side], mt = 0;
@@ -1777,10 +1778,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("click", function (e) {
     var t;
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
-      var i = +t.dataset.toc, sec = document.getElementById("sec_" + focus + "_" + i);
-      if (sec) { sec.scrollIntoView({ block: "start",
-          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-        PANES[focus]._cur = i; setCurLine(focus, sec); markCurrent(); } return; }   // R6: TOC follows the line
+      scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
     if ((t = e.target.closest("[data-closeright]"))) { PANES.right.innerHTML = ""; PANES.right._view = null;
       PANES.right._hist = []; PANES.right._hi = -1; showRight(false); if (focus === "right") setFocus("left"); return; }

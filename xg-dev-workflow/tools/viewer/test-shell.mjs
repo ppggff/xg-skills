@@ -74,6 +74,8 @@ t("R4: search hit rows navigate and content hits carry their line", () => {
   assert.match(html, /\(h\.line \? ' data-line="' \+ h\.line/, "content hit carries data-line");
   assert.match(html, /line: \+t\.dataset\.line \|\| 0/, "click handler forwards the line");
   assert.match(html, /function scrollToLine\(side, fileLine\)/, "scrollToLine wrapper exists");
+  assert.match(html, /function scrollToSection\(side, idx\)/, "shared scroll helper extracted (review #3)");
+  assert.match(html, /scrollToSection\(focus, \+t\.dataset\.toc\)/, "TOC jump reuses the shared helper");
 });
 
 // --- R3: usage/shortcuts overlay (?) ---
