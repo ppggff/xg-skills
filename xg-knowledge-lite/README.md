@@ -28,7 +28,7 @@ The key distinction: **raw = "what I learned in investigation X" (may mix concep
 {"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "python3 <path-to-skill>/tools/kb-backlog.py"}]}]}}
 ```
 
-A deliberately deferred raw is marked `compiled_to: deferred — <why>` in its frontmatter; the script then stops flagging it.
+A deliberately deferred raw is marked as such in its frontmatter (`compiled_to: deferred`; semantics in FORMAT.md), and the script then stops flagging it.
 
 ## Actions
 

@@ -1,7 +1,6 @@
 # CONTEXT-MAP format (bounded contexts + scoped glossary)
 
-Adapted from grill-with-docs' CONTEXT-MAP/CONTEXT-FORMAT, folded into this KB. A
-**CONTEXT-MAP** carves a project (or `common`) into **bounded contexts** — boundaries inside
+A **CONTEXT-MAP** carves a project (or `common`) into **bounded contexts** — boundaries inside
 which a term has **one** consistent meaning. Same word, different context = legitimately
 different meaning (a *scoped homonym*, not a conflict); same word, two meanings *within* one
 context = a conflict to fix.
@@ -52,7 +51,7 @@ _Avoid_: …
 - **Relationships are load-bearing** — they say how vocabularies meet at a seam (shared id,
   event, dependency), the way module-interaction diagrams say how modules meet.
 - **Definition style** — define each term by what it **IS, not what it does**, in 1–2 tight
-  sentences (CONTEXT-FORMAT discipline). A definition that describes behavior is too long/wrong.
+  sentences. A definition that describes behavior is too long/wrong.
 - **Glossary purity** — a CONTEXT-MAP is **a glossary and a context map, nothing else**: terms,
   scopes, relationships. No implementation details, no design decisions (those live in
   design.md / ADRs), no scratch notes. If it reads like a spec, move that content out.

@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-24 (comprehensive skill audit vs writing-great-skills — Sprawl + Duplication)
+
+Part of the cross-skill audit driven from `xg-dev-workflow`'s M6 retro (its CHANGELOG has the
+full framing). This skill carried **no** event-sourcing Sediment, but did carry Sprawl and
+Duplication measured against `karpathy-llm-wiki` (the two-layer raw→wiki source) and the
+`writing-great-skills` standard:
+
+- **Sprawl** — `FORMAT.md`'s ~100 lines of optional raw-note archetypes (self-labeled "not
+  mandatory") disclosed to `references/raw-archetypes.md` behind a pointer (216 → ~114 lines);
+  FORMAT keeps frontmatter + conventions resident (karpathy's "template is the SSOT" shape).
+- **Duplication → single source of truth**:
+  - `compiled_to:` frontmatter semantics and wikilink **syntax** now live once in `FORMAT.md`;
+    SKILL.md, lint.md, concept-template.md, README.md reference it (~5 + 3 sites converged). The
+    SKILL link-direction (= dependency direction) recompile **invariant** stays in SKILL.md.
+  - glossary collision rule (within-context conflict vs cross-context scoped homonym) + the
+    "define what it IS, not what it does" style → `context-map-template.md`; concept-template.md
+    and lint.md point to it.
+  - cross-raw contradiction / cross-article conflict / cross-cutting placement → SKILL.md's
+    Compile step; concept-template.md folds to a pointer.
+  - `FORMAT.md` §5/§6 trimmed to items §3 doesn't already cover; the checklist references its
+    sections rather than restating them.
+- Removed scattered inline provenance asides (karpathy / grill-with-docs / CONTEXT-FORMAT); the
+  karpathy attribution remains once, in README.md.
+
+Open item (deferred): the CONTEXT-MAP / bounded-context glossary layer overlaps the sibling
+`domain-modeling` skill — whether to pointer-reuse it or keep this layer self-contained is a
+standing decision, not taken here.
+
 ## 2026-07-16 (retro batch — comparison against the ~/.agents/skills 2026-07-09 set)
 
 - **Lint authority split** (from karpathy-llm-wiki): deterministic findings (index rows, link

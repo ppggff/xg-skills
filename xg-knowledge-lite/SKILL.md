@@ -5,8 +5,8 @@ description: "Cross-project code-knowledge base: raw investigation write-ups com
 
 # xg-knowledge-lite
 
-A cross-project **code-knowledge base** with two layers, adapted from the Karpathy LLM-wiki (the LLM
-writes & maintains the wiki; the human reads & asks):
+A cross-project **code-knowledge base** with two layers (the LLM writes & maintains the wiki; the
+human reads & asks):
 
 - **raw** (source of truth): `$KB/raw/<project>/*.md` + `$KB/raw/common/*.md` — Claude's
   investigation write-ups. One file = one investigation / topic, may span several concepts. Format
@@ -135,8 +135,7 @@ are (re)synthesized.
 term under its context's Language section and the concept under that context's "Governs". A new
 bounded context → a new section + its relationships. Flag any within-context term collision.
 5. **Back-annotate & refresh** — set `compiled_to:` in each source raw's frontmatter to the
-   concept(s) synthesized from it (`compiled_to: [[wiki/<project>/<concept>]]`, comma-separated if
-   several) — this is what keeps `kb-backlog.py`'s signal reliable; then refresh the `wiki/index.md`
+   concept(s) synthesized from it (format & semantics: `$KB/FORMAT.md`); then refresh the `wiki/index.md`
    row for every touched concept (and, when a project section is new or its scope shifted, its
    one-line project description); append one line to `wiki/log.md`:
    - scoped: `## [YYYY-MM-DD] write | raw <project>/<slug> → concept(s) <project>/<concept>[, …]`
@@ -159,7 +158,7 @@ bounded context → a new section + its relationships. Flag any within-context t
    **Backlog visibility:** `tools/kb-backlog.py` lists per-project uncompiled raw (SessionStart-hook
    friendly; wiring example in README). Its reliability contract: Compile step 5 owns the
    `compiled_to:` back-annotation; Lint §1 (`references/lint.md`) owns the check (incl. the
-   `deferred — <why>` marker).
+   deferred marker); the marker's semantics live in `$KB/FORMAT.md`.
 3. Contradictory hits → flag to the user.
 
 Don't write files during Query. Asked to save the answer → distill the **durable findings**
@@ -220,9 +219,8 @@ initialized** on the first commit (`git init` + a minimal `.gitignore`, announce
 ## Conventions
 
 - raw article format: `$KB/FORMAT.md`. concept article format: `references/concept-template.md`.
-- Cross-references: **fully-qualified** `[[<layer>/<project>/<slug>]]` wikilinks
-  (`<layer>`∈`wiki`/`raw`) — e.g. `[[wiki/cbdb/fdbobj-vacuum]]`, `[[raw/cbdb/vacuum_internals]]`.
-  (No legacy `[[project:slug]]` / bare `[[slug]]`.)
+- Cross-references: **fully-qualified** `[[<layer>/<project>/<slug>]]` wikilinks — full syntax
+  (forbidden bare / colon / relative forms, display text, section anchors) in `$KB/FORMAT.md` §3.
 - **Link direction = dependency direction.** The load-bearing link is **concept→raw** (Sources) — it
   drives recompile. `raw→raw` and `concept↔concept` (See Also) are navigation. A `raw→concept` link
   is allowed but **navigation only — raw must never *depend on* a concept** (the model's invariant

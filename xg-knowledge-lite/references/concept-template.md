@@ -46,16 +46,15 @@ Related concept articles (cross-links maintained by Compile / Lint):
 - **One concept per file.** A concept is the unit; name the file after the concept.
 - **Canonical term + `_Avoid_` + `_Context_` (the project glossary).** Each concept declares **one**
   preferred name, the synonyms/near-misses to avoid, and (if the project has a CONTEXT-MAP) the
-  bounded **context** its terms live in (borrowed from grill-with-docs' opinionated glossary). The
-  concept index + CONTEXT-MAP together are the project's **ubiquitous-language glossary**: pick the
-  best term, ban the rest. Collision rule: two terms colliding **within the same context** = a
-  conflict, flag + reconcile; the **same word across different contexts** is a legitimate scoped
-  homonym (record both, note it) — see `references/context-map-template.md`. Keep it to
-  **domain-specific** terms; general programming words don't need an entry.
-  **Definition style:** define what the term **IS, not what it does**, in 1–2 tight sentences.
+  bounded **context** its terms live in. The concept index + CONTEXT-MAP together are the project's
+  **ubiquitous-language glossary**: pick the best term, ban the rest. Keep it to **domain-specific**
+  terms; general programming words don't need an entry. Collision rule (within-context conflict vs
+  cross-context scoped homonym) and definition style (what the term **IS**, not what it does):
+  `references/context-map-template.md`.
 - **Sources is load-bearing** — it records which raw the concept draws from, so Compile knows which concepts to re-synthesize when a raw file changes. Keep it accurate.
 - **Synthesize, don't copy** — a concept article is the cross-investigation view, not a paste of one raw file. If it would just duplicate a single raw file verbatim, the raw probably already is the concept — still give it a concept article so it's queryable, but keep it a distilled summary that points to the raw.
-- **Contradictions across raw** (within this concept) → annotate both with attribution; never silently pick one.
-- **Cross-article conflict** → when this concept contradicts another concept article, annotate both with attribution and cross-link them under `See Also`; don't silently reconcile.
-- **Cross-cutting concept** → if it spans several projects, place it under `common/` (or the single most relevant project) and `See Also` the project-specific concepts, rather than duplicating per project.
+- **Contradictions / cross-article conflict / cross-cutting placement** → handling raw-vs-raw
+  contradictions, concept-vs-concept conflicts, and where a cross-cutting concept lives is governed
+  by Compile (SKILL.md); this format only requires the resulting attribution annotations and
+  `See Also` cross-links to live in the article.
 - Concept `updated` reflects when the synthesized content changed, not raw mtimes.

@@ -36,106 +36,7 @@ The overview sits after `# Title` and before the first `##`.
 
 ## 2. Article archetypes
 
-Pick an archetype by knowledge type — **not mandatory**; the structure is there to help you think and to make synthesis into concepts easier.
-
-### A. Module overview
-
-For: how a module works, its components, the big picture.
-
-```markdown
-# {Module}
-
-One-sentence positioning (what this is).
-
-## Problem it solves
-Why it exists, the core need it addresses.
-
-## Key concepts
-Term-style or short-sentence definitions; bold a term on first mention.
-
-## Components / data structures
-Constituent parts, key types.
-
-## Main flow (high level)
-The normal path, no deep detail (leave detail to a Flow article).
-
-## Boundaries & limits
-What's out of scope, known constraints.
-
-## Relationship to related modules
-Cross-module collaboration, comparison with similar modules.
-```
-
-### B. Flow / trace
-
-For: the full execution path of one operation, call-chain analysis.
-
-```markdown
-# Execution path of {Operation}
-
-## One-line summary
-The key observation — the single most informative sentence.
-
-## Trigger
-What SQL / API / event starts this path.
-
-## Call chain
-In order: each step's `func()` + `file` + what that step does.
-
-## Key data structures
-Structs / state objects passed along the path.
-
-## Differences from related flows
-A table: this flow vs similar flows.
-
-## Known pitfalls / edge cases
-Traps hit, behavior under special conditions.
-```
-
-### C. Pattern catalog
-
-For: a set of same-shaped patterns, failure modes, or variants.
-
-```markdown
-# Common {patterns / failure modes} in {area}
-
-## Prerequisites
-Background shared by all the patterns.
-
-## Pattern 1: {name}
-**Symptom**: what's observed
-**Root cause**: the underlying reason
-**Fix**: how to resolve it
-
-## Pattern 2: ...
-(same shape — keeps scanning and synthesis regular)
-
-## Diagnosis flow
-How to classify a problem into one of the patterns.
-
-## Anti-patterns
-Things that look like a pattern here but shouldn't be applied.
-```
-
-Same shape per pattern is the point of this archetype — it makes scanning and retrieval regular.
-
-### D. Invariant / constraint
-
-For: a single invariant, constraint, or contract. Short; often a subsection of a Module overview, standalone only when referenced by several articles.
-
-```markdown
-## {Invariant name}
-
-**Statement**: the invariant, stated precisely.
-
-**Why**: why it must hold.
-
-**Violation consequence**: what breaks if it's violated.
-
-**Enforcement**: where in the code it's checked / guaranteed.
-
-**Known bypasses**: paths that legitimately bypass it, and why they don't break it.
-```
+**Optional archetypes** (module-overview / flow / … structures for a raw note) → see `references/raw-archetypes.md`. Not mandatory; a raw note follows §1's frontmatter + §3's conventions regardless.
 
 ## 3. Micro-conventions
 
@@ -191,26 +92,23 @@ Splitting principle: single responsibility. Module overview + Flow + Pattern cat
 
 ## 5. Anti-patterns
 
+Only the ones §3's conventions don't already cover — line numbers, code/file refs, relative-path
+links, and renderer-dependent markdown are all handled in §3:
+
 - **Pasting large source blocks** — keep the key 3–5 lines, link the rest back to `func()` in `file.c`.
 - **Play-by-play narration** — "then I found… then I tried…" belongs in problem/progress; a raw article keeps stable conclusions only.
 - **Transient references** — PR numbers, issue numbers, git branches — they rot.
-- **Line-number references** — drift with every patch; use function names.
 - **Reverse coupling** — an article linking to workflow docs (dev_root requirement dirs, or legacy `plan/` / `problem/` / `progress/`); references are one-way (workflow → KB), Lint flags the reverse.
 - **Copying plan/problem content** — an article cites only "stable facts"; investigation-scene observations stay in problem.
-- **Fancy markdown** — embedded HTML, emoji decoration, admonitions — they hurt portability.
 - **Placeholder empty sections** — a heading with no body / `TODO` — delete it; add when needed.
 - **Conflating same-named concepts** — terms that share a name across projects but mean different things get their own files (distinguished by `<project>/<slug>`), not crammed into one.
 
 ## 6. Quick checklist
 
-Scan once after writing:
+Scan once after writing — no new rules, just the earlier sections applied in order:
 
-- [ ] frontmatter complete (title / project / updated; `compiled_to` is Compile's job — set it only for a deliberate `deferred — <why>`)
-- [ ] overview ≤ 3 sentences
-- [ ] a fitting archetype chosen (or deliberately skipped)
-- [ ] core terms bolded on first mention
-- [ ] source refs use function + file name, no `file:line`
-- [ ] cross-references use wikilinks, not relative paths
-- [ ] no links to workflow docs (dev_root requirement dirs / legacy plan/problem/progress)
-- [ ] line count in 50–300, or a good reason to exceed
-- [ ] no TODO empty sections, transient references, or emotive wording
+- [ ] frontmatter + overview per §1 (`compiled_to` is Compile's job; hand-set only for a deliberate `deferred — <why>`)
+- [ ] an archetype chosen, or deliberately skipped (§2)
+- [ ] prose / code-ref / link conventions per §3
+- [ ] size within §4 guidance
+- [ ] none of the §5 anti-patterns present
