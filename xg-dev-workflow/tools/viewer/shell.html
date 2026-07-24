@@ -1705,7 +1705,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (open && !layoutState.leftW) layoutState.leftW = Math.max(200, Math.round(L.getBoundingClientRect().width / 2));
     tocPane.style.flex = "none"; tocPane.style.width = tw + "px";   // R8: #toc never fills
     if (open) {
-      L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
+      var maxL = Math.max(200, window.innerWidth - tw - 320);       // R6: clamp a wide-screen leftW so it can't overflow a narrow window (apply-time only; stored value kept)
+      L.style.flex = "none"; L.style.width = Math.min(layoutState.leftW, maxL) + "px";
       PANES.right.style.flex = "1 1 0"; PANES.right.style.width = "auto";
     } else {
       L.style.flex = ""; L.style.width = "";                        // #left is the single-pane filler
