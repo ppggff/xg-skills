@@ -92,6 +92,13 @@ t("R2: hover preview targets resolved internal doc links, read-only, with a grac
   assert.match(html, /lpHideT = setTimeout\(lpHide, 200\)/, "grace period to move into the preview");
 });
 
+// --- R5 (T8): change-history dropdown ---
+t("R5: change-history dropdown — button, per-file log fetch, selection", () => {
+  assert.match(html, /data-changelog="' \+ side \+ '"/, "doc header carries a changelog button");
+  assert.match(html, /\/api\/filelog\?path=/, "chOpen fetches the per-file commit log");
+  assert.match(html, /function chChoose\(side, sha\)/, "commit selection handler exists");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

@@ -168,6 +168,22 @@ class T345Endpoints(unittest.TestCase):
             self.assertEqual(get(self.base, "/api/diff?card=" +
                                  urllib.parse.quote(bad))[0], 400, bad)
 
+    def test_filelog_per_file_commits(self):        # R5 (009 T8): per-file history as JSON
+        code, body = get(self.base, "/api/filelog?path=dev/foo/001-x/design.md")
+        self.assertEqual(code, 200)
+        d = json.loads(body)
+        self.assertTrue(len(d["commits"]) >= 1)
+        for k in ("sha", "subject", "date"):
+            self.assertIn(k, d["commits"][0])
+        self.assertEqual(d["commits"][0]["subject"], "foo/001: gate")
+        self.assertNotIn("auto: data snapshot", [c["subject"] for c in d["commits"]])
+
+    def test_filelog_bad_path_empty(self):          # non-md / traversal / empty → [] (no leak)
+        for bad in ("dev/foo/001-x/nope.txt", "dev/../etc/passwd.md", ""):
+            code, body = get(self.base, "/api/filelog?path=" + urllib.parse.quote(bad))
+            self.assertEqual(code, 200, bad)
+            self.assertEqual(json.loads(body)["commits"], [], bad)
+
     def test_board_tasks_field_pinned(self):        # 007 T3/T4: tasks always present
         _, body = get(self.base, "/api/board")
         self.assertIn("tasks", json.loads(body)["foo"][0])

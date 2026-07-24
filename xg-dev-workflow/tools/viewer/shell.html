@@ -399,6 +399,19 @@
   #lp .lp-path.broken { color: var(--s-blocked); }
   #lp .lp-body { padding: 8px 12px; }
   #lp .lp-body > :first-child { margin-top: 0; }
+  /* R5: change-history dropdown */
+  #chpanel { display: none; position: fixed; z-index: 60; width: min(360px, 84vw); max-height: 60vh; overflow: auto;
+    background: var(--side); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+  #chpanel.show { display: block; }
+  #chpanel .ch-head { position: sticky; top: 0; background: var(--side); border-bottom: 1px solid var(--line); padding: 7px 12px; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  #chpanel .ch-row { padding: 7px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  #chpanel .ch-row:hover { background: var(--chip); }
+  #chpanel .ch-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+  #chpanel .ch-none { font-family: var(--chrome); font-size: 12px; color: var(--body); }
+  #chpanel .ch-subj { font-size: 12.5px; color: var(--fg); }
+  #chpanel .ch-meta { font-family: var(--chrome); font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  #chpanel .ch-empty { padding: 14px 12px; color: var(--muted); font-family: var(--chrome); font-size: 12px; }
+  #chpanel .ch-empty.broken { color: var(--s-blocked); }
   #qo .qclear { margin-left: auto; cursor: pointer; }
   #qo .qclear:hover { color: var(--fg); }
   #qo kbd { border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 4px; font-family: var(--chrome); font-size: 10px; }
@@ -977,6 +990,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         fmLines: text.split("\n").length - fm.body.split("\n").length };   // R63: version; R4: frontmatter line offset
       if (staleSides[side]) { delete staleSides[side]; showStale(); }   // freshly (re)loaded → not stale
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel,
+          '<button class="iconbtn" data-changelog="' + side + '" title="变更历史">◷</button>' +
           '<button class="iconbtn" data-docwidth title="reading width: measure / full">↔</button>') +
         frontmatterTable(fm.fields) +
         '<div class="docbody' + (docWidth === "full" ? " full" : "") + '">' + window.marked.parse(fm.body) + "</div>";
@@ -1997,6 +2011,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
+    if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
     var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
@@ -2042,6 +2057,40 @@ if (typeof window !== "undefined" && window.marked) (function () {
     clearTimeout(lpShowT); lpHideT = setTimeout(lpHide, 200);   // grace period to move the pointer into the preview
   });
   window.addEventListener("scroll", function () { lpHide(); }, true);   // any scroll dismisses it
+
+  // R5: change-history dropdown — list a doc's commits; selecting one drives the diff overlay (wired in the overlay).
+  var chPanel = null, chSide = null, chSel = {};
+  function chEl() { if (!chPanel) { chPanel = document.createElement("div"); chPanel.id = "chpanel"; document.body.appendChild(chPanel); } return chPanel; }
+  function chClose() { chSide = null; if (chPanel) chPanel.classList.remove("show"); }
+  function chPlace(btn) { var el = chPanel, r = btn.getBoundingClientRect(), w = el.offsetWidth;
+    el.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 12)) + "px"; el.style.top = (r.bottom + 6) + "px"; }
+  function chOpen(side, btn) {
+    var doc = PANES[side]._doc; if (!doc) return;
+    chSide = side; var el = chEl();
+    el.innerHTML = "<div class='ch-head'>变更历史 · " + esc(doc.rel.split("/").pop()) + "</div>" +
+      "<div class='ch-list'><div class='ch-empty'>加载中…</div></div>";
+    el.classList.add("show"); chPlace(btn);
+    api("/api/filelog?path=" + encodeURIComponent(doc.tree + "/" + doc.rel)).then(function (r) { return r.json(); }).then(function (d) {
+      if (chSide !== side) return;
+      var sel = chSel[side] || "";
+      var rows = "<div class='ch-row ch-none" + (sel ? "" : " sel") + "' data-sha=''>· 普通视图（无 diff）</div>" +
+        (d.commits || []).map(function (c) {
+          return "<div class='ch-row" + (c.sha === sel ? " sel" : "") + "' data-sha='" + esc(c.sha) + "'>" +
+            "<div class='ch-subj'>" + esc(c.subject) + "</div>" +
+            "<div class='ch-meta'>" + esc(c.sha.slice(0, 7)) + " · " + esc(c.date) + "</div></div>"; }).join("");
+      el.querySelector(".ch-list").innerHTML = rows;
+      chPlace(btn);
+    }).catch(function () { if (chSide === side) el.querySelector(".ch-list").innerHTML = "<div class='ch-empty broken'>历史加载失败</div>"; });
+  }
+  function chChoose(side, sha) { chSel[side] = sha || ""; applyChangeSel(side); chClose(); }
+  function applyChangeSel(side) { /* R5: diff overlay is wired here by the overlay module */ }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-changelog]");
+    if (btn) { e.preventDefault(); var s = btn.dataset.changelog; if (chSide === s) chClose(); else chOpen(s, btn); return; }
+    var row = e.target.closest && e.target.closest("#chpanel .ch-row");
+    if (row) { chChoose(chSide, row.dataset.sha); return; }
+    if (chSide && chPanel && !chPanel.contains(e.target)) chClose();
+  });
 
   searchBox.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && searchBox.value.trim().length >= 2) {

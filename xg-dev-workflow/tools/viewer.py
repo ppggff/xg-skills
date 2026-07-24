@@ -143,6 +143,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_search(qs.get("q", [""])[0], qs.get("project", [""])[0])
         elif path == "/api/rev":
             self._serve_rev(qs.get("path", [""])[0])
+        elif path == "/api/filelog":
+            self._serve_filelog(qs.get("path", [""])[0])
         else:
             self._send(404, "not found\n")
 
@@ -263,6 +265,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except OSError:
                 mt = 0
         self._json({"mtime": mt})
+
+    def _serve_filelog(self, p):
+        # R5: per-file commit history (excludes auto data-snapshots) → JSON for the viewer's change list.
+        m = re.match(r"^(dev|kb)/(.*)$", p or "")
+        if not m or not m.group(2).endswith(".md"):
+            self._json({"commits": []})
+            return
+        root = self.dev_root if m.group(1) == "dev" else self.kb_root
+        rel = m.group(2)
+        if safe_join(root, rel) is None:               # traversal / out-of-root → empty, don't leak
+            self._json({"commits": []})
+            return
+        out = _git(root, "-c", "core.quotepath=false", "log",
+                   "--invert-grep", "--grep=" + SNAPSHOT_GREP,
+                   "--format=%H%x1f%s%x1f%cs", "-n", str(LOG_MAX), "--", rel)
+        commits = []
+        for line in out.splitlines():
+            parts = line.split("\x1f")
+            if len(parts) == 3:
+                commits.append({"sha": parts[0], "subject": parts[1], "date": parts[2]})
+        self._json({"commits": commits})
 
 
 def _trace_empty(card, err):
