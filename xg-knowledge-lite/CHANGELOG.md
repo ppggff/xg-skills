@@ -28,9 +28,14 @@ Duplication measured against `karpathy-llm-wiki` (the two-layer raw→wiki sourc
 - Removed scattered inline provenance asides (karpathy / grill-with-docs / CONTEXT-FORMAT); the
   karpathy attribution remains once, in README.md.
 
-Open item (deferred): the CONTEXT-MAP / bounded-context glossary layer overlaps the sibling
-`domain-modeling` skill — whether to pointer-reuse it or keep this layer self-contained is a
-standing decision, not taken here.
+CONTEXT-MAP verdict (adjudicated, not deferred): **keep it self-contained.** The audit's "parallel
+reimplementation of domain-modeling" flag came from judging `context-map-template.md` in isolation.
+Whole-system view: CONTEXT-MAP is load-bearing — 6 `xg-dev-workflow` steps (understand / investigate
+/ grill / adversarial-critic / design-grill / omission-check) plus M3 depend on it, and
+`domain-modeling` is never referenced by this repo. Pointer-reusing it (the audit's "A") would add a
+runtime dependency on a skill this self-contained public repo doesn't ship; removing the layer ("B")
+would break those 6 steps. The correct dedup was the within-skill one already done above
+(context-map-template.md is the single source; concept-template.md + lint.md point to it).
 
 ## 2026-07-16 (retro batch — comparison against the ~/.agents/skills 2026-07-09 set)
 

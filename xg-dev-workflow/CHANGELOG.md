@@ -92,10 +92,10 @@ truth」):
   mobilization from the `diagnosing-bugs` source (the default drift is to read code for a theory
   before the feedback loop exists).
 
-Deferred (standing decisions, not taken here): (1) CONTEXT-MAP / bounded-context glossary overlaps
-the sibling `domain-modeling` skill — pointer-reuse it vs keep xg-knowledge-lite's layer
-self-contained (also noted in that skill's CHANGELOG). (2) Optional: adopt the Fowler 12-smell
-names as leading words in review's quality lens.
+Adjudicated / deferred: (1) **CONTEXT-MAP — verdict: keep self-contained** (not a real cross-skill
+duplication; it's load-bearing across 6 steps + M3, and `domain-modeling` is never a dependency of
+this repo — full reasoning in xg-knowledge-lite's CHANGELOG). (2) Optional future: adopt the Fowler
+12-smell names as leading words in review's quality lens.
 
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 
