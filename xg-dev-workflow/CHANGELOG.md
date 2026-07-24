@@ -36,6 +36,25 @@ Landed in phases (P0–P3).
   Duplication / Sediment tests on the lines the retro just wrote). Step 5 now names the CHANGELOG
   as where the incident lives.
 
+### P1 — Sprawl disclosure (progressive disclosure to on-demand references)
+
+Branch-specific / consult-when-naming reference that was resident in every-load files moved behind
+context pointers, per `writing-great-skills`'s information hierarchy — the main files keep only
+what every branch needs:
+
+- SKILL.md's **Fixed ID prefixes** block (24 lines) → `references/id-schemes.md`; SKILL keeps the
+  core five (`NNN`/`ADR-NNNN`/`R`/`T`/`M1`–`M6`) + a pointer.
+- `review.md` **deep-tier machinery** (lens fan-out menu + per-lens model assignment, standing
+  model-diversity sweep, 5b saturation stop-rule) → `references/steps/review-deep.md` behind a
+  hard must-read pointer at the deep branch (252 → 170 lines); light/standard now resident-only.
+- `design-grill.md` **Mermaid gotchas + ASCII CJK-width alignment** (~24 lines — the fallback path
+  that dwarfed the recommended prefer-Mermaid one) → `references/diagram-gotchas.md`; the SKILL.md
+  and design-template pointers retarget to it.
+- `test.md` **browser + mobile real-device** testing → `references/frontend-testing.md`
+  (branch-specific; backend projects no longer load it).
+
+(xg-knowledge-lite's parallel Sprawl/Duplication cleanup is recorded in its own CHANGELOG.)
+
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 
 Seven grill rounds left hashdata/005's design.md archaeological — layered dated corrections,

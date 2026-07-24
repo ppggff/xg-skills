@@ -30,7 +30,8 @@ sentences.
   the gloss is paid once. A term used fewer than ~3 times isn't coined at all. Established domain
   terms need no gloss.
 - **Diagrams — Mermaid preferred** (renders in GitHub/Obsidian/VS Code, diffs as text); ASCII only
-  for the trivial or what Mermaid can't express (CJK-width rules in `design-grill.md`).
+  for the trivial or what Mermaid can't express (Mermaid pitfalls + CJK-width rules:
+  `references/diagram-gotchas.md`).
 - **Links — clickable where cheap:**
   - Intra-requirement/project references: standard markdown links (`[design](./design.md)`).
   - KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink — load-bearing for the
@@ -55,30 +56,11 @@ sentences.
 - **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
   sub-bullets** (one clause per line) instead of one long line. Applies to phase docs and this
   skill's own files (rewrap existing long lines opportunistically when editing them).
-- **Fixed ID prefixes** (one letter, one meaning; a new scheme picks an unused letter and lands
-  here):
-  - `NNN` card dir · `ADR-NNNN` decision records · `T<n>` plan tasks.
-  - `R<n>` requirement 条目 — R is **reserved** for requirements.
-  - `G<n>` grill-log questions — **continuous across rounds**; round-scoped form `G<round>.<n>`,
-    never a new letter per round.
-  - `L<n>` abstraction layers (design) · `D<n>` design decisions/子决策 (ADR-scoped: `ADR-NNNN D<n>`).
-  - `MS<n>` milestones/分期 — bare `M<n>` stays this skill's mechanisms `M1`–`M6`.
-  - `P<n>` implement's principles (`implement.md` Principles).
-  - `F<n>` a doc's centralized fact-list (事实清单) entries — the provenance 集中制 form.
-  - Review findings: `#<n>` within a report's 修复决策表, severity spelled out
-    (High/Med/Low — no H/M/L shorthand).
-  - **Symbol budget** — a prime evolution (`X'`→`X''`) survives **one** generation; the next
-    supersession renames/consolidates instead of adding another prime. Introducing a second
-    staging/tier scheme alongside an existing one requires a one-line statement of their
-    relation at first use, and its letter must not collide with this list.
-  - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
-    only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
-    Mermaid node ids are diagram-local — exempt.
-  - **Cross-scheme mappings are recorded downstream→upstream only**, each in its doc's designated
-    field (design「How it meets」· detail 可追溯 · plan `Implements:` · test Coverage rows ·
-    `ADR-NNNN D<n>`); the reverse map is derived (grep / M3), never hand-maintained — an upstream
-    doc doesn't list who cites it (same one-way principle as workflow→KB links; M2 propagates
-    along exactly these fields).
+- **Fixed ID prefixes** (one letter, one meaning). Core, resident: `NNN` card dir · `ADR-NNNN`
+  decisions · `R<n>` requirement 条目 (R is **reserved**) · `T<n>` plan tasks · `M1`–`M6` this
+  skill's mechanisms. Full registry — `G`/`L`/`D`/`MS`/`P`/`F`, review `#<n>`, the symbol budget,
+  module/part naming, and the downstream→upstream mapping rule — in `references/id-schemes.md`; a
+  new scheme picks an unused letter and lands there.
 
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 
@@ -403,6 +385,11 @@ behavior; the **contract never changes**, only the implementation behind it. For
   gate ask (load-bearing decisions + least-confident spots + open questions before the go ask).
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.
+- `references/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).
+- `references/diagram-gotchas.md` — Mermaid pitfalls + ASCII CJK-width alignment (design diagrams).
+- `references/frontend-testing.md` — browser + mobile real-device testing (UI-facing slices only).
+- `references/steps/review-deep.md` — the `review` verb's deep-tier continuation (lens fan-out
+  menu, model-diversity sweep, saturation stop-rule); read when running a deep review.
 - **`codebase-design`** (external skill, referenced not vendored) — deep-module vocabulary +
   Design-It-Twice (design-grill 方案优先) + dependency-categories→test-strategy (test) + the deletion
   test (design-grill, implement).

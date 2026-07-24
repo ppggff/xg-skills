@@ -80,7 +80,7 @@ use `MS<n>` (SKILL.md「Fixed ID prefixes」— bare `M<n>` means the skill mech
 **Prefer Mermaid** (a ```` ```mermaid ```` fenced block — `flowchart`/`graph` for module
 interaction, `sequenceDiagram`/`flowchart` for data flow): it renders in GitHub/Obsidian/VS Code
 and still diffs as text. Fall back to ASCII only for a trivial diagram or one Mermaid can't
-express (then follow the CJK-width rules in `design-grill.md`).
+express (then follow the CJK-width rules in `references/diagram-gotchas.md`).
 
 ### Interface / contract (required when the design introduces a module)
 
