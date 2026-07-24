@@ -51,24 +51,14 @@ Conclusions this lens reliably surfaces:
   feed `progress.md` / discovered issues, not the KB (unless they reveal reusable module
   truth).
 
-## Open-question investigation loop (route investigations through here)
-Any investigation done **while a requirement is active** — resolving an Open question, probing
-feasibility, "调查 X" — **is this step**, not an ad-hoc side quest. Run it through the loop so
-it leaves a doc trail and can't silently go wrong:
-1. **Anchor it to the requirement.** Take the item from `requirement.md` Open questions (or a
-   newly surfaced one). Scratch goes in the requirement's `notes/`.
-2. **Investigate per the rules above** (KB first → Explore/Plan Mode, read-only) under full M1
-   discipline — including the **Feasibility-claims** guard in `evidence.md` for any
-   "can't / infeasible" verdict (check `#ifdef`/build liveness, the hook's real execution
-   context, swappable seams, look-alike identities; verify the subagent's *inference*).
-3. **Record the resolution** in `progress.md` → *Design iterations* (the open question, the
-   verdict, the evidence). Route reusable module truth to the KB (`[[wiki/<project>/<slug>]]`); link it,
-   don't restate it.
-4. **Log it** as `--action design` (the understand step is part of the design phase).
-5. **Stop at the phase boundary** — investigation results inform the design; don't roll into
-   writing/freezing `design.md` without the human (Stop-at-gate rule).
+## Investigating while a requirement is active
+Any investigation — resolving an Open question, probing feasibility, "调查 X" — routes through the
+**`investigate` verb** (`investigate.md`), the single front door for code investigation. It owns the
+mechanics: anchoring to the requirement, recording (scratch in `notes/` → verdict + evidence in
+`progress.md` *Design iterations*), KB routing, the `--action` log, and Stop-at-gate. When a
+requirement is active it *is* this M5/design step; don't run a parallel loop here.
 
 ## Evidence (M1)
-Every claim about how code behaves cites `func()` in `file.c` (no line numbers) or a KB
-link. Uncertainty → dispatch an Explore subagent; never 望文生义 from a name. For any
-"infeasible" verdict, apply the **Feasibility-claims** section of `evidence.md`.
+Every claim about how code behaves follows the **canonical M1 discipline in `evidence.md`** —
+citations (`func()` in `file.c`, no line numbers) or a KB link, the Feasibility-claims guard for any
+"infeasible" verdict, never 望文生义 from a name. Apply it here; don't restate it.

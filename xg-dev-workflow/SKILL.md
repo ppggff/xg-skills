@@ -390,6 +390,8 @@ behavior; the **contract never changes**, only the implementation behind it. For
 - `references/frontend-testing.md` — browser + mobile real-device testing (UI-facing slices only).
 - `references/steps/review-deep.md` — the `review` verb's deep-tier continuation (lens fan-out
   menu, model-diversity sweep, saturation stop-rule); read when running a deep review.
+- `references/simplify-checks.md` — the two reuse/cohesion checks shared by implement's simplify
+  sweep and review's Standards axis (single source).
 - **`codebase-design`** (external skill, referenced not vendored) — deep-module vocabulary +
   Design-It-Twice (design-grill 方案优先) + dependency-categories→test-strategy (test) + the deletion
   test (design-grill, implement).

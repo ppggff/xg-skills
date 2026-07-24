@@ -46,10 +46,9 @@ Columns:
    M3 checks the card graph is acyclic. Cross-project deps are out of scope.
 - Dir      = link to the card directory.
 
-整体状态 vs internal progress is LOOSELY coupled (not fully orthogonal): free EXCEPT the
-monotonic constraints M3 checks — done ⇒ tests pass & Phase=测试 & gates passed & a close-out review
-doc exists under notes/ OR an explicit `XS/S — review skipped` note (see SKILL.md「Requirement
-sizing」); backlog ⇒ nothing past the requirement scaffold; paused/blocked ⇒ at least one phase started.
+整体状态 vs internal progress is LOOSELY coupled (not fully orthogonal): free EXCEPT the monotonic
+constraints M3 enforces (done / backlog / paused-blocked preconditions) — the authoritative list
+is in omission-check.md「Board (kanban) consistency」.
 
 Backward compat: existing rows stay valid. Migrating an old per-phase `Status` column to 整体状态
 is a ONE-TIME, HUMAN-REVIEWED pass (the axes differ): suggested drafting→todo, active→active,

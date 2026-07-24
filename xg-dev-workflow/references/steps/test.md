@@ -58,8 +58,8 @@ Output: `test.md` (template: `references/templates/test.md`).
 4. **Add the tests that span slices** — integration, **跨 part 联调** (real neighbors, not mocks),
    manual / E2E, and the anomaly/edge cases the per-slice loop didn't reach.
 5. **Run & record** — TDD mode: run the full suite. test-after / cbdb: list the exact commands as
-   **suggested steps**, don't execute. Record results as a **binary** check (`[x]` observed pass /
-   `[!]` failed / `[ ]` unverified, with date; **no subjective `[x]`**).
+   **suggested steps**, don't execute. Record results as the **binary** check (`[x]/[!]/[ ]`, with
+   date; per implement.md「Binary verify」— **no subjective `[x]`**).
    **After a full-suite run, sweep the server/process logs for silent failures** — green ≠ no
    error lines; a masked path (fallback, retry, manual-path shadowing) can pass every assertion
    while logging the real failure. For "describe, don't run", list the log-sweep command

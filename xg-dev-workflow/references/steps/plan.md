@@ -39,8 +39,8 @@ Output: `plan.md` (template: `references/templates/plan.md`).
 
 Guardrail: this plan must stay faithful to the frozen design. If planning reveals the
 design is wrong, **stop and run change-management (M2)** — don't quietly diverge. The plan is
-freely editable, but **deleting / merging / deferring a task later is logged to `log.md`** (`[实现]`,
-what + why) — only routine refinement is silent (see `implement.md`).
+freely editable, but task churn (delete / merge / defer, or invalidating an `[x]`) is logged to
+`log.md` per M2 case B (`change.md`; routine refinement is silent).
 
 ## Runtime override
 `plan use:agent-skills:plan` or `use:<your-skill>`.

@@ -37,25 +37,13 @@ not transcribe the words.
    - **Semantics** — pin exact meaning of the ask's key words ("只在某个" = at-most-one? designated? auto-elected?).
    - **Boundaries** — what's in vs out; the no's are as load-bearing as the yes's.
 
-   Grilling tactics (from grill-with-docs):
-   - **Sharpen fuzzy language → canonical term + `_Avoid_`** — when the human uses a vague/
-     overloaded term, pin **one** canonical name (define what it **IS, not what it does**, 1–2
-     sentences) + note synonyms to avoid (grill-with-docs' opinionated glossary); fix the
-     requirement's wording to it. **Canonical form follows the global Language rule**: an
-     established EN technical term stays EN (`heap` not 堆, `segment` not 段) — a force-translated
-     term is a pin trigger even when it isn't vague. State the pins as you make them (one line:
-     `术语: heap (_Avoid_ 堆)`), so the human sees when a term gets decided and can veto on the spot. **Infer its bounded context** (project `CONTEXT-MAP.md`); if
-     ambiguous, **ask**. If it **collides within that context** with an existing KB/CONTEXT-MAP
-     term, flag immediately ("KB 用 'X' 指 A,你这里像是 B —— 哪个?"); same word in a
-     *different* context is a legitimate scoped homonym. Durable domain terms get their
-     canonical home in the KB concept / CONTEXT-MAP; the requirement just uses them consistently.
-   - **Stress-test with concrete scenarios** — invent specific edge-case scenarios that force
-     the human to be precise about a boundary ("两个 coordinator 同时崩溃时…?"), rather than
-     accepting an abstract answer.
-   - **Grep before accepting a current-behavior claim** — when the human asserts how the code
-     works today, verify (≥1 grep + 1 read for the named term) before taking it as fact;
-     hallucinated agreement is worse than an honest "didn't check". When the code disagrees,
-     raise it on the spot, don't silently take either side.
+   Grilling tactics — the four shared tactics (sharpen-language, stress-test scenarios,
+   grep-before-accepting, fresh-context adversarial panel + tiered dispatch) live in
+   `grill.md`「Shared elicitation tactics」. Apply them with the **requirement slant**:
+   - **Sharpen language** — the pinned term captures **requirement semantics**: the exact meaning
+     of the ask's key words (the 语义 priority above).
+   - **Stress-test scenarios** target **requirement boundaries** — force precision on what's in
+     vs out (the no's are as load-bearing as the yes's).
    - **Disposable design sketch (前瞻草图)** — when a question can't settle without seeing a
      solution shape (feasibility, cost magnitude, scope size — is this R item cheap, or does it
      force a new mechanism?), draft a **throwaway sketch**: a solution outline at module
@@ -68,18 +56,10 @@ not transcribe the words.
      authors `design.md` fresh, taking the sketch as input evidence); an R item whose content
      leans on the sketch is marked 推断/假设 until the design phase verifies it; the requirement
      must stand if the sketch is thrown away — it states the problem, the sketch only tests it.
-   - **Fresh-context adversarial pass (`adversarial-critic.md`)** — don't grill the ask only
-     from inside your own framing of it. At each branch checkpoint apply the *causal-coverage*
-     lens (against the real intent/effect — is each requested thing tied to the actual goal;
-     anything unnecessary or any gap?) + the standing rules (incl. **class-to-constraint** — a second same-shape finding pins a structural rule): **verify-the-assumption** (every
-     load-bearing "X is available/true at Y" gets a grep+read before the requirement leans on it
-     — this is what surfaces facts like "per-file info isn't returned to QD") and
-     **re-apply-the-signature** (let the problem's specific structure shrink scope). Run the
-     *invariant-ledger replay* + *search-before-build* lenses once the touched subsystem is known.
-     **Tiered dispatch on repeat passes** (same as design-grill's): a full fresh-context pass at
-     decision-level checkpoints; after a round that only *edited already-grilled text*, a
-     **targeted re-verify of the new clauses + a lightweight whole-doc consistency sweep** —
-     not another full pass.
+   - **Fresh-context adversarial panel** — targets **需求条目 completeness**: the *causal-coverage*
+     lens leads (is each requested thing tied to the real goal; anything unnecessary or any gap?),
+     with *verify-the-assumption* surfacing requirement facts (a load-bearing "X is available at Y"
+     gets grep+read before the requirement leans on it — e.g. "per-file info isn't returned to QD").
 3. **Interleave code understanding (M5 + M1).** When a question is answerable from the
    codebase ("does X exist?", "how is Y gated?", "is Z enumerable?"), **go find out instead
    of asking or guessing**: query xg-knowledge-lite first, then a read-only Plan Mode /
@@ -97,9 +77,8 @@ not transcribe the words.
    ("at most one coordinator runs the launcher; observable via …"), not vague goals; **cite the
    `R-id`** each criterion verifies.
 7. **Boundaries & open questions explicit.** Anything still unresolved or needing human
-   input → Open questions; anything deliberately deferred → Future. **Don't grill to death**:
-   if one point won't converge after ~3 rounds, record it in Open questions and move on —
-   an honest "still ambiguous" beats grinding the same branch forever.
+   input → Open questions; anything deliberately deferred → Future. **Don't grill to death**
+   (`grill.md` Protocol): a point that won't converge → record it in Open questions and move on.
 8. **GATE — hard stop.** Present `requirement.md` for confirmation **via the gate digest**
    (`gate-digest.md`: load-bearing decisions + least-confident spots + open questions + the go
    ask with receipts), then **STOP this turn**.

@@ -89,12 +89,8 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      missing/partial items, scope creep (test: every changed line traces to a requirement /
      design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
      (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
-     run) + **reuse/cohesion when the change adds helpers/abstractions**: does a new helper
-     duplicate one in the touched module (grep it), and is a new cross-cutting concern consistent
-     with a sibling pattern the *same change* built (an interface hook vs a caller-side
-     `if type == :foo` special-case)? Name these two checks explicitly — an embedded shared
-     sub-expression evades a whole-function dup scan. (The same two checks mirror implement.md's
-     simplify-sweep reuse/cohesion checklist — keep the two in sync.) **Invariants axis** (session model) —
+     run) + **reuse/cohesion when the change adds helpers/abstractions** — apply the two checks in
+     `references/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory). **Invariants axis** (session model) —
      context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
      tier; findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens

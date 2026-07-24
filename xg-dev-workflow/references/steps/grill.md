@@ -35,7 +35,8 @@ priorities and tactics (see "Phase-specific layers").
   read it instead of asking/guessing; bring back evidence (`func()` in `file.c` / `[[wiki/…]]`).
   When it's answerable **only empirically** (runtime/planner behavior reading can't settle), run
   a **spike** — a throwaway probe (`investigate.md`「Spike」) — instead of parking it as 待验.
-- Run the **fresh-context adversarial lenses** (`adversarial-critic.md`) at branch checkpoints.
+- Run the **fresh-context adversarial panel** (`adversarial-critic.md`) at branch checkpoints —
+  the lenses, standing rules, and tiered dispatch are in「Shared elicitation tactics」below.
 - **Mid-grill new mechanism → pin principles, defer axes.** When an answer *injects a new
   mechanism* into the doc (a new syntax surface, a new subsystem), the current phase pins only
   its **principles and boundaries** (what it guarantees, what it refuses, its consumers); the
@@ -45,6 +46,48 @@ priorities and tactics (see "Phase-specific layers").
   question and move on; an honest "still ambiguous" beats grinding.
 - Convergence lands **inline in the phase doc** (`requirement.md` / `design.md`) as you go — the
   doc is the durable output; the grill-log below is the *path* to it.
+
+## Shared elicitation tactics (lenses)
+
+Both grill users — **requirement** (elicit the real intent) and **design-grill** (stress-test the
+approach) — apply these four tactics. They are canonical **here**; each phase step adds only its
+own slant (see "Phase-specific layers"). Change a tactic once, in this file.
+
+1. **Sharpen fuzzy language → canonical term + `_Avoid_`.** When a term is vague/overloaded — or
+   a force-translated EN technical term (a pin trigger even when it isn't vague, per the global
+   Language rule: `heap` not 堆, `segment` not 段) — pin **one** canonical name, defined by what
+   it **IS, not what it does** (1–2 tight sentences), plus the synonyms to avoid (grill-with-docs'
+   opinionated glossary); fix the doc's wording to it. State each pin as you make it (one line:
+   `术语: heap (_Avoid_ 堆)`) so the human sees the decision and can veto on the spot. **Infer the
+   term's bounded context** (project `CONTEXT-MAP.md`); if it could belong to more than one,
+   **ask**. Same word in two contexts = a legitimate scoped homonym (note it); same word twice
+   **within** a context, or colliding with a canonical/`_Avoid_` there → flag and reconcile
+   immediately. Durable domain terms get their canonical home in the **KB concept / CONTEXT-MAP**;
+   the phase doc just uses them consistently, never stores the glossary itself.
+2. **Stress-test with concrete scenarios.** Invent specific edge-case scenarios that force the
+   human to be precise about a boundary ("两个 coordinator 同时崩溃时…?"), rather than accepting an
+   abstract answer.
+3. **Cross-reference code (grep before accepting).** When the human asserts how the code works
+   today, verify (≥1 grep + 1 read for the named term) before taking it as fact; hallucinated
+   agreement is worse than an honest "didn't check". When the code disagrees, raise it on the spot
+   — don't silently take either side. (This is the assertion-checking companion to the Protocol's
+  「Interleave code understanding」, which covers proactively reading when a question is answerable
+   from code.)
+4. **Fresh-context adversarial panel (`adversarial-critic.md`).** Don't grill only from inside
+   your own framing. At each branch checkpoint run the three fresh-context lenses (causal-coverage
+   · invariant-ledger replay · search-before-build) + the three standing rules
+   (verify-the-assumption · re-apply-the-signature · class-to-constraint — a second same-shape
+   finding pins a structural rule), so the agent reaches the decisive cuts itself instead of
+   waiting for the human to land them. **Tiered dispatch:** M+ decision-level checkpoints →
+   parallel one-agent-per-lens; XS/S work / edit-only rounds → the single-agent form; attach the
+   **verified-facts pack** on every round after the first; a round that only *rewrote
+   already-grilled text* gets just a lightweight text-consistency agent + a targeted re-verify of
+   the new clauses, not another full pass. The lenses also apply to **every newly proposed
+   remediation/mechanism mid-grill** (run search-before-build on the fix itself before designing
+   it), not just the artifact under test.
+
+**Don't grill to death** (the ~3-round rule) is the Protocol's, above — the SoT; phase steps
+reference it rather than restating the round count.
 
 ## Grill-log (history) — proportional
 The record of the decision-tree walk: what was asked, recommended, chosen, and why. **Size it to
@@ -175,11 +218,16 @@ chat history needed. A small, un-persisted in-conversation grill just restarts t
 from the phase doc's current state.
 
 ## Phase-specific layers (defined in the phase steps, not here)
-- **requirement** (`requirement.md`) — semantics-first priorities (why-now / 语义 / boundaries),
-  sharpen-language → canonical term + `_Avoid_`, stress-test scenarios, grep-before-accepting,
-  disposable design sketch (shape questions get a throwaway 非约束 sketch, not a parked 待验).
+Both phases apply the four **Shared elicitation tactics** above; each phase step carries only its
+slant on them plus its own unique items:
+- **requirement** (`requirement.md`) — semantics-first priorities (why-now / 语义 / boundaries) +
+  the **disposable design sketch** (shape questions get a throwaway 非约束 sketch, not a parked
+  待验). Shared-tactic slant: term = requirement semantics · scenarios = 需求 boundaries ·
+  adversarial = 需求条目 completeness.
 - **design** (`design-grill.md`) — module altitude, 方案优先 + the hack/补丁/重做 spectrum,
-  design-quality + module-depth lenses, required diagrams.
+  design-quality + module-depth lenses, required diagrams. Shared-tactic slant: term → KB
+  concept/CONTEXT-MAP · scenarios = module boundaries · adversarial = design decisions +
+  invariant-ledger replay.
 
 ## Runtime override
 `use:grill-me` (relentless branch-resolving) · `use:interview-me` (intent elicitation) ·

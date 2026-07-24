@@ -18,8 +18,8 @@ mechanics. 两种粒度，互相独立，都可选（够小就不拆，行为与
 （= 一个完整生命周期单元 = 一个 `NNN-slug/` 目录；card 是"需求目录"的看板别名，技能其余处仍称 requirement
 指该单元——scoped homonym）。看板显示 **Phase**（走到哪，card 级摘要）+ **整体状态**（人设调度轴
 `backlog|todo|active|blocked|paused|done|dropped`，**与内部阶段 status 值分离**，内部值不上看板）+ **Deps**
-（同项目 NNN，M3 查无环）。两轴**松耦合**：除少数单调约束（done⇒tests通过&Phase=测试&评审 doc 或
-`XS/S — review skipped` 注已存在；backlog⇒仅脚手架；paused/blocked⇒已起步）外自由。`new` 设初始
+（同项目 NNN，M3 查无环）。两轴**松耦合**：除 M3 检查的单调约束（done / backlog / paused-blocked
+的前置条件——权威列表见 `omission-check.md`「Board (kanban) consistency」）外自由。`new` 设初始
 整体状态=`todo`。`resume` 不变（仍只进单 card 内部、不读看板）。
 
 **Card 还是雾（fog）？**（借 wayfinder 的 fog-of-war 判定）拆出的一项能**精确表述问题**（不必能回答）

@@ -9,27 +9,18 @@ and branches on whether a requirement is active:
 - **M5 code understanding** — `understand.md` (concept-first, layered, KB-first).
 
 ## The discipline this verb enforces (M1, non-negotiable)
-Base **every** conclusion on verified evidence from the actual code/tests. Never assume:
+Base **every** conclusion on verified evidence from the actual code/tests, not from a name. Minimum bar:
 - **runtime values / concurrency behavior** — read the code path that runs, don't reason from a name;
 - **function-pointer / hook / vtable targets** — a current assignment is not a constraint (swappable seam);
 - **`#ifdef` / build gating** — confirm the cited code is live in the target build;
 - **upstream library defaults** — a patched fork (Cloudberry/Greenplum on PostgreSQL) may have changed lock modes, defaults, call paths.
 
-When something can't be verified, write `UNVERIFIED: …` explicitly rather than concluding.
-For any "can't / infeasible" verdict, apply the **Feasibility-claims** guard in `evidence.md`
-(mutable code, execution context, swappable seams, look-alike identities, verify the
-subagent's *inference* not just its facts). For any negative result, apply the
-**Negative-results** rule (search the symbol across all file types — incl. build configs,
-catalog `.dat`/`.bki`, and registration sites — distinguish same keyword across modules/layers,
-phrase as query-scoped). A negative that **justifies building new plumbing** must additionally
-reach VERIFIED by a hop-by-hop trace before it earns that code (evidence.md **birth-certificate
-rule**) — a query-scoped negative isn't enough there. For a verdict resting on a
-function-pointer/hook seam, first dispatch
-an agent to enumerate **every** registration/assignment site (evidence.md swappable-seam rule).
-
-Before stating any feasibility or runtime/concurrency conclusion, produce the **claims table**
-(Claim | Evidence `file:line` | VERIFIED/INFERRED/GUESS) from `evidence.md` — never assert on a
-GUESS/INFERRED row; investigate it to VERIFIED first or carry it as `UNVERIFIED:`.
+Can't verify → write `UNVERIFIED: …` explicitly rather than concluding. The full detail is the
+**canonical M1 discipline in `evidence.md`** — apply it here, don't restate it: the **claims table**
+before any feasibility/runtime verdict (never assert on a GUESS/INFERRED row), the
+**Feasibility-claims** guard, the **Negative-results** rule, the **birth-certificate rule** for a
+negative that justifies new plumbing, and the **swappable-seam** every-site enumeration for a verdict
+resting on a function-pointer/hook.
 
 ## Analysis, not just grep (logical reasoning is the deliverable)
 grep/read **gather** evidence — they are not the answer. The output of an investigation is a

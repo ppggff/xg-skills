@@ -95,19 +95,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    auto-verdict** live in `grill.md` (a drafting-phase rollback re-walks superseded branches; once
    frozen, changes go through M2). Walk each branch of the design tree with the design-specific
    lenses below.
-   - **Sharpen language → canonical term + `_Avoid_`** — for each domain term, pick **one**
-     canonical name and name the synonyms to avoid (grill-with-docs' opinionated glossary).
-     Define it by what it **IS, not what it does** (1–2 tight sentences). Record it as the
-     **canonical term of the KB concept** (`[[wiki/<project>/<slug>]]`) / the project `CONTEXT-MAP.md`,
-     not in `design.md`. **First infer the term's bounded context** (from CONTEXT-MAP); if it
-     could belong to more than one, **ask**. Same word in two contexts = OK if scoped (note the
-     homonym); same word twice **within** a context, or colliding with a canonical/`_Avoid_`
-     there → flag and reconcile.
-   - **Stress-test with concrete scenarios** — invent edge cases that force precision about
-     boundaries between concepts.
-   - **Cross-reference code (grep before accepting)** — when the human says how the code works
-     today, verify (≥1 grep + 1 read) before taking it as fact; hallucinated agreement is worse
-     than an honest "didn't check". Surface contradictions immediately.
+   - **Shared elicitation tactics** (sharpen-language, stress-test scenarios, grep-before-accepting)
+     live in `grill.md`「Shared elicitation tactics」; apply them with the **design slant**:
+     sharpen-language records each canonical term in the **KB concept (`[[wiki/<project>/<slug>]]`)
+     / `CONTEXT-MAP.md`** — never in `design.md`; stress-test scenarios force precision about
+     **boundaries between modules/concepts**; grep-before-accepting verifies current-behavior
+     claims before a design decision rests on them.
    - **Correctness lens (systems work)** — grill the design on: is a "skip / ignore" actually
      *safe* or only *live* (prefer fail-safe — defer/refuse — over fail-unsafe); who is the
      **authority** for each value (consumers record it, don't re-judge across an XID/namespace
@@ -144,18 +137,11 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      interface — minimal / flexible / common-case / ports&adapters — then compare on
      depth·locality·seam and recommend/hybrid). Optional, costs parallel agents — skip for
      structure-light work.
-   - **Fresh-context adversarial panel (`adversarial-critic.md`)** — don't only grill from inside
-     your own design. At each design-tree checkpoint run the three fresh-context lenses
-     (causal-coverage · invariant-ledger replay · search-before-build) + the three standing rules
-     (verify-the-assumption · re-apply-the-signature · class-to-constraint), so the agent
-     reaches the decisive cuts itself instead of waiting for the human to land them. Dispatch per that step's stake tiers:
-     **M+ decision-level checkpoints → parallel one-agent-per-lens; XS/S designs / edit-only
-     rounds → the single-agent form**, with the **verified-facts pack** attached on every round
-     after the first; rewrites of already-grilled decisions get only a lightweight
-     text-consistency agent. The lenses also apply to
-     **every newly proposed remediation/mechanism mid-grill** (run search-before-build on the fix
-     itself before designing it), not just the design under test.
-   - **Don't grill to death** — ~3 rounds on one point, then record an Open question and move on.
+   - **Fresh-context adversarial panel** — the tactic (lenses, standing rules, tiered dispatch)
+     lives in `grill.md`「Shared elicitation tactics」; here it targets **design decisions**, with
+     the *invariant-ledger replay* lens biting hardest (does the design honor the subsystem's
+     recorded invariants?).
+   - **Don't grill to death** — see `grill.md` Protocol; record an Open question and move on.
    - **Convergence — run the shared auto-verdict** (`grill.md`「Convergence」, the canonical
      rule): end every round with the one-line 继续/建议收敛 verdict — decision-level dry check
      against the doc's diff since the last grill checkpoint + ADR-weighted open points; the

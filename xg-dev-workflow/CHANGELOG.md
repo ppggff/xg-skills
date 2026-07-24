@@ -55,6 +55,28 @@ what every branch needs:
 
 (xg-knowledge-lite's parallel Sprawl/Duplication cleanup is recorded in its own CHANGELOG.)
 
+### P2 — Duplication → single source of truth
+
+One meaning, one home; the other sites became pointers (writing-great-skills「single source of
+truth」):
+
+- **Shared elicitation tactics** (sharpen-language, stress-test scenarios, grep-before-accepting,
+  fresh-context adversarial panel + tiered dispatch) now live once in `grill.md`'s new "Shared
+  elicitation tactics" section; `requirement.md` and `design-grill.md` keep only each phase's slant
+  + a pointer — changing a tactic is now a one-file edit.
+- **Investigate cluster** canonical homes nailed: M1 discipline → `evidence.md`, M5 / Synthesis
+  lens → `understand.md`, single-front-door recording branch → `investigate.md`. `investigate.md`
+  keeps a 4-point M1 preload and points to evidence.md for the detail; `understand.md`'s duplicated
+  "open-question investigation loop" (which also contradicted the single-front-door rule) is gone,
+  replaced by a pointer; evidence.md's model-cost paragraph trimmed to its carve-out + a pointer.
+- **simplify-sweep reuse/cohesion checks** — the pair that each self-admitted "keep the two in
+  sync" (`implement.md` ↔ `review.md` Standards axis) extracted to `references/simplify-checks.md`;
+  both now point to it.
+- Scattered constants folded to their authority: task-churn logging → M2 case B (`change.md`);
+  binary-verify `[x]/[!]/[ ]` → `implement.md`「Binary verify」; the board monotonic constraints →
+  `omission-check.md`「Board (kanban) consistency」 (`split-isolate.md` + the index template now
+  point to it).
+
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 
 Seven grill rounds left hashdata/005's design.md archaeological — layered dated corrections,

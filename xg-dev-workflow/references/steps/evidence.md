@@ -74,12 +74,11 @@ Dispatch an **Explore** (or general-purpose) subagent to investigate and return 
 evidence — then record the finding (in the relevant doc, and in the KB if reusable).
 Surface conflicts (docs vs code, source vs source) to the human; don't silently pick.
 
-**Model (cost):** a gather-only dispatch defaults to the cheaper model — Agent tool
-`model: sonnet` (SKILL.md「Subagent model assignment」). This step already makes the
-orchestrator re-derive the inference and re-check load-bearing negatives, so a cheaper
-gatherer costs recall at worst. Keep the **session model** where recall itself is the
-deliverable with no cheap backstop: the swappable-seam every-registration-site enumeration,
-and the hop-by-hop trace behind a birth-certificate-grade negative.
+**Model (cost):** follows SKILL.md「Subagent model assignment」(gather → cheaper `model: sonnet`;
+inference/adjudication → session model, safe because the orchestrator re-derives). Evidence-specific
+carve-out: keep the **session model** where recall itself is the deliverable with no cheap backstop —
+the swappable-seam every-registration-site enumeration, and the hop-by-hop trace behind a
+birth-certificate-grade negative.
 
 When you dispatch, put the Negative-results rule **in the subagent's prompt**: tell it not
 to restrict grep by file extension and to report negatives as query-scoped. A subagent's
