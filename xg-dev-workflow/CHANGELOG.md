@@ -94,8 +94,12 @@ truth」):
 
 Adjudicated / deferred: (1) **CONTEXT-MAP — verdict: keep self-contained** (not a real cross-skill
 duplication; it's load-bearing across 6 steps + M3, and `domain-modeling` is never a dependency of
-this repo — full reasoning in xg-knowledge-lite's CHANGELOG). (2) Optional future: adopt the Fowler
-12-smell names as leading words in review's quality lens.
+this repo — full reasoning in xg-knowledge-lite's CHANGELOG). (2) **Done** — adopted the Fowler
+12-smell names as leading words: new `references/smell-catalog.md` (the 12 smells + the
+repo-standard-wins / skip-tooling-enforced binding rules); the deep-tier quality lens now names its
+families with them (Speculative Generality / Duplicated Code / Middle Man) and points to the
+catalog, and the standard-tier Standards axis falls back to it where the repo documents no
+convention.
 
 ## 2026-07-23 (design-doc readability: fold-in, prose-for-reasoning, F-list provenance — hashdata card 005)
 

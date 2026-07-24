@@ -90,7 +90,9 @@ XS/S structure-light work may skip the close-out — then record `XS/S — revie
      design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
      (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
      run) + **reuse/cohesion when the change adds helpers/abstractions** — apply the two checks in
-     `references/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory). **Invariants axis** (session model) —
+     `references/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory).
+     Where the repo documents no convention for a smell, fall back to the **smell catalog** baseline
+     (`references/smell-catalog.md`); skip anything tooling already enforces. **Invariants axis** (session model) —
      context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
      tier; findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens

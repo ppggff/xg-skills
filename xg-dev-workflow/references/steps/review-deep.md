@@ -35,18 +35,20 @@ Menu — skip lenses that obviously don't apply and note the skips:
 - performance (hot paths, N+1 dispatch, lock scope);
 - git history (blame, prior fixes and review comments, in-code guidance comments);
 - **quality/simplify (one bundled sonnet agent, deep tier only)** — the review-side backstop
-  to implement's simplify sweep, for the low-inference cleanup family that a diff-first read
-  catches: **dead code / unused generality** (a static-fn parameter every caller passes
-  constant/NULL, an unreachable mode), **duplication** (a copy-pasted call shape that wants
-  one helper), **efficiency-hoist** (side-effect-free/expensive work sitting above the guard
-  that skips it; per-row work that belongs in one-time setup), **altitude/over-abstraction**
-  (a pass-through layer, or a flag/state-machine/ranking a simpler check replaces). These are
-  one coherent family — bundle them in **one** agent, not one-per-check; recall loss is
-  cheap here (a missed cleanup is a nice-to-have, not a bug), which is exactly why merging is
-  safe for this family and not for correctness/concurrency/security. **Deep tier only** —
-  standard's Standards axis already carries hygiene; don't add this lens at light/standard.
-  Distinct from the adversarial trio (which reads problem-first): this reads the diff for
-  local cleanups, so note the boundary and don't double-report a finding both surface;
+  to implement's simplify sweep, for the low-inference cleanup family a diff-first read catches.
+  Assess the diff against the **Fowler smell catalog** (`references/smell-catalog.md` — paste it
+  into the agent's brief); the families that recur here are **Speculative Generality** (a static-fn
+  parameter every caller passes constant/NULL, an unreachable mode — dead code / unused generality),
+  **Duplicated Code** (a copy-pasted call shape that wants one helper), and **Middle Man** (a
+  pass-through layer, or a flag/state-machine/ranking a simpler check replaces — apply the deletion
+  test), plus non-smell **efficiency-hoist** (side-effect-free/expensive work above the guard that
+  skips it; per-row work that belongs in one-time setup). These are one coherent family — bundle
+  them in **one** agent, not one-per-check; recall loss is cheap here (a missed cleanup is a
+  nice-to-have, not a bug), which is exactly why merging is safe for this family and not for
+  correctness/concurrency/security. **Deep tier only** — standard's Standards axis already carries
+  hygiene; don't add this lens at light/standard. Distinct from the adversarial trio (which reads
+  problem-first): this reads the diff for local cleanups, so note the boundary and don't
+  double-report a finding both surface;
 - docs accuracy (claims in docs/comments match the new behavior).
 Each agent prompt = context pack + its lens + the false-positive exemplars below
 + "verify each finding against actual file content before reporting; return

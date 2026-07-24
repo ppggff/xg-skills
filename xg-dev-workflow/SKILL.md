@@ -392,6 +392,8 @@ behavior; the **contract never changes**, only the implementation behind it. For
   menu, model-diversity sweep, saturation stop-rule); read when running a deep review.
 - `references/simplify-checks.md` — the two reuse/cohesion checks shared by implement's simplify
   sweep and review's Standards axis (single source).
+- `references/smell-catalog.md` — Fowler code-smell names (leading words) for the review quality
+  lens; the no-repo-standard baseline.
 - **`codebase-design`** (external skill, referenced not vendored) — deep-module vocabulary +
   Design-It-Twice (design-grill 方案优先) + dependency-categories→test-strategy (test) + the deletion
   test (design-grill, implement).
