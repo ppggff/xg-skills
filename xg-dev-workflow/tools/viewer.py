@@ -275,10 +275,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json({"commits": []})
             return
         root = self.dev_root if m.group(1) == "dev" else self.kb_root
-        rel = m.group(2)
-        if safe_join(root, rel) is None:               # traversal / out-of-root → empty, don't leak
+        real = safe_join(root, m.group(2))             # validate AND use the confined path (as _serve_raw does)
+        if real is None:                               # traversal / out-of-root → empty, don't leak
             self._json({"commits": []})
             return
+        rel = real.relative_to(root).as_posix()
         out = _git(root, "-c", "core.quotepath=false", "log",
                    "--invert-grep", "--grep=" + SNAPSHOT_GREP,
                    "--format=%H%x1f%s%x1f%cs", "-n", str(LOG_MAX), "--", rel)
@@ -297,10 +298,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json(empty)
             return
         root = self.dev_root if m.group(1) == "dev" else self.kb_root
-        rel = m.group(2)
-        if safe_join(root, rel) is None:               # traversal / out-of-root
+        real = safe_join(root, m.group(2))             # validate AND use the confined path (as _serve_raw does)
+        if real is None:                               # traversal / out-of-root
             self._json(empty)
             return
+        rel = real.relative_to(root).as_posix()
         after = _git(root, "-c", "core.quotepath=false", "show", "%s:%s" % (sha, rel))
         patch = _git(root, "-c", "core.quotepath=false", "show", "--format=", "-p", "--no-color", sha, "--", rel)
         adds, dels = _parse_file_patch(patch)
