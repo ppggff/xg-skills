@@ -52,6 +52,13 @@ t("R6: saveLayout persists side/left/toc to sv-layout, never #right", () => {
   assert.match(html, /saveLayout\(\);\s+\/\/ R6: persist the new pane widths/, "drag-end persists");
 });
 
+// --- R8/ADR-0002: #toc is never the flex filler; the doc pane absorbs width changes ---
+t("R8: #toc never becomes the filler (applyLayout keeps it fixed)", () => {
+  assert.doesNotMatch(html, /tocPane\.style\.flex = "1 1 0"/, "#toc must never flex-fill");
+  assert.match(html, /tocPane\.style\.flex = "none"; tocPane\.style\.width = tw \+ "px";\s+\/\/ R8\/ADR-0002/, "toc fixed unconditionally");
+  assert.doesNotMatch(html, /singleAutoToc/, "the old single-pane toc-filler freeze is gone");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

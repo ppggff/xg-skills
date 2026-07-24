@@ -1564,25 +1564,20 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
 
   // --- panes: show/collapse/resize (R24/R26/R27) -----------------------------
-  // Layout model (R58): exactly one pane is the elastic "filler"; the others are fixed-width.
-  //   right open      → RIGHT fills;  left = leftW, toc = tocW (both fixed).
-  //   single + custom → TOC fills;    left = leftW (fixed) — so opening/closing the right pane NEVER
-  //                                   changes the left width once it has been customized.
-  //   single + auto   → LEFT fills;   toc = tocW. Opening right equal-splits; the reset button (R59)
-  //                                   returns to this auto state.
+  // Layout model (R58 + R8/ADR-0002): #toc is ALWAYS fixed at tocW — never the filler; the doc pane
+  // (#left, or #right when open) absorbs width changes.
+  //   right open   → RIGHT fills;  left = leftW (fixed), toc = tocW (fixed).
+  //   right closed → LEFT fills;   toc = tocW (fixed). Closing the right pane hands its width to LEFT,
+  //                                so #toc stays put instead of ballooning (R8).
   function applyLayout() {
     var L = PANES.left, open = PANES.right.classList.contains("show"), tw = layoutState.tocW || 240;
     if (open && !layoutState.leftW) layoutState.leftW = Math.max(200, Math.round(L.getBoundingClientRect().width / 2));
+    tocPane.style.flex = "none"; tocPane.style.width = tw + "px";   // R8/ADR-0002: #toc never fills
     if (open) {
       L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
       PANES.right.style.flex = "1 1 0"; PANES.right.style.width = "auto";
-      tocPane.style.flex = "none"; tocPane.style.width = tw + "px";
-    } else if (layoutState.leftCustom && tocPane.classList.contains("show")) {
-      L.style.flex = "none"; L.style.width = layoutState.leftW + "px";
-      tocPane.style.flex = "1 1 0"; tocPane.style.width = "auto";
     } else {
-      L.style.flex = ""; L.style.width = "";
-      tocPane.style.flex = "none"; tocPane.style.width = tw + "px";
+      L.style.flex = ""; L.style.width = "";                        // #left is the single-pane filler
     }
   }
   function showRight(on) {
@@ -1620,27 +1615,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
     document.getElementById("side").classList.remove("collapsed");
     gutterFor("side").classList.remove("hidden"); this.classList.remove("show");
   };
-  // Each gutter drags the boundary next to it; the model's current filler (right / toc / left)
-  // absorbs the change. The two dividers bordering the LEFT pane customize+freeze its width (R58).
+  // Each gutter drags the boundary next to it; the doc pane (left/right, the filler) absorbs the
+  // change. #toc is never the filler (R8/ADR-0002) — its divider resizes #toc itself.
   document.querySelectorAll(".gutter").forEach(function (g) {
     g.addEventListener("mousedown", function (e) {
       e.preventDefault();
-      var name = g.dataset.resize, startX = e.clientX, rightOpen = PANES.right.classList.contains("show"), move;
-      var singleAutoToc = name === "toc" && !rightOpen && !layoutState.leftCustom;
+      var name = g.dataset.resize, startX = e.clientX, move;
       function up() {
         document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); document.body.style.userSelect = "";
-        if (singleAutoToc) {                            // first single-pane TOC drag freezes the left width (R58)
-          layoutState.leftCustom = true; layoutState.leftW = PANES.left.getBoundingClientRect().width; applyLayout(); }
         saveLayout();                                   // R6: persist the new pane widths
       }
       if (name === "side") {
         var sideEl = document.getElementById("side"), sw = sideEl.getBoundingClientRect().width;
         move = function (ev) { var w = Math.max(140, sw + (ev.clientX - startX)); layoutState.sideW = w;
           sideEl.style.flex = "none"; sideEl.style.width = w + "px"; };   // R6: track for persistence
-      } else if (name === "rightpane" || (name === "toc" && !rightOpen && layoutState.leftCustom)) {
-        var lw = PANES.left.getBoundingClientRect().width;   // left|right, or left|toc(custom) → resize LEFT
+      } else if (name === "rightpane") {                // left|right boundary → resize LEFT (right fills)
+        var lw = PANES.left.getBoundingClientRect().width;
         move = function (ev) { layoutState.leftW = Math.max(200, lw + (ev.clientX - startX)); layoutState.leftCustom = true; applyLayout(); };
-      } else {                                          // a TOC divider with the filler on the other side → resize TOC
+      } else {                                          // #toc divider → resize #toc; the doc pane absorbs it
         var tw = tocPane.getBoundingClientRect().width;
         move = function (ev) { layoutState.tocW = Math.max(140, tw - (ev.clientX - startX)); applyLayout(); };
       }
