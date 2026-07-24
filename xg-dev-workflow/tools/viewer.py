@@ -145,6 +145,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_rev(qs.get("path", [""])[0])
         elif path == "/api/filelog":
             self._serve_filelog(qs.get("path", [""])[0])
+        elif path == "/api/filediff":
+            self._serve_filediff(qs.get("path", [""])[0], qs.get("sha", [""])[0])
         else:
             self._send(404, "not found\n")
 
@@ -286,6 +288,49 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if len(parts) == 3:
                 commits.append({"sha": parts[0], "subject": parts[1], "date": parts[2]})
         self._json({"commits": commits})
+
+    def _serve_filediff(self, p, sha):
+        # R5: one commit's change to one file → the after-version + parsed add/del line info (JSON).
+        m = re.match(r"^(dev|kb)/(.*)$", p or "")
+        empty = {"after": "", "adds": [], "dels": []}
+        if not m or not m.group(2).endswith(".md") or not re.fullmatch(r"[0-9a-fA-F]{4,64}", sha or ""):
+            self._json(empty)
+            return
+        root = self.dev_root if m.group(1) == "dev" else self.kb_root
+        rel = m.group(2)
+        if safe_join(root, rel) is None:               # traversal / out-of-root
+            self._json(empty)
+            return
+        after = _git(root, "-c", "core.quotepath=false", "show", "%s:%s" % (sha, rel))
+        patch = _git(root, "-c", "core.quotepath=false", "show", "--format=", "-p", "--no-color", sha, "--", rel)
+        adds, dels = _parse_file_patch(patch)
+        self._json({"after": after, "adds": adds, "dels": dels})
+
+
+def _parse_file_patch(patch):
+    """Parse a single-file unified diff → (added after-line numbers, [{at, lines}] removed groups).
+    Line numbers are 1-based over the after-file; a removed group's `at` is the after-line it precedes."""
+    adds, dels, after_ln, started, cur = [], [], 0, False, None
+    for line in (patch or "").splitlines():
+        if line.startswith("@@"):
+            mm = re.search(r"\+(\d+)", line)
+            after_ln = int(mm.group(1)) if mm else after_ln
+            started, cur = True, None
+            continue
+        if not started:
+            continue
+        tag = line[:1]
+        if tag == "+":
+            adds.append(after_ln); after_ln += 1; cur = None
+        elif tag == "-":
+            if cur is None:
+                cur = {"at": after_ln, "lines": []}; dels.append(cur)
+            cur["lines"].append(line[1:])
+        elif tag == "\\":
+            pass                                       # "\ No newline at end of file"
+        else:
+            after_ln += 1; cur = None                  # context line
+    return adds, dels
 
 
 def _trace_empty(card, err):

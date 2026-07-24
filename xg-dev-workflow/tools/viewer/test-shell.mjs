@@ -99,6 +99,23 @@ t("R5: change-history dropdown — button, per-file log fetch, selection", () =>
   assert.match(html, /function chChoose\(side, sha\)/, "commit selection handler exists");
 });
 
+// --- R5 (T9): diffSegments (pure) + diff-overlay wiring ---
+t("R5: diffSegments merges contiguous same-state blocks and places del groups", () => {
+  const spans = [{ start: 0, end: 2 }, { start: 2, end: 4 }, { start: 4, end: 6 }, { start: 6, end: 8 }];
+  assert.deepEqual(SV.diffSegments(spans, [2, 3], [{ at: 4, lines: ["x", "y"] }]),
+    [{ plain: true, from: 0, to: 0 }, { add: true, from: 1, to: 1 }, { del: ["x", "y"] }, { plain: true, from: 2, to: 3 }]);
+  const s2 = [{ start: 0, end: 1 }, { start: 1, end: 2 }, { start: 2, end: 3 }];
+  assert.deepEqual(SV.diffSegments(s2, [1, 2], []), [{ plain: true, from: 0, to: 0 }, { add: true, from: 1, to: 2 }]);
+  assert.deepEqual(SV.diffSegments([], [], [{ at: 0, lines: ["gone"] }]), [{ del: ["gone"] }]);
+});
+t("R5: diff-overlay wiring — filediff fetch, lexer spans, non-intrusive render, exit", () => {
+  assert.match(html, /\/api\/filediff\?path=/, "renderDiffOverlay fetches filediff");
+  assert.match(html, /window\.marked\.lexer\(body\)/, "top-level spans via lexer");
+  assert.match(html, /tk\.type !== "space"/, "space tokens skipped when aligning to DOM blocks");
+  assert.match(html, /wrap\.className = "diffrun add"/, "add runs wrapped in one merged region");
+  assert.match(html, /data-diffexit/, "exit-diff control present");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

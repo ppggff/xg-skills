@@ -16,6 +16,7 @@
     color-scheme: light dark;
     --bg: #f7f7f4; --fg: #17191c; --body: #3d424a; --muted: #666c75; --line: #d6d6cf; --line2: #c0c0b8;
     --accent: #b9761a; --accent-soft: #f3e6cf; --red: #c9432f; --green: #1f8f4e; --hunk: #7c3aed;
+    --diff-add-bg: rgba(31,143,78,.10); --diff-add-bar: rgba(31,143,78,.5); --diff-del-bg: rgba(201,67,47,.09); --diff-del-bar: rgba(201,67,47,.42); --diff-del-fg: #9a6b6b;   /* R5: low-saturation inline diff */
     --side: #ededea; --chip: #e2e2dc; --sel: #f0dca8; --badge-fg: #ffffff;
     /* 整体状态 palette */
     --s-active:#2563eb; --s-done:#1f8f4e; --s-blocked:#c9432f; --s-paused:#a86b16;
@@ -29,6 +30,7 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --bg: #0a0b0d; --fg: #e4e8ee; --body: #b4bbc4; --muted: #818995; --line: #2f353f; --line2: #434c58;
     --accent: #e5a54f; --accent-soft: #31260f; --red: #f2837a; --green: #66d98a; --hunk: #b39dff;
+    --diff-add-bg: rgba(102,217,138,.13); --diff-add-bar: rgba(102,217,138,.5); --diff-del-bg: rgba(242,131,122,.13); --diff-del-bar: rgba(242,131,122,.42); --diff-del-fg: #bf8f8f;   /* R5 */
     --side: #15181d; --chip: #1e222a; --sel: #4a3d1a; --badge-fg: #13161b;
     --s-active:#6ea8fe; --s-done:#66d98a; --s-blocked:#f2837a; --s-paused:#e5a54f;
     --s-todo:#4fd0de; --s-backlog:#818995; --s-dropped:#6b7280; --s-unknown:#4a515b;
@@ -38,6 +40,7 @@
     color-scheme: dark;
     --bg: #0a0b0d; --fg: #e4e8ee; --body: #b4bbc4; --muted: #818995; --line: #2f353f; --line2: #434c58;
     --accent: #e5a54f; --accent-soft: #31260f; --red: #f2837a; --green: #66d98a; --hunk: #b39dff;
+    --diff-add-bg: rgba(102,217,138,.13); --diff-add-bar: rgba(102,217,138,.5); --diff-del-bg: rgba(242,131,122,.13); --diff-del-bar: rgba(242,131,122,.42); --diff-del-fg: #bf8f8f;   /* R5 */
     --side: #15181d; --chip: #1e222a; --sel: #4a3d1a; --badge-fg: #13161b;
     --s-active:#6ea8fe; --s-done:#66d98a; --s-blocked:#f2837a; --s-paused:#e5a54f;
     --s-todo:#4fd0de; --s-backlog:#818995; --s-dropped:#6b7280; --s-unknown:#4a515b;
@@ -412,6 +415,17 @@
   #chpanel .ch-meta { font-family: var(--chrome); font-size: 10.5px; color: var(--muted); margin-top: 2px; }
   #chpanel .ch-empty { padding: 14px 12px; color: var(--muted); font-family: var(--chrome); font-size: 12px; }
   #chpanel .ch-empty.broken { color: var(--s-blocked); }
+  /* R5: inline diff overlay — block-level, non-intrusive. No BFC (no flow-root/overflow/vertical
+     padding) → child margins collapse as normal → doc line-height/spacing unchanged; the merged
+     background across a run's internal gaps comes for free. margin-left/padding-left cancel → text x fixed. */
+  .diffbar { font-family: var(--chrome); font-size: 11px; color: var(--muted); padding: 6px 0; margin: 0 0 6px; border-bottom: 1px dashed var(--line2); }
+  .docbody .diffrun { margin-left: -16px; padding-left: 16px; border-radius: 0 4px 4px 0; position: relative; }
+  .docbody .diffrun.add { background: var(--diff-add-bg); box-shadow: inset 3px 0 0 var(--diff-add-bar); }
+  .docbody .diffrun.del { background: var(--diff-del-bg); box-shadow: inset 3px 0 0 var(--diff-del-bar); color: var(--diff-del-fg); }
+  .docbody .diffrun.del * { text-decoration: line-through; text-decoration-color: var(--diff-del-bar); }
+  .docbody .difftag { position: absolute; top: 2px; right: 8px; font-family: var(--chrome); font-size: 9.5px; opacity: .7; }
+  .docbody .diffrun.add .difftag { color: var(--green); }
+  .docbody .diffrun.del .difftag { color: var(--red); }
   #qo .qclear { margin-left: auto; cursor: pointer; }
   #qo .qclear:hover { color: var(--fg); }
   #qo kbd { border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 4px; font-family: var(--chrome); font-size: 10px; }
@@ -835,7 +849,36 @@ var SV = (function () {
     return idx;
   }
 
-  return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine,
+  // R5/ADR-0001: build a merged, block-level diff render plan.
+  //   spans     = per top-level block source-line span {start, end} (0-based body lines, end exclusive)
+  //   addedBody = 0-based body line numbers that are additions
+  //   dels      = [{at, lines}] removed-line groups (at = 0-based body line they preceded)
+  // Returns ordered segments — {del:[lines]} · {add:true, from, to} · {plain:true, from, to}
+  // (from/to = inclusive block-index range); contiguous same-state blocks merge into one segment.
+  function diffSegments(spans, addedBody, dels) {
+    var n = spans.length, added = {};
+    (addedBody || []).forEach(function (l) { added[l] = 1; });
+    var isAdd = spans.map(function (s) {
+      for (var ln = s.start; ln < s.end; ln++) if (added[ln]) return true;
+      return false;
+    });
+    function delBlock(at) { for (var i = 0; i < n; i++) if (spans[i].start >= at) return i; return n; }
+    var delByBlock = {};
+    (dels || []).forEach(function (d) { var b = delBlock(d.at); (delByBlock[b] = delByBlock[b] || []).push(d.lines); });
+    var segs = [], i = 0;
+    function flushDel(b) { (delByBlock[b] || []).forEach(function (lines) { segs.push({ del: lines }); }); }
+    while (i < n) {
+      flushDel(i);
+      var state = isAdd[i], j = i + 1;
+      while (j < n && isAdd[j] === state && !delByBlock[j]) j++;   // break a run where a del must be inserted
+      segs.push(state ? { add: true, from: i, to: j - 1 } : { plain: true, from: i, to: j - 1 });
+      i = j;
+    }
+    flushDel(n);
+    return segs;
+  }
+
+  return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
@@ -2083,10 +2126,60 @@ if (typeof window !== "undefined" && window.marked) (function () {
     }).catch(function () { if (chSide === side) el.querySelector(".ch-list").innerHTML = "<div class='ch-empty broken'>历史加载失败</div>"; });
   }
   function chChoose(side, sha) { chSel[side] = sha || ""; applyChangeSel(side); chClose(); }
-  function applyChangeSel(side) { /* R5: diff overlay is wired here by the overlay module */ }
+  function applyChangeSel(side) {
+    var sha = chSel[side];
+    if (sha) renderDiffOverlay(side, sha);
+    else renderDoc(side, PANES[side]._view);   // exit diff → normal render of the current doc
+  }
+  function renderDiffOverlay(side, sha) {   // R5/ADR-0001: render the after-version with block-level, non-intrusive add/del coloring
+    var pane = PANES[side], view = pane._view; if (!view || view.kind !== "doc") return;
+    var tree = view.tree, rel = view.rel;
+    api("/api/filediff?path=" + encodeURIComponent(tree + "/" + rel) + "&sha=" + encodeURIComponent(sha))
+      .then(function (r) { return r.json(); }).then(function (d) {
+        var fm = SV.parseFrontmatter(d.after || ""), body = fm.body;
+        var totalLines = body.split("\n").length, fmLines = (d.after || "").split("\n").length - totalLines;
+        var tokens = window.marked.lexer(body), spans = [], ln = 0;      // top-level block → source-line span
+        tokens.forEach(function (tk) {
+          var lines = ((tk.raw || "").match(/\n/g) || []).length;
+          if (tk.type !== "space") spans.push({ start: ln, end: ln + lines });   // 'space' tokens render no DOM block
+          ln += lines;
+        });
+        if (spans.length) spans[spans.length - 1].end = Math.max(spans[spans.length - 1].end, totalLines);
+        var addedBody = (d.adds || []).map(function (x) { return x - 1 - fmLines; });
+        var dels = (d.dels || []).map(function (g) { return { at: g.at - 1 - fmLines, lines: g.lines }; });
+        var tmp = document.createElement("div"); tmp.innerHTML = window.marked.parse(body);
+        var blocks = [].slice.call(tmp.children);
+        var useSpans = spans.length === blocks.length ? spans          // aligned; else degrade (ADR-0001 fallback)
+          : blocks.map(function (_, i) { return spans[i] || { start: 0, end: 0 }; });
+        var segs = SV.diffSegments(useSpans, addedBody, dels);
+        var docbody = document.createElement("div"); docbody.className = "docbody" + (docWidth === "full" ? " full" : "");
+        segs.forEach(function (s) {
+          if (s.del) { var g = document.createElement("div"); g.className = "diffrun del";
+            g.innerHTML = "<span class='difftag'>本次删除</span>" + window.marked.parse((s.del || []).join("\n"));
+            docbody.appendChild(g); return; }
+          var into = docbody, wrap = null;
+          if (s.add) { wrap = document.createElement("div"); wrap.className = "diffrun add";
+            wrap.innerHTML = "<span class='difftag'>本次新增</span>"; into = wrap; }
+          for (var i = s.from; i <= s.to; i++) if (blocks[i]) into.appendChild(blocks[i]);
+          if (wrap) docbody.appendChild(wrap);
+        });
+        pane.innerHTML = paneHead(side, tree + "/" + rel + " @ " + sha.slice(0, 7),
+          '<button class="iconbtn" data-changelog="' + side + '" title="变更历史">◷</button>' +
+          '<button class="iconbtn" data-diffexit="' + side + '" title="退出变更视图">✕</button>');
+        var bar = document.createElement("div"); bar.className = "diffbar";
+        bar.textContent = "变更 " + sha.slice(0, 7) + "：增 / 删以低饱和标出（只读，不改源文件）";
+        pane.appendChild(bar); pane.appendChild(docbody);
+        markLinks(docbody, tree, rel); renderMermaid(docbody);
+        var hs = [].slice.call(docbody.querySelectorAll("h1,h2,h3,h4,h5,h6"));
+        tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
+        afterRender(side, ".docbody > *");
+      }).catch(function () { renderDoc(side, pane._view); });   // any failure → fall back to the normal doc
+  }
   document.addEventListener("click", function (e) {
     var btn = e.target.closest && e.target.closest("[data-changelog]");
     if (btn) { e.preventDefault(); var s = btn.dataset.changelog; if (chSide === s) chClose(); else chOpen(s, btn); return; }
+    var ex = e.target.closest && e.target.closest("[data-diffexit]");
+    if (ex) { e.preventDefault(); var xs = ex.dataset.diffexit; chSel[xs] = ""; applyChangeSel(xs); return; }
     var row = e.target.closest && e.target.closest("#chpanel .ch-row");
     if (row) { chChoose(chSide, row.dataset.sha); return; }
     if (chSide && chPanel && !chPanel.contains(e.target)) chClose();

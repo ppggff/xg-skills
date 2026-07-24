@@ -184,6 +184,22 @@ class T345Endpoints(unittest.TestCase):
             self.assertEqual(code, 200, bad)
             self.assertEqual(json.loads(body)["commits"], [], bad)
 
+    def test_filediff_after_and_adds(self):         # R5 (009 T9): one commit's file diff → after + add/del
+        _, body = get(self.base, "/api/filelog?path=dev/foo/001-x/design.md")
+        sha = json.loads(body)["commits"][0]["sha"]
+        code, body = get(self.base, "/api/filediff?path=dev/foo/001-x/design.md&sha=" + sha)
+        self.assertEqual(code, 200)
+        d = json.loads(body)
+        self.assertIn("v1", d["after"])          # after-version content at that commit
+        self.assertEqual(d["adds"], [1])         # the one added line (new file)
+        self.assertEqual(d["dels"], [])
+
+    def test_filediff_bad_sha_empty(self):          # non-hex / empty sha → pinned empty shape
+        for bad in ("nothex!", "", "zzzzzzzz"):
+            code, body = get(self.base, "/api/filediff?path=dev/foo/001-x/design.md&sha=" + urllib.parse.quote(bad))
+            self.assertEqual(code, 200, bad)
+            self.assertEqual(json.loads(body), {"after": "", "adds": [], "dels": []}, bad)
+
     def test_board_tasks_field_pinned(self):        # 007 T3/T4: tasks always present
         _, body = get(self.base, "/api/board")
         self.assertIn("tasks", json.loads(body)["foo"][0])
