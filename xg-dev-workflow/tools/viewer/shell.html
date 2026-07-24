@@ -407,6 +407,8 @@
     background: var(--side); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
   #chpanel.show { display: block; }
   #chpanel .ch-head { position: sticky; top: 0; background: var(--side); border-bottom: 1px solid var(--line); padding: 7px 12px; font-family: var(--chrome); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  #chpanel .ch-x { float: right; margin: -1px -2px 0 8px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 12px; line-height: 1; padding: 0 2px; }
+  #chpanel .ch-x:hover { color: var(--fg); }
   #chpanel .ch-row { padding: 7px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
   #chpanel .ch-row:hover { background: var(--chip); }
   #chpanel .ch-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
@@ -2109,7 +2111,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function chOpen(side, btn) {
     var doc = PANES[side]._doc; if (!doc) return;
     chSide = side; var el = chEl();
-    el.innerHTML = "<div class='ch-head'>变更历史 · " + esc(doc.rel.split("/").pop()) + "</div>" +
+    el.innerHTML = "<div class='ch-head'>变更历史 · " + esc(doc.rel.split("/").pop()) +
+      "<button class='ch-x' data-chclose title='关闭'>✕</button></div>" +
       "<div class='ch-list'><div class='ch-empty'>加载中…</div></div>";
     el.classList.add("show"); chPlace(btn);
     api("/api/filelog?path=" + encodeURIComponent(doc.tree + "/" + doc.rel)).then(function (r) { return r.json(); }).then(function (d) {
@@ -2124,7 +2127,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
       chPlace(btn);
     }).catch(function () { if (chSide === side) el.querySelector(".ch-list").innerHTML = "<div class='ch-empty broken'>历史加载失败</div>"; });
   }
-  function chChoose(side, sha) { chSel[side] = sha || ""; applyChangeSel(side); chClose(); }
+  function chChoose(side, sha, rowEl) {   // keep the panel open (explicit close only); just move the selection highlight
+    chSel[side] = sha || ""; applyChangeSel(side);
+    if (chPanel) { [].forEach.call(chPanel.querySelectorAll(".ch-row"), function (r) { r.classList.remove("sel"); });
+      if (rowEl) rowEl.classList.add("sel"); }
+  }
   function applyChangeSel(side) {
     var sha = chSel[side];
     if (sha) renderDiffOverlay(side, sha);
@@ -2175,13 +2182,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
       }).catch(function () { renderDoc(side, pane._view); });   // any failure → fall back to the normal doc
   }
   document.addEventListener("click", function (e) {
+    if (e.target.closest && e.target.closest("#chpanel [data-chclose]")) { chClose(); return; }
     var btn = e.target.closest && e.target.closest("[data-changelog]");
     if (btn) { e.preventDefault(); var s = btn.dataset.changelog; if (chSide === s) chClose(); else chOpen(s, btn); return; }
     var ex = e.target.closest && e.target.closest("[data-diffexit]");
     if (ex) { e.preventDefault(); var xs = ex.dataset.diffexit; chSel[xs] = ""; applyChangeSel(xs); return; }
     var row = e.target.closest && e.target.closest("#chpanel .ch-row");
-    if (row) { chChoose(chSide, row.dataset.sha); return; }
-    if (chSide && chPanel && !chPanel.contains(e.target)) chClose();
+    if (row) { chChoose(chSide, row.dataset.sha, row); return; }
+    // R5: no outside-click auto-close — the panel closes only via ✕ / Esc / the ◷ toggle (explicit)
   });
 
   searchBox.addEventListener("keydown", function (e) {

@@ -99,7 +99,9 @@ t("R2: hover preview targets resolved internal doc links, read-only, with a grac
 t("R5: change-history dropdown — button, per-file log fetch, selection", () => {
   assert.match(html, /data-changelog="' \+ side \+ '"/, "doc header carries a changelog button");
   assert.match(html, /\/api\/filelog\?path=/, "chOpen fetches the per-file commit log");
-  assert.match(html, /function chChoose\(side, sha\)/, "commit selection handler exists");
+  assert.match(html, /function chChoose\(side, sha, rowEl\)/, "commit selection handler exists");
+  assert.match(html, /data-chclose/, "history panel has an explicit close control (closes only on demand)");
+  assert.doesNotMatch(html, /!chPanel\.contains\(e\.target\)\) chClose/, "no outside-click auto-close for the history panel");
 });
 
 // --- R5 (T9): diffSegments (pure) + diff-overlay wiring ---
