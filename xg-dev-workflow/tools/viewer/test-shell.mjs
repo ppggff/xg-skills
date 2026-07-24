@@ -43,6 +43,15 @@ t("R7: renderMermaid drops mermaid's orphaned body temp node in both settle path
   assert.match(html, /\.then\(function \(res\) \{ holder\.innerHTML = res\.svg; dropTemp\(\); \}\)/, "cleanup on success too");
 });
 
+// --- R6: pane widths (side/left/toc) persist to sv-layout; #right width is not stored ---
+t("R6: saveLayout persists side/left/toc to sv-layout, never #right", () => {
+  assert.match(html, /function saveLayout\(\) \{ lsSet\("sv-layout", JSON\.stringify/, "saveLayout writes sv-layout");
+  assert.match(html, /JSON\.parse\(lsGet\("sv-layout"\)/, "init reads sv-layout");
+  assert.match(html, /leftW: layoutState\.leftW, tocW: layoutState\.tocW, leftCustom: layoutState\.leftCustom, sideW: layoutState\.sideW/, "persists left/toc/leftCustom/side");
+  assert.doesNotMatch(html, /rightW/, "#right width is never persisted");
+  assert.match(html, /saveLayout\(\);\s+\/\/ R6: persist the new pane widths/, "drag-end persists");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

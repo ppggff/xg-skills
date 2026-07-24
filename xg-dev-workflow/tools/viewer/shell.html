@@ -786,7 +786,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   var basket = [], project = lsGet("sv-project") || "", focus = "left";   // R65: persist project scope
-  var layoutState = { leftW: null, tocW: 240, leftCustom: false };   // R58: fixed pane widths (px) + filler mode
+  var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
+    var d = { leftW: null, tocW: 240, leftCustom: false, sideW: null };   // #right width is intentionally NOT stored
+    try { var s = JSON.parse(lsGet("sv-layout") || "null");
+      if (s && typeof s === "object") {
+        if (typeof s.leftW === "number") d.leftW = s.leftW;
+        if (typeof s.tocW === "number") d.tocW = s.tocW;
+        if (typeof s.sideW === "number") d.sideW = s.sideW;
+        d.leftCustom = !!s.leftCustom;
+      } } catch (e) {}
+    return d;
+  })();
+  function saveLayout() { lsSet("sv-layout", JSON.stringify({
+    leftW: layoutState.leftW, tocW: layoutState.tocW, leftCustom: layoutState.leftCustom, sideW: layoutState.sideW })); }
+  (function () {                             // R6: on load, restore #side width + apply persisted left/toc
+    var sideEl = document.getElementById("side");
+    if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
+    applyLayout();
+  })();
   var docWidth = (function () { try { return localStorage.getItem("sv-docwidth") === "full" ? "full" : "measure"; }
     catch (e) { return "measure"; } })();   // R11: reading width (measure | full), persisted
   var staleSides = {}, lastDevRev = 0, lastKbRev = 0;   // R63: live-refresh state (stale doc panes; last dev/kb rev tokens)
@@ -1576,11 +1593,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
     applyLayout();
   }
   function resetLayout() {                               // R59: back to auto (left fills / equal split)
-    layoutState.leftCustom = false; layoutState.tocW = 240;
+    layoutState.leftCustom = false; layoutState.tocW = 240; layoutState.sideW = null;
+    var sideEl = document.getElementById("side"); if (sideEl) { sideEl.style.flex = ""; sideEl.style.width = ""; }
     layoutState.leftW = PANES.right.classList.contains("show")
       ? Math.max(200, Math.round((PANES.left.getBoundingClientRect().width + PANES.right.getBoundingClientRect().width) / 2))
       : null;
-    applyLayout();
+    applyLayout(); saveLayout();                          // R6: persist the reset
   }
   function showToc(on) { tocPane.classList.toggle("show", on); gutterFor("toc").classList.toggle("show", on); applyLayout(); }
   function gutterFor(name) { return document.querySelector('.gutter[data-resize="' + name + '"]'); }
@@ -1613,10 +1631,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
         document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); document.body.style.userSelect = "";
         if (singleAutoToc) {                            // first single-pane TOC drag freezes the left width (R58)
           layoutState.leftCustom = true; layoutState.leftW = PANES.left.getBoundingClientRect().width; applyLayout(); }
+        saveLayout();                                   // R6: persist the new pane widths
       }
       if (name === "side") {
         var sideEl = document.getElementById("side"), sw = sideEl.getBoundingClientRect().width;
-        move = function (ev) { sideEl.style.flex = "none"; sideEl.style.width = Math.max(140, sw + (ev.clientX - startX)) + "px"; };
+        move = function (ev) { var w = Math.max(140, sw + (ev.clientX - startX)); layoutState.sideW = w;
+          sideEl.style.flex = "none"; sideEl.style.width = w + "px"; };   // R6: track for persistence
       } else if (name === "rightpane" || (name === "toc" && !rightOpen && layoutState.leftCustom)) {
         var lw = PANES.left.getBoundingClientRect().width;   // left|right, or left|toc(custom) → resize LEFT
         move = function (ev) { layoutState.leftW = Math.max(200, lw + (ev.clientX - startX)); layoutState.leftCustom = true; applyLayout(); };
