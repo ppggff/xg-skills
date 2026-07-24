@@ -84,6 +84,14 @@ t("R3: help overlay markup + ?/esc bindings, suppressed while typing", () => {
   assert.match(html, /e\.key === "Escape" && helpEl\.classList\.contains\("show"\)/, "esc closes help");
 });
 
+// --- R2: internal-link hover preview (hovercard) ---
+t("R2: hover preview targets resolved internal doc links, read-only, with a grace period", () => {
+  assert.match(html, /'\.docbody a\[data-nav="doc"\]'/, "preview only on resolved internal doc links");
+  assert.match(html, /function lpOpen\(a\)/, "lpOpen fetches + renders the target");
+  assert.match(html, /el\.querySelectorAll\("a\[href\]"\)\.forEach/, "preview links are made read-only");
+  assert.match(html, /lpHideT = setTimeout\(lpHide, 200\)/, "grace period to move into the preview");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {

@@ -391,6 +391,14 @@
   #help .help-row .key { flex: none; width: 4.4em; }
   #help .help-row .key.act { font-family: var(--chrome); font-size: 10.5px; color: var(--muted); }
   #help kbd, #help .help-esc kbd { font-family: var(--chrome); font-size: 11px; background: var(--chip); border: 1px solid var(--line2); border-radius: var(--radius); padding: 1px 6px; color: var(--fg); }
+  /* R2: internal-link hover preview (hovercard) */
+  #lp { display: none; position: fixed; z-index: 60; width: min(440px, 80vw); max-height: 50vh; overflow: auto;
+    background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.4); font-size: 12.5px; }
+  #lp.show { display: block; }
+  #lp .lp-path { position: sticky; top: 0; background: var(--side); border-bottom: 1px solid var(--line); padding: 5px 10px; font-family: var(--chrome); font-size: 10.5px; color: var(--muted); }
+  #lp .lp-path.broken { color: var(--s-blocked); }
+  #lp .lp-body { padding: 8px 12px; }
+  #lp .lp-body > :first-child { margin-top: 0; }
   #qo .qclear { margin-left: auto; cursor: pointer; }
   #qo .qclear:hover { color: var(--fg); }
   #qo kbd { border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 4px; font-family: var(--chrome); font-size: 10px; }
@@ -1993,6 +2001,47 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
   });
+
+  // R2: hover an internal doc link → a floating rendered preview of the target (hovercard).
+  var lp = null, lpShowT = null, lpHideT = null, lpCache = {}, lpCur = null;
+  function lpEl() {
+    if (!lp) { lp = document.createElement("div"); lp.id = "lp";
+      lp.addEventListener("mouseenter", function () { clearTimeout(lpHideT); });   // moving into it keeps it open
+      lp.addEventListener("mouseleave", lpHide); document.body.appendChild(lp); }
+    return lp;
+  }
+  function lpHide() { clearTimeout(lpShowT); clearTimeout(lpHideT); lpShowT = lpHideT = null; lpCur = null; if (lp) lp.classList.remove("show"); }
+  function lpPlace(a) {
+    var el = lp, r = a.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    var left = Math.max(8, Math.min(r.left, innerWidth - w - 12));
+    var top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);   // flip above if no room below
+    el.style.left = left + "px"; el.style.top = top + "px";
+  }
+  function lpRender(a, bodyHtml, label, broken) {
+    var el = lpEl();
+    el.innerHTML = '<div class="lp-path' + (broken ? " broken" : "") + '">' + esc(label) + "</div>" +
+      (broken ? "" : '<div class="lp-body docbody">' + bodyHtml + "</div>");
+    el.querySelectorAll("a[href]").forEach(function (x) { x.removeAttribute("href"); });   // preview is read-only
+    el.classList.add("show"); lpPlace(a);
+  }
+  function lpOpen(a) {
+    var tree = a.dataset.tree, rel = a.dataset.rel, key = tree + ":" + rel, label = tree + "/" + rel; lpCur = key;
+    if (lpCache[key]) { lpRender(a, lpCache[key], label); return; }
+    api("/raw/" + tree + "/" + rel).then(function (r) { return r.text(); }).then(function (text) {
+      if (lpCur !== key) return;   // pointer moved on before it loaded
+      var fm = SV.parseFrontmatter(text), bodyHtml = window.marked.parse(fm.body);
+      lpCache[key] = bodyHtml; lpRender(a, bodyHtml, label);
+    }).catch(function () { if (lpCur === key) lpRender(a, "", "无法预览 " + label, true); });
+  }
+  document.addEventListener("mouseover", function (e) {
+    var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
+    clearTimeout(lpHideT); clearTimeout(lpShowT); lpShowT = setTimeout(function () { lpOpen(a); }, 250);
+  });
+  document.addEventListener("mouseout", function (e) {
+    var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
+    clearTimeout(lpShowT); lpHideT = setTimeout(lpHide, 200);   // grace period to move the pointer into the preview
+  });
+  window.addEventListener("scroll", function () { lpHide(); }, true);   // any scroll dismisses it
 
   searchBox.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && searchBox.value.trim().length >= 2) {
