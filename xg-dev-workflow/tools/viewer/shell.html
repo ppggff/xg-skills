@@ -315,6 +315,8 @@
   /* R5: unknown/? state — dashed outline, not a filled colored pill (reads as "unknown", not backlog) */
   .badge.state.st-unknown { background: transparent; border: 1px dashed var(--line2); color: var(--muted); }
   .hit { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .hit[data-nav] { cursor: pointer; }   /* R4: whole row jumps to the matched line */
+  .hit[data-nav]:hover { background: var(--chip); }
   .hit .path { font-size: 12px; color: var(--muted); font-family: var(--mono); }
   .hit .snip { font-size: 13px; color: var(--body); }
   /* R3: frontmatter as a compact one-line meta (status pill + key:value), not a big table */
@@ -762,7 +764,16 @@ var SV = (function () {
     return n;
   }
 
-  return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath,
+  // R4: which heading-section covers a 1-based full-file line? headings are 0-based over the
+  // frontmatter-stripped body; fmLines = lines the frontmatter block occupied. -1 = before first heading.
+  function sectionForLine(headings, fileLine, fmLines) {
+    if (!fileLine) return -1;
+    var target = fileLine - 1 - (fmLines || 0), idx = -1;
+    for (var i = 0; i < (headings || []).length; i++) { if (headings[i].line <= target) idx = i; else break; }
+    return idx;
+  }
+
+  return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
@@ -900,11 +911,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
 
   // --- doc view (R2/R3/R22/R29) ----------------------------------------------
+  function scrollToLine(side, fileLine) {        // R4: scroll to the section covering a full-file line
+    var pane = PANES[side], doc = pane._doc; if (!doc) return;
+    var idx = SV.sectionForLine(doc.headings, fileLine, doc.fmLines || 0);
+    var sec = idx >= 0 ? document.getElementById("sec_" + side + "_" + idx) : null;
+    if (sec) { sec.scrollIntoView({ block: "start",
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      pane._cur = idx; setCurLine(side, sec); markCurrent(); }
+    else pane.scrollTop = 0;                      // before the first heading → top of the doc
+  }
   function renderDoc(side, v) {
     var pane = PANES[side], mt = 0;
     api("/raw/" + v.tree + "/" + v.rel).then(function (r) { mt = +r.headers.get("X-Mtime") || 0; return r.text(); }).then(function (text) {
       var fm = SV.parseFrontmatter(text), headings = collectHeadings(fm.body);
-      pane._doc = { tree: v.tree, rel: v.rel, body: fm.body, headings: headings, mtime: mt };   // R63: version
+      pane._doc = { tree: v.tree, rel: v.rel, body: fm.body, headings: headings, mtime: mt,
+        fmLines: text.split("\n").length - fm.body.split("\n").length };   // R63: version; R4: frontmatter line offset
       if (staleSides[side]) { delete staleSides[side]; showStale(); }   // freshly (re)loaded → not stale
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel,
           '<button class="iconbtn" data-docwidth title="reading width: measure / full">↔</button>') +
@@ -915,6 +936,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(pane.querySelector(".docbody"));
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
+      if (v.line) scrollToLine(side, v.line);   // R4: a search hit carried a line → jump to its section
     }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
       var is404 = / → 404$/.test(e.message);
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
@@ -995,8 +1017,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
             return '<section class="grp" data-key="' + esc(g.tree + ":" + g.path) + '">' +
               '<h2 class="sec"><a data-nav="doc" data-tree="' + g.tree + '" data-rel="' + esc(g.path) + '">' +
               esc(g.tree + "/" + g.path) + "</a> <span class='muted'>(" + g.hits.length + ")</span></h2>" +
-              g.hits.map(function (h) { return "<div class='hit'>" + (h.line ? "<span class='muted'>:" + h.line + "</span> " : "") +
-                "<span class='snip'>" + hlmark(h.snippet, v.q) + "</span></div>"; }).join("") + "</section>";
+              g.hits.map(function (h) {          // R4: every hit row navigates to its file; a content hit also carries its line
+                return '<div class="hit" data-nav="doc" data-tree="' + g.tree + '" data-rel="' + esc(g.path) + '"' +
+                  (h.line ? ' data-line="' + h.line + '"' : "") + ">" +
+                  (h.line ? "<span class='muted'>:" + h.line + "</span> " : "") +
+                  "<span class='snip'>" + hlmark(h.snippet, v.q) + "</span></div>"; }).join("") + "</section>";
           }).join("") || emptyHtml("无匹配结果", "搜索: " + v.q));   // R10
         applyGrpHidden(pane, searchHideFile);
         var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
@@ -1673,7 +1698,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
       var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
-      if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel });
+      if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel, line: +t.dataset.line || 0 });
         revealInTree(t.dataset.tree, t.dataset.rel); }   // 006 T4: user-opened → expand ancestors
       else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
       else if (kind === "trace") navigate(side, { kind: "trace", card: t.dataset.card });   // 007 R5

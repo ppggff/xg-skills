@@ -59,6 +59,23 @@ t("R8: #toc never becomes the filler (applyLayout keeps it fixed)", () => {
   assert.doesNotMatch(html, /singleAutoToc/, "the old single-pane toc-filler freeze is gone");
 });
 
+// --- R4: sectionForLine maps a full-file line to its covering heading section ---
+t("R4: sectionForLine finds the covering section, adjusting for frontmatter", () => {
+  const H = [{ line: 0, text: "A" }, { line: 5, text: "B" }, { line: 12, text: "C" }];
+  assert.equal(SV.sectionForLine(H, 10, 4), 1);   // file 10 → body 5 → heading B
+  assert.equal(SV.sectionForLine(H, 17, 4), 2);   // file 17 → body 12 → heading C
+  assert.equal(SV.sectionForLine(H, 5, 4), 0);    // file 5 → body 0 → heading A
+  assert.equal(SV.sectionForLine(H, 4, 4), -1);   // still inside the frontmatter → before first heading
+  assert.equal(SV.sectionForLine(H, 0, 4), -1);   // filename match (line 0) → none
+  assert.equal(SV.sectionForLine([], 10, 0), -1); // no headings → none
+});
+t("R4: search hit rows navigate and content hits carry their line", () => {
+  assert.match(html, /class="hit" data-nav="doc" data-tree="' \+ g\.tree/, "hit row is a doc nav target");
+  assert.match(html, /\(h\.line \? ' data-line="' \+ h\.line/, "content hit carries data-line");
+  assert.match(html, /line: \+t\.dataset\.line \|\| 0/, "click handler forwards the line");
+  assert.match(html, /function scrollToLine\(side, fileLine\)/, "scrollToLine wrapper exists");
+});
+
 // --- resolveLink -----------------------------------------------------------
 const mk = arr => new Map(arr.map(s => [s.toLowerCase(), s]));
 const trees = {
