@@ -13,6 +13,9 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
 - `L<n>` — abstraction layers (design) · `D<n>` — design decisions/子决策 (ADR-scoped:
   `ADR-NNNN D<n>`).
 - `MS<n>` — milestones/分期 — bare `M<n>` stays this skill's mechanisms `M1`–`M6`.
+- `S<n>` — 详设 (detail/structure) 级决策条目 (numbered in `detail.md`, ledger level `detail`;
+  approved carries baseline force — see `templates/decisions.md`). Number only items that enter
+  the ledger, not every spec line.
 - `P<n>` — implement's principles (`implement.md` Principles).
 - `F<n>` — a doc's centralized fact-list (事实清单) entries — the provenance 集中制 form.
 - Review findings: `#<n>` within a report's 修复决策表, severity spelled out

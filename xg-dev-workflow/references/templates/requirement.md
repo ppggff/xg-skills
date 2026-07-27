@@ -14,6 +14,9 @@ updated: YYYY-MM-DD
 > Phase gate: this file must be **confirmed** by the human before design starts.
 > **Reader: human-first** (decision zone — you read & confirm it). Write it to be reviewed: prose,
 > rationale, sharp boundaries. Claude also implements against it. (See SKILL.md「Two zones」.)
+> **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
+> (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
+> decisions.
 
 ## Context (背景)
 

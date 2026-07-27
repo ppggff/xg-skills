@@ -375,8 +375,8 @@ behavior; the **contract never changes**, only the implementation behind it. For
 
 ## References
 
-- `references/templates/` — the ten doc templates (`requirement`, `design`, `adr`, `detail`, `plan`,
-  `progress`, `log`, `test`, `index`, `roadmap`).
+- `references/templates/` — the twelve doc templates (`requirement`, `design`, `adr`, `detail`,
+  `plan`, `progress`, `log`, `test`, `index`, `roadmap`, `decisions`, `facts`).
 - `references/steps/` — the per-step procedures, plus shared mechanisms referenced by multiple
   steps.
 - `references/steps/grill.md` — shared interactive elicitation (requirement + design-grill):

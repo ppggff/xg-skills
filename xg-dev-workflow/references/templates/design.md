@@ -19,6 +19,9 @@ updated: YYYY-MM-DD
 > verdict + git/grill-log pointer. At freeze, an M+ card may optionally emit a one-shot freeform
 > 阅读稿 (reading version, `notes/design-reading.md`) for review/handoff — generated once from the
 > frozen design, never co-maintained.
+> **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
+> (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
+> decisions.
 
 ## 思路 (Approach in one paragraph)
 
