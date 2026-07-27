@@ -46,6 +46,12 @@ priorities and tactics (see "Phase-specific layers").
   question and move on; an honest "still ambiguous" beats grinding.
 - Convergence lands **inline in the phase doc** (`requirement.md` / `design.md`) as you go — the
   doc is the durable output; the grill-log below is the *path* to it.
+- **逐条入账 (ledger as you converge).** When a `G<n>` resolves into a **human-judgment
+  decision** (requirement 条目 / design D/ADR decision / 详设 `S<n>` item), append it to the
+  card's `decisions.md` as a **proposed** block right then (`templates/decisions.md`; the file
+  is created lazily on the first block, like `adr/`) — the gate digest is generated from these
+  pending rows. Claude never writes `approved` (gate-digest.md「Approve transcription」). The
+  round's checkpoint commit is what the eventual approve annotation will cite as receipts.
 - **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
   requirement intake; design with live candidate approaches), the first round(s) may run
   **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction

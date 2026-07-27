@@ -73,6 +73,8 @@ not transcribe the words.
    statement each (a "X and Y" item is two). This is the canonical list; Scope/Effect and every
    downstream doc reference the IDs, so a later change localises to one `R`. Mark each item's
    **provenance** (evidence-cited / 推断 / 假设) per M1. Don't renumber; retire an item with a note.
+   **Each R item also enters the ledger** as a proposed `decisions.md` block (grill.md
+   「逐条入账」) — the confirm gate approves those rows, not the doc text.
 6. **Reframe Effect as testable criteria.** Turn each requirement item into checkable conditions
    ("at most one coordinator runs the launcher; observable via …"), not vague goals; **cite the
    `R-id`** each criterion verifies.
@@ -80,8 +82,10 @@ not transcribe the words.
    input → Open questions; anything deliberately deferred → Future. **Don't grill to death**
    (`grill.md` Protocol): a point that won't converge → record it in Open questions and move on.
 8. **GATE — hard stop.** Present `requirement.md` for confirmation **via the gate digest**
-   (`gate-digest.md`: load-bearing decisions + least-confident spots + open questions + the go
-   ask with receipts), then **STOP this turn**.
+   (`gate-digest.md`: cards from the pending ledger rows + least-confident spots + open
+   questions + the go ask with receipts), then **STOP this turn**. On confirm: approve
+   transcription (gate-digest.md) — `confirmed` means the requirement-level rows are all
+   approved (R12), then set `status: confirmed`.
    **XS gate merge** (SKILL.md「Requirement sizing」Gate merging): when the human opted into the
    combined 需求+设计 gate, continue into the design draft in this same invocation and present
    both docs at one combined gate — requirement-level decision cards first; if the work outgrows
