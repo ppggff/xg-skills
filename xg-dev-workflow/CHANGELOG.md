@@ -4,6 +4,35 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-27 (retro — process/design/grill quick-fix batch from user's 10-idea list)
+
+Source: the user's raw 10-idea list on process/design/grill friction, organized in
+`dev_root/xg-skills/notes/2026-07-27-process-design-grill-ideas.md`. This batch lands the four
+no-contract-change items plus two trial wirings; the big items (iteration model, M2 gates,
+de-freeze) are parked as decision-ledger MS2 grill input (roadmap).
+
+- **Structure over paragraphs** (SKILL.md Writing style): parallel/enumerable content goes in
+  nested lists, one point per bullet; paragraphs reserved for chained reasoning. Why: gate
+  reading is scanning — long prose paragraphs exceeded the approver's reading bandwidth (the
+  standing gate-bandwidth feedback), and "plain prose" was read as a bias toward paragraphs.
+- **Module 归属 tag** (design template, Chosen approach): each module is classified 复用已有 /
+  已有扩展 / 全新; feeds 影响面 and the 详设-necessity call. Why: user asked "涉及到哪些已有
+  模块,自己是新模块,还是之前模块的一部分" — the template had module lists but no provenance
+  classification.
+- **Whole-doc rewrite at convergence** (grill.md Fold-in): at 建议收敛, judge the doc's shape
+  as if written fresh; patched shape → one content-preserving rewrite (with the 改写时澄清
+  checklist, mirroring change.md). Why: user reported multi-round grills leave the doc
+  patch-shaped ("多轮 grill 之后,需要重写文档"); per-round fold-in fixes sentences, not shape.
+- **假设 closure sweep** (design-grill freeze gate + plan.md cross-check): every load-bearing
+  假设/推断 marker is discharged pre-freeze or explicitly carried with a verification home
+  (验证策略 row / plan verify task). Why: user asked for "假设和求证" — markers existed but had
+  no lifecycle; an assumption could ride to implementation untracked.
+- **试行 (trial — evaluate after one card, then solidify or drop):** (a) pre-draft discussion
+  window (grill.md Protocol) — first rounds of an open-shaped phase may run doc-free, write the
+  doc once direction stabilizes ("写文档前缺少一个讨论过程"); (b) candidate side-by-side table
+  (design-grill 方案优先) — present competing approaches as one compact comparison table in the
+  round message, archived in Alternatives considered ("设计的候选方案").
+
 ## 2026-07-24 (comprehensive skill audit vs writing-great-skills — Sediment/Duplication/Sprawl sweep)
 
 Audited both skills against their `~/.agents/skills` fork sources and the `writing-great-skills`

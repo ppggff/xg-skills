@@ -61,6 +61,11 @@ citations (SKILL.md「Conventions」Reasoning-shown).
 **At module altitude** (no concrete code — defer functions/locks/hooks/files to `plan.md`):
 modules + responsibilities, boundaries, contracts, key invariants. Build on existing modules;
 contract-first. Cite load-bearing claims via KB `[[wiki/<project>/<slug>]]`.
+
+**Each module carries a 归属 tag** — one of **复用已有** (an existing module used as-is) ·
+**已有扩展** (a new responsibility grafted onto an existing module) · **全新** (a new module).
+The tag feeds 影响面「改动/新增模块」and the 详设-necessity call (new/extended structural
+modules are what makes a card M+/structural).
 Refer to modules **by name**; number in-design decisions/子决策 `D<n>` when other sections or
 ADRs need to reference them (`ADR-NNNN D<n>` for a decision inside an ADR — SKILL.md
 「Fixed ID prefixes」).

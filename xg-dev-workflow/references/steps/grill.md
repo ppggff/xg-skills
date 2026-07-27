@@ -46,6 +46,12 @@ priorities and tactics (see "Phase-specific layers").
   question and move on; an honest "still ambiguous" beats grinding.
 - Convergence lands **inline in the phase doc** (`requirement.md` / `design.md`) as you go — the
   doc is the durable output; the grill-log below is the *path* to it.
+- **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
+  requirement intake; design with live candidate approaches), the first round(s) may run
+  **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction
+  stabilizes — a doc drafted mid-discussion anchors the very text the grill is trying to move,
+  and every subsequent round then pays a patch cost (Fold-in). The doc must exist before any
+  gate ask (Stop-at-gate「Ask with receipts」); once it exists, convergence lands inline as above.
 
 ## Shared elicitation tactics (lenses)
 
@@ -186,6 +192,14 @@ The body never stacks two generations of corrections — dated inline notes pili
 (「2026-XX-XX 更正…」on top of an earlier 更正) are the smell. The supersede discipline below
 is for the **grill-log** (append-only history); the phase doc is the opposite: always
 current-state.
+
+**Whole-doc rewrite at convergence.** Per-round fold-in keeps sentences current but not the
+doc's *shape*: after several rounds the section structure drifts (patch-ordered content,
+duplicated emphasis, sections that no longer carve the design at its joints). When the verdict
+is 建议收敛 — before the gate ask — judge the doc's structure as if writing it fresh today; if
+patched shape shows, do one content-preserving whole-doc rewrite (first collect every scattered
+"改写时澄清" self-note into a checklist and tick each — same discipline as `change.md`'s
+Rewrite checklist), then re-verify the rewritten text against the round's decisions.
 
 ## Rollback (回退 — return to a previous question)
 "回退" / "go back" re-opens an earlier decision. Reuse the append-only **supersede** discipline —

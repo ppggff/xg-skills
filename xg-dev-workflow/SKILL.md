@@ -22,7 +22,10 @@ raw/wiki), referenced from these docs via `[[wiki/<project>/<slug>]]` wikilinks.
 only per-requirement docs.
 
 **Writing style (all phase docs): plain prose, technical terms intact** (不变量 / 契约 / 幂等 stay); short
-sentences.
+sentences. **Structure over paragraphs**: parallel or enumerable content (conditions, steps,
+per-module points) goes in nested lists — one point per bullet; paragraphs are reserved for
+reasoning that genuinely chains (evidence → mechanism → conclusion). A paragraph packing ≥3
+parallel points is the smell — restructure it as a list.
 
 **Conventions (all docs):**
 - **First-use gloss** — a coined term, codename, or non-standard abbreviation carries a one-line

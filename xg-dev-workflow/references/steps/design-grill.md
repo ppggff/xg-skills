@@ -131,6 +131,10 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      反过度设计); a hack/patch must be a **conscious, recorded debt decision**, not a default. Pick
      the spectrum point the trade-off justifies and say why. Any comparison/evaluation table
      produced here carries the provenance column from the first draft (Core values 方案优先).
+     **试行:** present the candidates **side by side in the round's chat message** — a compact
+     table (per candidate: one-line 思路 · class · key trade-off · cost · provenance), not
+     sequential prose — so the human compares schemes, not narrations; the comparison then
+     lands in design.md「Alternatives considered」as the archive.
      **Two axes of alternatives:** this **solution-class** axis (hack/补丁/重做) and — when the
      design introduces a **non-trivial module** — an **interface-shape** axis: optionally run
      `codebase-design`'s **Design-It-Twice** (parallel agents each design a radically different
@@ -161,7 +165,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out review.
 6. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
    (see `adr.md`).
-7. **Freeze gate:** present via the gate digest (`gate-digest.md` — decision cards citing doc
+7. **Freeze gate:** before the ask, run the **假设 closure sweep** — enumerate the doc's
+   load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
+   (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
+   named in the digest's least-confident spots *and* given a verification home (a 验证策略 row
+   or a plan.md verify task) — no assumption rides into implementation untracked. Then present
+   via the gate digest (`gate-digest.md` — decision cards citing doc
    sections, least-confident spots, open questions, then the go ask with receipts); on human
    approval set `status: frozen`. From here, `design.md` changes
    only through change-management (M2). On freeze, **update the KB** (as-built): refresh the

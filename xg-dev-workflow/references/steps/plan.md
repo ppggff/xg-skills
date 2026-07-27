@@ -24,7 +24,8 @@ Output: `plan.md` (template: `references/templates/plan.md`).
 4. **Write tasks** with: description, **the `R-id`(s) it implements** (traces to `requirement.md`
    「需求条目」), acceptance criteria (testable), verification (test/build/manual), dependencies,
    files likely touched, scope (XS–L; L → split). A task title containing "and" is usually two
-   tasks. Cross-check: every `R-id` is implemented by ≥1 task.
+   tasks. Cross-check: every `R-id` is implemented by ≥1 task, and every 假设 the design froze
+   as *carried* (design-grill 假设 closure sweep) has a verify task or 验证策略 row.
 5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works).
 6. **Risks & open questions** table.
 7. **Execution-authorization ask** — present via the gate digest (`gate-digest.md`); for this
