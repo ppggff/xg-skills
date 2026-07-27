@@ -87,7 +87,8 @@ authorization there are no per-phase stops (「Two zones」).
   grill convergence verdict.
 - **Ask with receipts — write first, then ask.** An advance ask (and any reply that closes a verb
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
-  dev_root commit. No receipts, no ask. This closes M3's trigger blind spot — M3 fires on doc edits,
+  dev_root commit — on a ledger card, also **the pending `decisions.md` rows being asked about**
+  (the approve transcription cites this receipts commit). No receipts, no ask. This closes M3's trigger blind spot — M3 fires on doc edits,
   so an *omitted* write produces no edit and no check; the receipts requirement makes a missing
   write impossible to ask past.
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
@@ -107,9 +108,35 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
   handoff): implement → test → close-out review report, **no per-task or per-phase gate**. Docs are
   **Claude-first** — terse, structured, link-don't-restate, optimized for execution + session
   resume, not for a human read-through.
-- **The human re-enters at exactly two artifacts** — `log.md` (the audit trail; resume never reads
-  it) and the 评审 review report (its 修复决策表 is a human decision) — plus any escalation Claude raises
-  (design fork → M2, blocker, push request; commits are autonomous, push is gated).
+- **The human re-enters at exactly three artifacts** — `log.md` (the audit trail; resume never
+  reads it), the 评审 review report (its 修复决策表 is a human decision), and a **proposed
+  `decisions.md` row** Claude escalates from the execution zone (design fork → M2 — the row
+  persists the fork + options; blocker and push requests stay chat-level; commits are
+  autonomous, push is gated).
+
+## Ledger (决策账本) — the gate currency
+
+Gate approval's unit is the **decision, not the document**. Each card keeps `decisions.md`
+(templates/decisions.md) — the **single source of approval status** for every human-judgment
+decision (requirement 条目 · design D/ADR · 详设 `S<n>` · execution-zone escalations;
+implementation-level decisions stay `log.md`):
+
+- **States** (the only enumeration): proposed / approved / superseded / retired. Freeze and
+  baseline are **binding forces** approved carries by level (requirement/design = freeze force:
+  reopen only via M2; detail = baseline force: dated-note refinement never reopens), never
+  state words.
+- **Gates approve rows** — the digest's cards are generated from pending rows
+  (`gate-digest.md`); on go, Claude transcribes approvals (`approved:` note cites the receipts
+  commit). Claude never self-approves. Doc status fields are **derived**: `confirmed` /
+  `frozen` / `baseline` ⇔ that level's rows all approved; the ADR `Status:` line is a display
+  snapshot (R12).
+- **Docs become rewritable views** — synthesis prose may be rewritten anytime; the invariants
+  are "cite the ledger id / `[F<n>]` fact, never contradict an approved decision"
+  (`workflow-status.py --check` runs the deterministic subset; M3 judges semantics). Facts
+  live in `facts.md` so rewrites can't lose them.
+- **Changing an approved decision = M2 reopen** (`change.md`): 修改列表 first, human confirms,
+  then supersede + scoped propagation. Cards without a ledger (pre-010) keep the old
+  document-gate semantics end to end.
 
 ## Layout (requirement-centric)
 
@@ -126,6 +153,9 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
     legacy/                        # pre-workflow archive (read-only; never linked as canonical)
     NNN-requirement-slug/           # created lazily — each doc appears when first needed
       requirement.md               # 需求 (created by `new`)
+      decisions.md                 # 决策账本 — approval-status single source (lazily, first
+                                    #   proposed row; gates approve its rows: SKILL.md「Ledger」)
+      facts.md                     # 卡级事实层 F<n> (lazily; cited as [F<n>] from phase docs)
       design.md                    # 设计 (概设/HLD) — FROZEN once approved
       adr/NNNN-slug.md             # decision records (adr/ created on first ADR)
       detail.md                    # 详设 (LLD) — BASELINE; optional, skip for XS/S
@@ -204,7 +234,8 @@ the design non-1:1) — solve the real problem, don't transcribe the words. Outp
 **Context** · **需求条目** (atomic items, each one statement with a stable **`R-id`** — the
 **traceability spine** every later doc references) · **Scope** (in/out + 初步影响面) · **Constraints** ·
 **Effect** (testable success criteria, each citing its `R-id`) · **Future** · **Open questions**.
-GATE: STOP for explicit confirm. Step: `references/steps/requirement.md`.
+GATE: STOP for explicit confirm — the confirm approves the requirement-level ledger rows
+(「Ledger」). Step: `references/steps/requirement.md`.
 
 ### 2. 设计 Design → `design.md` + `adr/` (the emphasis)
 Understand first (M5), then design **at module altitude in abstraction layers**: weigh **multiple
@@ -215,8 +246,9 @@ boundaries / contracts, with concrete code deferred to detail/plan, and **requir
 considered + how it meets scope/constraints/effect **traced by `R-id`** + a **影响面 (impact surface)**
 analysis (changed modules, callers & downstream consumers, compat/ABI surface, cross-card ripples,
 behaviors to re-verify). **ADRs** for decisions that are hard-to-reverse, surprising, and a real
-trade-off. Stress-test via grilling. GATE: STOP; **on approval `design.md` is FROZEN** — thereafter
-it changes only through M2. Steps: `references/steps/design-grill.md`, `references/steps/adr.md`.
+trade-off. Stress-test via grilling. GATE: STOP; **on approval `design.md` is FROZEN** — meaning
+its referenced ledger rows are all approved (「Ledger」); thereafter those decisions change only
+through M2 (the synthesis prose stays rewritable). Steps: `references/steps/design-grill.md`, `references/steps/adr.md`.
 
 ### 3. 详设 Detailed design → `detail.md` (LLD — optional for XS/S)
 Lowers the frozen architecture to **concrete structures with rationale** — what `design.md` deferred
@@ -224,8 +256,10 @@ and `plan.md` shouldn't have to invent. Sections: **数据结构** (each with a 
 (trigger → steps → locking/transaction → error & edge handling → idempotency point) · **代码级接口**
 (signatures, actual SQL) · **边界与错误矩阵** · **可追溯** (item ↔ design module/contract ↔ R-id). Division of
 labour with ADRs: the ADR records the hard-to-reverse decision + alternatives; `detail.md` holds the
-full concrete spec, referencing those ADRs and filling the small-but-load-bearing choices. GATE
-(**baseline, not freeze**): STOP for human review; afterwards it may change as implementation
+full concrete spec, referencing those ADRs and filling the small-but-load-bearing choices.
+Ledger-worthy choices get `S<n>` ids (「Ledger」). GATE
+(**baseline, not freeze**): STOP for human review — approving the detail-level rows gives them
+baseline force; afterwards it may change as implementation
 reality bites — each change adds a dated note; a change implicating the *architecture* routes
 through M2. Step: `references/steps/detail.md`.
 
@@ -270,15 +304,18 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 - **M1 Evidence** — no guessing, no 望文生义. Every non-trivial claim cites code (`func()` in `file.c`,
   no line numbers) or a doc/source. Uncertainty → dispatch an Explore subagent to investigate;
   capture reusable findings to the KB. `references/steps/evidence.md`.
-- **M2 Change management** — requirement changes are **gated at entry** (human-initiated, or Claude
-  presents the fork and waits) → edit `requirement.md` with a dated note → **propagate along the
-  R-id spine, mode-specifically (追加/变更/撤销) and scoped** — never a wholesale regenerate → re-approve
-  scoped to what changed. Design-driven and detail-only changes enter the same route at their own
-  gates; pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`. Full
-  flow: `references/steps/change.md`.
+- **M2 Change management** — reopening an approved decision is **gated at entry** (human-initiated,
+  or Claude escalates the fork as a proposed ledger row and waits) → **修改列表 first** (affected
+  closure: reverse depends-on + trace ripple; human confirms, zero writes before) → **propagate
+  along the spine, mode-specifically (追加/变更/撤销) and scoped** — never a wholesale regenerate →
+  re-approve = the 评审会 over the new proposed rows. Detail-only changes ride baseline force
+  (dated note); pure implementation reality → edit `plan.md` freely. Every change + why →
+  `log.md`. Full flow: `references/steps/change.md`.
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
-  matching its KB concept); reusable knowledge captured to the KB via xg-knowledge-lite Write and
+  matching its KB concept); on a ledger card run `workflow-status.py --check` (the deterministic
+  ledger subset — id integrity, R12 status mappings, cycles; exit 1 = findings); reusable
+  knowledge captured to the KB via xg-knowledge-lite Write and
   compiled — or explicitly noted as deferred. `references/steps/omission-check.md`.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for
   resume**; `log.md` = append-only why-history, **never on the resume path**. Never rebuild from

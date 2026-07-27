@@ -34,6 +34,12 @@ config xg-knowledge-lite uses, so project names line up.
   implementation plan, by contrast, is freely mutable (but dropping a task is logged). An M+
   design also fixes its **验证策略** (per-R E2E scenario + observation point) — verifiability is
   decided at design time, and the test phase inherits it as the coverage skeleton.
+- **Decision ledger.** Gate approval's unit is the decision, not the document: each card's
+  `decisions.md` holds every human-judgment decision's status (proposed/approved/superseded/
+  retired); gates approve pending rows via the digest, docs become rewritable views that must
+  not contradict approved decisions (`workflow-status.py --check` verifies the mechanical
+  subset), and M2 shrinks to reopening a row (修改列表 first). Pre-ledger cards keep the old
+  document-gate semantics.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);
   plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).
