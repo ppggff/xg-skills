@@ -10,8 +10,12 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 
 - **Deterministic subset → script, zero tokens**: link/wikilink resolution, frontmatter
   status/updated presence, index-row existence, 项目根散件, board monotonic constraints,
-  R-id trace *existence*. No checker ships yet — until one covers an item, it runs with the
-  judgment subset below (the checker is a roadmap item, not a prerequisite).
+  R-id trace *existence*. **The ledger checks ship as `workflow-status.py --check
+  <project>/<card>`** (id-reference integrity · R12 status-field mappings · depends-on
+  acyclicity · approve-note format · single-active-block; exit 1 = findings) — run it on any
+  ledger card after a doc edit; semantic contradiction with approved decisions stays in the
+  judgment subset. The remaining items still lack a checker and run with the judgment subset
+  (roadmap item, not a prerequisite).
 - **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
   reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this
   checklist, take back only the violation list; the orchestrator fixes what's flagged, which

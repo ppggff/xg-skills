@@ -10,7 +10,17 @@ design are allowed to change, so the design stays stable while the plan flexes.
 0. **Gate at entry.** A requirement/design change is a decision-zone act: it comes from the
    human, or — when Claude escalates a design-fork from the execution zone — Claude **presents
    the fork + options and waits for the human's call** before touching `requirement.md` or
-   unfreezing `design.md` (both entry points below are gated the same way).
+   unfreezing any decision (both entry points below are gated the same way). The escalation
+   itself persists as a **proposed `decisions.md` row** (fork + options folded into why/alt —
+   the row IS the presented fork, resumable if the session breaks); appending that row is
+   **not** "touching" the docs — phase docs and approved rows stay untouched until the call.
+0b. **修改列表 first (ledger cards).** On a card with a ledger, the reopen target is one or
+   more **approved rows**. Before operating: compute the affected closure — reverse
+   `depends-on` (who depends on the target) ∪ the trace ripple (design sections citing the id
+   → detail S rows → plan tasks → test rows) — and present it as a **修改列表** (one line per
+   item: id · doc · 条目 · action supersede/追加/撤销/re-verify). The human confirms the
+   list; zero writes before that confirm. Targeted re-grill scope = the closure's decisions.
+   (--check (c) guarantees the closure walk terminates.)
 1. **Two entry points, same discipline:**
    - **Requirement-driven** — the requirement itself shifted: edit `requirement.md`; add a
      dated **Change log** entry stating, per affected 条目, the **change mode**: **追加**
@@ -29,6 +39,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
    `design.md` (「How it meets」+ 影响面) → `detail.md` 可追溯 (where present) → `plan.md`
    (`Implements:`) → `test.md` (R-id coverage rows), touching **only** the traced items — not
    a wholesale re-evaluate/regenerate:
+   The three modes anchor on **ledger blocks** where a ledger exists (追加 = new proposed
+   block; 变更 = old block header → superseded + new proposed block appended; 撤销 = header →
+   retired) — re-approval is the 评审会 over the new proposed rows, not a doc re-read:
    - **追加** — append: a new design entry (影响面 updated), detail item if structural, new
      plan task(s), new test rows. Existing content stays valid — **no acceptance resets**;
      design re-approval scopes to the addition.
@@ -64,6 +77,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
 
 ### B. Implementation reality (design is fine, plan was naive)
 - Edit `plan.md` freely. **Do not touch `design.md`.** Record the new state in `progress.md`.
+- **Implementation-level decisions stay in `log.md`, never the ledger** — the promotion test
+  is exactly this A/B boundary: a fork that touches a requirement/design/detail decision
+  escalates as a proposed ledger row (case A, gate at entry); everything else logs.
 - **Routine refinement is silent; deleting / merging / deferring a task — or invalidating an
   already-`[x]` acceptance — gets a `log.md` `[实现]` line** (what + why), per *Always* below. A
   freely-mutable plan still owes a trail for drops, or resume/close-out review can't tell "done"
@@ -74,7 +90,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
 ### C. Detail-only change (structures shift, architecture doesn't)
 `detail.md` sits at a **baseline** gate, not a freeze: when implementation reality changes a
 concrete structure without implicating any `design.md` module/contract, edit `detail.md` in
-place **with a dated note (why)** — no ADR, no re-freeze, no full M2. The moment the change
+place **with a dated note (why)** — no ADR, no re-freeze, no full M2. An approved `S<n>` row's
+**baseline force** means exactly this: the dated-note refinement never reopens it; only
+overturning the decision itself routes through case A. The moment the change
 implicates the architecture, it is case A. (See SKILL.md M2 + `detail.md`.)
 
 ### Trigger `seam-contract-disproved` (split designs — a frozen seam contract proven wrong at 联调)

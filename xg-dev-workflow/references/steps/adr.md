@@ -41,8 +41,11 @@ a one-line hand-wave doesn't clear it.
 ## Procedure
 1. **Create `adr/` lazily** — only when this first ADR is needed (don't pre-scaffold an empty dir).
    Number: scan `adr/` for the highest `NNNN`, increment (zero-padded to 4).
-2. Write Context / Decision / (optional Alternatives / Consequences). Status starts
-   `accepted` (or `proposed` if still under discussion). A **superseding or
+2. Write Context / Decision / (optional Alternatives / Consequences). **The `Status:` line is
+   a display snapshot derived from the ledger** (`decisions.md` is the approval authority;
+   word map: proposed↔proposed · approved↔accepted · superseded↔superseded ·
+   retired↔deprecated) — write it to match the ledger rows, never as an independent judgment;
+   a mismatch is an M3/--check finding (R12). A **superseding or
    semantics-changing** ADR also lists **被取代表述** — the phrases, module names, and terms
    this decision retires (one line each) — feeding `change.md`'s supersede sweep; without it
    the sweep has no word list and old restatements survive outside the traced items.
@@ -51,9 +54,10 @@ a one-line hand-wave doesn't clear it.
    *current active decision*, not a changelog (amendment blocks let it grow into a 500-line
    compound doc). To change a recorded decision, pick one of three paths:
    - **small fix** (typo / clarification, no decision change) → edit in place;
-   - **decision change** a single ADR can express → write a **new** ADR with
-     `## Supersedes ADR-NNNN`; the old ADR's Status line gets only a **≤2-line** forward
-     cross-ref (rationale lives in the new one);
+   - **decision change** a single ADR can express → route the reopen through M2 (`change.md`
+     修改列表 first), then write a **new** ADR with `## Supersedes ADR-NNNN`; the old ADR's
+     Status line gets only a **≤2-line** forward cross-ref (rationale lives in the new one),
+     mirroring its ledger rows' supersede;
    - **architecture-implicating** change (touches the frozen `design.md` / other ADRs) →
      route through change-management (M2).
 5. **Keep the body lean** — one decision + why + consequences, aim for ≤ ~200 lines. Ballooning

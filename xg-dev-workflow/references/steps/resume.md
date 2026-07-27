@@ -7,8 +7,10 @@ history. This is what lets a brand-new session start fast (docs are the core).
 1. Resolve project + `dev_root` (`tools/resolve-project.py`, `--dev-root`).
 2. Read `<dev_root>/<project>/index.md` → find the requirement (by slug/NNN, or the one
    the user named).
-3. Read, in order: `requirement.md` (what & why, success criteria) → `design.md` + `adr/`
-   (the frozen contract) → `plan.md` (intended tasks) → **`progress.md`** (the live state:
+3. Read, in order: `requirement.md` (what & why, success criteria) → **`decisions.md`** (the
+   ledger — approval authority: what is approved / still pending; absent on pre-ledger cards)
+   → `design.md` + `adr/` (the contract **view** — its `frozen` means the referenced decisions
+   are all approved) → `plan.md` (intended tasks) → **`progress.md`** (the live state:
    phase, now-doing, next-step, blockers, task table, changed files).
    **Mid-grill?** If `progress.md`「Now doing」names an open `G<n>`, also read
    `notes/grill-<phase>.md` (if persisted) and continue from the `open` row (`grill.md` Resume
