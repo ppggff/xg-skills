@@ -405,6 +405,26 @@ t("mergeTreeOpen: everything closed in a full render → empty", () => {
   assert.deepEqual(SV.mergeTreeOpen(["dev", "dev/a"], ["dev", "dev/a"], []), []);
 });
 
+// --- decisionRows (010: card-drawer ledger section) ---------------------------
+t("decisionRows: empty/missing ledger renders nothing", () => {
+  assert.equal(SV.decisionRows([]), "");
+  assert.equal(SV.decisionRows(undefined), "");
+});
+t("decisionRows: header counts pending; rows escape text and tone by state", () => {
+  const html = SV.decisionRows([
+    { id: "R1", level: "requirement", state: "approved", text: "keep <it>" },
+    { id: "ADR-0001 D2", level: "design", state: "proposed", text: "b" },
+  ]);
+  assert.match(html, /Decisions<\/span><span class="cd-v">2 · <span class="trcell q">待评审 1<\/span>/);
+  assert.match(html, /trcell ok">✓ approved<\/span> <span class="cd-src">requirement<\/span> keep &lt;it&gt;/);
+  assert.match(html, /ADR-0001 D2<\/span>/);
+  assert.match(html, /trcell q">● proposed/);
+});
+t("decisionRows: all approved shows 全批", () => {
+  assert.match(SV.decisionRows([{ id: "R1", level: "requirement", state: "approved", text: "x" }]),
+               /trcell ok">全批/);
+});
+
 // --- taskCounts / taskTone (007: drawer task summary) -------------------------
 t("taskCounts: done/total over parsed rows; empty and missing degrade to 0/0", () => {
   assert.deepEqual(SV.taskCounts([{ done: true }, { done: false }, { done: true }]),

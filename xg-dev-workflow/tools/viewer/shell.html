@@ -843,6 +843,22 @@ var SV = (function () {
     return n;
   }
 
+  // 010: card-drawer "Decisions" rows from the ledger (active blocks only; "" = no ledger).
+  function decisionRows(decisions) {
+    if (!decisions || !decisions.length) return "";
+    function escd(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    var pend = decisions.filter(function (d) { return d.state !== "approved"; }).length;
+    var head = '<div class="cd-row"><span class="cd-k">Decisions</span><span class="cd-v">' +
+      decisions.length + (pend ? ' · <span class="trcell q">待评审 ' + pend + "</span>"
+                               : ' · <span class="trcell ok">全批</span>') + "</span></div>";
+    return head + decisions.map(function (d) {
+      var ok = d.state === "approved";
+      return '<div class="cd-row cd-dec"><span class="cd-k">' + escd(d.id) + '</span><span class="cd-v">' +
+        '<span class="trcell ' + (ok ? "ok" : "q") + '">' + (ok ? "✓" : "●") + " " + escd(d.state) + "</span>" +
+        ' <span class="cd-src">' + escd(d.level) + "</span> " + escd(d.text || "") + "</span></div>";
+    }).join("");
+  }
+
   // R4: which heading-section covers a 1-based full-file line? headings are 0-based over the
   // frontmatter-stripped body; fmLines = lines the frontmatter block occupied. -1 = before first heading.
   function sectionForLine(headings, fileLine, fmLines) {
@@ -886,7 +902,7 @@ var SV = (function () {
            groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
-           traceCells: traceCells, traceGaps: traceGaps };
+           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1302,6 +1318,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<span class="cd-title">' + esc(c.project) + " · " + esc(c.nnn) + " — " + title + "</span>" +
         '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
       '<div class="cd-body">' + stripHtml() + row("Now", c.now) + row("Next", c.effective_next) + row("Block", c.blockers) +
+        SV.decisionRows(c.decisions) +   // 010: ledger rows (empty for pre-ledger cards)
         '<div class="cd-row"><span class="cd-k">Docs</span><span class="cd-phases">' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
           '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +

@@ -160,6 +160,14 @@ def card_status(card_dir):
         pass
 
     steps, nxt = [], None
+    # 010: ledger overlay — a level with pending decisions shows 待评审(n) and gates on
+    # the review meeting; a level with no blocks falls back to frontmatter (axis-2).
+    led = ledger_status(parse_ledger(card_dir)[0]) \
+        if os.path.exists(p("decisions.md")) else {}
+
+    def pending(level):
+        lv = led.get(level)
+        return len(lv["pending"]) if lv else 0
 
     def step(label, state, gate=None):
         nonlocal nxt
@@ -168,14 +176,20 @@ def card_status(card_dir):
             nxt = gate
 
     rs = req.get("status", "?" if not req else "drafting")
-    step("需求", rs, None if rs == "confirmed" else "GATE: 需求待 confirm")
+    n = pending("requirement")
+    step("需求", rs + (f"·待评审({n})" if n else ""),
+         f"GATE: 需求 {n} 决策待批" if n else (None if rs == "confirmed" else "GATE: 需求待 confirm"))
     if not des:
         step("设计", "—", "next: design")
     else:
         ds = des.get("status", "drafting")
-        step("设计", ds, None if ds in ("frozen", "approved") else "GATE: 设计待 approve/freeze")
-    step("详设", det.get("status", "✓") if det else "—",
-         None)  # optional phase: absence is legal (XS/S), never gates
+        n = pending("design")
+        step("设计", ds + (f"·待评审({n})" if n else ""),
+             f"GATE: 设计 {n} 决策待批" if n else
+             (None if ds in ("frozen", "approved") else "GATE: 设计待 approve/freeze"))
+    n = pending("detail")
+    step("详设", (det.get("status", "✓") if det else "—") + (f"·待评审({n})" if n else ""),
+         f"GATE: 详设 {n} 决策待批" if n else None)  # optional phase: absence never gates
     if not has_plan:
         step("实现", "—", "next: plan (详设 for M+ structural first)")
     else:
@@ -255,6 +269,8 @@ def iter_cards(root, want=None):
                 "state_noncanonical": state != "?" and state not in CANON_STATES,
                 # 003/R6: optional card→branch, deep-linked to that branch in the gitweb companion
                 "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", ""),
+                # 010: active ledger rows for the drawer ([] = no ledger); rides /api/board as-is
+                "decisions": card_decisions(c),
             }
 
 
@@ -487,6 +503,8 @@ def trace_data(project, card_dir):
             by_r.setdefault(r, []).append(tid)
     all_r = sorted(set(reqs) | set(home) | set(by_r) | set(cov), key=lambda r: int(r[1:]))
 
+    dstates = {b["id"]: b["state"] for b in parse_ledger(card_dir)[0]
+               if b["state"] in ACTIVE_STATES}   # 010: per-R ledger state on trace rows
     rows = []
     for r in all_r:
         tids = by_r.get(r, [])
@@ -501,7 +519,7 @@ def trace_data(project, card_dir):
         rows.append({"rid": r, "text": reqs.get(r, ""),
                      "design": home.get(r, ""), "verify": verify.get(r, ""),
                      "test": cov.get(r, ""), "tasks": [task_rows[t] for t in tids],
-                     "flags": flags,
+                     "dstate": dstates.get(r, ""), "flags": flags,
                      "present": {"design": r in home, "verify": r in verify,
                                  "task": bool(tids), "test": r in cov,
                                  "commit": commit_state}})
@@ -592,6 +610,18 @@ def ledger_status(blocks):
 def _id_level(i):
     return ("requirement" if i.startswith("R") else
             "detail" if i.startswith("S") else "design")
+
+
+def card_decisions(card_dir):
+    """Active ledger rows for display: [{id, level, state, text(陈述)}]."""
+    out = []
+    for b in parse_ledger(card_dir)[0]:
+        if b["state"] not in ACTIVE_STATES:
+            continue
+        m = re.search(r"^-\s*陈述:\s*(.+)$", b["body"], re.M)
+        out.append({"id": b["id"], "level": b["level"], "state": b["state"],
+                    "text": m.group(1).strip() if m else ""})
+    return out
 
 
 def _referenced_ids(card_dir):

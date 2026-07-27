@@ -300,6 +300,29 @@ class LedgerCheck(unittest.TestCase):
         finally:
             ws.check_card = orig
 
+    def test_card_status_pending_overlay_and_board_decisions(self):
+        root, card = self._card(ledger=self.GOOD_LEDGER)
+        steps, _, nxt = ws.card_status(card)
+        self.assertIn("需求:drafting·待评审(1)", steps[0])
+        self.assertEqual(nxt, "GATE: 需求 1 决策待批")
+        cards = list(ws.iter_cards(root, ["proj"]))
+        self.assertEqual([d["id"] for d in cards[0]["decisions"]], ["R1", "R2"])
+        self.assertEqual(cards[0]["decisions"][0]["state"], "approved")
+        self.assertEqual(cards[0]["decisions"][1]["text"], "pending one")
+
+    def test_card_status_without_ledger_unchanged(self):
+        root, card = self._card(ledger=None, req_status="confirmed")
+        steps, _, _ = ws.card_status(card)
+        self.assertEqual(steps[0], "需求:confirmed")
+        self.assertEqual(list(ws.iter_cards(root, ["proj"]))[0]["decisions"], [])
+
+    def test_trace_rows_carry_dstate(self):
+        root, card = self._card(ledger=self.GOOD_LEDGER)
+        d = ws.trace_data("proj", card)
+        by = {r["rid"]: r for r in d["rows"]}
+        self.assertEqual(by["R1"]["dstate"], "approved")
+        self.assertEqual(by["R2"]["dstate"], "proposed")
+
     def test_composite_adr_id_parses(self):
         led = ("### ADR-0001 D2 [design] approved\n- 陈述: d\n"
                "- approved: 2026-07-28 gate abc1234\n")
