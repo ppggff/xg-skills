@@ -351,6 +351,37 @@ class LedgerCheck(unittest.TestCase):
             "|---|---|\n| R1 | 模块 X |\n| R9 | 幽灵 |\n")
         self.assertIn("dangling-id: R9", self._findings(root))
 
+    def test_prose_cell_mention_is_not_a_reference(self):
+        # review #A1: "S3" in a free-text 可追溯 cell must not become a dangling-id
+        led = ("### S1 [detail] approved\n- 陈述: pick\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, card = self._card(ledger=led, req_ids=())
+        open(os.path.join(card, "detail.md"), "w").write(
+            "---\nid: 011\nstatus: baseline\n---\n\n## 可追溯\n\n| 详设项 | design | R-id |\n"
+            "|---|---|---|\n| S1 | 落 S3 归档桶 | — |\n")
+        self.assertEqual(self._findings(root), [])
+
+    def test_dup_active_display_is_neutral(self):
+        # review #B1: display never picks a winner for a dup-active id
+        dup = ("### R1 [requirement] proposed\n- 陈述: a\n\n"
+               "### R1 [requirement] approved\n- 陈述: b\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, card = self._card(ledger=dup, req_ids=("R1",))
+        decs = ws.card_decisions(card)
+        self.assertEqual(len(decs), 1)
+        self.assertEqual(decs[0]["state"], "conflict")
+        self.assertEqual(decs[0]["text"], "")
+
+    def test_adr_dead_status_vs_active_rows(self):
+        # review #A4: Status: deprecated/superseded while ledger rows stay active
+        led = ("### ADR-0001 D1 [design] approved\n- 陈述: d\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, card = self._card(ledger=led, req_ids=())
+        os.makedirs(os.path.join(card, "adr"))
+        open(os.path.join(card, "adr", "0001-x.md"), "w").write(
+            "# ADR-0001: x\n\nStatus: deprecated\n")
+        self.assertTrue(any("deprecated vs active rows" in f for f in self._findings(root)))
+
     def test_composite_adr_id_parses(self):
         led = ("### ADR-0001 D2 [design] approved\n- 陈述: d\n"
                "- approved: 2026-07-28 gate abc1234\n")

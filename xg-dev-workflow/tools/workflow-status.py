@@ -613,29 +613,46 @@ def _id_level(i):
 
 
 def card_decisions(card_dir):
-    """Active ledger rows for display: [{id, level, state, text(陈述)}]."""
-    out = []
+    """Active ledger rows for display: [{id, level, state, text(陈述)}]. A dup-active id
+    collapses to ONE `conflict` row — the display never picks a winner (ADR-0001 D3
+    rejected last-wins); --check reports the dup for repair."""
+    by_id = {}
     for b in parse_ledger(card_dir)[0]:
         if b["state"] not in ACTIVE_STATES:
             continue
         m = re.search(r"^-\s*陈述:\s*(.+)$", b["body"], re.M)
-        out.append({"id": b["id"], "level": b["level"], "state": b["state"],
-                    "text": m.group(1).strip() if m else ""})
-    return out
+        by_id.setdefault(b["id"], []).append(
+            {"id": b["id"], "level": b["level"], "state": b["state"],
+             "text": m.group(1).strip() if m else ""})
+    return [rs[0] if len(rs) == 1 else
+            {"id": i, "level": rs[0]["level"], "state": "conflict", "text": ""}
+            for i, rs in by_id.items()]
+
+
+def _id_cells(text, title_pat, cell_picks):
+    """Ledger ids from a table section, taken ONLY from the id-bearing cells (a prose
+    mention in any other column is never a reference)."""
+    refs = set()
+    for line in _section(text, title_pat).splitlines():
+        if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        for pick in cell_picks:
+            if -len(cells) <= pick < len(cells):
+                refs |= {m.group(1) for m in LEDGER_ID.finditer(cells[pick])}
+    return refs
 
 
 def _referenced_ids(card_dir):
     """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
-    rows, detail 可追溯 table, plan Implements:, ledger depends-on lines."""
+    id cells, detail 可追溯 详设项+R-id cells, plan Implements:, ledger depends-on lines."""
     refs = set(trace_requirement(card_dir))
-    refs |= set(trace_design(card_dir)[0])
-    for line in _section(_read(os.path.join(card_dir, "detail.md")), r"可追溯").splitlines():
-        if line.lstrip().startswith("|") and not set(line.strip()) <= set("|-: "):
-            refs |= {m.group(1) for m in LEDGER_ID.finditer(line)}
+    refs |= _id_cells(_read(os.path.join(card_dir, "design.md")),
+                      r"How it meets|如何满足", (0,))
+    refs |= _id_cells(_read(os.path.join(card_dir, "detail.md")), r"可追溯", (0, -1))
     for t in trace_plan(card_dir).values():
         refs |= set(t["rids"])
-    blocks, _ = parse_ledger(card_dir)
-    for b in blocks:
+    for b in parse_ledger(card_dir)[0]:
         refs |= set(b["deps"])
     return refs
 
@@ -695,6 +712,8 @@ def check_card(project, card_dir):
             findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
         elif word == "proposed" and all(b["state"] == "approved" for b in act):
             findings.append(f"status-mismatch: {os.path.basename(f)} proposed vs approved rows")
+        elif word in ("superseded", "retired"):   # file claims dead, rows still active
+            findings.append(f"status-mismatch: {os.path.basename(f)} {m.group(1)} vs active rows")
 
     graph = {i: (active[i]["deps"] if active[i] else []) for i in by_id}     # (c)
     color = {}

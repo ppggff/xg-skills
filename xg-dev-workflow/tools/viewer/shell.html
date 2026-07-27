@@ -852,6 +852,9 @@ var SV = (function () {
       decisions.length + (pend ? ' · <span class="trcell q">待评审 ' + pend + "</span>"
                                : ' · <span class="trcell ok">全批</span>') + "</span></div>";
     return head + decisions.map(function (d) {
+      if (d.state === "conflict")   // dup-active: never render a winner (ADR-0001 D3)
+        return '<div class="cd-row cd-dec"><span class="cd-k">' + escd(d.id) + '</span><span class="cd-v">' +
+          '<span class="trcell miss">⚠ 冲突(dup-active)</span> <span class="cd-src">' + escd(d.level) + "</span></span></div>";
       var ok = d.state === "approved";
       return '<div class="cd-row cd-dec"><span class="cd-k">' + escd(d.id) + '</span><span class="cd-v">' +
         '<span class="trcell ' + (ok ? "ok" : "q") + '">' + (ok ? "✓" : "●") + " " + escd(d.state) + "</span>" +

@@ -420,6 +420,11 @@ t("decisionRows: header counts pending; rows escape text and tone by state", () 
   assert.match(html, /ADR-0001 D2<\/span>/);
   assert.match(html, /trcell q">● proposed/);
 });
+t("decisionRows: conflict state renders neutral ⚠ without a winner state", () => {
+  const html = SV.decisionRows([{ id: "R1", level: "requirement", state: "conflict", text: "" }]);
+  assert.match(html, /trcell miss">⚠ 冲突\(dup-active\)/);
+  assert.ok(!/approved|proposed/.test(html), "conflict row must not name a state");
+});
 t("decisionRows: all approved shows 全批", () => {
   assert.match(SV.decisionRows([{ id: "R1", level: "requirement", state: "approved", text: "x" }]),
                /trcell ok">全批/);

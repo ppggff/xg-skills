@@ -19,8 +19,9 @@ Contract (design 010, ADR-0001):
   the old text). Everything else: supersede into a new block.
 - `approved:` must carry the gate receipts-commit short hash (the ledger state the human saw);
   the approve transcription commits immediately after — adjacent in git, auditable.
-- `depends-on:` is the ONLY dependency source tools parse (comma-separated ids); prose
-  mentions of ids inside 陈述/why are not references.
+- `depends-on:` is the ONLY dependency source tools parse (comma-separated ids, **one
+  line** — a wrapped continuation is silently ignored); prose mentions of ids inside
+  陈述/why are not references.
 -->
 
 ### R1 [requirement] proposed
