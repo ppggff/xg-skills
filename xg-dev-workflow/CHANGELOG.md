@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-27 (card 010 — decision ledger: gate currency moves from documents to decisions)
+
+The largest contract change since the two-zone model. Motivation: gate reading exceeded the
+approver's bandwidth (gates degraded to grill-trust) and design changes carried
+document-granularity ritual (supersede ADR + sweep + re-grill + re-freeze felt like "一下就
+都做了"). Full derivation: dev_root xg-skills/010-decision-ledger (R1–R12, G1–G16, ADR-0001/2).
+
+- **Per-card `decisions.md` ledger** (templates/decisions.md): one block per human-judgment
+  decision (requirement 条目 · design D/ADR · new 详设 `S<n>` ids · execution-zone
+  escalations); states proposed/approved/superseded/retired — freeze/baseline are binding
+  *forces* derived from level, not states. Single-active-block; in-place edits whitelisted
+  (state word, approve/supersede notes, 澄清 note); `approved:` cites the gate receipts
+  commit (auditable via git; Claude never self-approves).
+- **Gates approve rows, not documents**: gate-digest cards are generated from pending rows
+  (why excerpt + alternatives, never a bare pointer; the 3–5 ceiling caps emphasis, all
+  pending rows disclosed). Doc status fields become derived (confirmed/frozen/baseline ⇔
+  level fully approved; ADR Status line = display snapshot).
+- **Docs become rewritable views**; card-local facts move to `facts.md` (`[F<n>]`) so
+  rewrites can't lose them; phase docs mark three content classes (decision refs / fact refs
+  / synthesis prose).
+- **M2 shrinks to reopening a row**: escalation persists as a proposed row (gate-at-entry
+  exemption); 修改列表 (dependency-closure + trace ripple) confirmed by the human before any
+  write; targeted re-grill scoped to the closure.
+- **Tooling**: `workflow-status.py --check` (id integrity · R12 mappings · dep cycles ·
+  approve-note format · single-active-block; exit 1 = findings, self-caught exceptions);
+  card_status/trace/viewer show 待评审(n)/decision rows; pre-ledger cards byte-identical
+  (two degradation axes: no file → legacy; level without blocks → frontmatter fallback).
+
 ## 2026-07-27 (retro — process/design/grill quick-fix batch from user's 10-idea list)
 
 Source: the user's raw 10-idea list on process/design/grill friction, organized in

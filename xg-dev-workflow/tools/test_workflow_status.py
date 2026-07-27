@@ -323,6 +323,34 @@ class LedgerCheck(unittest.TestCase):
         self.assertEqual(by["R1"]["dstate"], "approved")
         self.assertEqual(by["R2"]["dstate"], "proposed")
 
+    def test_detail_baseline_mapping_and_s_ids(self):
+        # R12 detail mapping + S<n> blocks (baseline force lives in process; the tool
+        # checks the status mapping and level aggregation)
+        led = ("### S1 [detail] approved\n- 陈述: concrete pick\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, card = self._card(ledger=led, req_ids=())
+        open(os.path.join(card, "detail.md"), "w").write(
+            "---\nid: 011\nstatus: draft\n---\n\n## 可追溯\n\n| 详设项 | design | R-id |\n"
+            "|---|---|---|\n| S1 | 模块 X | R1 |\n")
+        fs = self._findings(root)
+        self.assertTrue(any("status-mismatch: detail.md 'draft'" in f for f in fs))
+        open(os.path.join(card, "detail.md"), "w").write(
+            "---\nid: 011\nstatus: baseline\n---\n\n## 可追溯\n\n| 详设项 | design | R-id |\n"
+            "|---|---|---|\n| S1 | 模块 X | R1 |\n")
+        self.assertEqual(self._findings(root), [])
+        steps, _, _ = ws.card_status(card)
+        self.assertIn("详设:baseline", steps[2])
+
+    def test_design_ledger_view_regeneration_id_set(self):
+        # R7 mechanical half: every design-cited id must be reconstructible from the
+        # ledger — --check (a) dangling-id is exactly that set comparison.
+        led = "### R1 [requirement] proposed\n- 陈述: a\n"
+        root, card = self._card(ledger=led, req_ids=("R1",))
+        open(os.path.join(card, "design.md"), "w").write(
+            "---\nid: 011\nstatus: drafting\n---\n\n## How it meets\n\n| R-id | 归属 |\n"
+            "|---|---|\n| R1 | 模块 X |\n| R9 | 幽灵 |\n")
+        self.assertIn("dangling-id: R9", self._findings(root))
+
     def test_composite_adr_id_parses(self):
         led = ("### ADR-0001 D2 [design] approved\n- 陈述: d\n"
                "- approved: 2026-07-28 gate abc1234\n")
