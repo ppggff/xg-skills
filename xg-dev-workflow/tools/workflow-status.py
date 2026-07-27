@@ -16,6 +16,8 @@ Usage:
   workflow-status.py --json            # machine-readable board ({project: [card…]}); backs the viewer
   workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
                                        # (<card> = NNN or a slug fragment; a card-dir path works too)
+  workflow-status.py --check <project>/<card>   # decision-ledger deterministic checks (a)-(e);
+                                       # exit 1 on findings (M3 deterministic subset)
 """
 import fnmatch
 import glob
@@ -534,27 +536,205 @@ def render_trace(project, card_dir):
     return 0
 
 
+# ---- decision ledger (010): decisions.md parsing + --check (deterministic subset) ----
+# Ledger contract: templates/decisions.md. Only block headers and designated fields are
+# parsed; a prose mention of an id is never a reference. Cards without decisions.md keep
+# the pre-ledger semantics untouched; a level with no blocks falls back to frontmatter
+# (progressive adoption — both degradation axes, design 010).
+
+LEDGER_HEAD = re.compile(
+    r"^###\s+(R\d+|S\d+|D\d+|ADR-\d{4}(?:\s+D\d+)?)\s+"
+    r"\[(requirement|design|detail)\]\s+"
+    r"(proposed|approved|superseded|retired)\s*$", re.M)
+APPROVE_NOTE = re.compile(r"^-\s*approved:\s*\d{4}-\d{2}-\d{2}\s+gate\s+\S+", re.M)
+ACTIVE_STATES = ("proposed", "approved")
+LEDGER_ID = re.compile(r"\b(ADR-\d{4}\s+D\d+|ADR-\d{4}|R\d+|S\d+|D\d+)\b")
+
+
+def parse_ledger(card_dir):
+    """decisions.md → (blocks, findings). Block: {id, level, state, deps, body}.
+    A `###` line that doesn't parse as a block header is a bad-header finding."""
+    text = _read(os.path.join(card_dir, "decisions.md"))
+    if not text:
+        return [], []
+    findings = ["bad-header: " + m.group(0).strip()[:60]
+                for m in re.finditer(r"^###\s.*$", text, re.M)
+                if not LEDGER_HEAD.match(m.group(0))]
+    blocks, heads = [], list(LEDGER_HEAD.finditer(text))
+    for i, m in enumerate(heads):
+        body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        dep = re.search(r"^-\s*depends-on:\s*(.+)$", body, re.M)
+        blocks.append({"id": m.group(1), "level": m.group(2), "state": m.group(3),
+                       "deps": [d.strip() for d in dep.group(1).split(",") if d.strip()]
+                       if dep else [],
+                       "body": body})
+    return blocks, findings
+
+
+def ledger_status(blocks):
+    """{level: {total(active), approved, pending[ids], superseded}} — the aggregation
+    card_status folds into phase labels (T3)."""
+    out = {}
+    for b in blocks:
+        lv = out.setdefault(b["level"],
+                            {"total": 0, "approved": 0, "pending": [], "superseded": 0})
+        if b["state"] not in ACTIVE_STATES:
+            lv["superseded"] += 1
+            continue
+        lv["total"] += 1
+        if b["state"] == "approved":
+            lv["approved"] += 1
+        else:
+            lv["pending"].append(b["id"])
+    return out
+
+
+def _id_level(i):
+    return ("requirement" if i.startswith("R") else
+            "detail" if i.startswith("S") else "design")
+
+
+def _referenced_ids(card_dir):
+    """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
+    rows, detail 可追溯 table, plan Implements:, ledger depends-on lines."""
+    refs = set(trace_requirement(card_dir))
+    refs |= set(trace_design(card_dir)[0])
+    for line in _section(_read(os.path.join(card_dir, "detail.md")), r"可追溯").splitlines():
+        if line.lstrip().startswith("|") and not set(line.strip()) <= set("|-: "):
+            refs |= {m.group(1) for m in LEDGER_ID.finditer(line)}
+    for t in trace_plan(card_dir).values():
+        refs |= set(t["rids"])
+    blocks, _ = parse_ledger(card_dir)
+    for b in blocks:
+        refs |= set(b["deps"])
+    return refs
+
+
+ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
+                  "superseded": "superseded", "deprecated": "retired"}
+
+
+def check_card(project, card_dir):
+    """The deterministic ledger checks (a)–(e); semantic contradiction stays M3 judgment.
+    No decisions.md → [] (old-card semantics, never flagged)."""
+    if not os.path.exists(os.path.join(card_dir, "decisions.md")):
+        return []
+    blocks, findings = parse_ledger(card_dir)
+    by_id = {}
+    for b in blocks:
+        by_id.setdefault(b["id"], []).append(b)
+    active = {}
+    for i, bs in by_id.items():
+        act = [b for b in bs if b["state"] in ACTIVE_STATES]
+        if len(act) > 1:
+            findings.append("dup-active: " + i)                              # (e)
+        active[i] = act[-1] if act else None
+    levels_present = {b["level"] for b in blocks}
+
+    for ref in sorted(_referenced_ids(card_dir)):                            # (a)
+        if _id_level(ref) not in levels_present:
+            continue  # level not ledger-managed yet (degradation axis 2)
+        if ref not in by_id:
+            findings.append("dangling-id: " + ref)
+        elif active[ref] is None:
+            findings.append("superseded-ref: " + ref)
+
+    def all_approved(level):
+        act = [b for b in blocks if b["level"] == level and b["state"] in ACTIVE_STATES]
+        return bool(act) and all(b["state"] == "approved" for b in act)
+
+    for level, doc, done_words in (("requirement", "requirement.md", ("confirmed",)),
+                                   ("design", "design.md", ("frozen", "approved")),
+                                   ("detail", "detail.md", ("baseline",))):    # (b)
+        path = os.path.join(card_dir, doc)
+        if level not in levels_present or not os.path.exists(path):
+            continue
+        status = frontmatter(path).get("status", "")
+        if (status in done_words) != all_approved(level):
+            findings.append(f"status-mismatch: {doc} '{status}' vs ledger {level}")
+
+    for f in sorted(glob.glob(os.path.join(card_dir, "adr", "*.md"))):       # (b) ADR 行
+        m = re.search(r"^Status:\s*(\w+)", _read(f), re.M)
+        adr_id = "ADR-" + os.path.basename(f)[:4]
+        act = [b for b in blocks if (b["id"] == adr_id or b["id"].startswith(adr_id + " "))
+               and b["state"] in ACTIVE_STATES]
+        if not m or not act:
+            continue
+        word = ADR_STATUS_MAP.get(m.group(1).lower())
+        if word == "approved" and any(b["state"] == "proposed" for b in act):
+            findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
+        elif word == "proposed" and all(b["state"] == "approved" for b in act):
+            findings.append(f"status-mismatch: {os.path.basename(f)} proposed vs approved rows")
+
+    graph = {i: (active[i]["deps"] if active[i] else []) for i in by_id}     # (c)
+    color = {}
+
+    def dfs(n, stack):
+        color[n] = 1
+        for d in graph.get(n, []):
+            if color.get(d) == 1:
+                findings.append("dep-cycle: " + " → ".join(stack + [d]))
+            elif color.get(d) is None and d in graph:
+                dfs(d, stack + [d])
+        color[n] = 2
+
+    for n in graph:
+        if color.get(n) is None:
+            dfs(n, [n])
+
+    for b in blocks:                                                          # (d)
+        if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
+            findings.append("bad-approve-note: " + b["id"])
+    return findings
+
+
+def run_check(root, arg):
+    """--check CLI: print findings, exit 1 when any. Catches its own exceptions —
+    the top-level never-crash wrapper clamps exceptions (only) to exit 0, so an
+    unhandled error here would silently pass the check."""
+    try:
+        project, card_dir = resolve_card(root, arg)
+        findings = check_card(project, card_dir)
+    except SystemExit:
+        raise
+    except Exception as e:
+        findings = ["check-error: %s" % e]
+    for f in findings:
+        print("⚠ " + f)
+    if findings:
+        return 1
+    print("check: ok")
+    return 0
+
+
 def main():
     args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
+    check_arg = None
     while i < len(args):
         a = args[i]
-        if a in ("--root", "--trace") and i + 1 < len(args):
+        if a in ("--root", "--trace", "--check") and i + 1 < len(args):
             if a == "--root":
                 root_arg = args[i + 1]
-            else:
+            elif a == "--trace":
                 trace_arg = args[i + 1]
+            else:
+                check_arg = args[i + 1]
             i += 2
             continue
         if a.startswith("--root="):
             root_arg = a.split("=", 1)[1]
         elif a.startswith("--trace="):
             trace_arg = a.split("=", 1)[1]
+        elif a.startswith("--check="):
+            check_arg = a.split("=", 1)[1]
         elif a == "--json":
             as_json = True
         elif not a.startswith("--"):
             want.append(a)
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
+    if check_arg:
+        return run_check(root, check_arg)
     if trace_arg:
         if as_json:
             print(json.dumps(trace_data(*resolve_card(root, trace_arg)), ensure_ascii=False))

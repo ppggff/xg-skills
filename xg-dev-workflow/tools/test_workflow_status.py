@@ -193,5 +193,122 @@ class BoardFields(unittest.TestCase):
         self.assertEqual(cards[0]["blockers"], "")
 
 
+class LedgerCheck(unittest.TestCase):
+    """--check (a)-(e) against fixture cards (010 T2)."""
+
+    GOOD_LEDGER = (
+        "### R1 [requirement] approved\n"
+        "- 陈述: keep it\n- why: because\n"
+        "- approved: 2026-07-28 gate abc1234\n\n"
+        "### R2 [requirement] proposed\n"
+        "- 陈述: pending one\n- why: tbd\n- depends-on: R1\n")
+
+    def _card(self, ledger=None, req_status="drafting", req_ids=("R1", "R2")):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "011-fix")
+        os.makedirs(card)
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 011 | 需求 | todo | — |\n")
+        rows = "\n".join(f"| {r} | stmt {r} | 功能 | 假设 |" for r in req_ids)
+        open(os.path.join(card, "requirement.md"), "w").write(
+            f"---\nid: 011\nstatus: {req_status}\n---\n\n## 需求条目\n\n"
+            f"| ID | 需求条目 | 类型 | provenance |\n|---|---|---|---|\n{rows}\n")
+        if ledger is not None:
+            open(os.path.join(card, "decisions.md"), "w").write(ledger)
+        return root, card
+
+    def _findings(self, root):
+        return ws.check_card("proj", os.path.join(root, "proj", "011-fix"))
+
+    def test_no_ledger_is_legacy_and_clean(self):
+        root, _ = self._card(ledger=None, req_status="confirmed")
+        self.assertEqual(self._findings(root), [])
+
+    def test_good_ledger_passes(self):
+        root, _ = self._card(ledger=self.GOOD_LEDGER)
+        self.assertEqual(self._findings(root), [])
+
+    def test_bad_header(self):
+        root, _ = self._card(ledger="### R1 (requirement) approved\n- 陈述: x\n",
+                             req_ids=())
+        self.assertTrue(any(f.startswith("bad-header") for f in self._findings(root)))
+
+    def test_dup_active(self):
+        dup = ("### R1 [requirement] proposed\n- 陈述: a\n\n"
+               "### R1 [requirement] approved\n- 陈述: b\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, _ = self._card(ledger=dup, req_ids=("R1",))
+        self.assertIn("dup-active: R1", self._findings(root))
+
+    def test_dangling_id(self):
+        one = ("### R1 [requirement] approved\n- 陈述: a\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, _ = self._card(ledger=one, req_ids=("R1", "R2"))
+        self.assertIn("dangling-id: R2", self._findings(root))
+
+    def test_superseded_ref(self):
+        sup = "### R1 [requirement] superseded\n- 陈述: old\n"
+        root, _ = self._card(ledger=sup, req_ids=("R1",))
+        self.assertIn("superseded-ref: R1", self._findings(root))
+
+    def test_status_mismatch_confirmed_with_pending(self):
+        root, _ = self._card(ledger=self.GOOD_LEDGER, req_status="confirmed")
+        self.assertTrue(any(f.startswith("status-mismatch: requirement.md")
+                            for f in self._findings(root)))
+
+    def test_level_without_blocks_falls_back(self):
+        # design.md frozen + ledger has only requirement blocks → no design-level check
+        approved = ("### R1 [requirement] approved\n- 陈述: a\n"
+                    "- approved: 2026-07-28 gate abc1234\n")
+        root, card = self._card(ledger=approved, req_status="confirmed", req_ids=("R1",))
+        open(os.path.join(card, "design.md"), "w").write(
+            "---\nid: 011\nstatus: frozen\n---\n\n## How it meets\n\n| R-id | 归属 |\n"
+            "|---|---|\n| R1 | 模块 X |\n")
+        self.assertEqual(self._findings(root), [])
+
+    def test_dep_cycle(self):
+        cyc = ("### R1 [requirement] proposed\n- 陈述: a\n- depends-on: R2\n\n"
+               "### R2 [requirement] proposed\n- 陈述: b\n- depends-on: R1\n")
+        root, _ = self._card(ledger=cyc)
+        self.assertTrue(any(f.startswith("dep-cycle") for f in self._findings(root)))
+
+    def test_bad_approve_note(self):
+        noteless = "### R1 [requirement] approved\n- 陈述: a\n- why: b\n"
+        root, _ = self._card(ledger=noteless, req_ids=("R1",))
+        self.assertIn("bad-approve-note: R1", self._findings(root))
+
+    def test_adr_status_mismatch(self):
+        led = ("### R1 [requirement] approved\n- 陈述: a\n"
+               "- approved: 2026-07-28 gate abc1234\n\n"
+               "### ADR-0001 D1 [design] proposed\n- 陈述: d\n")
+        root, card = self._card(ledger=led, req_ids=("R1",))
+        os.makedirs(os.path.join(card, "adr"))
+        open(os.path.join(card, "adr", "0001-x.md"), "w").write(
+            "# ADR-0001: x\n\nStatus: accepted\n")
+        self.assertTrue(any("0001-x.md accepted vs pending" in f
+                            for f in self._findings(root)))
+
+    def test_run_check_exit_codes_and_error_capture(self):
+        root, _ = self._card(ledger=self.GOOD_LEDGER)
+        self.assertEqual(ws.run_check(root, "proj/011"), 0)
+        root2, _ = self._card(ledger="### R1 [requirement] approved\n- 陈述: a\n",
+                              req_ids=("R1",))
+        self.assertEqual(ws.run_check(root2, "proj/011"), 1)
+        orig = ws.check_card
+        ws.check_card = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
+        try:
+            self.assertEqual(ws.run_check(root, "proj/011"), 1)  # check-error → nonzero
+        finally:
+            ws.check_card = orig
+
+    def test_composite_adr_id_parses(self):
+        led = ("### ADR-0001 D2 [design] approved\n- 陈述: d\n"
+               "- approved: 2026-07-28 gate abc1234\n")
+        root, _ = self._card(ledger=led, req_ids=())
+        blocks, findings = ws.parse_ledger(os.path.join(root, "proj", "011-fix"))
+        self.assertEqual(findings, [])
+        self.assertEqual(blocks[0]["id"], "ADR-0001 D2")
+        self.assertEqual(ws.ledger_status(blocks)["design"]["approved"], 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
