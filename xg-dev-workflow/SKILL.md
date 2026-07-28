@@ -21,46 +21,20 @@ Reusable module knowledge does **not** live here — it lands in **xg-knowledge-
 raw/wiki), referenced from these docs via `[[wiki/<project>/<slug>]]` wikilinks. This skill holds
 only per-requirement docs.
 
-**Writing style (all phase docs): plain prose, technical terms intact** (不变量 / 契约 / 幂等 stay); short
-sentences. **Structure over paragraphs**: parallel or enumerable content (conditions, steps,
-per-module points) goes in nested lists — one point per bullet; paragraphs are reserved for
-reasoning that genuinely chains (evidence → mechanism → conclusion). A paragraph packing ≥3
-parallel points is the smell — restructure it as a list.
+**Writing style (all docs): plain prose, technical terms intact** (不变量 / 契约 / 幂等 stay); short
+sentences. Parallel/enumerable content goes in nested lists (one point per bullet); paragraphs
+are for reasoning that genuinely chains — a paragraph packing ≥3 parallel points gets
+restructured as a list.
 
-**Conventions (all docs):**
-- **First-use gloss** — a coined term, codename, or non-standard abbreviation carries a one-line
-  parenthetical at its first use per doc (and per chat session); **after that, use the term bare** —
-  the gloss is paid once. A term used fewer than ~3 times isn't coined at all. Established domain
-  terms need no gloss.
-- **Diagrams — Mermaid preferred** (renders in GitHub/Obsidian/VS Code, diffs as text); ASCII only
-  for the trivial or what Mermaid can't express (Mermaid pitfalls + CJK-width rules:
-  `references/diagram-gotchas.md`).
-- **Links — clickable where cheap:**
-  - Intra-requirement/project references: standard markdown links (`[design](./design.md)`).
-  - KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink — load-bearing for the
-    KB's incremental recompile; don't swap it for a markdown link.
-  - **An ID cited from another file is a markdown link to its home** — `[R1](./requirement.md)`,
-    `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`. Designated mapping fields and a
-    doc's first mention always link; repeat prose mentions and same-file citations stay bare.
+**Conventions (all docs)** — full rules in `references/doc-conventions.md` (gloss, links,
+provenance/`F<n>` containers, reasoning-shown, reader-aware, short lines): **read it before
+writing any workflow doc** (phase docs, investigation/review notes, KB 注记). Resident essentials:
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设
-  (assumption). Only the claims a decision rests on (M1). Provenance may **centralize** into
-  `F<n>` fact blocks cited inline as `[F<n>]`; `F<n>` is a **per-container scoped id** (like
-  `R<n>`/`S<n>`): on a card, the container is the card's `facts.md` — phase docs cite it and
-  never keep a doc-local fact list of their own; a **standalone** doc (investigation/review
-  note, no card) uses a doc-local「事实清单」section instead. One container per doc, never both;
-  the inline marker form stays for isolated load-bearing sentences.
-- **Reasoning shown (human-first docs)** — requirement/design/detail/ADR/review and
-  investigation-notes prose carries the logical analysis, **evidence → mechanism → conclusion**, so
-  the approver can check the inference, not just trust the citations — a fact table with a
-  conclusion bolted on is a grep-hit list at doc level. Execution-zone docs stay terse: link the
-  reasoning, don't restate it. **Tables carry facts, prose carries reasoning**: tables hold
-  contracts / enumerable facts / comparisons; a compressed phrase in a table cell is a label,
-  not an argument — its rationale lives as prose in the same section.
-- **Reader-aware** — write each doc for its primary reader (each template states its Reader); the
-  audience split is「Two zones」below.
-- **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
-  sub-bullets** (one clause per line) instead of one long line. Applies to phase docs and this
-  skill's own files (rewrap existing long lines opportunistically when editing them).
+  (assumption); `F<n>` fact blocks centralize them per container (card → `facts.md`).
+- **KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink** — load-bearing for the
+  KB's incremental recompile; don't swap it for a markdown link.
+- **Diagrams — Mermaid preferred**; ASCII only for the trivial or what Mermaid can't express
+  (pitfalls + CJK-width rules: `references/diagram-gotchas.md`).
 - **Fixed ID prefixes** (one letter, one meaning). Core, resident: `NNN` card dir · `ADR-NNNN`
   decisions · `R<n>` requirement 条目 (R is **reserved**) · `T<n>` plan tasks · `M1`–`M6` this
   skill's mechanisms. Full registry — `G`/`L`/`D`/`MS`/`P`/`F`, review `#<n>`, the symbol budget,
@@ -330,7 +304,7 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
   `references/steps/resume.md`.
 - **M5 Code understanding** — concept-first, layered: query xg-knowledge-lite first, then read-only
   exploration (Plan Mode / Explore subagent). The deliverable is the logical/causal analysis
-  (Conventions「Reasoning shown」), not a grep-hit list. Existing-code questions enter through
+  (`doc-conventions.md`「Reasoning shown」), not a grep-hit list. Existing-code questions enter through
   `investigate`; defect localization through `diagnose`; judging new/changed code → `review`.
   `references/steps/understand.md`.
 - **M6 Retro** — review friction, land fixes into this skill, the project CLAUDE.md, or the KB; mine

@@ -41,7 +41,8 @@ The anchors a reader needs before the body (keep to one screenful; **regenerated
 evolves, never appended):
 
 - **术语表** — the doc's load-bearing coined terms, each defined fully enough to stand alone
-  (later table cells may then use them bare — SKILL.md「Reasoning shown」table rule);
+  (later table cells may then use them bare — `references/doc-conventions.md`「Reasoning shown」
+  table rule);
 - **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
   enablement tiers, …), one line stating how they map (`references/id-schemes.md`「Symbol budget」);
 - **待拍 gates** — the open `G<n>` decisions blocking freeze, one-line asks each.
@@ -54,7 +55,7 @@ reusable module knowledge to xg-knowledge-lite rather than restating it here.
 
 **Write it as reasoning, not a fact list**: each point states *why* the cited code leads to the
 design's premise (evidence → mechanism → implication), so the approver can check the logic, not
-just the citations (SKILL.md「Conventions」Reasoning-shown). 示例（示意）：
+just the citations (`references/doc-conventions.md` Reasoning-shown). 示例（示意）：
 - ✅ 「`launcher_main()` 只在 postmaster 直属进程里跑（evidence）→ serverless 模式无该进程，
   既有调度覆盖不到（mechanism）→ 需要外置触发 seam（implication，引出模块 X）。」
 - ❌ 「`launcher_main()` 在 `autovacuum.c`；serverless 无 postmaster 子进程；存在一个 hook。」
@@ -155,7 +156,8 @@ M2 (`change.md` `seam-contract-disproved`), never a silent `plan.md` edit.
 
 ## How it meets the requirement
 
-Trace by **R-id** (link each id — `[R1](./requirement.md)`; SKILL.md「Conventions」Links) so every requirement has a design home:
+Trace by **R-id** (link each id — `[R1](./requirement.md)`; `references/doc-conventions.md` Links)
+so every requirement has a design home:
 
 - **需求条目** — each `R-id` → which module/contract satisfies it (a small table works well).
 - **Scope** — stays within / why each out-of-scope item is excluded.

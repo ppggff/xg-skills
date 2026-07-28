@@ -70,7 +70,8 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       investigation-notes prose, each
       load-bearing conclusion is *derived in the text* (evidence → mechanism → conclusion), not
       bolted onto a fact table; a section that is only citations + a verdict is flagged — the
-      approver must be able to check the inference, not just the sources (SKILL.md「Conventions」).
+      approver must be able to check the inference, not just the sources
+      (`references/doc-conventions.md` Reasoning-shown).
 - [ ] **Part traceability (split designs only)** — each part in `design.md`「Decomposition/Parts」
       traces to its `plan.md` tasks (`Part:` 字段) and `test.md` 分节; each **seam** contract has a
       **联调级 (real-neighbor)** test (扩自上一条 "每个 interface op/invariant 都要有测试"). An
