@@ -23,6 +23,11 @@ Output: `design.md` (template: `references/templates/design.md`) + ADRs via `adr
   (VERIFIED / INFERRED / 推断 per cell-claim, M1) — a comparative claim about existing code
   ("X has no cache") is a code claim and needs the same evidence as any other; an unverified
   comparison table is how an overstated trade-off gets approved.
+  **They also carry a 前提/要求 column, placed *before* the benefit columns** — what the option
+  demands of you (an open handle, a stopped service, a new dependency, an invariant it breaks).
+  Benefits are what you already want and will look for; preconditions are what the option
+  charges you and are the ones skipped. A mechanism chosen for a goal whose precondition
+  *violates that same goal* is the failure this column exists to catch.
 - **抵御所有异常 (异常完整性).** Every anomaly gets an owning module or a fallback — a manual-intervention
   floor is acceptable — but a rare case does **not** earn its own structure. Alongside, weigh
   可测试性 (mock 周边、独立可测) · 可观测性 (坏了能定位到本模块) · 性能 + 规模放大后的性能.

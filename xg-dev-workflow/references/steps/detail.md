@@ -76,6 +76,18 @@ algorithms whose correctness depends on the details.
    `plan.md`'s execution authorization — one go covers both. Thereafter it is **mutable** — refine it as implementation reality bites,
    but **append a dated note** for each change explaining why. Only when a change implicates the
    *architecture* (`design.md`) does it route back through change-management (M2).
+   **Minimum stress list before baselining** — the step already says when to *stop* spinning
+   (below); this says what must be pressed at least once. Detail is where a mechanism first
+   acquires preconditions and ordering properties, and those are exactly what a design-level
+   read can't check:
+   - every new mechanism — its **前提** written before its benefit (`design-grill.md`'s
+     comparison-table rule applies here too);
+   - every assertion about **order / dedup / idempotence / stability**
+     (`evidence.md`「两种最容易漏标的载重断言」);
+   - **goal-vs-means sweep**: list this section's goal/invariant sentences and its mechanism
+     sentences, and pair them off — a mechanism whose precondition contradicts the goal it was
+     chosen for reads perfectly fine in isolation and only shows up in the pairing.
+
    **Convergence signal for review rounds:** a review/grill round that surfaces only
    detail-level fixes with **no architecture回弹** (frozen `design.md` stays valid) means the LLD
    has converged — bank the fixes and baseline; don't spin further rounds.

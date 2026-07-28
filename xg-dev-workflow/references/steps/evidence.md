@@ -109,6 +109,14 @@ claims table is reserved for feasibility/runtime verdicts; elsewhere the **inlin
 every sentence. An unmarked non-trivial assertion reads as evidence-backed — if it isn't, it's a
 `(assumption)` waiting to mislead.
 
+**两种最容易漏标的载重断言** — 规则说「给载重断言标记」,难在**察觉自己正在下断言**。这两种形态
+读起来像叙述,实为运行期行为断言,必须当场给依据或标 `推断`:
+
+- **「这个机制能抓住 X」** — 你为一个机制编的使用场景,就是一条关于「X 发生时系统会怎样」的断言。
+  写下它之前,把那个场景在代码里**推演一遍**;推不动就说明这个机制的理由还没成立。
+- **「这个序列按 Y 顺序 / 已去重 / 是稳定的」** — 顺序、唯一性、幂等、稳定性**只能从产生它的代码
+  读出来**,不能从它的用途推。断言指向用途(「它是用来 Z 的,所以应该有序」)即为无依据。
+
 ## Honesty
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.
 A flagged gap is more useful than false confidence.

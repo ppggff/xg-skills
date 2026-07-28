@@ -4,6 +4,37 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-28 — 三处「信息已在手却没对照」的失败,补三条察觉机制
+
+**动机(card `hashdata/006-meta-vacuum-on-v311`,详设阶段五轮压测)**:同一形状的自我推翻出现
+**三次**,且三次做出正确判断所需的信息**都已在手**,只是没被放在一起对照:
+
+1. `reads` dump 段的立论 —— 断言「重切 range ⟹ 键集合变而计数不变」。实际区间连续按序分发,
+   重切后键序列逐字节相同。我读过 dispatcher,没推演那个场景就把它写成了机制的理由。
+2. `ops` dump 段的顺序语义 —— 断言「按生成顺序,顺序即语义」。实际 toast 的 op 顺序由
+   `toastCache.LoopAll` 的 **map 遍历**决定(Go 随机化);我通读过该文件。
+3. rocksdb fixture 的不可变性 —— 为「原目录从不被打开」这个目标选了 **checkpoint**,
+   而 `NewCheckpoint()` 是 `*DB` 上的方法、**必须先打开源库**。签名我查过并抄进了文档,
+   与目标句相隔二十行,没碰到一起。
+
+三者的共同结构:**缺一个对照动作**,不是缺信息;而现有规则(M1 的标记制度、方案优先的
+provenance 列)都假定「你知道自己在下断言」。
+
+**改动**(均为 step 文件,行为级):
+
+- `steps/evidence.md` —— 新增「两种最容易漏标的载重断言」:「这机制能抓住 X」(为机制编的使用
+  场景本身是运行期断言,写下前须在代码里推演一遍)与「这个序列有序/去重/稳定」(此类属性只能从
+  **产生者**的代码读,不能从用途推)。补的是**察觉**,不是标记规则本身。
+- `steps/design-grill.md` —— 方案对比表新增 **前提/要求列,且排在收益列之前**。收益是你本来就想要
+  的、有动机去看;前提是它跟你要的,最容易略过。专门针对「为目标 G 选的机制,其前提违反 G」。
+- `steps/detail.md` —— 新增 **baseline 前的最小压测清单**(前提先于收益 · 顺序类断言指向产生者 ·
+  目标句与手段句两两对照)。该步原有的收敛信号只说「何时停」,没说「至少压什么」;而详设正是
+  机制第一次获得前提与顺序性质的地方,这些恰恰是设计层读不出来的。
+
+**校准数据**:同一 card 的详设阶段,我两次判定「不必再 grill」,两次均被随后由人指定的压测推翻
+(5 轮压测中 3 轮推翻了我前一轮刚写下的结论)。⟹ 自评「问不出更多了」不可作为收敛依据;
+上述清单给出的是**机械可执行的下限**,与主观判断脱钩。
+
 ## 2026-07-28 (card 011 MS1 — cross-reference backfill + process rules)
 
 Source: the 2026-07-27 template-explicitness audit (three-agent sweep) found 16 broken/drifted
