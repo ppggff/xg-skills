@@ -52,9 +52,10 @@ priorities and tactics (see "Phase-specific layers").
   is created lazily on the first block, like `adr/`) — the gate digest is generated from these
   pending rows. Claude never writes `approved` (gate-digest.md「Approve transcription」). The
   round's checkpoint commit is what the eventual approve annotation will cite as receipts.
-- **Self-contained 陈述.** A ledger 陈述 whose decision object is a list/count inlines the
-  items or links their home — the gate digest *restates* pending rows verbatim
-  (gate-digest.md), so compression at write time cannot be repaired at presentation time.
+- **Self-contained 陈述.** A ledger 陈述 whose decision object is a list/count follows
+  gate-digest.md's self-containment rule at write time (same thresholds, same evidence-ref
+  exemption) — the digest *restates* pending rows verbatim, so compression here cannot be
+  repaired at presentation time.
 - **载重事实入账 (facts as you verify).** When a grill/investigate round **verifies a
   load-bearing fact** a decision rests on, append it to the card's `facts.md` as an `F<n>`
   block right then (`templates/facts.md`; created lazily like `decisions.md`) and cite it as

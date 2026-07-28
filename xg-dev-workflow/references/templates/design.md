@@ -28,7 +28,7 @@ restate after one read. **≤ 2 sentences.** Name the **one** method/metaphor an
 **exclude** mechanism detail (locks / hooks / modules / RPC / file names), performance &
 motivation, alternatives, and constraints — each of those has its own section below.
 
-- ✅ "用选举解决：多个 coordinator 选举，只有成为 active 的运行 autovacuum/autocluster，其余 standby；active 失联则 standby 接力。"
+- ✅ 「用选举解决：多个 coordinator 选举，只有成为 active 的运行 autovacuum/autocluster，其余 standby；active 失联则 standby 接力。」
 - ❌ a dense paragraph naming the thin module, the coordination substrate, the kernel hook,
   "no enumeration", overhead-vs-correctness, anti-wraparound … — that's the *rest of the doc*,
   not the 思路.
@@ -194,6 +194,7 @@ Ground each entry in evidence (`func()` in `file.c` / `[[wiki/…]]`); mark 推�
   behavior (who breaks if the contract shifts).
   e.g.（示意）「`vacuum_worker()` in `autovacuum.c` 轮询本模块状态（evidence）；运维脚本
   `nightly-vacuum.sh` 解析其日志行格式（推断——未验 crontab，验证归 test 回归行）。」
+  ❌ 「nightly-vacuum.sh 也依赖本模块」——没标注查过还是猜的，reviewer 无从核。
 - **兼容 / ABI 面** — on-disk format, catalog, SQL/extension interface, ABI — and whether each
   stays compatible.
 - **跨 card / 跨项目波及** — other requirements (same-project `NNN`, see `index.md` Deps) or

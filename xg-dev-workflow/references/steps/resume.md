@@ -11,7 +11,8 @@ history. This is what lets a brand-new session start fast (docs are the core).
    ledger — approval authority: what is approved / still pending; absent on pre-ledger cards)
    → `design.md` + `adr/` (the contract **view** — its `frozen` means the referenced decisions
    are all approved) → `plan.md` (intended tasks) → **`progress.md`** (the live state:
-   phase, now-doing, next-step, blockers, task table, changed files).
+   phase, now-doing, next-step, blockers, **Build/test:** — the exact build/test invocation to
+   rebuild and re-verify with — **Close-out:** status, task table, changed files).
    **Mid-grill?** If `progress.md`「Now doing」names an open `G<n>`, also read
    `notes/grill-<phase>.md` (if persisted) and continue from the `open` row (`grill.md` Resume
    mid-grill).

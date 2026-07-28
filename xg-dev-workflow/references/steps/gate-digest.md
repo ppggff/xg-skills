@@ -19,7 +19,9 @@ before design-level. A card with no ledger (pre-010) falls back to the doc-cited
 
 Lead the gate ask with decision cards — **written for comprehension**: full sentences
 restating 陈述 + why + the rejected alt (plus a concrete example when the decision is
-abstract), never compressed to labels — in this order:
+abstract), never compressed to labels. Items 2–3 are a pair — without them the digest says
+*what* was decided but not *what the human's judgment is needed on*; keep both, scaled down
+for small gates. In this order:
 
 1. **Load-bearing decisions this phase made** (3–5) — statement + a one-line why, each citing
    the doc section that carries the full argument. The why must have a home in the doc: a card
@@ -28,16 +30,14 @@ abstract), never compressed to labels — in this order:
    appears as a compact one-line list after the cards — a pending row missing from the ask
    would be approved by silence.
 2. **已验证（勿复核）** — what this round's machine/adversarial verification already covered:
-   one line per verification + its method/receipt pointer. The human doesn't re-check
-   correctness the pipeline owns — per-item correctness is backstopped by the verification
-   flow and the close-out review; the gate approves **direction**, not line-by-line accuracy.
+   one line per verification + its method/receipt pointer. Per-item correctness is
+   backstopped by the verification flow and the close-out review, not by human re-reading —
+   the gate approves **direction**, not line-by-line accuracy.
 3. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**
    (what gets deleted / what tax is added / what bet is taken). Sources: pending rows' `alt:`
    trade-offs, downgrade-class decisions, risk bets — plus the **least-confident spots**
    (假设/推断-marked items, unverified comparisons, remote-trigger sizing calls): confidence
-   comes from being told where to look, not from having read everything. Without this and the
-   已验证 section the digest tells the human *what* was decided but not *what their judgment
-   is actually needed on* — keep both, scaled down for small gates.
+   comes from being told where to look, not from having read everything.
 4. **Open questions** — what stays deliberately unresolved, with the default taken.
 5. **The gate question + receipts** — the Stop-at-gate go ask, naming doc paths + the dev_root
    commit (SKILL.md「Ask with receipts」— unchanged, the digest sits on top of it).

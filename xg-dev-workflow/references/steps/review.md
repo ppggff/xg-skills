@@ -21,7 +21,8 @@ case a requirement is active, so it lands in `<requirement>/notes/review-*.md` (
 context pack should pull that requirement's `requirement.md`「需求条目」/ frozen `design.md`
 「影响面」+「验证策略」— the close-out **checks the promised scenarios ran**: every 验证策略 row
 maps to an executed test/check in `test.md` (or a recorded, reasoned downgrade); a silently
-dropped scenario is a finding. The report carries the per-row verdict.
+dropped scenario is a finding. The report carries the per-row verdict (the 核对结果 the
+M3 close-out shape check looks for).
 XS/S structure-light work may skip the close-out — then record `XS/S — review skipped` in
 `progress.md`'s `Close-out:` line (the M3 gate is "review doc OR skip note"); see
 SKILL.md「Requirement sizing」.

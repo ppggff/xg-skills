@@ -41,7 +41,7 @@ What we decided.
 ## 被取代表述 (required when superseding)
 
 The exact phrases/terms the superseded decision used that must NOT survive elsewhere —
-the word list `change.md`'s supersede sweep and M3 grep against:
+the word list that `change.md`'s supersede sweep and M3 grep against:
 
 - `<old phrase>` → `<replacement>`
 

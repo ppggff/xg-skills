@@ -169,7 +169,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
 5. **Analyse the 影响面 (impact surface)** — fill the design's 影响面 section: changed/added
    modules, existing callers & downstream consumers, compat/ABI surface, cross-card/cross-project
    ripples (cf. `index.md` Deps), and behaviors to re-verify. Grep for callers rather than
-   guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out review.
+   guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out
+   review; **record the risks it surfaces in the template's「Risks」table** (impact +
+   mitigation, one row each).
 6. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
    (see `adr.md`).
 7. **Freeze gate:** before the ask, check the template's conditional/required sections are

@@ -11,7 +11,8 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Deterministic subset → script, zero tokens**: link/wikilink resolution, frontmatter
   status/updated presence, index-row existence, 项目根散件, board monotonic constraints,
   R-id trace *existence*, `[F<n>]` citations resolving to an active block in the card's
-  `facts.md` (doc-local 事实清单 for standalone docs). **The ledger checks ship as `workflow-status.py --check
+  `facts.md` (doc-local 事实清单 for standalone docs; not yet scripted — runs with the
+  judgment subset until a checker exists). **The ledger checks ship as `workflow-status.py --check
   <project>/<card>`** (id-reference integrity · derived-status field mappings (SKILL.md「Ledger」) · depends-on
   acyclicity · approve-note format · single-active-block; exit 1 = findings) — run it on any
   ledger card after a doc edit; semantic contradiction with approved decisions stays in the

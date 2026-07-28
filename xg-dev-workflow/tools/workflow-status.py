@@ -200,7 +200,7 @@ def card_status(card_dir):
              ("BLOCKED — see progress" if ps == "blocked" else
               ("implement 状态不明(progress frontmatter 缺 status)— 看 progress.md" if ps == "?" else None)))
     ts = tst.get("status", "—") if tst else "—"
-    step("测试", ts, None if ts == "passing" else "next: 测试 consolidation")
+    step("测试", ts, None if ts == "passing" else "next: 测试 close-out")
     if reviews:
         step("评审", "✓")
     elif skip_note:
@@ -691,6 +691,7 @@ def check_card(project, card_dir):
         return bool(act) and all(b["state"] == "approved" for b in act)
 
     for level, doc, done_words in (("requirement", "requirement.md", ("confirmed",)),
+                                   # "approved" kept for pre-011 cards; template enum is drafting|frozen|superseded
                                    ("design", "design.md", ("frozen", "approved")),
                                    ("detail", "detail.md", ("baseline",))):    # (b)
         path = os.path.join(card_dir, doc)

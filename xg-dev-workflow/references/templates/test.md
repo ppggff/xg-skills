@@ -29,6 +29,9 @@ success criterion in `requirement.md`.
      un-split designs leave both as-is. -->
 
 ### Unit (registry — one line per slice, appended during 实现)
+<!-- Registry lines cite their `T<n>` and name the behavior — never restate the task's
+     Acceptance content (plan Acceptance = the binary walk; this registry = the case
+     inventory; link, don't restate). -->
 - [ ] <behavior> — covered by which slice's test (cite `T<n>`; written in 实现 per the chosen mode).
 
 ### Integration

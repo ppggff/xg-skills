@@ -428,7 +428,8 @@ behavior; the **contract never changes**, only the implementation behind it. For
 - `references/steps/adversarial-critic.md` — shared sharp-cut finder (fresh-context three-lens
   critic + invariant-ledger replay + standing rules); used by requirement, design-grill, and review.
 - `references/steps/gate-digest.md` — shared decision-card presentation for every decision-zone
-  gate ask (load-bearing decisions + least-confident spots + open questions before the go ask).
+  gate ask (comprehension-first cards + the 判断分工 split — 已验证(勿复核) / 待你判 with
+  stakes — + open questions before the go ask; decision-object references self-contained).
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.
 - `references/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).

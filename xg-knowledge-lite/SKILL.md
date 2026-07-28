@@ -194,9 +194,9 @@ project-scoped front of an investigation / review / new requirement (xg-dev-work
 
 ## Lint — minimal health check
 
-Seven checks — §1 coverage (raw↔concept, `compiled_to:`, concept-promotion) · §2 index
+Eight checks — §1 coverage (raw↔concept, `compiled_to:`, concept-promotion) · §2 index
 consistency · §3 dangling wikilinks · §4 frontmatter · §5 terminology/contexts · §6 size ·
-§7 designated docs. **Deterministic findings are auto-fixed; judgment findings are
+§7 designated docs · §8 reverse-coupling (no KB content links into dev_root). **Deterministic findings are auto-fixed; judgment findings are
 report-only** (surfaced with a suggestion, never silently fixed). Full checklist + authority
 split + execution notes: `references/lint.md`.
 
@@ -251,7 +251,7 @@ instead; see Query). If you outgrow this, that's the full `xg-knowledge-wiki`.
 ## References
 
 - `references/FORMAT.md` — raw article format (copied to `$KB/FORMAT.md` on init).
-- `references/lint.md` — the Lint checklist (§1–§7 + authority split + execution notes).
+- `references/lint.md` — the Lint checklist (§1–§8 + authority split + execution notes).
 - `references/concept-template.md` — wiki concept article format (canonical term / `_Avoid_` /
   `_Context_` / Sources / See Also).
 - `references/context-map-template.md` — `wiki/<project|common>/CONTEXT-MAP.md`: bounded contexts +

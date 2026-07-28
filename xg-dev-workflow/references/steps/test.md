@@ -83,5 +83,6 @@ Output: `test.md` (template: `references/templates/test.md`).
   `review` verb (`review.md`) on the whole change to produce the close-out review doc
   (`notes/review-*.md`) **before** the card goes `done` — code earns both a test doc and a review doc.
   **XS/S** structure-light work may skip it (mirror of `detail.md`'s optionality), but then record
-  `XS/S — review skipped` in `progress.md`'s `Close-out:` line so M3 sees the decision (the gate is "review doc OR skip
+  `XS/S — review skipped` in `progress.md`'s `Close-out:` line so M3 sees the decision
+  (the gate is "review doc OR skip
   note"). Then mark the requirement resolved.
