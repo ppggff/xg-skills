@@ -53,9 +53,12 @@ Ground each in evidence: `func()` in `file.c`, or KB `[[wiki/<project>/<slug>]]`
 reusable module knowledge to xg-knowledge-lite rather than restating it here.
 
 **Write it as reasoning, not a fact list**: each point states *why* the cited code leads to the
-design's premise (evidence → mechanism → implication — e.g. "X() only fires under A, so the
-existing path can't cover B, hence …"), so the approver can check the logic, not just the
-citations (SKILL.md「Conventions」Reasoning-shown).
+design's premise (evidence → mechanism → implication), so the approver can check the logic, not
+just the citations (SKILL.md「Conventions」Reasoning-shown). 示例（示意）：
+- ✅ 「`launcher_main()` 只在 postmaster 直属进程里跑（evidence）→ serverless 模式无该进程，
+  既有调度覆盖不到（mechanism）→ 需要外置触发 seam（implication，引出模块 X）。」
+- ❌ 「`launcher_main()` 在 `autovacuum.c`；serverless 无 postmaster 子进程；存在一个 hook。」
+  （三条事实并列，推理链断——approver 无从核逻辑）
 
 ## Chosen approach
 
@@ -77,6 +80,12 @@ modules live in it) before listing flat modules — the right layering simplifie
 Number layers `L1..Ln` (bottom-up) when other sections need to reference them; milestones/分期
 use `MS<n>` (SKILL.md「Fixed ID prefixes」— bare `M<n>` means the skill mechanisms).
 
+示例（示意，非唯一写法）：
+- ✅ 「coordination 模块（全新）：负责跨 coordinator 互斥——谁是 active；对外只暴露
+  acquire/release 语义，建于既有 lease 机制之上，不新增存储。」（模块 + 职责 + 边界 + 依托）
+- ❌ 「在 `do_start_worker()` 里加 `LWLockAcquire(AutovacScheduleLock)`，超时 5s 后……」
+  （函数/锁/参数——这是 `detail.md` 的 altitude，设计层写它就漂了）
+
 ### Diagrams (required)
 
 - **Module interaction** — modules as boxes (labelled with responsibility), calls/seams as
@@ -94,7 +103,15 @@ express (then follow the CJK-width rules in `references/diagram-gotchas.md`).
 The new module's **external interface as a contract, not signatures** (concrete functions/types
 → `detail.md`「代码级接口」; XS/S without detail.md: the plan task fields): each operation's
 inputs / outputs / semantics, plus the contract invariants
-(uniqueness, idempotency, self-heal, degradation). A small table works well.
+(uniqueness, idempotency, self-heal, degradation). Fixed columns:
+
+| 操作 | 输入 | 输出 | 语义 | 不变量 |
+|---|---|---|---|---|
+| … | … | … | … | … |
+
+e.g.（示意）`acquire | node-id | granted/denied | 请求成为 active；幂等重入 | 至多一个
+granted；holder 崩溃后 lease 过期自愈`——语义列写**含义与顺序约束**，不变量列写**跨操作
+恒成立的性质**，两列都不是签名。
 
 Vocabulary follows the `codebase-design` skill: an **interface** = everything a caller must know
 (the signature **plus** invariants, ordering, error modes, perf); aim for a **deep** module (small
@@ -158,6 +175,10 @@ mechanism-level boundary behavior — its 边界与错误矩阵, not test cases)
 |---|---|---|---|
 | [R1](./requirement.md) | … | … | … |
 
+e.g.（示意）一行填法：`[R1] | 起双 coordinator，kill active，观察接管 | pg_stat_activity 中
+launcher 计数 ≤1 | 5s 内接管；复用既有视图，无新观测点`——场景是**动作序列**，观测点是**设计
+已提供的可读位置**；写成「跑测试套件」就退化成 test.md 的事了。
+
 An item with **no cheap E2E path is an explicit design decision** — either accept a unit-level
 proxy (state why it suffices) or change the design for observability; never leave the row blank.
 `test.md` consumes this table as its coverage skeleton, and the close-out review checks the
@@ -171,6 +192,8 @@ Ground each entry in evidence (`func()` in `file.c` / `[[wiki/…]]`); mark 推�
 - **改动/新增模块** — modules & files this design adds or edits.
 - **调用方 / 下游消费者** — existing callers, consumers, or jobs that depend on the touched
   behavior (who breaks if the contract shifts).
+  e.g.（示意）「`vacuum_worker()` in `autovacuum.c` 轮询本模块状态（evidence）；运维脚本
+  `nightly-vacuum.sh` 解析其日志行格式（推断——未验 crontab，验证归 test 回归行）。」
 - **兼容 / ABI 面** — on-disk format, catalog, SQL/extension interface, ABI — and whether each
   stays compatible.
 - **跨 card / 跨项目波及** — other requirements (same-project `NNN`, see `index.md` Deps) or
@@ -198,6 +221,9 @@ a new card), never a silent default.
 
 ### Alternative A — <name>
 - Class (hack / 补丁 / 重做) · Pros / Cons / **Cost** / Why rejected.
+  e.g.（示意）「Alternative B — 指定单 coordinator 硬编码 · Class: hack · Pros: 零协调开销 ·
+  Cons: 指定节点故障即全停 · **Cost**: 单点 + 运维手工切换 · Why rejected: 与 R2（高可用）
+  直接冲突，且迁移到选举方案时该硬编码要整体拆除。」
 - Comparative claims about existing code carry provenance **from the first draft** (VERIFIED /
   INFERRED / 推断 per claim) — an unread-code claim doesn't go in the comparison (M1;
   design-grill 方案优先).
