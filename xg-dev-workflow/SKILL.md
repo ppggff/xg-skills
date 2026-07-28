@@ -6,20 +6,19 @@ description: "Design-centric dev workflow for code work. Use when the user opens
 # xg-dev-workflow
 
 A thin **orchestrator** for code work, split into five phases. Each phase produces one doc;
-**everything lands in docs** so any fresh session resumes from files alone (no chat history needed).
-The emphasis is **design** — not jumping from a requirement straight to an implementation plan, nor
-from a frozen architecture straight to a task list.
+**everything lands in docs** so any fresh session resumes from files alone (no chat history
+needed). The emphasis is **design** — never straight from requirement to plan.
 
 ```
 需求 requirement.md → 设计 design.md (+adr/) → 详设 detail.md → 实现 plan.md / progress.md → 测试 test.md → 评审 review (M+)
    ■STOP confirm        ■STOP freeze on approve   ■STOP baseline    plan is mutable               results recorded   ■gate before done
 ```
-(■STOP = halt for an explicit human go — the Stop-at-gate rule. 详设 is optional for XS/S. 评审 is a
-close-out gate producing `notes/review-*.md`, not a sixth doc-phase.)
+(■STOP = human gate — the Stop-at-gate rule; 详设 optional for XS/S; 评审 = close-out gate
+producing `notes/review-*.md`, not a sixth doc-phase.)
 
 Reusable module knowledge does **not** live here — it lands in **xg-knowledge-lite** (`~/knowledge`
-raw/wiki), referenced from these docs via `[[wiki/<project>/<slug>]]` wikilinks. This skill holds
-only per-requirement docs.
+raw/wiki), referenced via `[[wiki/<project>/<slug>]]` wikilinks; this skill holds only
+per-requirement docs.
 
 **Writing style (all docs): plain prose, technical terms intact** (不变量 / 契约 / 幂等 stay); short
 sentences. Parallel/enumerable content goes in nested lists (one point per bullet); paragraphs
@@ -46,26 +45,24 @@ The **hard stops** are the decision-zone gates — 需求 confirm · 设计 free
 **one-time execution authorization** after `plan.md`; each is a human decision. Past that
 authorization there are no per-phase stops (「Two zones」).
 
-- **One phase per invocation.** After producing the phase's doc, STOP — even if you could roll on,
-  even if the prompt mentions later phases. Report the doc + the gate question, then wait. Chaining
-  requires the human to invoke each verb, or to explicitly say "run straight through". (Exception:
-  the human-opted, sizing-scoped gate mergers —「Requirement sizing」Gate merging.)
+- **One phase per invocation.** After producing the phase's doc, STOP — even if the prompt mentions
+  later phases. Report the doc + the gate question, then wait. Chaining requires the human to invoke
+  each verb or explicitly say "run straight through". (Exception: the human-opted, sizing-scoped
+  gate mergers —「Requirement sizing」Gate merging.)
 - **A bare topic with no verb** = `new` + `requirement` only, then STOP; 调查/investigate/explore
   stops at understanding — never auto-advance to a chosen design.
 - **Gate = an explicit human go, this turn** — prior approval doesn't carry forward. Produce the
   doc, ask, and do not create or edit the next phase's doc until then. Unsure which phase is wanted
   → ask, don't assume the pipeline.
 - **The advance word is `go` — uniformly.** Phrase every advance ask around it, naming what it
-  authorizes (「确认后回 go,进入设计」/「go = 授权执行区」), and treat the human's `go` (or an equally explicit
-  equivalent in their own words) as the authorization; comments or praise without a go are feedback,
-  not a go. Applies to every advance: phase gates, the execution authorization, continuing after a
-  grill convergence verdict.
+  authorizes (「确认后回 go,进入设计」/「go = 授权执行区」); comments or praise without a go are
+  feedback, not a go. Applies to every advance: phase gates, the execution authorization,
+  continuing after a grill convergence verdict.
 - **Ask with receipts — write first, then ask.** An advance ask (and any reply that closes a verb
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
   dev_root commit — on a ledger card, also **the pending `decisions.md` rows being asked about**
-  (the approve transcription cites this receipts commit). No receipts, no ask. This closes M3's trigger blind spot — M3 fires on doc edits,
-  so an *omitted* write produces no edit and no check; the receipts requirement makes a missing
-  write impossible to ask past.
+  (the approve transcription cites this receipts commit). No receipts, no ask (closes M3's trigger
+  blind spot: an omitted write produces no doc edit for M3 to catch).
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
   phase's doc; the authoritative gate is the human approving that doc.
 
@@ -84,9 +81,8 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
   resume, not for a human read-through.
 - **The human re-enters at exactly three artifacts** — `log.md` (the audit trail; resume never
   reads it), the 评审 review report (its 修复决策表 is a human decision), and a **proposed
-  `decisions.md` row** Claude escalates from the execution zone (design fork → M2 — the row
-  persists the fork + options; blocker and push requests stay chat-level; commits are
-  autonomous, push is gated).
+  `decisions.md` row** Claude escalates from the execution zone (design fork → M2; blockers and
+  push requests stay chat-level; commits autonomous, push gated).
 
 ## Ledger (决策账本) — the gate currency
 
@@ -109,15 +105,13 @@ views mechanics: `templates/decisions.md` 头注; digest & approve transcription
   <project>/                        # == xg-knowledge-lite project name
     index.md                       # per-project kanban board (cards: Phase/整体状态/Deps)
     roadmap.md                     # project plan: next-up/themes/someday/rejected — M3 keeps it fed
-    investigations/                # standalone investigations: <slug>.md (no investigation- prefix),
-                                    #   or <topic>/ campaign dir for a large multi-file investigation
+    investigations/                # standalone investigations: <slug>.md (no investigation- prefix) or <topic>/ campaign dir
     reviews/                        # standalone review reports
     notes/                         # project-level scratch — event artifacts dated, living docs date-free
     legacy/                        # pre-workflow archive (read-only; never linked as canonical)
     NNN-requirement-slug/           # created lazily — each doc appears when first needed
       requirement.md               # 需求 (created by `new`)
-      decisions.md                 # 决策账本 — approval-status single source (lazily, first
-                                    #   proposed row; gates approve its rows: SKILL.md「Ledger」)
+      decisions.md                 # 决策账本 — approval-status single source (SKILL.md「Ledger」)
       facts.md                     # 卡级事实层 F<n> (lazily; cited as [F<n>] from phase docs)
       design.md                    # 设计 (概设/HLD) — FROZEN once approved
       adr/NNNN-slug.md             # decision records (adr/ created on first ADR)
@@ -126,47 +120,40 @@ views mechanics: `templates/decisions.md` 头注; digest & approve transcription
       progress.md                  # current-state snapshot (session resume); pruned, not a log
       log.md                       # append-only change log (what + why); never edited/pruned
       test.md                      # 测试
-      notes/                       # requirement-specific scratch. Naming: event artifacts
-                                    #   (review-/retro-) carry YYYY-MM-DD; living docs stay date-free
+      notes/                       # requirement-specific scratch — same naming rule as project notes/
 ```
 
-**Project-global docs — split by nature.** **Planning → dev_root**: `<project>/roadmap.md` (next-up
-/ themes / someday / rejected; items graduate to cards via `new`). **System knowledge → KB**,
-referenced one-way via `[[wiki/…]]`: the **architecture overview**
-(`[[wiki/<project>/architecture]]` — linked from each card's `design.md` and refreshed as-built when
-a design freezes) and per-subsystem **invariant ledgers** (loaded/replayed by the
+**Project-global docs — split by nature.** **Planning → dev_root**: `<project>/roadmap.md`
+(next-up / themes / someday / rejected; items graduate to cards via `new`). **System knowledge →
+KB**, one-way via `[[wiki/…]]`: the **architecture overview** (`[[wiki/<project>/architecture]]`,
+refreshed as-built when a design freezes) and per-subsystem **invariant ledgers** (replayed by the
 adversarial-critic). The KB never links back into dev_root.
 
 ## Config & project resolution (shared with xg-knowledge-lite)
 
 Same config file: `~/.config/xg-knowledge-wiki/config.yaml`.
 
-- `dev_root:` → workflow docs root. Resolution: (1) `--root <path>`; (2) config `dev_root:`; (3)
-  default `~/dev-workflow`. Never auto-create the config.
+- `dev_root:` → workflow docs root ((1) `--root <path>`; (2) config `dev_root:`; (3) default
+  `~/dev-workflow`). Never auto-create the config.
 - `projects:` → the **same** map xg-knowledge-lite uses. Resolve cwd→project with
   `tools/resolve-project.py [<cwd>]`; on miss, ask once and register via xg-knowledge-lite's
   `tools/register-project.py <name> <path>`. Never auto-pick `common`.
 
 ## Versioning the docs (dev_root git)
 
-`dev_root` is its **own git repo** (all projects; separate from the product-code repo and the KB
-repo), lazily initialized on the first commit — `tools/commit-data-repos.py` does init-if-needed +
-commit-if-dirty.
+`dev_root` is its **own git repo** (separate from the product-code and KB repos), lazily
+initialized on the first commit (`tools/commit-data-repos.py`).
 
-- **Commit at each gate / doc boundary** (semantic, not per keystroke): when a verb finishes writing
-  — `new`, `requirement` (confirmed), `design` (frozen), `detail` (baseline), `plan`, each implement
-  task's `progress.md` update, `test`, `review`, a `change`/M2 entry, investigate/diagnose notes,
-  each grill-round verdict (checkpoint). Run M3 first, then commit. Message: `<project>/NNN-slug:
-  <verb> — <one line>`.
-- **Gate commits are scoped to the acting project**: `tools/commit-data-repos.py --project
-  <name>` (or, when running git directly, an equivalently scoped `add`/`commit` in both repos) —
-  a parallel session's own uncommitted docs in another project must never ride along in this
-  commit (the un-scoped `add -A` this replaced could pull them in).
+- **Commit at each gate / doc boundary** (semantic, not per keystroke): whenever a verb finishes
+  writing — gates, implement tasks, notes, grill-round checkpoints. Run M3 first, then commit.
+  Message: `<project>/NNN-slug: <verb> — <one line>`.
+- **Gate commits are scoped to the acting project**: `tools/commit-data-repos.py --project <name>`
+  (or an equivalently scoped `add`/`commit`) — a parallel session's uncommitted docs in another
+  project must never ride along.
 - **Autonomous local commit; `push` stays human-gated;** history append-only (no amend/rebase).
 - An implement task yields **two** commits — product code → its own repo, docs → the dev_root repo.
   Don't cross them.
-- Optional safety net: a session-end hook runs `tools/commit-data-repos.py` to sweep uncommitted
-  docs (README).
+- Optional safety net: a session-end hook sweeps uncommitted docs via `commit-data-repos.py` (README).
 
 ## The five phases (contracts) + the close-out review gate
 
@@ -178,78 +165,64 @@ Each phase is a **contract** — input, output doc, gate — independent of whic
 · L) at requirement level: **XS/S** = structure-light, ~one vertical slice, no new module/contract →
 may skip **详设** and the **评审** close-out (record the skip). **M+** = multi-slice, or
 introduces/changes a module/contract → does 详设 when structural, and **must** pass 评审 before `done`.
-Judged at design time, not a board column; M3's done-time signal is "a review doc exists **or** an
-explicit `XS/S — review skipped` note does".
+Judged at design time, not a board column; M3's done-time signal: a review doc **or** an explicit
+`XS/S — review skipped` note.
 
 **Gate merging (sizing-scoped, human opt-in).** **XS**: 需求+设计 may run in one invocation with
-**one combined gate** — Claude offers it when the ask is plainly XS; the human's yes is the
-standing go for the combined run; the docs stay separate files and the digest presents
-requirement-level decisions before design-level ones. **M**: the 详设 baseline gate may merge with
-the execution authorization (detail.md + plan.md presented together, one go covers both). The
-default stays one gate per phase; a merged run that outgrows its sizing (the XS turns out M+)
-splits back — stop at the earlier gate as usual.
+**one combined gate** (offered when the ask is plainly XS; docs stay separate files;
+requirement-level cards first). **M**: the 详设 baseline gate may merge with the execution
+authorization (one go covers both). Default = one gate per phase; a merged run that outgrows its
+sizing splits back — stop at the earlier gate as usual.
 
 ### 1. 需求 Requirement → `requirement.md`
 Input: a raw ask. **Elicited interactively, not written in one shot** — the grill loop (`grill.md`)
-interleaved with code understanding (M5/M1): surface assumptions first and let the human correct
-them; understand the **essence** behind the ask (it may be layered, diverge from its wording, map to
-the design non-1:1) — solve the real problem, don't transcribe the words. Output sections:
-**Context** · **需求条目** (atomic items, each one statement with a stable **`R-id`** — the
-**traceability spine** every later doc references) · **Scope** (in/out + 初步影响面) · **Constraints** ·
-**Effect** (testable success criteria, each citing its `R-id`) · **Future** · **Open questions**.
+interleaved with code understanding (M5/M1): surface assumptions, let the human correct them,
+solve the real problem behind the wording. Core output: **需求条目** — atomic items with stable
+**`R-id`**s, the **traceability spine** every later doc references — plus Scope / Constraints /
+**Effect** (testable criteria citing their `R-id`) per the template.
 GATE: STOP for explicit confirm — the confirm approves the requirement-level ledger rows
 (「Ledger」). Step: `references/steps/requirement.md`.
 
 ### 2. 设计 Design → `design.md` + `adr/` (the emphasis)
 Understand first (M5), then design **at module altitude in abstraction layers**: weigh **multiple
-approaches by trade-off** (方案优先, spanning hack / 补丁 / 推翻重来 — debt is a conscious, recorded choice),
-prefer the **simplest reliable** design (简单可靠 > 精致复杂); express modules / responsibilities /
-boundaries / contracts, with concrete code deferred to detail/plan, and **required diagrams**
-(module-interaction + data-flow). Output: the chosen approach grounded in evidence + alternatives
-considered + how it meets scope/constraints/effect **traced by `R-id`** + a **影响面 (impact surface)**
-analysis (changed modules, callers & downstream consumers, compat/ABI surface, cross-card ripples,
-behaviors to re-verify). **ADRs** for decisions that are hard-to-reverse, surprising, and a real
-trade-off. Stress-test via grilling. GATE: STOP; **on approval `design.md` is FROZEN** — meaning
-its referenced ledger rows are all approved (「Ledger」); thereafter those decisions change only
-through M2 (the synthesis prose stays rewritable). Steps: `references/steps/design-grill.md`, `references/steps/adr.md`.
+approaches by trade-off** (方案优先, spanning hack / 补丁 / 推翻重来 — debt is a conscious, recorded
+choice), prefer the **simplest reliable** design (简单可靠 > 精致复杂); modules / responsibilities /
+boundaries / contracts, concrete code deferred to detail/plan, **required diagrams**
+(module-interaction + data-flow). Output: chosen approach + alternatives + how-it-meets **traced by
+`R-id`** + the **影响面 (impact surface)** analysis. **ADRs** for decisions that are
+hard-to-reverse, surprising, and a real trade-off. Stress-test via grilling. GATE: STOP; **on
+approval `design.md` is FROZEN** (its referenced ledger rows all approved,「Ledger」); those
+decisions change only through M2. Steps: `references/steps/design-grill.md`, `references/steps/adr.md`.
 
 ### 3. 详设 Detailed design → `detail.md` (LLD — optional for XS/S)
-Lowers the frozen architecture to **concrete structures with rationale** — what `design.md` deferred
-and `plan.md` shouldn't have to invent. Sections: **数据结构** (each with a one-line why) · **关键机制/算法**
-(trigger → steps → locking/transaction → error & edge handling → idempotency point) · **代码级接口**
-(signatures, actual SQL) · **边界与错误矩阵** · **可追溯** (item ↔ design module/contract ↔ R-id). Division of
-labour with ADRs: the ADR records the hard-to-reverse decision + alternatives; `detail.md` holds the
-full concrete spec, referencing those ADRs and filling the small-but-load-bearing choices.
-Ledger-worthy choices get `S<n>` ids (「Ledger」). GATE
-(**baseline, not freeze**): STOP for human review — approving the detail-level rows gives them
-baseline force; afterwards it may change as implementation
-reality bites — each change adds a dated note; a change implicating the *architecture* routes
-through M2. Step: `references/steps/detail.md`.
+Lowers the frozen architecture to **concrete structures with rationale** — what `design.md`
+deferred and `plan.md` shouldn't have to invent: 数据结构 · 关键机制/算法 · 代码级接口 ·
+边界与错误矩阵 · 可追溯 (per the template). The ADR records the hard-to-reverse decision;
+`detail.md` holds the full concrete spec referencing it. Ledger-worthy choices get `S<n>` ids
+(「Ledger」). GATE (**baseline, not freeze**): STOP for human review — approved detail-level rows
+carry baseline force; afterwards each change adds a dated note, and a change implicating the
+*architecture* routes through M2. Step: `references/steps/detail.md`.
 
 ### 4. 实现 Implement → `plan.md` (mutable) + `progress.md`
 `plan.md` = vertical-slice task breakdown: each task tags the **`R-id`(s) it implements**;
 acceptance is a **binary** walk (`[x]`/`[!]`/`[ ]`, no subjective `[x]`). It implements the frozen
 design + `detail.md` and **may change freely** — but deleting / merging / deferring a task, or
-invalidating an `[x]`, is logged to `log.md` (only routine refinement is silent, M2 case B). The
-phase runs **autonomously** per「Two zones」; pause only on a design/requirement fork (→ M2), a real
-blocker, or a push request. Commit after each completed task and each review fix, one concern per
-commit (implement's Commit cadence). `progress.md` = the session-resume snapshot (M4); each
-finished slice also appends its one-line entry to `test.md`'s Unit registry (seeded at plan
-time — see 测试). Per-slice
-testing runs in one of two modes, chosen by the project's test-execution policy and recorded in
-`progress.md`: **TDD** (test-first red-green) or **test-after** (write/describe the test, defer the
-run) — both vertical, never all-code-then-all-tests. The phase ends with one behavior-preserving
-**simplify sweep** over the whole change (implement.md; XS/S may skip). Steps:
-`references/steps/plan.md`, `references/steps/implement.md`.
+invalidating an `[x]`, is logged to `log.md` (routine refinement is silent, M2 case B). The phase
+runs **autonomously** per「Two zones」; pause only on a design/requirement fork (→ M2), a real
+blocker, or a push request. Commit after each task and each review fix, one concern per commit.
+`progress.md` = the session-resume snapshot (M4); each finished slice appends one line to
+`test.md`'s Unit registry. Per-slice testing runs in the project's recorded mode — **TDD** or
+**test-after** — both vertical, never all-code-then-all-tests. The phase ends with one
+behavior-preserving **simplify sweep** over the whole change (implement.md; XS/S may skip).
+Steps: `references/steps/plan.md`, `references/steps/implement.md`.
 
 ### 5. 测试 Test → `test.md`
 **Skeleton-first, filled incrementally** — `test.md` is **seeded at plan time** (coverage table
-from the design's 验证策略, 回归 rows from 影响面) and the Unit registry grows one line per
-implement slice; this phase closes it out rather than reconstructing it. Close coverage (**by `R-id`** +
-every module interface op/invariant), add the tests that span slices (integration / 跨 part 联调 /
-manual / E2E), balance the pyramid, run the full suite (or describe the commands for "describe,
-don't run"), record a binary acceptance walk. A bug found here → **Prove-It** (failing test first,
-fix in an 实现 slice). Step: `references/steps/test.md`.
+from the design's 验证策略, 回归 rows from 影响面), grows one Unit-registry line per implement
+slice, and this phase **closes it out** rather than reconstructing it: coverage **by `R-id`** +
+every module interface op/invariant, cross-slice tests (integration / 联调 / manual / E2E), full
+suite run (or "describe, don't run"), a binary acceptance walk. A bug found here → **Prove-It**
+(failing test first, fix in an 实现 slice). Step: `references/steps/test.md`.
 
 ### 6. 评审 Close-out review (M+, gate) → `notes/review-*.md`
 After 测试, before `done`: run the `review` verb on the whole change. Sizing + skip rule:「Requirement
@@ -272,12 +245,11 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
   no line numbers) or a doc/source. Uncertainty → dispatch an Explore subagent to investigate;
   capture reusable findings to the KB. `references/steps/evidence.md`.
 - **M2 Change management** — reopening an approved decision is **gated at entry** (human-initiated,
-  or Claude escalates the fork as a proposed ledger row and waits) → **修改列表 first** (affected
-  closure: reverse depends-on + trace ripple; human confirms, zero writes before) → **propagate
-  along the spine, mode-specifically (追加/变更/撤销) and scoped** — never a wholesale regenerate →
-  re-approve = the 评审会 over the new proposed rows. Detail-only changes ride baseline force
-  (dated note); pure implementation reality → edit `plan.md` freely. Every change + why →
-  `log.md`. Full flow: `references/steps/change.md`.
+  or Claude escalates the fork as a proposed ledger row and waits) → **修改列表 first** (human
+  confirms, zero writes before) → **scoped, mode-specific propagation (追加/变更/撤销)** — never a
+  wholesale regenerate → re-approve over the new proposed rows. Detail-only changes ride baseline
+  force; pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`.
+  Full flow: `references/steps/change.md`.
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
   matching its KB concept); on a ledger card run `workflow-status.py --check` (the deterministic
@@ -300,20 +272,16 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 
 ## Subagent model assignment (cost)
 
-Checklist / gather / verification-driven subagent work defaults to the cheaper model (Agent tool
-`model: sonnet`); inference-heavy analysis, adjudication, and decisions stay on the session model.
-Safe because the orchestrator re-derives / adjudicates (M1; review step 5) — a cheaper finder costs
-recall at worst. Corollaries: **deterministic checks are scripted, not delegated**; every downgrade
-sits under M6 calibration — a sonnet dispatch whose findings repeatedly die in adjudication gets its
-downgrade revoked. Per-lens application: `review.md` step 4.
+Checklist / gather / verification subagent work defaults to the cheaper model (Agent tool
+`model: sonnet`); inference-heavy analysis and adjudication stay on the session model — safe
+because the orchestrator re-derives / adjudicates (M1; review step 5). **Deterministic checks are
+scripted, not delegated**; every downgrade sits under M6 calibration (findings that repeatedly die
+in adjudication revoke it). Per-lens application: `review.md` step 4.
 
 **Session-model tiering follows the two zones.** Decision-zone gates deserve the strong session
-model; the execution zone runs well on a cheaper one — the plan gate digest reminds the human to
-optionally switch `/model sonnet` + `/advisor opus` after go (the skill cannot switch models
-itself; a fresh session via `resume` makes the switch free — prompt caches are per-model). The
-tradeoff is explicit: with a cheap session model the 评审 adjudication also runs on it
-(advisor-assisted); like every downgrade this sits under M6 calibration — weak adjudication
-verdicts revoke it.
+model; the execution zone runs well on a cheaper one — the plan gate digest reminds the human of
+the optional `/model sonnet` + `/advisor opus` switch after go (a fresh session via `resume` makes
+it free). The cheap-model 评审 adjudication tradeoff sits under M6 calibration like every downgrade.
 
 ## Verbs
 
@@ -346,49 +314,38 @@ Any phase verb accepts a `use:<skill>` suffix to override that step's implementa
 ## Usage logging (self-feedback)
 
 Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging). This skill's `--action` = the
-verb just run
-(`new`/`requirement`/`design`/`detail`/`plan`/`test`/`investigate`/`diagnose`/`review`/`change`/`resume`/`check`/`retro`/`status`
-— `status` only as a deliberate standalone view). Exceptions: an `investigate` inside an active
-requirement logs `design` (it is that requirement's design step); implement-phase task work logs
-`plan` (one record per task/checkpoint). **One event = one record:** a KB write inside an
-`investigate`/`diagnose`/`review` run is covered by that record — only standalone KB work logs under
-xg-knowledge-lite.
+verb just run (vocabulary: `KNOWN_ACTIONS` in `tools/log-usage.py`; `status` only as a deliberate
+standalone view). Exceptions: an `investigate` inside an active requirement logs `design`;
+implement-phase task work logs `plan` (one record per task/checkpoint). **One event = one record:**
+a KB write inside an `investigate`/`diagnose`/`review` run is covered by that record — only
+standalone KB work logs under xg-knowledge-lite.
 
 ## Step binding (vendor + runtime override)
 
 Each step resolves to one implementation, by priority: (1) **runtime override** — `use:<skill>` on
-the verb, or a persisted `workflow.bindings:` step→skill entry in config; (2) **vendored default** —
-`references/steps/<step>.md`, a forked copy of a source skill's procedure (ours, editable anytime);
-(3) **inline** — steps with no third-party source. Rebind or edit the vendored file to change
-behavior; the **contract never changes**, only the implementation behind it. Fork origins:
-`references/provenance.md`.
+the verb, or a persisted `workflow.bindings:` entry in config; (2) **vendored default** —
+`references/steps/<step>.md`, a forked copy of a source skill's procedure (ours, editable; origins:
+`references/provenance.md`); (3) **inline** — steps with no third-party source. Rebind or edit the
+vendored file to change behavior; the **contract never changes**, only the implementation.
 
 ## References
 
-- `references/templates/` — the twelve doc templates (`requirement`, `design`, `adr`, `detail`,
-  `plan`, `progress`, `log`, `test`, `index`, `roadmap`, `decisions`, `facts`).
-- `references/steps/` — the per-step procedures, plus shared mechanisms referenced by multiple
-  steps.
-- `references/steps/grill.md` — shared interactive elicitation (requirement + design-grill):
-  one-question-at-a-time protocol + grill-log + rollback (supersede discipline) + convergence
-  auto-verdict; resume can continue a grill mid-phase.
-- `references/steps/adversarial-critic.md` — shared sharp-cut finder (fresh-context three-lens
-  critic + invariant-ledger replay + standing rules); used by requirement, design-grill, and review.
-- `references/steps/gate-digest.md` — shared decision-card presentation for every decision-zone
-  gate ask (comprehension-first cards + the 判断分工 split — 已验证(勿复核) / 待你判 with
-  stakes — + open questions before the go ask; decision-object references self-contained).
+- `references/templates/` — the twelve doc templates.
+- `references/steps/` — per-step procedures + shared mechanisms referenced by multiple steps.
+- `references/doc-conventions.md` — the doc-writing rules (read before writing any workflow doc).
+- `references/steps/grill.md` — shared interactive elicitation: one-question-at-a-time + grill-log
+  + rollback + convergence auto-verdict.
+- `references/steps/adversarial-critic.md` — fresh-context three-lens critic + invariant-ledger
+  replay; used by requirement, design-grill, review.
+- `references/steps/gate-digest.md` — the decision-card gate ask (判断分工: 已验证(勿复核) /
+  待你判 + stakes); read before every decision-zone gate ask.
+- `references/steps/review-deep.md` — the `review` verb's deep-tier continuation.
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.
 - `references/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).
-- `references/diagram-gotchas.md` — Mermaid pitfalls + ASCII CJK-width alignment (design diagrams).
+- `references/diagram-gotchas.md` — Mermaid pitfalls + ASCII CJK-width alignment.
 - `references/frontend-testing.md` — browser + mobile real-device testing (UI-facing slices only).
-- `references/steps/review-deep.md` — the `review` verb's deep-tier continuation (lens fan-out
-  menu, model-diversity sweep, saturation stop-rule); read when running a deep review.
-- `references/simplify-checks.md` — the two reuse/cohesion checks shared by implement's simplify
-  sweep and review's Standards axis (single source).
-- `references/smell-catalog.md` — Fowler code-smell names (leading words) for the review quality
-  lens; the no-repo-standard baseline.
-- **`codebase-design`** (external skill, referenced not vendored) — deep-module vocabulary +
-  Design-It-Twice (design-grill 方案优先) + dependency-categories→test-strategy (test) + the deletion
-  test (design-grill, implement).
+- `references/simplify-checks.md` — reuse/cohesion checks (implement's sweep + review Standards).
+- `references/smell-catalog.md` — Fowler code-smell names for the review quality lens.
+- **`codebase-design`** (external skill) — deep-module vocabulary, Design-It-Twice, the deletion test.
 - `tools/resolve-project.py` — cwd→project and `--dev-root` resolution (reads the shared config).
