@@ -17,9 +17,10 @@ Tests verify behavior through public interfaces, not implementation details —
 they read like a specification and survive refactors. Each maps back to a
 success criterion in `requirement.md`.
 
-> **Consolidation doc.** Per-slice unit tests were written during 实现 (TDD or test-after
-> mode); here you close coverage + add the tests that span slices (integration / 联调 / manual)
-> + record results. Note the project's test mode below.
+> **Skeleton-first doc.** Seeded at plan time (coverage table from the design's 验证策略,
+> 回归 rows from 影响面); 实现 appends one Unit-registry line per slice (TDD or test-after
+> mode); 测试 closes coverage + adds the tests that span slices (integration / 联调 / manual)
+> + records results — close-out, not reconstruction. Note the project's test mode below.
 
 ## Test plan
 
@@ -27,8 +28,8 @@ success criterion in `requirement.md`.
      (one sub-section or a Part column per part) and fill the 跨 part 联调 sub-section below;
      un-split designs leave both as-is. -->
 
-### Unit (from 实现 — inventory the per-slice tests)
-- [ ] <behavior> — which slice's test covers it (written in 实现 per the chosen mode).
+### Unit (registry — one line per slice, appended during 实现)
+- [ ] <behavior> — covered by which slice's test (cite `T<n>`; written in 实现 per the chosen mode).
 
 ### Integration
 - [ ] <behavior> — where / how.

@@ -272,7 +272,9 @@ design + `detail.md` and **may change freely** — but deleting / merging / defe
 invalidating an `[x]`, is logged to `log.md` (only routine refinement is silent, M2 case B). The
 phase runs **autonomously** per「Two zones」; pause only on a design/requirement fork (→ M2), a real
 blocker, or a push request. Commit after each completed task and each review fix, one concern per
-commit (implement's Commit cadence). `progress.md` = the session-resume snapshot (M4). Per-slice
+commit (implement's Commit cadence). `progress.md` = the session-resume snapshot (M4); each
+finished slice also appends its one-line entry to `test.md`'s Unit registry (seeded at plan
+time — see 测试). Per-slice
 testing runs in one of two modes, chosen by the project's test-execution policy and recorded in
 `progress.md`: **TDD** (test-first red-green) or **test-after** (write/describe the test, defer the
 run) — both vertical, never all-code-then-all-tests. The phase ends with one behavior-preserving
@@ -280,7 +282,9 @@ run) — both vertical, never all-code-then-all-tests. The phase ends with one b
 `references/steps/plan.md`, `references/steps/implement.md`.
 
 ### 5. 测试 Test → `test.md`
-**Consolidation** — per-slice unit tests were written in 实现; here close coverage (**by `R-id`** +
+**Skeleton-first, filled incrementally** — `test.md` is **seeded at plan time** (coverage table
+from the design's 验证策略, 回归 rows from 影响面) and the Unit registry grows one line per
+implement slice; this phase closes it out rather than reconstructing it. Close coverage (**by `R-id`** +
 every module interface op/invariant), add the tests that span slices (integration / 跨 part 联调 /
 manual / E2E), balance the pyramid, run the full suite (or describe the commands for "describe,
 don't run"), record a binary acceptance walk. A bug found here → **Prove-It** (failing test first,

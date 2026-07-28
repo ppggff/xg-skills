@@ -45,7 +45,9 @@ Output: `test.md` (template: `references/templates/test.md`).
 - **UI / mobile-facing slices** → see `references/frontend-testing.md` (browser + real-device testing).
 
 ## Procedure
-1. **Inventory the per-slice tests** already written in `实现` (per the chosen mode) — don't rewrite them.
+1. **Audit the Unit registry** — implement appended one line per slice into the skeleton
+   seeded at plan time; verify it is complete against the task list (a task with no registry
+   line = a hole), don't reconstruct it from memory.
 2. **Close coverage by `R-id`** — every `requirement.md` success criterion maps to ≥1 test; fill
    the "Coverage vs success criteria" table, **starting from the design's 验证策略 table when one
    exists** (each promised E2E scenario becomes a test/manual row; note any deviation from a

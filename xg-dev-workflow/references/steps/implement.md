@@ -186,7 +186,9 @@ skipped candidates in `progress.md` for the human. Record the sweep (or its skip
 
 ## Logging to progress.md (M4)
 After each slice update: task status table, changed files (+ why), any design iteration or
-discovered issue. `progress.md` is the resume contract — keep it current, not a diary.
+discovered issue — **plus one line in `test.md`'s Unit registry** (what the slice's tests
+cover, citing the `T<n>`; the skeleton was seeded at plan time). `progress.md` is the resume
+contract — keep it current, not a diary.
 
 **Plan churn (M2 case B):** refining a task in place is silent, but **deleting / merging /
 deferring a task — or invalidating an already-`[x]` acceptance — gets a one-line `log.md` `[实现]`
