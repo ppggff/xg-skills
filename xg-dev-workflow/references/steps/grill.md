@@ -166,7 +166,8 @@ both run this shared step.
    checkpoint** — after stating each verdict, commit a checkpoint to dev_root
    (`<project>/NNN-slug: grill <phase> round N — <verdict>`), which is what gives the next
    round's dry check its baseline (phase-gate commits alone are too coarse: all rounds of one
-   phase would share one baseline). XS/S: one adversarial pass suffices; M+: run passes until
+   phase would share one baseline). A mid-grill checkpoint may create `progress.md` early
+   (ahead of the implement phase) so a fresh session can resume the grill. XS/S: one adversarial pass suffices; M+: run passes until
    one comes up dry.
 3. **ADR-weighted open points**: an open point that is hard-to-reverse × surprising × a real
    trade-off (the ADR test) justifies another targeted round — recommend **continue** naming

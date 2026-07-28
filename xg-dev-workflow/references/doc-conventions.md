@@ -1,9 +1,9 @@
 # Doc conventions (all workflow docs)
 
 The writing rules for every doc this skill produces — phase docs, investigation/review notes,
-and KB 注记 alike. SKILL.md「Conventions」keeps the resident essentials (provenance markers, the
-wikilink form rule, Mermaid preference, core ID prefixes) and points here; this file is the
-single owner of the full rules. Read it before writing any workflow doc.
+and KB 注记 alike. SKILL.md keeps the resident essentials (the writing-style block, provenance
+markers, the wikilink form rule, Mermaid preference, core ID prefixes) and points here; this file
+is the single owner of the full rules. Read it before writing any workflow doc.
 
 ## Writing style & structure
 

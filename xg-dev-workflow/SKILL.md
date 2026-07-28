@@ -32,7 +32,8 @@ writing any workflow doc** (phase docs, investigation/review notes, KB 注记). 
   (assumption); `F<n>` fact blocks centralize them per container (card → `facts.md`).
 - **KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink** — load-bearing for the
   KB's incremental recompile; don't swap it for a markdown link.
-- **Diagrams — Mermaid preferred**; ASCII only for the trivial (rules: `references/diagram-gotchas.md`).
+- **Diagrams — Mermaid preferred**; ASCII only for the trivial or what Mermaid can't express
+  (rules: `references/diagram-gotchas.md`).
 - **Fixed ID prefixes** (one letter, one meaning). Core, resident: `NNN` card dir · `ADR-NNNN`
   decisions · `R<n>` requirement 条目 (R is **reserved**) · `T<n>` plan tasks · `M1`–`M6` this
   skill's mechanisms. Full registry — `G`/`L`/`D`/`MS`/`P`/`F`, review `#<n>`, the symbol budget,
@@ -55,8 +56,9 @@ authorization there are no per-phase stops (「Two zones」).
   doc, ask, and do not create or edit the next phase's doc until then. Unsure which phase is wanted
   → ask, don't assume the pipeline.
 - **The advance word is `go` — uniformly.** Phrase every advance ask around it, naming what it
-  authorizes (「确认后回 go,进入设计」/「go = 授权执行区」); comments or praise without a go are
-  feedback, not a go. Applies to every advance: phase gates, the execution authorization,
+  authorizes (「确认后回 go,进入设计」/「go = 授权执行区」); the human's `go` — or an equally
+  explicit equivalent in their own words — is the authorization; comments or praise without one
+  are feedback, not a go. Applies to every advance: phase gates, the execution authorization,
   continuing after a grill convergence verdict.
 - **Ask with receipts — write first, then ask.** An advance ask (and any reply that closes a verb
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
@@ -87,13 +89,14 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
 ## Ledger (决策账本) — the gate currency
 
 Gate approval's unit is the **decision, not the document**: each card's `decisions.md` is the
-**single source of approval status** for every human-judgment decision (block format, rewritable-
-views mechanics: `templates/decisions.md` 头注; digest & approve transcription: `gate-digest.md`).
+**single source of approval status** for every human-judgment decision (mechanics:
+`templates/decisions.md` 头注; digest & approve transcription: `gate-digest.md`).
 
 - **States**: proposed / approved / superseded / retired — the only enumeration; freeze (需求/设计)
   and baseline (详设) are **binding forces** approved carries by level, never state words.
 - **Gates approve rows**; Claude transcribes on go and **never self-approves**. Doc status is
-  **derived**: `confirmed`/`frozen`/`baseline` ⇔ that level's rows all approved.
+  **derived** — `confirmed`/`frozen`/`baseline` ⇔ that level's rows all approved (the
+  **derived-status rule**).
 - **Changing an approved decision = M2 reopen** (`change.md`). Cards without a ledger (pre-010)
   keep the old document-gate semantics **end to end**.
 
@@ -105,7 +108,8 @@ views mechanics: `templates/decisions.md` 头注; digest & approve transcription
   <project>/                        # == xg-knowledge-lite project name
     index.md                       # per-project kanban board (cards: Phase/整体状态/Deps)
     roadmap.md                     # project plan: next-up/themes/someday/rejected — M3 keeps it fed
-    investigations/                # standalone investigations: <slug>.md (no investigation- prefix) or <topic>/ campaign dir
+    investigations/                # standalone investigations: <slug>.md (no investigation- prefix)
+                                    #   or <topic>/ campaign dir
     reviews/                        # standalone review reports
     notes/                         # project-level scratch — event artifacts dated, living docs date-free
     legacy/                        # pre-workflow archive (read-only; never linked as canonical)
@@ -296,7 +300,7 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
   at its gate (Stop-at-gate). Past the `plan` gate the zone flows autonomously (「Two zones」) — you
   normally don't invoke `test` by hand.
 - `investigate <topic>` — **the front door for any code-behavior question** (feasibility,
-  runtime/concurrency, "调查 X"); KB-first, full M1 discipline, read-only. Step: `references/steps/investigate.md`.
+  runtime/concurrency, "调查 X"); KB-first, M1, read-only. Step: `references/steps/investigate.md`.
 - `diagnose <symptom>` — **the front door for defect localization** (bug, crash, perf regression);
   repro loop before any theory, fix lands via Prove-It. Step: `references/steps/diagnose.md`.
 - `review <target>` — **the front door for judging new/changed code**; also the M+ close-out gate;
