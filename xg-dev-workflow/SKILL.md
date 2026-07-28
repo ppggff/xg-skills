@@ -50,8 +50,8 @@ authorization there are no per-phase stops (「Two zones」).
   even if the prompt mentions later phases. Report the doc + the gate question, then wait. Chaining
   requires the human to invoke each verb, or to explicitly say "run straight through". (Exception:
   the human-opted, sizing-scoped gate mergers —「Requirement sizing」Gate merging.)
-- **A bare topic with no verb** means **`new` + `requirement` only**, then STOP. "调查 / investigate /
-  explore" means stop at understanding — never auto-advance to a chosen design.
+- **A bare topic with no verb** = `new` + `requirement` only, then STOP; 调查/investigate/explore
+  stops at understanding — never auto-advance to a chosen design.
 - **Gate = an explicit human go, this turn** — prior approval doesn't carry forward. Produce the
   doc, ask, and do not create or edit the next phase's doc until then. Unsure which phase is wanted
   → ask, don't assume the pipeline.
@@ -67,8 +67,7 @@ authorization there are no per-phase stops (「Two zones」).
   so an *omitted* write produces no edit and no check; the receipts requirement makes a missing
   write impossible to ask past.
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
-  phase's doc — not skipping it or jumping to implementation; the authoritative gate is the human
-  approving that doc.
+  phase's doc; the authoritative gate is the human approving that doc.
 
 ## Two zones: human-decision vs Claude-execution (one line, two meanings)
 
@@ -320,40 +319,26 @@ verdicts revoke it.
 
 Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 
-- `new <slug>` — resolve project + next `NNN` (zero-padded per project — scan the project dir for
-  the highest, increment), scaffold from templates, register project if missing, add an `index.md`
-  card row (初始整体状态 `todo`); a roadmap-sourced slug is marked graduated there; an ask born from a
-  tracker issue records it in `requirement.md` frontmatter `issue:` (the card↔issue anchor;
-  `progress.md` frontmatter carries the repo/branch/MR/merged anchors + an `issue:` mirror).
-  **Create files lazily**: `requirement.md` now; each later doc when its phase starts; `progress.md`
-  on first need (a mid-grill checkpoint may create it early); `adr/` on the first ADR.
+- `new <slug>` — resolve project + next `NNN` (zero-padded; scan the project dir, increment),
+  scaffold from templates, add the `index.md` card row (初始整体状态 `todo`); a roadmap-sourced slug
+  is marked graduated there; a tracker-born ask records `issue:` in `requirement.md` frontmatter
+  (the card↔issue anchor; `progress.md` carries the repo/branch/MR anchors). **Create files
+  lazily**: `requirement.md` now, each later doc when its phase starts, `adr/` on the first ADR.
 - `requirement` | `design` | `detail` | `plan` | `test` — advance **exactly one** phase, then stop
   at its gate (Stop-at-gate). Past the `plan` gate the zone flows autonomously (「Two zones」) — you
   normally don't invoke `test` by hand.
 - `investigate <topic>` — **the front door for any code-behavior question** (feasibility,
-  runtime/concurrency, "调查 X"). KB-first, full M1 discipline; branches on context — active
-  requirement → it is that requirement's design step; standalone → findings to the KB. Read-only on
-  product code (an empirical question may run a throwaway **spike**). Step:
-  `references/steps/investigate.md`.
-- `diagnose <symptom>` — **the front door for defect localization** (bug, crash, perf regression):
-  feedback-loop-first — a red-capable repro loop before any theory; the fix lands via Prove-It.
-  Branches like investigate (active card → the fix is an 实现 slice; standalone → propose the fix and
-  wait). Step: `references/steps/diagnose.md`.
-- `review <target>` — **the front door for judging new/changed code** (commit range, branch, PR, or
-  current diff): KB context pack + **stake-tiered dispatch** (light: orchestrator-only · standard:
-  three axis agents · deep: staged lens fan-out + different-model sweep), every finding adjudicated
-  against actual code; report ends with a 修复决策表 and lands in dev_root (requirement
-  `notes/review-*.md`, or standalone `<project>/reviews/`). Also the M+ close-out gate. Read-only.
-  Step: `references/steps/review.md`.
+  runtime/concurrency, "调查 X"); KB-first, full M1 discipline, read-only. Step: `references/steps/investigate.md`.
+- `diagnose <symptom>` — **the front door for defect localization** (bug, crash, perf regression);
+  repro loop before any theory, fix lands via Prove-It. Step: `references/steps/diagnose.md`.
+- `review <target>` — **the front door for judging new/changed code**; also the M+ close-out gate;
+  read-only, report lands in dev_root. Step: `references/steps/review.md`.
 - `change` — drive the M2 flow.
 - `resume [<slug>]` — rebuild state from `progress.md` + the phase docs (M4).
 - `check [<slug>]` — run the M3 check.
-- `status [<project> …]` — the card view: every card's pipeline position, board 整体状态/Deps, progress
-  Now/Next/Blockers, and the gate-derived next step; read-only, computed on demand by
-  `tools/workflow-status.py` (`--json` for scripts; `--trace <project>/<card>` renders the derived
-  R→design→task→test→commit trace matrix from the designated mapping fields, flagging unimplemented
-  / uncovered R-ids). `tools/viewer.py` serves the same data as a browsable localhost HTML view,
-  with an optional gitweb companion for the project repos' code — details in README.
+- `status [<project> …]` — the card view (pipeline position, board 整体状态/Deps, gate-derived next
+  step); read-only, computed by `tools/workflow-status.py` (`--json`; `--trace` renders the
+  R→design→task→test→commit matrix); `tools/viewer.py` serves the browsable HTML view — README.
 - `retro` — review and enhance the skill/docs (M6).
 
 Any phase verb accepts a `use:<skill>` suffix to override that step's implementation for this run.
