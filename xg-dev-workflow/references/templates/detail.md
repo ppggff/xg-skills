@@ -70,6 +70,6 @@ Append a dated line per change after baseline; architecture-implicating changes 
 
 - YYYY-MM-DD: <what changed + why>
 
-## Open questions
+## Open questions (optional — free list)
 
 - …

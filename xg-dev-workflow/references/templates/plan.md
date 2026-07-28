@@ -23,7 +23,7 @@ updated: YYYY-MM-DD
 > already-`[x]` acceptance — gets a one-line `log.md` `[实现]` entry (what + why)**, so a dropped
 > task leaves a trail (was-it-done? why-gone?) instead of vanishing (M2 case B).
 
-## Overview
+## Overview (optional — a one-paragraph orientation; skip when the design 思路 suffices)
 
 One paragraph: what this plan builds, against which design.
 
@@ -57,6 +57,6 @@ One paragraph: what this plan builds, against which design.
 |------|--------|------------|
 | … | H/M/L | … |
 
-## Open questions
+## Open questions (optional — free list)
 
 - …

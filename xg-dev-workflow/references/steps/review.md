@@ -143,6 +143,8 @@ SKILL.md「Requirement sizing」.
      a same-day second round appends `-2`), plus a row in `progress.md` (Discovered issues /
      Design iterations as appropriate).
    - Standalone → `<dev_root>/<project>/reviews/YYYY-MM-DD-<slug>.md`.
+   - Close-out review landing also sets `plan.md` frontmatter `status: done` (the plan's
+     lifecycle closes with the card, plan step 7).
    Shape: 总体结论 (approval standard: approve when the change definitely improves
    overall code health — not when it's perfect; include the 5b saturation-verdict
    one-liner) → findings by severity with

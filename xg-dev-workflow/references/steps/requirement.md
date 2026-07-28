@@ -29,6 +29,9 @@ not transcribe the words.
    point at it instead); **(b) prior rejection** — scan the project `roadmap.md`
    「Rejected / won't do」ledger (and ADRs in the area) so a previously-rejected proposal
    doesn't return unnoticed; if the ask resembles an entry, surface it before continuing.
+   **Write side:** when an ask is rejected at requirement level (triage or the confirm gate),
+   append it to that ledger (`roadmap.md`「Rejected / won't do」, one line: what + why + date)
+   — the anti-resurrection scan only works if rejections actually land there.
 2. **Grill one question at a time** — the shared protocol + **grill-log** + **rollback** + **convergence auto-verdict** live in
    `grill.md`; here, walk the decision tree toward the sections
    (Context/**需求条目**/Scope/Constraints/Effect/Future/Open questions).

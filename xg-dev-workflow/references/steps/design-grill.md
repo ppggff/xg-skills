@@ -66,7 +66,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
 
 ## Procedure
 
-1. **Understand before designing (M5).** Concept → layer. Query xg-knowledge-lite for what
+1. **Understand before designing (M5) — lands in the template's「Understanding」section**
+   (evidence → mechanism → implication, not a fact list). Concept → layer. Query xg-knowledge-lite for what
    we already know — **Orient surfaces the project's `architecture` overview + `*-invariants`
    ledgers first** (the map + the rules); use Plan Mode / Explore subagent to investigate existing
    code (read-only). **Link this design to `[[wiki/<project>/architecture]]`** rather than
@@ -111,7 +112,10 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      and in the `review` verb's whole-change pass.
    - **Walk the design-quality lenses (per Core values)** — for each candidate approach grill
      简单可靠 (首要) · 可测试性 · 可观测性 · 异常完整性 (每异常有归属或兜底,兜底可人工;罕见不另立
-     结构) · 性能 + 规模放大后的性能. For genuinely architectural designs also walk the
+     结构) · 性能 + 规模放大后的性能. **Write the conclusions into the template's「Design
+     qualities」section** (one line each) — a lens walked only in chat leaves the doc empty.
+     When the chosen approach touches any storage, **fill the「存储足迹」table** as the modules
+     crystallise (it feeds 影响面's 兼容/ABI 面). For genuinely architectural designs also walk the
      **lifecycle** (bootstrap / 升级 / 回滚 / 长跑漂移 / 下线), each phase with an owner (opt-in —
      skip for structure-light changes).
    - **Module-depth lens (`codebase-design`)** — is the new module **deep** (small interface, lots
@@ -153,6 +157,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      human still gates.
    - **Update `design.md` inline** — as each decision crystallises, write it into the doc
      right then; don't batch edits to the end. The doc tracks convergence in real time.
+     After each round's fold-in, **regenerate the 速览 section** (术语表 / staging vocabularies /
+     待拍 gates — it is regenerated, never appended) so the fixed first stop stays current.
 4. **Map to the requirement by R-id** — fill "How it meets the requirement": each
    `requirement.md`「需求条目」`R-id` → the module/contract that satisfies it (plus scope/
    constraints/effect/future). An R-id with no design home is a gap → back to 需求 or change-management.
@@ -166,7 +172,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out review.
 6. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
    (see `adr.md`).
-7. **Freeze gate:** before the ask, run the **假设 closure sweep** — enumerate the doc's
+7. **Freeze gate:** before the ask, check the template's conditional/required sections are
+   filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
+   存储足迹 (when the design touches storage) · 验证策略 (M+) — then run the **假设 closure sweep** — enumerate the doc's
    load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row

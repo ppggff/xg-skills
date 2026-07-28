@@ -111,7 +111,9 @@ parts are tags inside the **single** `plan.md`/`test.md`, "regenerate the affect
 **Never** absorb a disproved contract by quietly editing `plan.md` — that's case B, the opposite.
 
 ## Always
-Append every change (either case) to `log.md` — one line: **what changed + why** (the trigger:
+Append every change (either case) to `log.md` — one line, **tagged with its 类型**
+(`[需求]`/`[设计]`/`[范围]`/`[纠错]`/… per the template's tag enumeration): **what changed +
+why** (the trigger:
 requirement shift / infeasibility / reality). `progress.md` holds the new *state*; `log.md` holds
 the *history*.
 

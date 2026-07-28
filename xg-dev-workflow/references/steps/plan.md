@@ -36,7 +36,8 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    subagents inherit the advisor), ideally in a fresh session (`resume <slug>`); switch back
    when re-entering a decision gate. The human's go here is the one-time autonomy
    handoff (SKILL.md「Two zones」). May arrive merged with the 详设 baseline when the human
-   opted in (SKILL.md「Requirement sizing」Gate merging).
+   opted in (SKILL.md「Requirement sizing」Gate merging). On go, set `plan.md` frontmatter
+   `status: active` (→ `done` at close-out, review step 6).
 
 Guardrail: this plan must stay faithful to the frozen design. If planning reveals the
 design is wrong, **stop and run change-management (M2)** — don't quietly diverge. The plan is

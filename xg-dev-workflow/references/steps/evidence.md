@@ -113,6 +113,12 @@ every sentence. An unmarked non-trivial assertion reads as evidence-backed — i
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.
 A flagged gap is more useful than false confidence.
 
+## Persistence
+
+A verified load-bearing fact on a ledger card gets an `F<n>` block in the card's `facts.md`
+(grill.md「载重事实入账」) so doc rewrites can't lose it; standalone docs keep a doc-local
+事实清单 (`references/id-schemes.md` F-id scoping).
+
 ## Citation form in docs
 - code: `` `TpFrozenShmemGetMin()` in `appserver.c` ``
 - knowledge: `[[wiki/cbdb/appserver-epoch-shmem]]`

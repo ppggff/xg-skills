@@ -52,6 +52,12 @@ priorities and tactics (see "Phase-specific layers").
   is created lazily on the first block, like `adr/`) — the gate digest is generated from these
   pending rows. Claude never writes `approved` (gate-digest.md「Approve transcription」). The
   round's checkpoint commit is what the eventual approve annotation will cite as receipts.
+- **载重事实入账 (facts as you verify).** When a grill/investigate round **verifies a
+  load-bearing fact** a decision rests on, append it to the card's `facts.md` as an `F<n>`
+  block right then (`templates/facts.md`; created lazily like `decisions.md`) and cite it as
+  `[F<n>]` from the phase doc. Boundary with the adversarial-critic **verified-facts pack**:
+  the pack is session-state (avoids re-verifying within a grill); `facts.md` is the card's
+  persistent layer — only facts that later phases/rewrites will lean on get an F block.
 - **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
   requirement intake; design with live candidate approaches), the first round(s) may run
   **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction

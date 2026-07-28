@@ -72,6 +72,7 @@ Output: `test.md` (template: `references/templates/test.md`).
 `test use:agent-skills:test` or `use:<your-skill>`.
 
 ## Done when
+- `test.md` frontmatter `status` set from the Results walk (`passing` / `failing`).
 - Every success criterion (every `R-id`) maps to ≥1 test; **if a module was introduced, every
   interface operation + contract invariant also maps to ≥1 test**; results recorded. Then run the
   omission check (M3).
