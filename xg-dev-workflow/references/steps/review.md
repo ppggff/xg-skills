@@ -18,7 +18,10 @@ discipline, and M3's test-consistency check only fires if you actually run it af
 standard close-out gate** for an M-or-larger requirement — run after 测试, before the card goes
 `done`, so every non-trivial change ends with both a test doc and a review doc. In the close-out
 case a requirement is active, so it lands in `<requirement>/notes/review-*.md` (see step 6) and the
-context pack should pull that requirement's `requirement.md`「需求条目」/ frozen `design.md`「影响面」.
+context pack should pull that requirement's `requirement.md`「需求条目」/ frozen `design.md`
+「影响面」+「验证策略」— the close-out **checks the promised scenarios ran**: every 验证策略 row
+maps to an executed test/check in `test.md` (or a recorded, reasoned downgrade); a silently
+dropped scenario is a finding. The report carries the per-row verdict.
 XS/S structure-light work may skip the close-out — then record `XS/S — review skipped` in
 `progress.md`'s `Close-out:` line (the M3 gate is "review doc OR skip note"); see
 SKILL.md「Requirement sizing」.

@@ -1,6 +1,6 @@
 # Lint — the checklist (disclosed reference for SKILL.md「Lint」)
 
-Seven checks, then the authority split and execution notes. Section numbers (§1–§7) are cited
+Eight checks, then the authority split and execution notes. Section numbers (§1–§8) are cited
 from elsewhere in the skill — keep them stable.
 
 1. **Coverage** — every `raw/<project>/*.md` is cited by at least one concept's Sources **or
@@ -31,14 +31,19 @@ from elsewhere in the skill — keep them stable.
    **evidence-cited** (`func()` in `file.c` or a raw link); a subsystem with concepts but no
    invariant ledger is a **soft** flag (best-effort, don't force one where there are no
    invariants).
+8. **Reverse coupling** — no raw/wiki article content links or paths into `dev_root` workflow
+   docs (a `dev-workflow`/dev_root path, a card `NNN-slug` doc reference). Workflow docs → KB
+   is one-way (FORMAT.md「Reverse coupling」promises "Lint flags the reverse" — this is that
+   check); a hit → move the content or drop the link.
 
 Authority (two levels): **deterministic findings are auto-fixed** —
 §2 index rows, §3 link paths, §4 frontmatter fields, §1's mechanical `compiled_to:`
 back-annotations; **judgment findings are report-only** — contradictions, concept-promotion
-(§1), terminology/scope calls (§5), size splits (§6), designated-doc gaps (§7) go to the user
+(§1), terminology/scope calls (§5), size splits (§6), designated-doc gaps (§7),
+reverse-coupling moves (§8 — the flag is deterministic, the fix is a judgment) go to the user
 with a suggestion, never silently fixed.
 
-Execution (cost): §2 / §3 / §4 / §6 are deterministic — script them when tooling exists; run
+Execution (cost): §2 / §3 / §4 / §6 / §8's grep are deterministic — script them when tooling exists; run
 the rest (and any unscripted deterministic item) via one cheaper-model agent (Agent tool
 `model: sonnet`) that returns only the violation list — the orchestrator re-verifies each
 finding, then applies it per the authority split above. (Same principle as xg-dev-workflow's

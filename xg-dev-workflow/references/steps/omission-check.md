@@ -76,15 +76,20 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       **un-split** design is **not required** to have a Parts section — do **not** flag its absence.
 - [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it.
 - [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
-      TL;DR, the **diagrams** (module-interaction + data-flow; **Mermaid preferred**, ASCII fallback),
-      the **影响面 (impact surface)** section, and — if it introduces a module — that module's
-      **interface contract** (operations + invariants, not signatures).
+      TL;DR, a current **速览** (regenerated, not appended), the **diagrams** (module-interaction
+      + data-flow; **Mermaid preferred**, ASCII fallback), the **影响面 (impact surface)** section,
+      the **验证策略** table (M+ cards), the **存储足迹** table (when the design touches storage),
+      and — if it introduces a module — that module's **interface contract** (operations +
+      invariants, not signatures).
 - [ ] **Close-out review** — a requirement at `done` / Phase=测试 complete has **either** a close-out
       review doc under `notes/review-*.md` **or** an explicit skip/grandfather note in `progress.md`
       (`XS/S — review skipped`, or `pre-gate done` for cards finished before the gate existed —
       both satisfy the gate and are honored by `workflow-status.py`). Size (XS/S vs M+) is a human judgment (see SKILL.md「Requirement sizing」); M3
       checks only that **one of the two is present** — so it needs no size signal of its own, and an
       M+ card that silently lacks both is the violation. (Mirrors the board `done` monotonic constraint.)
+      **Shape check** (existence-level only): when a review doc exists and the design has a 验证策略
+      table, the doc contains the per-row promised-scenarios 核对结果 (content verification itself
+      is review.md's job).
 - [ ] **Status/dates** — frontmatter `status` and `updated` reflect reality; design is
       `frozen` only if approved.
 - [ ] **Terminology consistent** — each domain term in the doc has a **single canonical
