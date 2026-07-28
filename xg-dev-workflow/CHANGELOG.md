@@ -4,6 +4,19 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-28 — retro(012): 压缩编辑先列语义点 · requirement 消费已批笔记 · --check 空 depends-on 修复
+
+**动机(card `xg-skills/012` 当日复盘)**: (1) T4 字面精简误剪 go-等效授权半句,评审双轴抓回
+——R5 有语义点清单而 R4 全面无清单,是方法学缺口;(2) 本卡需求期把 grill 折进 gate digest
+(scope 已获本 session 明确 go),流程顺畅但无明文依据,补成规则;(3) 需求期实地踩中
+`workflow-status.py --check` 误报: 空 `- depends-on:` 行经 `\s*` 跨行吞掉下一行,判为
+dangling-id(模板本说 "or omit the line",解析器应双向健壮)。
+
+- repo CLAUDE.md editing conventions 新增: trim/compression edits list semantic points first。
+- `references/steps/requirement.md` step 1 新增: ask born from an approved analysis note 消费
+  该笔记、只 grill 其余留(design-grill「pre-design」的需求侧 sibling)。
+- `tools/workflow-status.py` parse_ledger deps regex `\s*` → `[ \t]*`,附回归测试(38 tests OK)。
+
 ## 2026-07-28 — 012 常驻面瘦身: SKILL.md 447→351 行,写作细则下推 doc-conventions.md
 
 **动机(card `xg-skills/012-skill-context-rightsizing`,源: Claude 5 context-engineering

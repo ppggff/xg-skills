@@ -32,6 +32,11 @@ not transcribe the words.
    **Write side:** when an ask is rejected at requirement level (triage or the confirm gate),
    append it to that ledger (`roadmap.md`「Rejected / won't do」, one line: what + why + date)
    — the anti-resurrection scan only works if rejections actually land there.
+   **Ask born from an approved analysis note** (an audit/proposal the human already reviewed —
+   the requirement-side sibling of design-grill's "card graduated with pre-design"): consume the
+   note — seed the sections from it and grill only what it left open; when the note's scope got
+   an explicit go this session, assumption-surfacing may fold into the confirm-gate digest
+   instead of a standalone grill round.
 2. **Grill one question at a time** — the shared protocol + **grill-log** + **rollback** + **convergence auto-verdict** live in
    `grill.md`; here, walk the decision tree toward the sections
    (Context/**需求条目**/Scope/Constraints/Effect/Future/Open questions).
