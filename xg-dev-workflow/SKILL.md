@@ -91,27 +91,16 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
 
 ## Ledger (决策账本) — the gate currency
 
-Gate approval's unit is the **decision, not the document**. Each card keeps `decisions.md`
-(templates/decisions.md) — the **single source of approval status** for every human-judgment
-decision (requirement 条目 · design D/ADR · 详设 `S<n>` · execution-zone escalations;
-implementation-level decisions stay `log.md`):
+Gate approval's unit is the **decision, not the document**: each card's `decisions.md` is the
+**single source of approval status** for every human-judgment decision (block format, rewritable-
+views mechanics: `templates/decisions.md` 头注; digest & approve transcription: `gate-digest.md`).
 
-- **States** (the only enumeration): proposed / approved / superseded / retired. Freeze and
-  baseline are **binding forces** approved carries by level (requirement/design = freeze force:
-  reopen only via M2; detail = baseline force: dated-note refinement never reopens), never
-  state words.
-- **Gates approve rows** — the digest's cards are generated from pending rows
-  (`gate-digest.md`); on go, Claude transcribes approvals (`approved:` note cites the receipts
-  commit). Claude never self-approves. Doc status fields are **derived**: `confirmed` /
-  `frozen` / `baseline` ⇔ that level's rows all approved — the **derived-status rule**;
-  the ADR `Status:` line is a display snapshot of it.
-- **Docs become rewritable views** — synthesis prose may be rewritten anytime; the invariants
-  are "cite the ledger id / `[F<n>]` fact, never contradict an approved decision"
-  (`workflow-status.py --check` runs the deterministic subset; M3 judges semantics). Facts
-  live in `facts.md` so rewrites can't lose them.
-- **Changing an approved decision = M2 reopen** (`change.md`): 修改列表 first, human confirms,
-  then supersede + scoped propagation. Cards without a ledger (pre-010) keep the old
-  document-gate semantics end to end.
+- **States**: proposed / approved / superseded / retired — the only enumeration; freeze (需求/设计)
+  and baseline (详设) are **binding forces** approved carries by level, never state words.
+- **Gates approve rows**; Claude transcribes on go and **never self-approves**. Doc status is
+  **derived**: `confirmed`/`frozen`/`baseline` ⇔ that level's rows all approved.
+- **Changing an approved decision = M2 reopen** (`change.md`). Cards without a ledger (pre-010)
+  keep the old document-gate semantics **end to end**.
 
 ## Layout (requirement-centric)
 

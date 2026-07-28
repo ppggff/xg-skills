@@ -19,6 +19,10 @@ Contract (design 010, ADR-0001):
   the old text). Everything else: supersede into a new block.
 - `approved:` must carry the gate receipts-commit short hash (the ledger state the human saw);
   the approve transcription commits immediately after — adjacent in git, auditable.
+- Docs are rewritable views over this ledger: synthesis prose cites the ledger id / `[F<n>]`
+  fact and never contradicts an approved decision — `workflow-status.py --check` runs the
+  deterministic subset, M3 judges semantics. The ADR `Status:` line is a display snapshot of
+  the derived status (SKILL.md「Ledger」derived-status rule).
 - `depends-on:` is the ONLY dependency source tools parse (comma-separated ids, **one
   line** — a wrapped continuation is silently ignored); prose mentions of ids inside
   陈述/why are not references.
