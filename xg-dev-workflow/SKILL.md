@@ -254,8 +254,8 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
   matching its KB concept); on a ledger card run `workflow-status.py --check` (the deterministic
   ledger subset — id integrity, derived-status mappings, cycles; exit 1 = findings); reusable
-  knowledge captured to the KB via xg-knowledge-lite Write and
-  compiled — or explicitly noted as deferred. `references/steps/omission-check.md`.
+  knowledge captured to the KB (xg-knowledge-lite Write + compile) or explicitly noted as
+  deferred. `references/steps/omission-check.md`.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for
   resume**; `log.md` = append-only why-history, **never on the resume path**. Never rebuild from
   chat history. Keep a decision-zone grill in one unbroken window (don't compact mid-grill); in the
