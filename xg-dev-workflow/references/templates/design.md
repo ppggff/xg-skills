@@ -28,7 +28,8 @@ restate after one read. **≤ 2 sentences.** Name the **one** method/metaphor an
 **exclude** mechanism detail (locks / hooks / modules / RPC / file names), performance &
 motivation, alternatives, and constraints — each of those has its own section below.
 
-- ✅ 「用选举解决：多个 coordinator 选举，只有成为 active 的运行 autovacuum/autocluster，其余 standby；active 失联则 standby 接力。」
+- ✅（示意）「用选举解决：多个 coordinator 选举，只有成为 active 的运行 autovacuum/autocluster，
+  其余 standby；active 失联则 standby 接力。」
 - ❌ a dense paragraph naming the thin module, the coordination substrate, the kernel hook,
   "no enumeration", overhead-vs-correctness, anti-wraparound … — that's the *rest of the doc*,
   not the 思路.
@@ -223,10 +224,8 @@ hack/patch is a **conscious debt decision** — record it + the intended follow-
 a new card), never a silent default.
 
 ### Alternative A — <name>
-- Class (hack / 补丁 / 重做) · Pros / Cons / **Cost** / Why rejected.
-  e.g.（示意）「Alternative B — 指定单 coordinator 硬编码 · Class: hack · Pros: 零协调开销 ·
-  Cons: 指定节点故障即全停 · **Cost**: 单点 + 运维手工切换 · Why rejected: 与 R2（高可用）
-  直接冲突，且迁移到选举方案时该硬编码要整体拆除。」
+- Class (hack / 补丁 / 重做) · Pros / Cons / **Cost** · Why rejected — name the conflicting
+  R-id/constraint, and any migration cost the option would leave behind.
 - Comparative claims about existing code carry provenance **from the first draft** (VERIFIED /
   INFERRED / 推断 per claim) — an unread-code claim doesn't go in the comparison (M1;
   design-grill 方案优先).

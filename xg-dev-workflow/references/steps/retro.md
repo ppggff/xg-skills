@@ -53,7 +53,8 @@ incident — date, card-id, calibration numbers, transcript quote — goes in th
 (step 5), **never inlined in the body** as `(Learned YYYY-MM-DD: card-NNN …)`. An inline dated
 justification is Sediment the moment it lands: the executing agent needs the rule, not the
 incident that birthed it. If a rule is opaque without an example, keep a **bare, undated** example
-and send the date/card-id to the CHANGELOG.
+and send the date/card-id to the CHANGELOG. Template examples follow the repo CLAUDE.md editing
+convention: contrast-pair preferred, ≤6 lines, marked 「示意」.
 
 **Prune your own additions first.** Before finishing, run the three tests below on the lines *this
 retro just wrote* — the newest layer is the one most likely to sediment, and the one still cheap
