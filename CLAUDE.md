@@ -25,7 +25,7 @@ The two are siblings: the workflow *orchestrates* code work and links out to the
 ```
 
 - **`SKILL.md`'s `description` frontmatter is the activation/trigger surface.** Editing it changes *when* Claude Code invokes the skill — treat it as load-bearing, not a comment.
-- `references/` files are pulled in by name as the procedure needs them, keeping the always-loaded surface small. When adding a step/template, wire it into `SKILL.md` (and the relevant step file) or it is dead.
+- `references/` files are pulled in by name as the procedure needs them, keeping the always-loaded surface small. When adding a step/template — or a **section within a template** — wire it into `SKILL.md` (and the relevant step file) or it is dead (invariant 6 below is the general rule).
 
 ## Cross-file invariants (not discoverable from a single file)
 
@@ -44,6 +44,11 @@ These are the things that break silently if you edit one file and forget the cou
 4. **Wikilink direction is a dependency rule, not a style choice** (xg-knowledge-lite): the load-bearing link is **concept → raw** (a concept's `Sources` list), which is what drives incremental recompile. `raw → raw` is navigation; a `raw → concept` link is navigation-only — **raw must never depend on a concept**, because the model's invariant is "wiki is recomputable from raw." Workflow docs → KB is one-way; the KB never links back into `dev_root`.
 
 5. **`log-usage.py` enforces a canonical action vocabulary** (`KNOWN_ACTIONS` in the script). If you add or rename a verb/action in either `SKILL.md`, update that set in `log-usage.py` (and re-sync the copies) — off-vocabulary actions still log but emit a warning and fragment the retro report.
+
+6. **Structural edits must backfill their cross-references in the same batch** (the general rule; the anatomy note above and invariant 5 are its file-level and verb-table instances). Concretely:
+   - (a) When changing a term, ID scheme, deferral phrase, or mechanism wording that other files cite, grep `SKILL.md` + `references/` of **both** skills for stale references to the old wording and fix them in the same commit batch — two past evolutions (the 详设 phase introduction, the 010 ledger) skipped this and each left a crop of broken hand-offs (see the 2026-07-27 template-explicitness audit).
+   - (b) When adding a template section, wire a filling instruction into the owning step file **or** mark the section optional in the template — a section nobody is instructed to write is dead weight.
+   - `references/steps/retro.md` runs the same sweep as a retro backstop; this entry is the always-loaded trigger.
 
 ## xg-dev-workflow: the step-binding model
 

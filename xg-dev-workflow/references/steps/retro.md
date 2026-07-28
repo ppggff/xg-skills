@@ -24,9 +24,12 @@ fixes back into the workflow itself — so the skill compounds.
 3. **Propose the edits**, smallest-diff first; confirm with the human before changing
    SKILL.md or templates (they affect every future requirement).
 4. **Apply**, then run the omission check on any workflow docs touched. When a SKILL.md
-   mechanism/verb changed, also grep `references/steps/*` and `references/templates/*` for
-   stale references to the old wording — cross-file drift is the most common retro
-   regression (the omission check alone only covers the doc being edited).
+   mechanism/verb changed — or any multiply-referenced term/ID/deferral wording in a
+   template/step changed — the cross-file stale-reference grep over `SKILL.md` +
+   `references/` of both skills is **mandatory, not advisory** (repo CLAUDE.md
+   Cross-file invariant 6; this retro sweep is the backstop — the invariant fires at
+   edit time). Cross-file drift is the most common retro regression (the omission
+   check alone only covers the doc being edited).
 5. **Record the change history (the skill is git).** When this retro changed skill behavior,
    append a dated, **behavior-level** entry to the skill's `CHANGELOG.md` (what changed + why —
    the curated view, not a raw git diff) — **this is where the motivating incident lives** (date,
