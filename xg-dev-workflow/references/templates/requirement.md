@@ -23,7 +23,10 @@ updated: YYYY-MM-DD
 Why this is being done — the problem or need, what prompted it, the intended outcome.
 State assumptions explicitly. Every non-trivial claim cites code (`func()` in `file.c`) or a
 doc/`[[wiki/<project>/<slug>]]`; **mark each load-bearing claim's provenance** — evidence-cited /
-推断 (inferred) / 假设 (assumption) — per M1.
+推断 (inferred) / 假设 (assumption) — per M1. e.g.（示意）：
+「serverless 池化后同集群可有多个 coordinator（`pool_register()` in `pool_mgr.c`——evidence）；
+现网已出现双 launcher 并跑（工单 #123——evidence）；预计规模一年内 10×（假设——容量组口头，
+待书面确认）。」——每个载重句子自带标注，读者一眼可分「查过的」与「赌的」。
 
 ## 需求条目 (Requirement items) — the canonical itemized list
 

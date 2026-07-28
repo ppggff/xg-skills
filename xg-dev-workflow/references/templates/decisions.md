@@ -22,6 +22,11 @@ Contract (design 010, ADR-0001):
 - `depends-on:` is the ONLY dependency source tools parse (comma-separated ids, **one
   line** — a wrapped continuation is silently ignored); prose mentions of ids inside
   陈述/why are not references.
+
+Decision-shaped 陈述, e.g.（示意）:
+  ✅ 陈述: 心跳超时取 3×interval（9s）—— 一句话内有对象、有取值、可直接判对错;
+     why: 2×在 GC 停顿下误判接管；alt: 固定 30s — 接管迟钝，违背 R3 的 5s 目标。
+  ❌ 陈述: 「优化超时逻辑」——无对象无方向，gate 无从判，digest 卡片也无法复述。
 -->
 
 ### R1 [requirement] proposed

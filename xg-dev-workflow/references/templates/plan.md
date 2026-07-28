@@ -39,6 +39,8 @@ One paragraph: what this plan builds, against which design.
 - **Acceptance:** (binary walk — `[x]` only when its verification test passes; `[!]` if it
   failed; `[ ]` unverified. No subjective `[x]`.)
   - [ ] <testable condition>
+    e.g. ✅「`--check` 对含悬空 depends-on 的 fixture 卡 exit 1 且指名坏行」（可跑、可判）；
+    ❌「账本检查工作正常」（主观形容，binary walk 无从打钩）。（示意）
 - **Verification:** test / build / manual check (e.g. cbdb: describe, do not run, unless asked).
 - **Dependencies:** None | T<n>
 - **Files likely touched:** `path/...`

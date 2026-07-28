@@ -47,6 +47,11 @@ For each key operation:
 - **幂等 (idempotency):** the idempotency point / re-entry behaviour.
 - **决策来源:** references the ADR(s) this embodies; small load-bearing choices justified inline.
 
+e.g.（示意）「standby 超时接管」：触发点 = 心跳循环发现 lease 过期；步骤 = 1. CAS 抢占 lease 行
+2. 复核自身仍健康 3. 广播新 active；加锁 = lease 行 CAS、无表锁；错误&边界 = CAS 失败 → 留在
+standby（安全方向 = 宁可无 active 也不双 active）；幂等 = 以 lease epoch 为界，重入不重复广播；
+决策来源 = ADR-0002。——「错误&边界」写指向安全侧的具体行为、「幂等」写重入点，不是「做了处理」。
+
 ## 代码级接口 (code-level interfaces)
 
 The concrete code `design.md` deferred — keep consistent with the design's contract table.
