@@ -324,7 +324,7 @@ class LedgerCheck(unittest.TestCase):
         self.assertEqual(by["R2"]["dstate"], "proposed")
 
     def test_detail_baseline_mapping_and_s_ids(self):
-        # R12 detail mapping + S<n> blocks (baseline force lives in process; the tool
+        # derived-status detail mapping + S<n> blocks (baseline force lives in process; the tool
         # checks the status mapping and level aggregation)
         led = ("### S1 [detail] approved\n- 陈述: concrete pick\n"
                "- approved: 2026-07-28 gate abc1234\n")

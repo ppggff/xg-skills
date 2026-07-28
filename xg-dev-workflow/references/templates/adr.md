@@ -3,6 +3,10 @@
 Status: proposed | accepted | superseded by ADR-NNNN | deprecated
 Date: YYYY-MM-DD
 
+<!-- On a ledger card the Status line is a display snapshot derived from `decisions.md`
+(the ADR's rows there are the approval authority; word map in steps/adr.md) — update it
+when transcribing, never hand-flip it ahead of the ledger. -->
+
 <!--
 Reader = human (decision zone): the approver now, the future maintainer later — prose
 rationale over terseness; Claude reads it back as the recorded contract.
@@ -33,6 +37,13 @@ What we decided.
 
 `ADR-NNNN` — one line on what this changes. The superseded ADR's Status line gets only a
 ≤2-line forward pointer — never an `## Amendment` block there.
+
+## 被取代表述 (required when superseding)
+
+The exact phrases/terms the superseded decision used that must NOT survive elsewhere —
+the word list `change.md`'s supersede sweep and M3 grep against:
+
+- `<old phrase>` → `<replacement>`
 
 ## Consequences (optional)
 

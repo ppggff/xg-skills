@@ -43,10 +43,12 @@ parallel points is the smell — restructure it as a list.
     `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`. Designated mapping fields and a
     doc's first mention always link; repeat prose mentions and same-file citations stay bare.
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设
-  (assumption). Only the claims a decision rests on (M1). A doc may **centralize** provenance:
-  one「事实清单」section of numbered facts (`F<n>`, each with its source), cited inline as
-  `[F<n>]` — keeps long prose readable; the inline marker form stays for isolated load-bearing
-  sentences. Pick one form per doc, don't mix densely.
+  (assumption). Only the claims a decision rests on (M1). Provenance may **centralize** into
+  `F<n>` fact blocks cited inline as `[F<n>]`; `F<n>` is a **per-container scoped id** (like
+  `R<n>`/`S<n>`): on a card, the container is the card's `facts.md` — phase docs cite it and
+  never keep a doc-local fact list of their own; a **standalone** doc (investigation/review
+  note, no card) uses a doc-local「事实清单」section instead. One container per doc, never both;
+  the inline marker form stays for isolated load-bearing sentences.
 - **Reasoning shown (human-first docs)** — requirement/design/detail/ADR/review and
   investigation-notes prose carries the logical analysis, **evidence → mechanism → conclusion**, so
   the approver can check the inference, not just trust the citations — a fact table with a
@@ -128,8 +130,8 @@ implementation-level decisions stay `log.md`):
 - **Gates approve rows** — the digest's cards are generated from pending rows
   (`gate-digest.md`); on go, Claude transcribes approvals (`approved:` note cites the receipts
   commit). Claude never self-approves. Doc status fields are **derived**: `confirmed` /
-  `frozen` / `baseline` ⇔ that level's rows all approved; the ADR `Status:` line is a display
-  snapshot (R12).
+  `frozen` / `baseline` ⇔ that level's rows all approved — the **derived-status rule**;
+  the ADR `Status:` line is a display snapshot of it.
 - **Docs become rewritable views** — synthesis prose may be rewritten anytime; the invariants
   are "cite the ledger id / `[F<n>]` fact, never contradict an approved decision"
   (`workflow-status.py --check` runs the deterministic subset; M3 judges semantics). Facts
@@ -314,7 +316,7 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
   matching its KB concept); on a ledger card run `workflow-status.py --check` (the deterministic
-  ledger subset — id integrity, R12 status mappings, cycles; exit 1 = findings); reusable
+  ledger subset — id integrity, derived-status mappings, cycles; exit 1 = findings); reusable
   knowledge captured to the KB via xg-knowledge-lite Write and
   compiled — or explicitly noted as deferred. `references/steps/omission-check.md`.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for

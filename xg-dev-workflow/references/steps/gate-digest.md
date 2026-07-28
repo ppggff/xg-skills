@@ -56,4 +56,5 @@ The go is the approval; Claude transcribes it into the ledger — never ahead of
 3. Commit immediately (the gate commit) — approve transcription sits adjacent to its
    receipts commit in git, auditable via `git log -S`.
 4. **Partial approve is legal**: only the rows the human named flip; the rest stay proposed
-   (the phase doc's status field flips only when its level is fully approved — R12).
+   (the phase doc's status field flips only when its level is fully approved — the
+   derived-status rule, SKILL.md「Ledger」).

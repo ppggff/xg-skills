@@ -17,7 +17,9 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   approved carries baseline force — see `templates/decisions.md`). Number only items that enter
   the ledger, not every spec line.
 - `P<n>` — implement's principles (`implement.md` Principles).
-- `F<n>` — a doc's centralized fact-list (事实清单) entries — the provenance 集中制 form.
+- `F<n>` — fact entries, **per-container scoped** (SKILL.md Conventions「Provenance」): card →
+  the card's `facts.md` (phase docs cite `[F<n>]`, no doc-local list); standalone doc → its
+  doc-local「事实清单」section. Never both containers for one doc.
 - Review findings: `#<n>` within a report's 修复决策表, severity spelled out
   (High/Med/Low — no H/M/L shorthand).
 

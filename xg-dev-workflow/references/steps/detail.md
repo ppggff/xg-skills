@@ -70,7 +70,7 @@ algorithms whose correctness depends on the details.
 7. **Baseline gate:** present `detail.md` via the gate digest (`gate-digest.md` — cards from
    the pending detail-level rows) and STOP for
    human review. On approval run the approve transcription; `baseline` means the detail-level
-   rows are all approved (R12). On approval set `status: baseline`. **M gate merge** (SKILL.md「Requirement
+   rows are all approved (the derived-status rule, SKILL.md「Ledger」). On approval set `status: baseline`. **M gate merge** (SKILL.md「Requirement
    sizing」Gate merging): with the human's opt-in, this baseline may be presented together with
    `plan.md`'s execution authorization — one go covers both. Thereafter it is **mutable** — refine it as implementation reality bites,
    but **append a dated note** for each change explaining why. Only when a change implicates the

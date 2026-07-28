@@ -45,7 +45,7 @@ a one-line hand-wave doesn't clear it.
    a display snapshot derived from the ledger** (`decisions.md` is the approval authority;
    word map: proposed↔proposed · approved↔accepted · superseded↔superseded ·
    retired↔deprecated) — write it to match the ledger rows, never as an independent judgment;
-   a mismatch is an M3/--check finding (R12). A **superseding or
+   a mismatch is an M3/--check finding (the derived-status rule, SKILL.md「Ledger」). A **superseding or
    semantics-changing** ADR also lists **被取代表述** — the phrases, module names, and terms
    this decision retires (one line each) — feeding `change.md`'s supersede sweep; without it
    the sweep has no word list and old restatements survive outside the traced items.

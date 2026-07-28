@@ -3,6 +3,10 @@
 rest on, kept OUTSIDE the freely-rewritable phase docs so a doc rewrite can never lose them
 (design 010, ADR-0002). Phase docs cite entries as [F<n>].
 
+Reader = Claude (both zones — cited evidence base; humans reach it by drill-down from a
+[F<n>] citation, never as a reading assignment). Written by grill/investigate rounds
+(grill.md「载重事实入账」).
+
 Discipline: append-mostly — a correction is a NEW block plus the old block's status flipped
 to superseded; a refinement that narrows (not invalidates) an earlier fact is a new block
 saying so. Reusable cross-card module knowledge still graduates to the KB (xg-knowledge-lite);

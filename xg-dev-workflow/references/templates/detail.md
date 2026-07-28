@@ -17,6 +17,11 @@ updated: YYYY-MM-DD
 > frozen module-altitude design and above the task-sequencing plan.
 > **Reader: human-first** (decision zone — you baseline-review it). Concrete, but still written to
 > be reviewed; it's the last human-facing spec before the Claude-first plan. (SKILL.md「Two zones」.)
+> **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
+> (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
+> decisions. **Ledger-worthy choices here get `S<n>` ids** — number the item in this doc and
+> append a proposed `decisions.md` block right then (grill.md「逐条入账」; level `detail`,
+> approved carries baseline force). Un-numbered spec lines are synthesis, not decisions.
 
 ## 数据结构 (data structures)
 

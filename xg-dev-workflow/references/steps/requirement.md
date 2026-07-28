@@ -88,7 +88,7 @@ not transcribe the words.
    (`gate-digest.md`: cards from the pending ledger rows + least-confident spots + open
    questions + the go ask with receipts), then **STOP this turn**. On confirm: approve
    transcription (gate-digest.md) — `confirmed` means the requirement-level rows are all
-   approved (R12), then set `status: confirmed`.
+   approved (the derived-status rule, SKILL.md「Ledger」), then set `status: confirmed`.
    **XS gate merge** (SKILL.md「Requirement sizing」Gate merging): when the human opted into the
    combined 需求+设计 gate, continue into the design draft in this same invocation and present
    both docs at one combined gate — requirement-level decision cards first; if the work outgrows
