@@ -4,6 +4,28 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-28 — 012 常驻面瘦身: SKILL.md 447→351 行,写作细则下推 doc-conventions.md
+
+**动机(card `xg-skills/012-skill-context-rightsizing`,源: Claude 5 context-engineering
+原则审计)**: SKILL.md 每次唤起全量加载,而其中写作规约细则、Ledger 机制展开、verbs 对
+step 文件的复述只在特定时刻需要——把常驻/按需的分层线下移,机制是**锚点稳定压缩**
+(被 `SKILL.md「…」` 引用的 heading 全部原地保留)。
+
+- 新增 `references/doc-conventions.md`(gloss / 链接三规则 / provenance-F 容器 / Reasoning
+  shown / Reader-aware / 短行 / 结构 vs 段落 的单一 owner);SKILL.md Conventions 留 13 行
+  常驻要点+指针,措辞「read it before writing any workflow doc」——显式覆盖 investigation/
+  review notes 与 KB 注记,不只 phase docs。6 处规则级引用改指新 owner。
+- Ledger 章压至 9 行契约;rewritable-views 机制归 `templates/decisions.md` 头注;
+  pre-010 fallback 一行留守常驻(无账本的卡不会打开 decisions 模板)。
+- verbs investigate/diagnose/review 压至 2 行 front-door 契约;Layout 注释、五阶段段落、
+  Subagent/Versioning/References 等段删解释性文句;usage-logging 的 verb 枚举改指
+  `KNOWN_ACTIONS`(脚本为词表单一 owner)。
+- 模板示例规则入册(repo CLAUDE.md editing conventions + retro.md 半行指针):
+  contrast-pair 优先 / ≤6 行 / 标「示意」;存量 11 处示例 10 keep(思路 pair 补标记)/
+  1 delete(Alternatives filled sample,其 Why-rejected 要点并入字段行)。
+- 落点 351 行(-21.5%),未达卡片 ≤325 验收线:剩余余量在契约项上,压缩即损义——按 R8
+  「无损优先」停手;差额裁决见卡片评审。
+
 ## 2026-07-28 — 三处「信息已在手却没对照」的失败,补三条察觉机制
 
 **动机(card `hashdata/006-meta-vacuum-on-v311`,详设阶段五轮压测)**:同一形状的自我推翻出现
