@@ -33,8 +33,7 @@ writing any workflow doc** (phase docs, investigation/review notes, KB 注记). 
   (assumption); `F<n>` fact blocks centralize them per container (card → `facts.md`).
 - **KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink** — load-bearing for the
   KB's incremental recompile; don't swap it for a markdown link.
-- **Diagrams — Mermaid preferred**; ASCII only for the trivial or what Mermaid can't express
-  (pitfalls + CJK-width rules: `references/diagram-gotchas.md`).
+- **Diagrams — Mermaid preferred**; ASCII only for the trivial (rules: `references/diagram-gotchas.md`).
 - **Fixed ID prefixes** (one letter, one meaning). Core, resident: `NNN` card dir · `ADR-NNNN`
   decisions · `R<n>` requirement 条目 (R is **reserved**) · `T<n>` plan tasks · `M1`–`M6` this
   skill's mechanisms. Full registry — `G`/`L`/`D`/`MS`/`P`/`F`, review `#<n>`, the symbol budget,
