@@ -20,7 +20,8 @@ standard close-out gate** for an M-or-larger requirement — run after 测试, b
 case a requirement is active, so it lands in `<requirement>/notes/review-*.md` (see step 6) and the
 context pack should pull that requirement's `requirement.md`「需求条目」/ frozen `design.md`「影响面」.
 XS/S structure-light work may skip the close-out — then record `XS/S — review skipped` in
-`progress.md` (the M3 gate is "review doc OR skip note"); see SKILL.md「Requirement sizing」.
+`progress.md`'s `Close-out:` line (the M3 gate is "review doc OR skip note"); see
+SKILL.md「Requirement sizing」.
 
 ## Procedure
 

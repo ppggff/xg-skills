@@ -49,7 +49,7 @@ One paragraph: what this plan builds, against which design.
 
 ### Final: simplify sweep (after the last task — M+; XS/S may skip)
 - [ ] one behavior-preserving pass over the whole change (`implement.md`「Simplify sweep」);
-      suite re-run green; separate commit; run/skip recorded in `progress.md`.
+      suite re-run green; separate commit; run/skip recorded in `progress.md` `Close-out:`.
 
 ## Risks & mitigations
 

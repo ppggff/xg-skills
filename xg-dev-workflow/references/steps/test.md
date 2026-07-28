@@ -56,7 +56,8 @@ Output: `test.md` (template: `references/templates/test.md`).
    self-heal, degradation…) maps to ≥1 test, through the **public interface** (that is what
    "behavior, not implementation" means here).
 4. **Add the tests that span slices** — integration, **跨 part 联调** (real neighbors, not mocks),
-   manual / E2E, and the anomaly/edge cases the per-slice loop didn't reach.
+   manual / E2E, the anomaly/edge cases the per-slice loop didn't reach, and the **regression
+   rows from `design.md`「影响面」「需回归的行为」** (fill the test plan's 回归 sub-section).
 5. **Run & record** — TDD mode: run the full suite. test-after / describe-don't-run (e.g. cbdb): list the exact commands as
    **suggested steps**, don't execute. Record results as the **binary** check (`[x]/[!]/[ ]`, with
    date; per implement.md「Binary verify」— **no subjective `[x]`**).
@@ -78,5 +79,5 @@ Output: `test.md` (template: `references/templates/test.md`).
   `review` verb (`review.md`) on the whole change to produce the close-out review doc
   (`notes/review-*.md`) **before** the card goes `done` — code earns both a test doc and a review doc.
   **XS/S** structure-light work may skip it (mirror of `detail.md`'s optionality), but then record
-  `XS/S — review skipped` in `progress.md` so M3 sees the decision (the gate is "review doc OR skip
+  `XS/S — review skipped` in `progress.md`'s `Close-out:` line so M3 sees the decision (the gate is "review doc OR skip
   note"). Then mark the requirement resolved.

@@ -41,6 +41,9 @@ updated: YYYY-MM-DD
 - **Now doing:** …  (mid-grill: name the open question, e.g. "grilling design @ G7" — see `grill.md`)
 - **Next step:** …
 - **Blockers:** …
+- **Build/test:** …  (exact build/test invocation from implement's environment recon — resume
+  rebuilds and re-verifies from this line alone)
+- **Close-out:** …  (simplify-sweep run/skip · `XS/S — review skipped` note — M3 greps this line)
 
 ## Task status
 

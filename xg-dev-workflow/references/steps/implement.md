@@ -10,7 +10,7 @@ module-local, reversible changes, no ABI/interface changes unless requested, and
 Updates: `progress.md` (template: `references/templates/progress.md`); code in the repo.
 
 ## Environment recon before the first slice
-Before slice 1, establish and **record in `progress.md`** the exact build/test invocation
+Before slice 1, establish and **record in `progress.md`'s `Build/test:` line** the exact build/test invocation
 (toolchain location, container/exec wrapper, check command, baseline suite status) — resume must
 be able to rebuild and re-verify from `progress.md` alone. Two specifics: **run the baseline
 suite first** (a green baseline is what makes your first red meaningful), and **surface warnings
@@ -158,7 +158,7 @@ HEAD)..HEAD` is the diff to sweep.
 **test-after / "describe, don't run" projects: non-structural cleanups only** (comments, dead
 code, naming) — a structural refactor without a runnable net carries asymmetric risk; note the
 skipped candidates in `progress.md` for the human. Record the sweep (or its skip) in
-`progress.md`; then 测试.
+`progress.md`'s `Close-out:` line; then 测试.
 
 ## Diagnosis (when a fix isn't landing)
 - **Stop blind-iterating on a black-box dependency after ~2 misses — read its shipped source.** Two failed guesses at *why* a third-party component (CSS / renderer / library) misbehaves means you're modeling it wrong; open its shipped CSS/JS/source for its actual model instead of guessing a third time.

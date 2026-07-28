@@ -39,9 +39,13 @@ success criterion in `requirement.md`.
 ### Manual verification
 - [ ] <step> — expected result.
 
+### 回归 (regression — from design 影响面「需回归的行为」)
+- [ ] <existing behavior to re-verify> — how / where.
+
 ## Coverage vs success criteria
 
-Every `requirement.md` success criterion (and its `R-id`) maps to ≥1 test — an unmapped R-id is a hole.
+Every `requirement.md` success criterion (and its `R-id`) maps to ≥1 test — an unmapped R-id is
+a hole. Start from the design's 验证策略 table — its rows are this table's skeleton.
 
 | R-id | Requirement success criterion | Covered by |
 |---|---|---|
