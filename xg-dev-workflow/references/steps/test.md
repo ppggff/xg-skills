@@ -1,11 +1,12 @@
-# Step: 测试 (test — consolidation)
+# Step: 测试 (test — close-out of the skeleton-first `test.md`)
 
 Forked from **`tdd`** (behavior-through-public-interface, vertical slices) **+ test-driven-development**
 (test pyramid / sizes). **The per-slice red-green loop now lives in `实现`**
-(implement's Test mode — TDD or test-after by project); this 测试 phase is the **consolidation
-layer**: prove coverage, add the tests that span slices (integration / 跨 part 联调 / manual / E2E),
-balance the pyramid, run the full suite (or describe it for "describe, don't run"), and record
-results. Adjusted: output is this requirement's `test.md`; every test maps back to an `R-id` /
+(implement's Test mode — TDD or test-after by project), and `test.md` itself was **seeded at
+plan time** then grown per slice; this 测试 phase is the **close-out layer**: audit the Unit
+registry, prove coverage, add the tests that span slices (integration / 跨 part 联调 / manual /
+E2E), balance the pyramid, run the full suite (or describe it for "describe, don't run"), and
+record results. Adjusted: output is this requirement's `test.md`; every test maps back to an `R-id` /
 success criterion; honors the project's test-execution policy — e.g. cbdb's "describe, don't run
 by default" (write the plan + the commands; run only when asked).
 

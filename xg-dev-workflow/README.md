@@ -74,8 +74,10 @@ config xg-knowledge-lite uses, so project names line up.
   ```
 - **Per-slice tests, two modes by project.** Implementation tests each vertical slice — **TDD**
   (test-first red-green) where tests run, **test-after** (write/describe, defer the run) for
-  "describe, don't run" projects like cbdb. 测试 is then the **consolidation** phase (coverage +
-  integration / 联调 / manual + results), not where unit tests are first written.
+  "describe, don't run" projects like cbdb. `test.md` is **skeleton-first**: seeded at plan
+  authorization (coverage from the design's 验证策略, regression rows from 影响面), grown one
+  Unit-registry line per slice; 测试 is the **close-out** phase (cross-slice tests + full run +
+  results), not where unit tests are first written or inventoried from memory.
 - **Code earns a test doc and a review doc.** M+ requirements run the `review` close-out gate before
   `done`.
 - **Check after every edit.** Cross-references, indexes, and downstream docs are reconciled before

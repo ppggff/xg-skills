@@ -4,6 +4,15 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-28 (via xg-dev-workflow card 011 — audit backfill)
+
+- **Lint gains §8 reverse-coupling**: flags raw/wiki content linking into dev_root workflow
+  docs — honoring FORMAT.md's existing "Lint flags the reverse" promise, which no checklist
+  item implemented. First run on the existing KB surfaced ~8 genuine legacy violations
+  (report-only; fixes are the user's call).
+- **context-map-template fixed**: concepts declare their context via the body `_Context_:`
+  line (the template wrongly said frontmatter/`scope`, a field that never existed).
+
 ## 2026-07-24 (comprehensive skill audit vs writing-great-skills — Sprawl + Duplication)
 
 Part of the cross-skill audit driven from `xg-dev-workflow`'s M6 retro (its CHANGELOG has the

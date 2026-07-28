@@ -4,6 +4,40 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-28 (card 011 MS1 — cross-reference backfill + process rules)
+
+Source: the 2026-07-27 template-explicitness audit (three-agent sweep) found 16 broken/drifted
+cross-doc hand-off edges, ~10 orphan template sections, and dangling references — root cause:
+two structural evolutions (详设 phase, the 010 ledger) landed without backfilling references.
+
+- **Backfill discipline made mandatory** (repo CLAUDE.md Cross-file invariant 6 + retro sweep
+  upgraded): structural edits grep both skills for stale references in the same batch; new
+  template sections must be wired to a filling step or marked optional. Why: the rule existed
+  only in retro.md and never fired on either evolution.
+- **Hand-off repairs**: concrete-code deferral now points at detail.md「代码级接口」(was
+  plan.md, 4 sites); test-case home narrowed to test.md; dead 阅读稿 promise removed; progress.md
+  gains `Build/test:` / `Close-out:` slots with all four write sites naming them; test template
+  gains a 回归 sub-section fed by design 影响面; assorted pointer fixes (Symbol budget,
+  board column name, resume/board wording, design status enum drops `approved`).
+- **010 ledger propagated to the producing side**: detail template carries three-class marking +
+  `S<n>` entry hint; adr template gains 被取代表述 section + derived-Status note; `F<n>` defined
+  as a per-container scoped id (card → facts.md, standalone doc → doc-local 事实清单; never
+  both); "R12" references replaced by the named **derived-status rule** homed in SKILL.md;
+  grill gains 载重事实入账 (the facts.md write path, bounded against the verified-facts pack).
+- **Promised checks got executors**: close-out review verifies the design's 验证策略 scenarios
+  ran (per-row verdict); M3 design completeness now covers 速览/验证策略/存储足迹; orphan
+  sections wired into design-grill (速览 regenerate, Design qualities/Risks/Understanding/
+  存储足迹 by name); roadmap Rejected got its write side; log type tags + test/plan status
+  setters named.
+- **Gate digest rules** (from live gate feedback on card 011): cards written for comprehension;
+  decision-object references self-contained (inline or linked; evidence refs exempt) at both
+  the digest and the ledger write layer; every gate ask carries a 判断分工 split — 已验证
+  (don't re-check) vs 待你判 (owner trade-offs with stakes).
+- **test.md is now skeleton-first**: seeded at plan authorization (coverage from 验证策略,
+  regression from 影响面), Unit registry appended one line per implement slice, 测试 becomes
+  close-out instead of end-of-phase reconstruction. Why: retrospective inventory is an
+  omission breeding ground — the same defect class this card repairs in the templates.
+
 ## 2026-07-27 (card 010 — decision ledger: gate currency moves from documents to decisions)
 
 The largest contract change since the two-zone model. Motivation: gate reading exceeded the
