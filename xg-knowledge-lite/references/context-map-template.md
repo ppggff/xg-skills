@@ -46,8 +46,8 @@ _Avoid_: …
   under `_Avoid_`. Across contexts: a word may recur with a different meaning **iff** each
   occurrence is scoped to its context (record both, note the deliberate homonym).
 - **Domain terms only** — general programming words don't get entries.
-- **Concepts declare their context** (concept frontmatter/`scope`); a context "Governs" the
-  concepts whose terms it owns.
+- **Concepts declare their context** (the concept's body `_Context_:` line); a context
+  "Governs" the concepts whose terms it owns.
 - **Relationships are load-bearing** — they say how vocabularies meet at a seam (shared id,
   event, dependency), the way module-interaction diagrams say how modules meet.
 - **Definition style** — define each term by what it **IS, not what it does**, in 1–2 tight

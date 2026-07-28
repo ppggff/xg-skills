@@ -9,7 +9,8 @@ Two uses of this template:
    the omission check (M3).
 
 Reader = both: the human sets 整体状态 (the scheduling axis); Claude updates Phase/Deps on
-`new`/M3 transitions. `resume` never reads the board (it rebuilds from the card's own docs).
+`new`/M3 transitions. `resume` doesn't use the board as a state source (it may read it to locate the card;
+state rebuilds from the card's own docs).
 -->
 
 # Dev Workflow Index — <project or "all projects">

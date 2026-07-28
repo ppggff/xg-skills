@@ -32,7 +32,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       superseding ADRs, not appended); a superseded ADR's forward cross-ref is **≤2 lines**;
       body stays lean (≤ ~200 lines).
 - [ ] **Indexes current** — the requirement has a row in `<project>/index.md` with the
-      right phase + status; the project appears in `<dev_root>/index.md`.
+      right Phase + 整体状态; the project appears in `<dev_root>/index.md`.
 - [ ] **项目根无散件** — the project root holds only `index.md` / `roadmap.md` and the spec'd
       dirs (`NNN-*/`, `investigations/`, `reviews/`, `notes/`, `legacy/`); a stray file at the
       project (or dev_root) root gets flagged with its suggested home (notes/ scratch ·

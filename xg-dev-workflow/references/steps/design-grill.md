@@ -34,7 +34,8 @@ A design describes **modules, responsibilities, boundaries, and contracts** — 
 - **Contract-first** — define each module's responsibility + the interface/semantics across a
   boundary before any implementation. The contract is the design; implementation follows.
 - **Don't leak implementation details** into the design — specific functions, file paths,
-  lock primitives, hook names, struct fields, SQL belong in **`plan.md`**, not here. Keep the
+  lock primitives, hook names, struct fields, SQL belong in **`detail.md`「代码级接口」**
+  (XS/S cards that skip detail.md: the plan task's Files/Description), not here. Keep the
   design valid even if the implementation changes.
 - **Build on existing modules** — frame the change in terms of the modules that already exist
   (what they own, where the seams are); the new piece is usually a thin module between them.
@@ -81,7 +82,7 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    method + its punchline; **no** mechanism/perf/alternatives detail — see template's good/bad
    example); the **diagrams** (module-interaction + data-flow); and — when the design introduces a
    module — its **external interface as a contract** (operations: inputs/outputs/semantics +
-   invariants, not signatures). Defer concrete code to `plan.md`;
+   invariants, not signatures). Defer concrete code to `detail.md` (XS/S: the plan task fields);
    load-bearing claims cite evidence via KB links.
    - **Part decomposition (only if splitting — SKILL.md「拆分与隔离」A).** If the design splits
      into parts, fill the **「Decomposition / Parts」** table: name each part (a group of modules

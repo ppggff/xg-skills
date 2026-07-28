@@ -3,7 +3,7 @@ id: NNN
 title: <design title>
 project: <project>
 requirement: ./requirement.md
-status: drafting | approved | frozen | superseded
+status: drafting | frozen | superseded
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
@@ -16,9 +16,7 @@ updated: YYYY-MM-DD
 > **Reader: human-first** (decision zone — you approve & freeze it; this is the last binding gate
 > before autonomous execution). Write it to be reviewed at module altitude. (SKILL.md「Two zones」.)
 > The body is **current-state only** (grill.md「Fold-in」): superseded alternatives compress to a
-> verdict + git/grill-log pointer. At freeze, an M+ card may optionally emit a one-shot freeform
-> 阅读稿 (reading version, `notes/design-reading.md`) for review/handoff — generated once from the
-> frozen design, never co-maintained.
+> verdict + git/grill-log pointer.
 > **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
 > decisions.
@@ -45,7 +43,7 @@ evolves, never appended):
 - **术语表** — the doc's load-bearing coined terms, each defined fully enough to stand alone
   (later table cells may then use them bare — SKILL.md「Reasoning shown」table rule);
 - **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
-  enablement tiers, …), one line stating how they map (SKILL.md「Symbol budget」);
+  enablement tiers, …), one line stating how they map (`references/id-schemes.md`「Symbol budget」);
 - **待拍 gates** — the open `G<n>` decisions blocking freeze, one-line asks each.
 
 ## Understanding (concept → layer)
@@ -61,7 +59,8 @@ citations (SKILL.md「Conventions」Reasoning-shown).
 
 ## Chosen approach
 
-**At module altitude** (no concrete code — defer functions/locks/hooks/files to `plan.md`):
+**At module altitude** (no concrete code — defer functions/locks/hooks/files to `detail.md`
+「代码级接口」; XS/S cards that skip detail.md: the plan task's Files/Description):
 modules + responsibilities, boundaries, contracts, key invariants. Build on existing modules;
 contract-first. Cite load-bearing claims via KB `[[wiki/<project>/<slug>]]`.
 
@@ -93,7 +92,8 @@ express (then follow the CJK-width rules in `references/diagram-gotchas.md`).
 ### Interface / contract (required when the design introduces a module)
 
 The new module's **external interface as a contract, not signatures** (concrete functions/types
-→ `plan.md`): each operation's inputs / outputs / semantics, plus the contract invariants
+→ `detail.md`「代码级接口」; XS/S without detail.md: the plan task fields): each operation's
+inputs / outputs / semantics, plus the contract invariants
 (uniqueness, idempotency, self-heal, degradation). A small table works well.
 
 Vocabulary follows the `codebase-design` skill: an **interface** = everything a caller must know
@@ -151,7 +151,8 @@ Trace by **R-id** (link each id — `[R1](./requirement.md)`; SKILL.md「Convent
 How we will know it works, fixed **at design time** — testability is a design property: the
 design must provide the observation points, and discovering "R3 can't be verified end-to-end"
 during 测试 is too late. **Strategy/mapping altitude only** — scenarios + observation points;
-concrete test cases, commands, and fixtures stay in `detail.md` / `test.md`.
+concrete test cases, commands, and fixtures stay in `test.md` (`detail.md` carries only
+mechanism-level boundary behavior — its 边界与错误矩阵, not test cases).
 
 | R-id / Effect 项 | E2E 场景 (最短的端到端证明路径) | 观测点 (设计提供的) | 备注 / gap 决策 |
 |---|---|---|---|

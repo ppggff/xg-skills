@@ -192,7 +192,8 @@ from this signal (usage log + `log.md`).
 
 When a round's verdict lands in the phase doc, **fold the correction into the live text**:
 rewrite the affected sentences/sections so the body reads as if written today. Process history
-goes to the grill-log and the doc's Change log — never the body. A superseded alternative
+goes to the grill-log (plus, for requirement.md, its Change log; design.md keeps no Change log —
+its process history lives in grill-log + git) — never the body. A superseded alternative
 leaves the body (a one-line final verdict + git/grill-log pointer replaces its full text).
 The body never stacks two generations of corrections — dated inline notes piling on each other
 (「2026-XX-XX 更正…」on top of an earlier 更正) are the smell. The supersede discipline below

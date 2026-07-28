@@ -20,7 +20,7 @@ mechanics. 两种粒度，互相独立，都可选（够小就不拆，行为与
 `backlog|todo|active|blocked|paused|done|dropped`，**与内部阶段 status 值分离**，内部值不上看板）+ **Deps**
 （同项目 NNN，M3 查无环）。两轴**松耦合**：除 M3 检查的单调约束（done / backlog / paused-blocked
 的前置条件——权威列表见 `omission-check.md`「Board (kanban) consistency」）外自由。`new` 设初始
-整体状态=`todo`。`resume` 不变（仍只进单 card 内部、不读看板）。
+整体状态=`todo`。`resume` 不变（仍只进单 card 内部；看板只用于定位、不作状态源）。
 
 **Card 还是雾（fog）？**（借 wayfinder 的 fog-of-war 判定）拆出的一项能**精确表述问题**（不必能回答）
 → 立 card / roadmap Next-up 条目；还表述不清 → 留 roadmap Themes/Someday（雾），随前面 card 的推进再
