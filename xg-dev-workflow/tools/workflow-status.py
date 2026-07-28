@@ -581,7 +581,7 @@ def parse_ledger(card_dir):
     blocks, heads = [], list(LEDGER_HEAD.finditer(text))
     for i, m in enumerate(heads):
         body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
-        dep = re.search(r"^-\s*depends-on:\s*(.+)$", body, re.M)
+        dep = re.search(r"^-[ \t]*depends-on:[ \t]*(.+)$", body, re.M)
         blocks.append({"id": m.group(1), "level": m.group(2), "state": m.group(3),
                        "deps": [d.strip() for d in dep.group(1).split(",") if d.strip()]
                        if dep else [],

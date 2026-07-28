@@ -227,6 +227,14 @@ class LedgerCheck(unittest.TestCase):
         root, _ = self._card(ledger=self.GOOD_LEDGER)
         self.assertEqual(self._findings(root), [])
 
+    def test_empty_depends_on_line_swallows_nothing(self):
+        led = ("### R1 [requirement] proposed\n"
+               "- 陈述: keep it\n- why: because\n"
+               "- depends-on:\n"
+               "- provenance: 假设\n")
+        root, _ = self._card(ledger=led, req_ids=("R1",))
+        self.assertEqual(self._findings(root), [])
+
     def test_bad_header(self):
         root, _ = self._card(ledger="### R1 (requirement) approved\n- 陈述: x\n",
                              req_ids=())
