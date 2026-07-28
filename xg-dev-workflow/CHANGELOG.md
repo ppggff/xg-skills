@@ -37,6 +37,12 @@ two structural evolutions (详设 phase, the 010 ledger) landed without backfill
   regression from 影响面), Unit registry appended one line per implement slice, 测试 becomes
   close-out instead of end-of-phase reconstruction. Why: retrospective inventory is an
   omission breeding ground — the same defect class this card repairs in the templates.
+- **Micro-examples in the ten highest-variance gate-reviewed sections** (each ≤6 lines, marked
+  示意): design Chosen approach / Understanding get good-bad contrast pairs, 影响面 /
+  Alternatives / 验证策略 / Interface contract (now with fixed columns) / requirement Context /
+  decisions 陈述 / detail mechanism / plan Acceptance get filled examples. Why: the audit found
+  22 sections where "how good is good" was adjectives only — the two pre-existing examples
+  (design 思路, KL FORMAT §3) were the only variance dampeners.
 
 ## 2026-07-27 (card 010 — decision ledger: gate currency moves from documents to decisions)
 
