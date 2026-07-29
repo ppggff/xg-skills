@@ -18,7 +18,8 @@ Output: `design.md` (template: `references/templates/design.md`) + ADRs via `adr
   list leaves tangled.
 - **方案优先.** Surface **multiple candidate approaches** and grill each one's **trade-offs**
   before settling structure (a primary goal of the grill). A design may be driven by the
-  **normal flow OR by a dominant anomaly flow** — find which is the hard part first.
+  **normal flow OR by a dominant anomaly flow** — find which is the hard part first, **per 层/模块**
+  (adjacent positions may legitimately answer differently).
   **Comparison/evaluation tables carry a provenance column from the first draft**
   (VERIFIED / INFERRED / 推断 per cell-claim, M1) — a comparative claim about existing code
   ("X has no cache") is a code claim and needs the same evidence as any other; an unverified
@@ -57,8 +58,9 @@ If a reviewer needs a function name to understand the design, the design is too 
 `design.md` must include at least:
 - a **module-interaction diagram** — the components/modules as boxes, the calls/seams between
   them as arrows (who invokes/depends on whom);
-- a **data-relationship / data-flow view** — what data crosses each boundary and in which
-  direction (a second diagram, or annotations on the first).
+- a **data-flow walk** — one flow traversed end-to-end (named: the normal flow, or the dominant
+  anomaly the design is hard on), showing what data crosses each boundary and in which direction
+  (a second diagram, or annotations on the first) — not a static data-relationship map.
 
 **Prefer Mermaid** — a ```` ```mermaid ```` fenced block (`flowchart`/`graph` for module
 interaction, `sequenceDiagram`/`flowchart` for data flow). It renders in GitHub/Obsidian/VS Code
@@ -133,8 +135,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      simpler check answers the same question. Catching over-built internals here is far cheaper
      than at review.
    - **方案优先 / explore solutions before structure** — surface multiple candidate approaches and
-     grill their trade-offs before committing; pick on trade-off, not first idea. Identify whether
-     the **normal flow or a dominant anomaly flow** is the hard part — either may drive the design.
+     grill their trade-offs before committing; pick on trade-off, not first idea. Ask **per 层/模块**
+     whether the **normal flow or a dominant anomaly flow** is the hard part — either may drive the
+     design, and adjacent positions may answer differently; name **what each strategy costs the
+     other flow**. Then make a per-position split earn itself — the deletion test applied to the
+     split: unify the whole design on one strategy, and if nothing measurably worsens, unify
+     (tailoring must beat consistency, not merely sound better).
      **Span the hack ↔ 补丁 ↔ 推翻重来 spectrum** and grill each one's **cost** (工期 / 技术债 /
      影响面 / 可维护性): the quick hack, the localized patch, the proper redo. The full redo is
      often the *correct* shape but isn't automatically right (it still must pass 简单可靠 /

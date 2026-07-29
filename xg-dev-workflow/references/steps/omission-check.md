@@ -79,7 +79,8 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it.
 - [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
       TL;DR, a current **速览** (regenerated, not appended), the **diagrams** (module-interaction
-      + data-flow; **Mermaid preferred**, ASCII fallback), the **影响面 (impact surface)** section,
+      + data-flow **walking one named flow end-to-end** — a static relationship map no flow
+      traverses fails; **Mermaid preferred**, ASCII fallback), the **影响面 (impact surface)** section,
       the **验证策略** table (M+ cards), the **存储足迹** table (when the design touches storage),
       and — if it introduces a module — that module's **interface contract** (operations +
       invariants, not signatures).

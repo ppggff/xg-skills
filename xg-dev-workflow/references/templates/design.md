@@ -92,8 +92,10 @@ use `MS<n>` (SKILL.md「Fixed ID prefixes」— bare `M<n>` means the skill mech
 
 - **Module interaction** — modules as boxes (labelled with responsibility), calls/seams as
   arrows (who depends on / invokes whom).
-- **Data flow / relationships** — what data crosses each boundary and in which direction
-  (separate diagram or annotations on the first).
+- **Data flow — an end-to-end walk of one flow** (name which: the normal flow, or the dominant
+  anomaly flow this design is hard on), in step order, showing what data crosses each boundary and
+  in which direction (separate diagram or annotations on the first). A static data-relationship map
+  that no single flow traverses doesn't satisfy this — the walk is what shows the contracts compose.
 
 **Prefer Mermaid** (a ```` ```mermaid ```` fenced block — `flowchart`/`graph` for module
 interaction, `sequenceDiagram`/`flowchart` for data flow): it renders in GitHub/Obsidian/VS Code
@@ -207,8 +209,9 @@ Ground each entry in evidence (`func()` in `file.c` / `[[wiki/…]]`); mark 推�
 ## Alternatives considered
 
 **方案优先** — alternatives + their trade-offs are a primary grill target, not an afterthought;
-the chosen approach wins on trade-off. Say whether the design is driven by the **normal flow or
-by a dominant anomaly flow**.
+the chosen approach wins on trade-off. Say which flow drives the design — the **normal flow** or a
+**dominant anomaly flow** — **per 层/模块 when positions differ**, plus **what the pick costs the
+other flow** (an anomaly-driven design still owes the normal path a sentence, and vice versa).
 
 **Span the solution-class spectrum + name each cost.** Don't compare only same-class variants —
 weigh the three classes explicitly and choose deliberately:

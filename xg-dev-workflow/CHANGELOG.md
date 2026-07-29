@@ -4,6 +4,24 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-29 — 设计期主导流程按位置追问 + data-flow 图必须走完一条流程
+
+**动机**: 设计阶段对异常侧是三处明文强制(Core values 异常完整性 · Design qualities · detail 的
+边界与错误矩阵),而 normal flow 只在「哪个是难点」一句里被侧面提及,既无产物也无检查——非对称。
+且"哪条流程主导"本不是全局一个答案: 不同 层/模块 可以各选其一,每种选择让另一条流程付出的代价
+不同。落地取**收紧已有句子**而非新增节/表(一张 per-module 表会变成填格仪式,并给模块加第 4 条税)。
+
+- `templates/design.md`:「Diagrams」的 data-flow 由"数据关系视图"收紧为**端到端走完一条被点名的
+  流程**(normal 或设计所攻的 dominant anomaly);静态关系图不再满足——走查才能显示契约串得起来。
+  「Alternatives considered」那句改为: 说明哪条流程主导、**positions 不同则按 层/模块 分别说**、
+  并说**该选择让另一条流程付什么**(异常主导的设计仍欠正常路径一句话,反之亦然)。
+- `references/steps/design-grill.md`: Core values + 方案优先 lens 均改为**逐 层/模块**追问难点在
+  哪条流程,并要求 lens 里给出每种策略对另一条流程的代价;新增**塌缩检查**(把 deletion test 用在
+  拆分本身: 全设计统一成一种策略,若无可度量的变差就统一)——防"因地制宜"退化成不一致。
+  Diagrams 小节同步为 data-flow walk(跨文件复述保持一致)。
+- `references/steps/omission-check.md` Design completeness 同步收紧(检查 data-flow 是否走完一条
+  被点名的流程),不新增检查项。
+
 ## 2026-07-28 — retro(012): 压缩编辑先列语义点 · requirement 消费已批笔记 · --check 空 depends-on 修复
 
 **动机(card `xg-skills/012` 当日复盘)**: (1) T4 字面精简误剪 go-等效授权半句,评审双轴抓回
