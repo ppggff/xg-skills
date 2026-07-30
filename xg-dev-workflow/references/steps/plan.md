@@ -28,7 +28,9 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    as *carried* (design-grill 假设 closure sweep) has a verify task or 验证策略 row.
 5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works).
 6. **Risks & open questions** table.
-7. **Execution-authorization ask** — present via the gate digest (`gate-digest.md`); for this
+7. **Execution-authorization ask** — run the **criterion-conformance judge**
+   (adversarial-critic.md lens 4: against the R-id/design↔task trace the plan claims complete —
+   this phase's only dispatch), then present via the gate digest (`gate-digest.md`); for this
    gate the cards are: scope of what will be touched (files/modules), the riskiest slices, the
    test mode chosen, any plan-level open risk, and a one-line **model tip** — the execution
    zone is spec-driven work suited to a cheaper session model: after go, optionally switch

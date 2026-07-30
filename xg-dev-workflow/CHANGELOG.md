@@ -4,6 +4,32 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-30 — 判据枚举键保真 + panel receipts 成 gate 前置 + criterion-conformance 裁定者(cbdb/006)
+
+- **动因**:cbdb card 006 的跨 session 复盘(其 notes/review-2026-07-30-retro-second-opinion.md)。
+  需求 grill 用 5 条 DDL 探测关闭了「按写者轴逐核 7 个写点」的判据(键被换掉、Effect 自勾
+  「已完成 5 条」),confirmed 的需求带着自相矛盾进入设计;设计 G6 的完备性核查又按方案形状
+  枚举(`ATController` 入口而非 `finish_heap_swap` 调用者)。且整个需求+设计周期
+  **零次 fresh-context panel 派发** —— 机制在文档里,执行被跳过;两道 gate 收到的都是结论
+  而非可核对的表。用户四问后设计换向、代码返工六次。
+- **Enumeration-criterion key fidelity** — 枚举型 Effect 判据在判据文本里声明**枚举键 + 必填列**
+  (`templates/requirement.md` Effect note · `steps/requirement.md` #6);fold-in 不得换键,
+  异键结果只算 partial evidence 且必须点名未核行(`steps/grill.md`「Key fidelity on fold-in」);
+  关闭判据只能靠全行齐的表,禁「已完成 N 条」。M3 新增 well-formed 核查项(异键的满表也 fail)。
+- **Criterion-conformance judge (lens 4)** — `steps/adversarial-critic.md` 新增 gate-adjacent
+  第四 lens:输入只有 `{判据原文, 制品}`,逐条裁「要求的产物是否存在、键是否一致、行是否齐、
+  行行有据」,不接受制品自称的 done;四个 decision-zone gate ask 前必跑(requirement confirm
+  对本阶段 claimed-closed 判据;design freeze 对需求条目+Effect;详设 baseline 对 design
+  决策/契约的覆盖声明;execution authorization 对 plan 的 R-id/design↔task trace ——
+  后两个阶段无 grill,lens 4 是其唯一派发),挂点已接入 requirement/design-grill/detail/plan
+  四个 step 文件与 change.md 的 re-freeze(按变更范围 scoped)。
+- **Panel receipts as gate precondition** — 每次 panel 派发留一行 receipt(checkpoint · lenses ·
+  verdicts);gate digest 的「已验证」段只收带 receipt 的行,decision-level checkpoint 无 receipt
+  → gate ask 不可呈(`steps/gate-digest.md` 新规 + `steps/omission-check.md` 新核查项,
+  2026-07-30 前的 gate 豁免)。枚举型判据在 digest 里**贴表不贴结论**。
+- **Coverage inherits the requirement's enumeration** — `steps/design-grill.md`:方案完备性辩护
+  枚举的对象必须是需求枚举表的行(同键加列),不得由候选方案的形状反推枚举集合。
+
 ## 2026-07-30 — Recommendation pre-check 扩到四条(价值归属 + 载重前提)+ 提交前验证对象(card 008 / hashdata)
 
 - **pre-check 第 4 条「价值归属」**(`steps/grill.md`)—— 提案必须点名「谁需要它、不做会怎样」;

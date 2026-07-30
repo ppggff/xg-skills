@@ -56,6 +56,18 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       those docs exist; each Effect criterion cites its `R-id`; IDs are stable (no renumber — retired
       items carry a note). A requirement still on the old prose-only template (no「需求条目」) is exempt
       until it's voluntarily migrated — don't flag its absence.
+- [ ] **Enumeration criteria well-formed** — every "every X …" Effect criterion declares its
+      枚举键 + 必填列 (template Effect note); a `[x]` one has its table with **key matching the
+      declaration and all rows complete**; partial-completion phrasing ("已完成 N 条") or a
+      full table under a **different key** fails even when the prose sounds covered — check the
+      criterion's words against the table's key, not the doc's claim. Criteria on the
+      pre-declaration template (created before 2026-07-30) are exempt until touched.
+- [ ] **Panel receipts present** — each gate this card passed traces to its adversarial-panel
+      receipts (grill-log / round-closing messages cited from the digest, per
+      adversarial-critic.md「Receipts」): decision-level checkpoints have attack-lens receipts
+      (or an explicit XS/S tier-down note), and the gate has a criterion-conformance verdict
+      list. A gate with zero receipts was approved on self-certified work — flag it. Gates
+      passed before 2026-07-30 are exempt (grandfathered).
 - [ ] **Provenance marked** — load-bearing claims in requirement/design/detail carry a provenance
       marker (evidence-cited / 推断 / 假设); an uncited non-trivial assertion is flagged `UNVERIFIED:`
       or `(assumption)`, not left bare (M1).

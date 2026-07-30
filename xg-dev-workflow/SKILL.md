@@ -342,8 +342,9 @@ vendored file to change behavior; the **contract never changes**, only the imple
 - `references/doc-conventions.md` — the doc-writing rules (read before writing any workflow doc).
 - `references/steps/grill.md` — shared interactive elicitation: one-question-at-a-time + grill-log
   + rollback + convergence auto-verdict.
-- `references/steps/adversarial-critic.md` — fresh-context three-lens critic + invariant-ledger
-  replay; used by requirement, design-grill, review.
+- `references/steps/adversarial-critic.md` — fresh-context critic panel (three attack lenses +
+  gate-adjacent criterion-conformance judge) + receipts; used by requirement, design-grill,
+  review, and (lens 4 only) the 详设 baseline + execution-authorization gates.
 - `references/steps/gate-digest.md` — the decision-card gate ask (判断分工: 已验证(勿复核) /
   待你判 + stakes); read before every decision-zone gate ask.
 - `references/steps/review-deep.md` — the `review` verb's deep-tier continuation.

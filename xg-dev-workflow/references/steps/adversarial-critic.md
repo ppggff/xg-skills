@@ -1,6 +1,8 @@
 # Shared mechanism: adversarial fresh-context critic (the "sharp-cut" finder)
 
-Used by **requirement** (grill), **design-grill**, and **review**. A designer grills inside
+Used by **requirement** (grill), **design-grill**, and **review**; the criterion-conformance
+judge (lens 4) additionally serves the 详设 baseline and execution-authorization gates
+(「When to run」). A designer grills inside
 their own frame and carries the blind spot through, so this mechanism makes the agent reach the
 decisive cuts itself: re-derive from the problem, not from the proposal.
 
@@ -21,11 +23,14 @@ subagent that does NOT hold the current design/requirement frame** — give it o
 + the specific claim/mechanism under test}` and one mandate: *attack from first principles —
 what here is unnecessary, what is missing, what already exists?* A fresh context isn't anchored
 to the proposal's assumptions, so it hits the blind spots the author can't see. Run it as a small
-panel of three fixed lenses, **dispatched by stakes**: an **M+ design's decision-level
-checkpoints** default to **one agent per lens, in parallel**; **XS/S designs and edit-only
-rounds** default to the **single-agent three-lens form** (accepting some secondary-lens
-satisficing at low stakes — the reasoning below stands for M+). *Why one-each at M+:*
-a mixed-mandate agent satisfices on its secondary lenses, and three independent contexts
+panel of fixed lenses — the attack lenses (1–3) at branch checkpoints (which ones per phase —
+「When to run」), plus the **criterion-conformance judge** (lens 4) at gate-adjacent
+checkpoints — **dispatched by stakes**: an **M+ design's
+decision-level checkpoints** default to **one agent per lens, in parallel**; **XS/S designs and
+edit-only rounds** default to the **single-agent multi-lens form** (accepting some secondary-lens
+satisficing at low stakes — the reasoning below stands for M+; the conformance judge's output
+stays a per-criterion verdict list even when folded into one agent). *Why one-each at M+:*
+a mixed-mandate agent satisfices on its secondary lenses, and independent contexts
 decorrelate blind spots; parallel dispatch keeps wall-clock and token cost roughly flat when
 paired with the verified-facts pack below (it removes the only overlap, shared background
 reads). Cross-lens composites
@@ -47,6 +52,29 @@ synthesis step exists anyway; don't keep the panel merged for it.
    signal, flag, propagation path, structure), grep the codebase for an **existing carrier**
    that already does it. → catches "we were about to invent what the system already ships".
 
+4. **Criterion-conformance judge (gate-adjacent).** Runs before **every decision-zone gate ask**
+   (需求 confirm · 设计 freeze · 详设 baseline · the execution authorization after `plan.md` —
+   gate-digest.md's list) and whenever a round marks a criterion closed. Input is only
+   `{the upstream criteria text, the artifact}` — for design freeze the criteria are the
+   requirement's 条目 + Effect list; for requirement confirm they are the requirement's **own**
+   criteria that the phase claims closed. Mandate: adjudicate **per criterion** — does the
+   demanded product actually exist, under the **same enumeration key**, with **all rows present
+   and each row evidenced**? Verdicts: `satisfied @<doc §>` / `not satisfied (<what's missing>)` /
+   `key-mismatch (<declared key> vs <delivered key>)`. It judges conformance, not quality, and
+   **never accepts the artifact's own claims ("已核实" / "done") as evidence** — the author being
+   the satisfier is exactly the failure mode it exists to break (the archetype: a writer-axis
+   criterion closed with a DDL-keyed probe table and self-ticked "已完成 N 条" — the key swap
+   then survived every in-context pass). → catches self-reported satisfaction and silent key
+   narrowing.
+
+**Receipts.** Every panel run leaves a one-line receipt — the grill row (`G<n>`) or round it
+served, lenses dispatched, one-line verdicts — in the grill-log (or, when the conversation is
+the log, in the round's closing message). The gate digest's 已验证 section cites these receipts;
+a decision-level checkpoint with no receipt means the panel didn't run, and the gate ask is not
+presentable (gate-digest.md). This is enforcement, not bookkeeping: a full requirement + design
+cycle once ran with zero dispatches while this file prescribed them, and both gates passed on
+self-certified work.
+
 ## Three standing rules the orchestrator applies inline (no subagent needed)
 
 - **Verify-the-assumption.** Every load-bearing "X is available / true at point Y" gets an
@@ -60,10 +88,12 @@ synthesis step exists anyway; don't keep the panel merged for it.
   **structural constraint**. Name the class, pin it as a rule/invariant in the doc under grill,
   and let subsequent rounds check the rule instead of hunting instances.
 
-## Three artifacts to maintain
+## Artifacts to maintain
 
 - **Causal-coverage table** — `cause ↔ mechanism/log`, bijective; the deliverable of lens 1.
 - **Assumptions-to-verify list** — each load-bearing assumption + its verification status.
+- **Panel receipts** — one line per dispatch (grill row/round · lenses · verdicts); see
+  「Receipts」above. Lens 4 additionally leaves its per-criterion verdict list.
 - **Verified-facts pack** — the accumulated CONFIRMED findings and positive verifications of
   this grill (claim + `file:func` citation each), kept in the grill log. **Every subsequent
   dispatch attaches the pack and scopes the mandate to the delta + integration seams**; agents
@@ -96,12 +126,18 @@ notes, the better the starting points — invest there.
 ## When to run
 
 - **requirement grill** — lenses 1 (causal, against the *real* intent/effect) + 3, and the
-  three standing rules, at each branch checkpoint; lens 2 once the touched subsystem is known.
-- **design-grill** — full three-lens panel + the standing rules at each design-tree
-  checkpoint, before freezing. **Tiered:** the full panel targets **decision-level** checkpoints (a new or changed
+  three standing rules, at each branch checkpoint; lens 2 once the touched subsystem is known;
+  lens 4 before the confirm ask (against the requirement's own claimed-closed criteria).
+- **design-grill** — full attack-lens panel + the standing rules at each design-tree
+  checkpoint, before freezing; lens 4 before the freeze ask (against requirement 条目 + Effect).
+  **Tiered:** the full panel targets **decision-level** checkpoints (a new or changed
   ADR-class mechanism). A doc **rewrite that implements an already-grilled decision** gets a
   **lightweight consistency pass** instead: one agent (Agent tool `model: sonnet`, low
   effort — SKILL.md「Subagent model assignment」), mandate =
   hunt surviving old-semantics text and doc↔doc contradictions (no kernel re-verification);
   escalate a finding to code-verification only when it implicates code truth.
-- **review** — the three lenses are fixed members of the lens fan-out (see `review.md`).
+- **详设 baseline · execution authorization** — no attack-lens panel of their own (these phases
+  run no grill); lens 4 only, before the gate ask, against that gate's criteria — 详设: the
+  design decisions/contracts the detail claims covered; plan: the R-id/design↔task trace the
+  plan claims complete.
+- **review** — the three attack lenses are fixed members of the lens fan-out (see `review.md`).

@@ -50,7 +50,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
      `## Amendment` block**, see `adr.md`); update the traced design/detail entries; reset the
      traced plan tasks' acceptance **`[x] → [ ]`** with a dated note and the traced test rows
      to unverified. **Proportional re-grill** before re-freeze: design-grill the changed
-     modules/contracts only, not the whole design.
+     modules/contracts only, not the whole design; the re-freeze ask's criterion-conformance
+     judge (adversarial-critic.md lens 4) is scoped the same way — the changed criteria/rows
+     only, not a whole-doc re-adjudication.
    - **撤销** — retire downstream too: the traced plan tasks / test rows are marked retired
      (with the log line below), not deleted-silently.
 2b. **Supersede sweep（mode 变更/撤销 必跑）.** Trace-driven propagation only touches traced

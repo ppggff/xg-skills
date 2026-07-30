@@ -105,11 +105,14 @@ own slant (see "Phase-specific layers"). Change a tactic once, in this file.
   「Interleave code understanding」, which covers proactively reading when a question is answerable
    from code.)
 4. **Fresh-context adversarial panel (`adversarial-critic.md`).** Don't grill only from inside
-   your own framing. At each branch checkpoint run the three fresh-context lenses (causal-coverage
-   · invariant-ledger replay · search-before-build) + the three standing rules
+   your own framing. At each branch checkpoint run the three fresh-context attack lenses
+   (causal-coverage · invariant-ledger replay · search-before-build) + the three standing rules
    (verify-the-assumption · re-apply-the-signature · class-to-constraint — a second same-shape
    finding pins a structural rule), so the agent reaches the decisive cuts itself instead of
-   waiting for the human to land them. **Tiered dispatch:** M+ decision-level checkpoints →
+   waiting for the human to land them. Before the gate ask, add the **criterion-conformance
+   judge** (lens 4 there) against this gate's criteria. **Each run leaves a receipt**
+   (adversarial-critic.md「Receipts」) — the gate digest requires them; a grill with zero
+   dispatches cannot present a gate ask. **Tiered dispatch:** M+ decision-level checkpoints →
    parallel one-agent-per-lens; XS/S work / edit-only rounds → the single-agent form; attach the
    **verified-facts pack** on every round after the first; a round that only *rewrote
    already-grilled text* gets just a lightweight text-consistency agent + a targeted re-verify of
@@ -186,12 +189,14 @@ both run this shared step.
 Verdict format (one line in chat, after the doc is updated):
 `Grill 收敛判定: 继续 — 2 个 ADR 级 open 点 (G7 seam 契约, G9 兼容边界)` ·
 `Grill 收敛判定: 建议收敛 — 本轮 0 决定级变更; 槽位全三态; Open 已记录 (G4, G11)`.
-**Round-end order (write first, then ask):** verdict row appended to the grill-log — when one
+**Round-end order (write first, then ask):** verdict row **and any panel receipts**
+(adversarial-critic.md「Receipts」) appended to the grill-log — when one
 is persisted; a small grill's conversation-is-the-log case has no file to append (Grill-log
-proportionality above), its receipts are the phase doc + the commit → phase doc synced with the
+proportionality above), its panel receipts land in the round's closing message and its ask
+receipts are the phase doc + the commit → phase doc synced with the
 round's answers → checkpoint commit → **then** the go ask, **with receipts** — the ask names
 the doc paths (grill-log included when persisted) + the commit (SKILL.md Stop-at-gate「Ask with
-receipts」).
+receipts」— those doc/commit receipts are distinct from panel receipts).
 The ask uses the advance word **go** (「继续下一轮请回 go」/「收敛,回 go 进入下一阶段」). A round
 whose artifacts aren't on disk isn't finished — chat-only rounds are how a past grill lost its log.
 
@@ -209,6 +214,15 @@ stopping too early; rounds repeatedly ending dry → stopping too late. The retr
 from this signal (usage log + `log.md`).
 
 ## Fold-in (压实) — the phase doc stays current-state
+
+**Key fidelity on fold-in.** When folding a round's results back into the doc, an
+**enumeration criterion's declared key must not change**. Results gathered under a different
+key (e.g. probing by DDL statement when the criterion enumerates by write point) land as
+**partial evidence**: record what they do cover and **name the key rows still unverified** —
+they never close the criterion or relabel its coverage ("收敛到只有 X"). A criterion closes
+only through its declared table, every row filled. (The archetype: a writer-axis criterion
+closed by a 5-DDL probe in the requirement grill itself — the confirmed doc then carried both
+the instruction and the false "done", and design faithfully inherited it.)
 
 When a round's verdict lands in the phase doc, **fold the correction into the live text**:
 rewrite the affected sentences/sections so the body reads as if written today. Process history

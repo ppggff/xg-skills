@@ -30,7 +30,10 @@ for small gates. In this order:
    appears as a compact one-line list after the cards — a pending row missing from the ask
    would be approved by silence.
 2. **已验证（勿复核）** — what this round's machine/adversarial verification already covered:
-   one line per verification + its method/receipt pointer. Per-item correctness is
+   one line per verification + its method/receipt pointer. Adversarial entries cite their
+   **panel receipt** (adversarial-critic.md「Receipts」— checkpoint, lenses, verdicts); an entry
+   that names no dispatched verifier is a self-verification and doesn't belong in this section.
+   Per-item correctness is
    backstopped by the verification flow and the close-out review, not by human re-reading —
    the gate approves **direction**, not line-by-line accuracy.
 3. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**
@@ -44,6 +47,20 @@ for small gates. In this order:
 
 ## Rules
 
+- **Panel-receipt precondition.** Before presenting any gate ask: every decision-level
+  checkpoint this phase passed has a panel receipt, and the **criterion-conformance judge**
+  (adversarial-critic.md lens 4) has run against this gate's criteria — its per-criterion
+  verdicts feed 已验证 (satisfied rows) and 待你判 (key-mismatch / not-satisfied rows are
+  exactly what the human must rule on). Missing receipts → run the panel first; a gate ask
+  without them presents self-certified work as verified — the failure this rule exists to block.
+- **Enumeration criteria: paste the table, not the conclusion.** A criterion of the form
+  "every X …" claimed satisfied is presented as its table (declared key × rows × evidence
+  columns, blanks visible) or its missing-row list — never as a prose conclusion
+  ("已核过 / covered"). Blank cells and key mismatches are what the gate exists to show.
+  These tables are **exempt from the >5-items link-out threshold below** (like evidence
+  references): the table is the judgment surface. A genuinely large one (>~10 rows) inlines
+  every incomplete/key-mismatch row + links the full table — complete rows are spot-checkable
+  there; the criterion still never closes on a row count alone.
 - **Decision-object references are self-contained.** A card whose decision object is a
   list/count ("the 16 bad edges", "the Top-10 sections") inlines the items one line each, or
   links their home doc; >5 items → link plus inline the judgment-heaviest subset. **Evidence

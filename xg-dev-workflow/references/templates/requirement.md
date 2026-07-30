@@ -59,10 +59,14 @@ ABI / interface stability, project change rules, compatibility, performance, env
 ## Effect (效果 — measurable success criteria)
 
 Reframe the ask as testable conditions. "Done" means each of these is true. **Each criterion cites
-the R-item(s) it verifies** (so a changed `R` localises to its criteria + tests):
+the R-item(s) it verifies** (so a changed `R` localises to its criteria + tests).
+**Enumeration criteria declare their key.** A criterion of the form "every X …" names its
+**枚举键** (what one row is) and **必填列** (at minimum: 可达性/适用性 + 依据) in the criterion
+text; it flips to `[x]` only when the table exists with every declared row complete — never on
+partial-completion prose, and never via a table keyed differently (探了 5 种 DDL ≠ 核了 7 个写点):
 
 - [ ] … (verifies R1)
-- [ ] … (verifies R2)
+- [ ] 每个写点值来源正确 — 键=写点, 列=调用者/可达性/依据; 表全行齐才勾 (verifies R2)（示意）
 
 ## Future (未来)
 

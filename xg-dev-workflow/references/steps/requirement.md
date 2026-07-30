@@ -85,13 +85,17 @@ not transcribe the words.
    「逐条入账」) — the confirm gate approves those rows, not the doc text.
 6. **Reframe Effect as testable criteria.** Turn each requirement item into checkable conditions
    ("at most one coordinator runs the launcher; observable via …"), not vague goals; **cite the
-   `R-id`** each criterion verifies.
+   `R-id`** each criterion verifies. An **enumeration criterion** ("every X passes …") declares
+   its **枚举键 + 必填列** in the criterion text and closes only via the full table — see the
+   template's Effect note; no partial-completion phrasing ("已完成 N 条").
 7. **Boundaries & open questions explicit.** Anything still unresolved or needing human
    input → Open questions; anything deliberately deferred → Future. **Don't grill to death**
    (`grill.md` Protocol): a point that won't converge → record it in Open questions and move on.
-8. **GATE — hard stop.** Present `requirement.md` for confirmation **via the gate digest**
-   (`gate-digest.md`: cards from the pending ledger rows + least-confident spots + open
-   questions + the go ask with receipts), then **STOP this turn**. On confirm: approve
+8. **GATE — hard stop.** Run the **criterion-conformance judge** (adversarial-critic.md lens 4,
+   against this requirement's own claimed-closed criteria) and confirm panel receipts are in
+   place (gate-digest.md precondition), then present `requirement.md` for confirmation **via the
+   gate digest** (`gate-digest.md`: cards from the pending ledger rows + least-confident spots +
+   open questions + the go ask with receipts), then **STOP this turn**. On confirm: approve
    transcription (gate-digest.md) — `confirmed` means the requirement-level rows are all
    approved (the derived-status rule, SKILL.md「Ledger」), then set `status: confirmed`.
    **XS gate merge** (SKILL.md「Requirement sizing」Gate merging): when the human opted into the
@@ -109,5 +113,6 @@ not transcribe the words.
 ## Done when
 - Redundancy + prior-rejection checks run (where-looked / ledger scan reported); assumptions
   confirmed; the sections filled; **需求条目 itemized with stable `R-id`s**; boundaries
-  sharp; success criteria specific, testable, and each citing its `R-id`; load-bearing claims
+  sharp; success criteria specific, testable, each citing its `R-id`, and enumeration criteria
+  declaring their 枚举键 + 必填列 (#6); load-bearing claims
   evidence-backed (provenance marked); `status: confirmed`. Then run the omission check (M3).

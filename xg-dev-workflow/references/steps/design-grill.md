@@ -163,6 +163,14 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      lives in `grill.md`「Shared elicitation tactics」; here it targets **design decisions**, with
      the *invariant-ledger replay* lens biting hardest (does the design honor the subsystem's
      recorded invariants?).
+   - **Coverage checks inherit the requirement's enumeration, never the solution's shape.** When
+     defending a candidate's completeness, the objects enumerated are **the requirement
+     enumeration table's rows** (same key — extend that table with 覆盖/漏 + 可达性 + 依据
+     columns), not a set derived from the candidate's own mechanism. A statement-level seam
+     tempts enumerating statement entry points; the criterion's key (e.g. write points and their
+     callers) is what must be walked — a wrong-key check looks closed while answering the wrong
+     question. The extended table lands in「How it meets the requirement」(with the coverage
+     rows) — not in a freestanding section.
    - **Don't grill to death** — see `grill.md` Protocol; record an Open question and move on.
    - **Convergence — run the shared auto-verdict** (`grill.md`「Convergence」, the canonical
      rule): end every round with the one-line 继续/建议收敛 verdict — decision-level dry check
@@ -189,7 +197,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    (see `adr.md`).
 7. **Freeze gate:** before the ask, check the template's conditional/required sections are
    filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
-   存储足迹 (when the design touches storage) · 验证策略 (M+) — then run the **假设 closure sweep** — enumerate the doc's
+   存储足迹 (when the design touches storage) · 验证策略 (M+) — run the **criterion-conformance
+   judge** (adversarial-critic.md lens 4, against requirement 条目 + Effect) and confirm the
+   panel receipts are in place (gate-digest.md precondition) — then run the **假设 closure sweep** — enumerate the doc's
    load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row

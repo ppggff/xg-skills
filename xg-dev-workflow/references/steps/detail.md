@@ -67,8 +67,10 @@ algorithms whose correctness depends on the details.
    as proposed rows (grill.md「逐条入账」) — number only the load-bearing choices a human
    should judge, not every spec line; their `approved` carries **baseline force** (a dated-note
    refinement never reopens them; overturning the decision itself does).
-7. **Baseline gate:** present `detail.md` via the gate digest (`gate-digest.md` — cards from
-   the pending detail-level rows) and STOP for
+7. **Baseline gate:** run the **criterion-conformance judge** (adversarial-critic.md lens 4 —
+   this phase runs no grill, so it is the only dispatch: against the design decisions/contracts
+   the detail claims covered), then present `detail.md` via the gate digest (`gate-digest.md` —
+   cards from the pending detail-level rows) and STOP for
    human review. On approval run the approve transcription; `baseline` means the detail-level
    rows are all approved (the derived-status rule, SKILL.md「Ledger」). On approval set
    `status: baseline`. **M gate merge** (SKILL.md「Requirement
