@@ -96,7 +96,8 @@ feedback-loop-first: a tight red-capable repro loop before any theory, ranked fa
 hypotheses, the fix landing via Prove-It. `improve <project> [<region>…]` is the read-only
 deepening scan — friction probes + deletion test over a bounded region, candidates checked
 against the project's approved decisions (negative list) and independently refuted, landing in
-a dev_root report; picked candidates graduate via the roadmap. `resume <slug>` to pick up in a new session, `change` to
+a dev_root report; picked candidates graduate via the roadmap. `resume <slug>` to pick up in a
+new session, `change` to
 revise a requirement/design, `check` to lint, `status` for the card view (every card's pipeline
 position + next step, computed from the docs by `tools/workflow-status.py`; `python3
 tools/viewer.py` serves the same data as a browsable localhost HTML viewer — board, doc/KB browsing,
