@@ -14,8 +14,9 @@ Each entry says *what changed* and *why*, not the raw diff.
   suppress), in-flight-card hints; report → `investigations/improve-<scope>-<date>.md`; the
   only exit is roadmap Next-up (no card creation). *Why:* the improve-codebase-architecture
   bare-run proved the method but hit an accepted ADR it couldn't see — negative list and
-  refutation are what make candidates trustworthy (013 [F2]/[F4]; first E2E: 7/8 candidates
-  demoted or narrowed by refutation, 0 false kills).
+  refutation are what make candidates trustworthy (013 [F2]/[F4]; first E2E: 8/8 candidates
+  demoted or scope-narrowed by refutation — 6 demoted, 2 narrowed, 0 refuted outright,
+  0 false kills).
 - **Module-depth record now verified, not hoped-for** — design template gains a
   Design-qualities line (deletion-test conclusion + seam adapter count per new/extended
   module), design-grill's Module-depth lens now instructs writing it, and omission-check
