@@ -133,7 +133,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      just module seams** — for each piece of internal machinery (an extra field/flag, a
      multi-pass state machine, a ranking/sort, a cache), ask what breaks if removed: often a
      simpler check answers the same question. Catching over-built internals here is far cheaper
-     than at review.
+     than at review. **Write the per-module conclusions into the template's「Design qualities」
+     module-depth line** — a lens walked only in chat leaves the doc empty (same rule as the
+     design-quality lenses above).
    - **方案优先 / explore solutions before structure** — surface multiple candidate approaches and
      grill their trade-offs before committing; pick on trade-off, not first idea. Ask **per 层/模块**
      whether the **normal flow or a dominant anomaly flow** is the hard part — either may drive the

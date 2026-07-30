@@ -83,7 +83,10 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       traverses fails; **Mermaid preferred**, ASCII fallback), the **影响面 (impact surface)** section,
       the **验证策略** table (M+ cards), the **存储足迹** table (when the design touches storage),
       and — if it introduces a module — that module's **interface contract** (operations +
-      invariants, not signatures).
+      invariants, not signatures); and — for structural cards whose `design.md` is not yet
+      frozen and whose `created` date is on/after 2026-07-30 — the「Design qualities」section
+      carries a per-new/extended-module **module-depth record** (deletion-test conclusion +
+      seam adapter count); frozen or pre-cutoff designs are exempt.
 - [ ] **Close-out review** — a requirement at `done` / Phase=测试 complete has **either** a close-out
       review doc under `notes/review-*.md` **or** an explicit skip/grandfather note in `progress.md`
       (`XS/S — review skipped`, or `pre-gate done` for cards finished before the gate existed —

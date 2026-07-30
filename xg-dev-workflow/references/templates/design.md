@@ -156,6 +156,8 @@ M2 (`change.md` `seam-contract-disproved`), never a silent `plan.md` edit.
 简单可靠 (首要) · 可测试性 (能 mock 周边、独立测) · 可观测性 (坏了能定位到本模块) · 异常完整性
 (每个异常有归属或兜底,兜底可人工;罕见不另立结构) · 性能 + 规模放大后的性能. One line each;
 "N/A — <why>" is a valid answer.
+**Module-depth 记录**(per 全新/已有扩展 module):deletion test 结论 + seam 的 adapter 数;
+非结构性设计写 "N/A — <why>"。
 
 ## How it meets the requirement
 
