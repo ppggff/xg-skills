@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A monorepo of **two Claude Code Skill packages** — not application code. Each is Markdown-driven (a `SKILL.md` contract + on-demand `references/`) with a few Python helper scripts. There is **no build, compile, lint, or test pipeline**; "running" a skill means Claude Code loading its `SKILL.md` and following it.
 
 - **`xg-knowledge-lite/`** — a cross-project code-knowledge base. Two layers: `raw/<project>/*.md` (Claude's investigation write-ups, the source of truth) → `wiki/<project>/<concept>.md` (concept articles *synthesized* from raw). Actions: Write, Compile, Query, Orient, Lint.
-- **`xg-dev-workflow/`** — a design-centric dev workflow. Five phases (需求 requirement → 设计 design → 详设 detail → 实现 plan/implement → 测试 test) plus an M+ close-out **评审** review gate, one requirement = one directory of docs. Verbs: `new`, `requirement`, `design`, `detail`, `plan`, `test`, `investigate`, `review`, `change`, `resume`, `check`, `retro`.
+- **`xg-dev-workflow/`** — a design-centric dev workflow. Five phases (需求 requirement → 设计 design → 详设 detail → 实现 plan/implement → 测试 test) plus an M+ close-out **评审** review gate, one requirement = one directory of docs. Verbs: `new`, `requirement`, `design`, `detail`, `plan`, `test`, `investigate`, `diagnose`, `review`, `improve`, `change`, `resume`, `check`, `retro`.
 
 The two are siblings: the workflow *orchestrates* code work and links out to the KB for reusable module knowledge; it never stores that knowledge itself.
 

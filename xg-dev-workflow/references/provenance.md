@@ -17,6 +17,7 @@ distinct from the claim-provenance markers (evidence / 推断 / 假设) used in 
 | understand | xg-knowledge-lite + Plan Mode / Explore subagent | concept-first, layered comprehension |
 | investigate | — (authored inline; composes understand + evidence; **Spike** section adapted from `prototype`) | single front door for any investigation; M1 discipline + context branch; throwaway spike probe for empirical questions |
 | diagnose | diagnosing-bugs | feedback-loop-first defect localization: a red-capable repro loop before any theory, 3–5 ranked falsifiable hypotheses, tagged instrumentation, minimise-until-load-bearing; fix routed through Prove-It as an 实现 slice |
+| improve | — (authored inline; composes the investigate skeleton + evidence discipline + the adversarial-critic refutation pattern; probe methodology informed by improve-codebase-architecture bare-run observations, not forked) | read-only deepening scan: bounded region, negative list, per-candidate refutation, roadmap-only exit |
 | review | review (user skill) + official code-review plugin + code-review-and-quality | lens fan-out; confidence-scored verification (≥80 filter, false-positive exemplars); five-axis menu; KB-context injection + adjudication + positive-verification section from the 2026-06-12 review-session retro |
 | evidence | source-driven-development | citation discipline, no guessing |
 | change / omission-check / resume / retro | — (authored inline) | not covered by any third-party skill |

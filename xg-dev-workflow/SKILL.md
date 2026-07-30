@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); or reviews new/changed code ('review X' / 'review 这些改动')."
+description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); or scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选')."
 ---
 
 # xg-dev-workflow
@@ -305,6 +305,9 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
   repro loop before any theory, fix lands via Prove-It. Step: `references/steps/diagnose.md`.
 - `review <target>` — **the front door for judging new/changed code**; also the M+ close-out gate;
   read-only, report lands in dev_root. Step: `references/steps/review.md`.
+- `improve <project> [<region>…]` — read-only deepening scan over a bounded region: friction
+  probes + deletion test, negative-list-checked candidates land in a dev_root report; gate stops
+  for the human pick → roadmap Next-up. Step: `references/steps/improve.md`.
 - `change` — drive the M2 flow.
 - `resume [<slug>]` — rebuild state from `progress.md` + the phase docs (M4).
 - `check [<slug>]` — run the M3 check.
