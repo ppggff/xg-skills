@@ -55,7 +55,10 @@ Dispatch one Explore-type agent over the bounded region. Its prompt must contain
   `evidence.md`「Negative-results」; candidates must not overlap; when in doubt, drop or mark
   Speculative — under-report beats padding;
 - output: **≤8 candidates** in the candidate-card schema below (minus the 复核/核对 columns) +
-  a **coverage statement** (what in the region was and wasn't read — no silent caps);
+  a **coverage statement** (what in the region was and wasn't read — no silent caps); the
+  依赖分类 field uses four categories, one-line gloss each in the brief: **in-process** (pure
+  compute/memory, no I/O) · **local-substitutable** (a local test stand-in exists) ·
+  **ports&adapters** (own service across a network seam) · **mock** (true third-party);
 - report in Chinese, domain terms and code identifiers in English; no ASCII diagrams.
 Agent failure or zero candidates → stop the run and say so in chat (no report file).
 An over-large region blowing the agent's budget counts as failure — suggest a smaller region.
@@ -63,13 +66,17 @@ An over-large region blowing the agent's budget counts as failure — suggest a 
 ### 3. Refute (per candidate, `model: sonnet`)
 One fresh-context agent per candidate, in parallel. Mandate: *read the actual call sites and
 try to refute this candidate's shallow / pass-through / deletion-concentrates judgment.*
+Every verdict reports the call sites checked (the orchestrator's adjudication and M6
+calibration both need the basis, `stands` included).
 Verdict mapping (uncertain defaults to `weakened` — degrade, don't delete):
 - `refuted` → drop to the report's 剔除候选 appendix (one line: title + refutation basis);
 - `weakened` → recommendation strength drops one level (Strong → Worth exploring →
   Speculative), reason recorded in the 复核结论 column;
 - `stands` → passes.
 The orchestrator may overrule a verdict — the overrule reason lands in the 复核结论 column
-(M6 calibration material for the sonnet assignment).
+(M6 calibration material for the sonnet assignment). A refuter agent that dies leaves its
+candidate marked 复核未完成 and force-demoted to Speculative — never dropped, never blocking
+the report (safe direction: degrade, don't delete).
 
 ### 4. Conflict-match → report → gate → roadmap
 1. **Conflict match**: for each candidate × negative-list entry, the orchestrator judges
@@ -82,8 +89,10 @@ The orchestrator may overrule a verdict — the overrule reason lands in the 复
    `<project>/investigations/improve-<scope>-<YYYY-MM-DD>.md` (whole-repo scan: scope = project
    name; same-day rerun appends `-2`) → commit via `tools/commit-data-repos.py --project`.
 3. **Chat gate** — receipts first (report path + commit + a candidate summary table), then STOP.
-4. On the human's pick: one roadmap「Next up」line per chosen candidate —
-   `- <title> — <one-line gain>(improve 候选,[报告](./investigations/<file>))` — then commit.
+4. On the human's pick: one roadmap「Next up」line per chosen candidate, matching the
+   template's entry form —
+   `- [ ] <title> — <one-line gain>(improve 候选,[报告](./investigations/<file>)) → card: —`
+   — then commit.
    No pick → the report stays archived, zero roadmap writes.
 5. Log once per run: `log-usage.py log --skill xg-dev-workflow --action improve …`.
 Write/commit/reply discipline: `investigate.md`「Receipts」. Report write failure → retry once,
