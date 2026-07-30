@@ -39,9 +39,12 @@ Menu — skip lenses that obviously don't apply and note the skips:
   Assess the diff against the **Fowler smell catalog** (`references/smell-catalog.md` — paste it
   into the agent's brief); the families that recur here are **Speculative Generality** (a static-fn
   parameter every caller passes constant/NULL, an unreachable mode — dead code / unused generality),
-  **Duplicated Code** (a copy-pasted call shape that wants one helper), and **Middle Man** (a
+  **Duplicated Code** (a copy-pasted call shape that wants one helper), **Middle Man** (a
   pass-through layer, or a flag/state-machine/ranking a simpler check replaces — apply the deletion
-  test), plus non-smell **efficiency-hoist** (side-effect-free/expensive work above the guard that
+  test), **locality** (pure functions extracted for testability while the failure modes live in
+  their untested call orchestration; state leaking across a seam), and **single-adapter seams** (a
+  port with exactly one implementation and no test-double consumer — one adapter is a hypothetical
+  seam, two is a real one), plus non-smell **efficiency-hoist** (side-effect-free/expensive work above the guard that
   skips it; per-row work that belongs in one-time setup). These are one coherent family — bundle
   them in **one** agent, not one-per-check; recall loss is cheap here (a missed cleanup is a
   nice-to-have, not a bug), which is exactly why merging is safe for this family and not for
