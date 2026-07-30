@@ -29,6 +29,12 @@ Each entry says *what changed* and *why*, not the raw diff.
   2026-07-30 前的 gate 豁免)。枚举型判据在 digest 里**贴表不贴结论**。
 - **Coverage inherits the requirement's enumeration** — `steps/design-grill.md`:方案完备性辩护
   枚举的对象必须是需求枚举表的行(同键加列),不得由候选方案的形状反推枚举集合。
+- **两条机械化跟进(同日,同一动因)**:(1) `workflow-status.py --check` 新增检查 (f) ——
+  design.md 无条件必备节(思路/速览/How-it-meets/影响面)的存在性,不依赖 ledger,
+  created < 2026-07-31 的设计 grandfathered(006 的 design.md 徒手写就、整卡零次 M3,
+  必备节全靠残留记忆,「How it meets」就此丢失);条件节(验证策略/存储足迹/图)留在
+  judgment 子集。(2) 设计 freeze ask 必须附 `--trace` 覆盖矩阵(`steps/gate-digest.md`),
+  freeze 时 task/test/commit 列合法为空,人看的是 R→design 列的空洞。
 
 ## 2026-07-30 — Recommendation pre-check 扩到四条(价值归属 + 载重前提)+ 提交前验证对象(card 008 / hashdata)
 

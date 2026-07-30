@@ -14,9 +14,11 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   `facts.md` (doc-local 事实清单 for standalone docs; not yet scripted — runs with the
   judgment subset until a checker exists). **The ledger checks ship as `workflow-status.py --check
   <project>/<card>`** (id-reference integrity · derived-status field mappings (SKILL.md「Ledger」) · depends-on
-  acyclicity · approve-note format · single-active-block; exit 1 = findings) — run it on any
-  ledger card after a doc edit; semantic contradiction with approved decisions stays in the
-  judgment subset. The remaining items still lack a checker and run with the judgment subset
+  acyclicity · approve-note format · single-active-block · **design.md unconditional-section
+  existence** (思路/速览/How-it-meets/影响面; designs created before 2026-07-31 grandfathered;
+  conditional sections stay in the judgment subset); exit 1 = findings) — run it on any
+  card after a doc edit (the section check needs no ledger); semantic contradiction with
+  approved decisions stays in the judgment subset. The remaining items still lack a checker and run with the judgment subset
   (roadmap item, not a prerequisite).
 - **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
   reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this

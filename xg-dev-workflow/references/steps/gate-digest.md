@@ -53,6 +53,11 @@ for small gates. In this order:
   verdicts feed 已验证 (satisfied rows) and 待你判 (key-mismatch / not-satisfied rows are
   exactly what the human must rule on). Missing receipts → run the panel first; a gate ask
   without them presents self-certified work as verified — the failure this rule exists to block.
+- **设计 freeze asks attach the trace matrix.** Run `workflow-status.py --trace
+  <project>/<card>` and inline its output after the cards. At freeze time the task/test/commit
+  columns are legitimately empty — what the human reads is the R→design column: an R-id with
+  no design home is a gap the ask must name, not paper over. Later gates may re-attach it as
+  the columns fill (optional there).
 - **Enumeration criteria: paste the table, not the conclusion.** A criterion of the form
   "every X …" claimed satisfied is presented as its table (declared key × rows × evidence
   columns, blanks visible) or its missing-row list — never as a prose conclusion

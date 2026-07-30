@@ -16,7 +16,8 @@ Usage:
   workflow-status.py --json            # machine-readable board ({project: [card…]}); backs the viewer
   workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
                                        # (<card> = NNN or a slug fragment; a card-dir path works too)
-  workflow-status.py --check <project>/<card>   # decision-ledger deterministic checks (a)-(e);
+  workflow-status.py --check <project>/<card>   # deterministic checks: ledger (a)-(e) +
+                                                #   design.md required sections (f);
                                        # exit 1 on findings (M3 deterministic subset)
 """
 import fnmatch
@@ -660,13 +661,42 @@ def _referenced_ids(card_dir):
 ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
                   "superseded": "superseded", "deprecated": "retired"}
 
+# (f) design.md required-section existence — the scripted slice of M3's Design-completeness.
+# Only the unconditional template sections; conditional ones (验证策略 is M+-only, 存储足迹 is
+# storage-only, diagrams allow an ASCII fallback) stay in the M3 judgment subset.
+DESIGN_SECTIONS_CUTOFF = "2026-07-31"   # grandfather: earlier designs were written pre-rule
+DESIGN_REQUIRED_SECTIONS = (
+    ("思路", r"思路"),
+    ("速览", r"速览"),
+    ("How it meets the requirement", r"How it meets|如何满足"),
+    ("影响面", r"影响面|impact surface"),
+)
+
+
+def check_design_sections(card_dir):
+    """Missing-section findings for design.md; [] when absent or grandfathered."""
+    path = os.path.join(card_dir, "design.md")
+    if not os.path.exists(path):
+        return []
+    created = str(frontmatter(path).get("created", ""))
+    if not created or created < DESIGN_SECTIONS_CUTOFF:
+        return []
+    heads = " | ".join(m.group(1) for m in
+                       re.finditer(r"^##+\s+(.+)$", _read(path), re.M))
+    return ["missing-section: design.md " + name
+            for name, pat in DESIGN_REQUIRED_SECTIONS
+            if not re.search(pat, heads, re.I)]
+
 
 def check_card(project, card_dir):
-    """The deterministic ledger checks (a)–(e); semantic contradiction stays M3 judgment.
-    No decisions.md → [] (old-card semantics, never flagged)."""
+    """The deterministic checks: ledger (a)–(e) + design sections (f); semantic
+    contradiction stays M3 judgment. No decisions.md → ledger checks skipped
+    (old-card semantics, never flagged); (f) runs regardless of the ledger."""
+    section_findings = check_design_sections(card_dir)                       # (f)
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        return []
+        return section_findings
     blocks, findings = parse_ledger(card_dir)
+    findings = section_findings + findings
     by_id = {}
     for b in blocks:
         by_id.setdefault(b["id"], []).append(b)

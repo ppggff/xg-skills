@@ -197,9 +197,11 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    (see `adr.md`).
 7. **Freeze gate:** before the ask, check the template's conditional/required sections are
    filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
-   存储足迹 (when the design touches storage) · 验证策略 (M+) — run the **criterion-conformance
+   存储足迹 (when the design touches storage) · 验证策略 (M+); `workflow-status.py --check`
+   verifies the unconditional sections mechanically — run the **criterion-conformance
    judge** (adversarial-critic.md lens 4, against requirement 条目 + Effect) and confirm the
-   panel receipts are in place (gate-digest.md precondition) — then run the **假设 closure sweep** — enumerate the doc's
+   panel receipts are in place (gate-digest.md precondition); the ask itself attaches the
+   `--trace` coverage matrix (gate-digest.md) — then run the **假设 closure sweep** — enumerate the doc's
    load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row

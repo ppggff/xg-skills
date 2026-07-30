@@ -193,6 +193,49 @@ class BoardFields(unittest.TestCase):
         self.assertEqual(cards[0]["blockers"], "")
 
 
+class DesignSections(unittest.TestCase):
+    """--check (f): design.md required-section existence, grandfathered by created date."""
+
+    FULL = ("---\nid: 014\nstatus: drafting\ncreated: 2026-08-01\n---\n\n"
+            "## 思路\n\nx\n\n## 速览\n\nx\n\n## How it meets the requirement\n\nx\n\n"
+            "## 影响面\n\nx\n")
+
+    def _card(self, design):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "014-fix")
+        os.makedirs(card)
+        open(os.path.join(card, "design.md"), "w").write(design)
+        return card
+
+    def test_full_sections_clean(self):
+        self.assertEqual(ws.check_design_sections(self._card(self.FULL)), [])
+
+    def test_missing_sections_flagged_without_ledger(self):
+        # runs through check_card even when decisions.md is absent
+        card = self._card("---\nid: 014\nstatus: drafting\ncreated: 2026-08-01\n---\n\n"
+                          "## 方案与否决\n\nx\n\n## 影响面\n\nx\n")
+        findings = ws.check_card("proj", card)
+        self.assertIn("missing-section: design.md 思路", findings)
+        self.assertIn("missing-section: design.md How it meets the requirement", findings)
+        self.assertNotIn("missing-section: design.md 影响面", findings)
+
+    def test_pre_cutoff_created_is_grandfathered(self):
+        card = self._card("---\nid: 006\nstatus: frozen\ncreated: 2026-07-30\n---\n\n"
+                          "## 方案与否决\n\nx\n")
+        self.assertEqual(ws.check_design_sections(card), [])
+
+    def test_no_design_md_is_clean(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "014-fix")
+        os.makedirs(card)
+        self.assertEqual(ws.check_design_sections(card), [])
+
+    def test_chinese_variant_heading_accepted(self):
+        card = self._card(self.FULL.replace("## How it meets the requirement",
+                                            "## 如何满足需求"))
+        self.assertEqual(ws.check_design_sections(card), [])
+
+
 class LedgerCheck(unittest.TestCase):
     """--check (a)-(e) against fixture cards (010 T2)."""
 
