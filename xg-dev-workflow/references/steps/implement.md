@@ -100,6 +100,10 @@ way, under the same rule.
   outward act — never push without an explicit request (global Git & MR Safety).
 - **History is append-only:** new work = new follow-up commits; never amend / rebase / squash an
   already-made commit unless the human asks.
+- **Verify what will be committed, not the worktree.** A green build/test says nothing about the
+  commit whenever index and worktree can differ — classically right after `reset --soft`, which
+  leaves the *old* content staged. Inspect the staged/committed blob itself
+  (`git show :<file>` / `git show HEAD:<file>`) before treating the commit as done.
 - **Respect an explicit project no-commit policy** if one exists (then checkpoint + ask instead);
   absent that, the per-task / per-fix cadence is the default. English commit message following the
   project's convention.

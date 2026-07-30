@@ -22,15 +22,24 @@ priorities and tactics (see "Phase-specific layers").
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
 - **Recommendation pre-check (self-proposals get the same rigor as external ones).** Before
   recommending an approach/idea of your own — inline in discussion, not only in dispatched
-  panels — pass three checks; failing any, present it as an **open question with the check as
+  panels — pass four checks; failing any, present it as an **open question with the check as
   pending work**, not as a recommendation:
-  1. **Comparative claims VERIFIED** — never put an unread-code claim in a comparison table
-     ("X has no cache / no hook" requires having read X).
+  1. **载重前提 VERIFIED** — every premise the proposal rests on is checked **before** it is
+     stated, not patched in afterwards. Two kinds: comparative claims about existing code
+     ("X has no cache / no hook" requires having read X), and **feasibility premises**
+     ("the existing flag can't express this", "the host has no psql") — those are settled by
+     trying them, never by reasoning about them.
   2. **Magnitude × medium** — multiply by the requirement's stated design scale and the actual
      access medium's per-op cost (a per-row catalog lookup at 10^6 rows over RPC is a different
      proposal than the same lookup in-memory).
   3. **Cost symmetry** — list what the proposal **adds** (writers, schema, state, RPC shapes),
      not only what it saves; a read that becomes a write is a qualitative change.
+  4. **价值归属 (who needs it)** — name **who needs it and what breaks without it**. A proposal
+     whose strongest argument is that it makes the design more self-consistent fails this check.
+     Corollary for option sets: when the options differ in **scale**, never lay them out as a
+     minimal / medium / complete ladder — a ladder implies more-is-better and silently converts
+     「要不要」into「要多少」. Options addressing **different kinds** of problem are listed by kind,
+     each carrying its own value argument; only then is picking one a real choice.
 - **Interleave code understanding** (M5/M1): when a question is answerable from the codebase, go
   read it instead of asking/guessing; bring back evidence (`func()` in `file.c` / `[[wiki/…]]`).
   When it's answerable **only empirically** (runtime/planner behavior reading can't settle), run

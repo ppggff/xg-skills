@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-30 — Recommendation pre-check 扩到四条(价值归属 + 载重前提)+ 提交前验证对象(card 008 / hashdata)
+
+- **pre-check 第 4 条「价值归属」**(`steps/grill.md`)—— 提案必须点名「谁需要它、不做会怎样」;
+  只以「让设计更自洽」为最强论据的提案不通过。附推论:规模不同的选项**不得**排成
+  minimal/medium/complete 阶梯 —— 阶梯暗示 more-is-better,把「要不要」偷换成「要多少」。
+  **动因**:hashdata card 008(GetRangeSize 估算回落)。实测给出两档毛病 —— 8.4 KB 报 0、
+  42 KB 报 100 KB(2.39x);我把它们当同一问题的两个程度、排成三档递进方案并推荐「四步全做」,
+  推荐理由是「硬上限让阈值可以自由选,两者配套更好推理」(自洽性论证,不是价值论证)。
+  人在需求 gate 上做了框架内能做的最大收窄(否 R1、把 R2 并进 R3),但 R3 是框架层面的问题、
+  收窄不掉 —— 直到实现完看见 50 行代码 + 四个包级 var 才被否("是不是太复杂了")。
+  返工:50 行 → 35 行,删 4 个 var + 整套 unit 公式。事后才想清的区分(已进 KB
+  `wiki/hashdata/fdb-range-size-estimation`):**假 0 是语义错误(会被读成「索引是空的」)必须修,
+  2.39x 是精度不足、无人需要** ⟹ 判据的分辨率只需匹配「会被误读的输出」。
+  教训的落点是**选项呈现方式**,不是「需求阶段要更严」—— gate 只能审摆上去的框架。
+- **pre-check 第 1 条从「comparative claims」加宽到「载重前提」**(同文件)—— 明确含**可行性前提**,
+  且「靠试,不靠推理」。**动因**:同一天 usage log 另一条 requirement 记分 2 ——
+  两处方向性决策被人推翻,根因「未验证前提就下断言(没先试 extra args 能否满足需求、
+  没先查宿主有无 psql)」。与 008 合看是同一模式的两次:**R 条目在缺少某类必要支撑时被写下并过
+  gate**(一次缺前提验证、一次缺价值论证)。原第 1 条只覆盖「比较性断言」,盖不住可行性前提。
+- **提交前验证对象**(`steps/implement.md`)—— build/test 绿证明不了 commit 内容;
+  index 与 worktree 可能分叉时(典型:`reset --soft` 之后 index 留的是**旧**内容)
+  必须查 staged/committed 的 blob 本身(`git show :<file>` / `git show HEAD:<file>`)。
+  **动因**:card 008 实现末期 `reset --soft` 后漏 `add` 就 commit,提交的是未简化版;
+  随后跑的 build/test 针对 worktree(简化版)全绿,正好掩盖了这件事,靠人追问「没有 amend 吧」
+  才暴露。
+- **Pruning**:同时想加在 `steps/requirement.md` 的「pre-check 在写条目前跑完」指针被砍 ——
+  pre-check 的措辞本就是 "Before recommending",该指针是重复。
+
 ## 2026-07-30 — improve verb(存量巡检)+ module-depth 留痕核验 + review depth 判据(card 013)
 
 - **New `improve <project> [<region>…]` verb** — read-only deepening scan: region check
