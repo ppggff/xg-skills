@@ -4,6 +4,30 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-30 — improve verb(存量巡检)+ module-depth 留痕核验 + review depth 判据(card 013)
+
+- **New `improve <project> [<region>…]` verb** — read-only deepening scan: region check
+  (>200 source files without a region → refuse, never sample), KB-vocabulary-informed friction
+  probes + deletion test, per-candidate fresh-context refutation (sonnet; uncertain →
+  weakened), negative-list conflict matching against all cards' accepted ADRs/ledger
+  (clear conflict → suppress or mark `contradicts <id>`; doubtful → `possible-conflict`, never
+  suppress), in-flight-card hints; report → `investigations/improve-<scope>-<date>.md`; the
+  only exit is roadmap Next-up (no card creation). *Why:* the improve-codebase-architecture
+  bare-run proved the method but hit an accepted ADR it couldn't see — negative list and
+  refutation are what make candidates trustworthy (013 [F2]/[F4]; first E2E: 7/8 candidates
+  demoted or narrowed by refutation, 0 false kills).
+- **Module-depth record now verified, not hoped-for** — design template gains a
+  Design-qualities line (deletion-test conclusion + seam adapter count per new/extended
+  module), design-grill's Module-depth lens now instructs writing it, and omission-check
+  flags structural cards missing it (deterministic exemption: frozen designs or created
+  before 2026-07-30). *Why:* the lens existed since dbac5b3 but only ran in chat — silently
+  skippable, M3-invisible.
+- **Review depth criteria** — review-deep quality/simplify adds locality
+  (tested-helpers-around-untested-orchestration) + single-adapter-seam families;
+  simplify-checks gains item 3 (deletion test + locality), carried automatically by both its
+  consumers (review Standards axis and implement's simplify sweep). *Why:* locality was
+  absent review-side; deep tier alone misses most diffs.
+
 ## 2026-07-29 — 设计期主导流程按位置追问 + data-flow 图必须走完一条流程
 
 **动机**: 设计阶段对异常侧是三处明文强制(Core values 异常完整性 · Design qualities · detail 的

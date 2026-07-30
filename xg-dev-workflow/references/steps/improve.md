@@ -50,8 +50,7 @@ Dispatch one Explore-type agent over the bounded region. Its prompt must contain
   wrappers); (3) pure functions extracted for testability while the real bugs live in their
   untested call orchestration; (4) tight coupling leaking across a seam; (5) parts untestable
   through their current interface;
-- the **deletion test** as the filter (complexity concentrates → real candidate; reappears
-  across callers → it earns its keep);
+- the **deletion test** (gloss above) as the filter;
 - M1: evidence must be file:func-level and actually read; negative results follow
   `evidence.md`「Negative-results」; candidates must not overlap; when in doubt, drop or mark
   Speculative — under-report beats padding;
