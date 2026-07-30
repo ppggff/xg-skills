@@ -1,6 +1,6 @@
 # Simplify checks (reuse / cohesion)
 
-The single source for the two reuse/cohesion checks a change that adds helpers/abstractions must
+The single source for the reuse/cohesion checks a change that adds helpers/abstractions must
 pass. Shared by `implement.md`'s simplify sweep and `review.md`'s Standards axis — when a review
 axis agent needs them, paste this file into its brief (it assumes no shared memory).
 

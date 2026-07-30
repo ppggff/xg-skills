@@ -236,8 +236,8 @@ initialized** on the first commit (`git init` + a minimal `.gitignore`, announce
 Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging) — follow it. This skill's
 `--action` values: `write|compile|query|orient|lint` (the logging tool warns on anything else).
 **One event = one record:** a KB write — *or an Orient warm-up* — that happens inside an
-xg-dev-workflow `investigate`/`diagnose`/`review` run is covered by that run's record; don't
-double-log here. Only standalone KB work logs under this skill (`orient` only when run as a
+xg-dev-workflow `investigate`/`diagnose`/`review`/`improve` run is covered by that run's record;
+don't double-log here. Only standalone KB work logs under this skill (`orient` only when run as a
 deliberate standalone warm-up).
 
 ## Out of scope (deliberately)

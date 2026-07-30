@@ -151,8 +151,9 @@ last session's slices. A multi-session card is the trap: sweeping only the lates
 earlier sessions' reuse/dead-code/altitude untouched. `git diff $(git merge-base origin/<main>
 HEAD)..HEAD` is the diff to sweep.
 - **Reuse/cohesion is the sweep's core — a comment pass is not a sweep.** When the change added
-  helpers/abstractions, apply the two reuse/cohesion checks in `references/simplify-checks.md`
-  (new helper → grep the module first; new cross-cutting concern → match its just-built sibling)
+  helpers/abstractions, apply the reuse/cohesion checks in `references/simplify-checks.md`
+  (new helper → grep the module first; new cross-cutting concern → match its just-built sibling;
+  new wrapper/layer → deletion test + locality)
   over the whole diff. A comments-only sweep diff on a change that introduced helpers/abstractions
   didn't run: state the reuse/cohesion you checked, not just "swept".
 **test-after / "describe, don't run" projects: non-structural cleanups only** (comments, dead

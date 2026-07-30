@@ -324,8 +324,8 @@ Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging). This skill's 
 verb just run (vocabulary: `KNOWN_ACTIONS` in `tools/log-usage.py`; `status` only as a deliberate
 standalone view). Exceptions: an `investigate` inside an active requirement logs `design`;
 implement-phase task work logs `plan` (one record per task/checkpoint). **One event = one record:**
-a KB write inside an `investigate`/`diagnose`/`review` run is covered by that record — only
-standalone KB work logs under xg-knowledge-lite.
+a KB write inside an `investigate`/`diagnose`/`review`/`improve` run is covered by that record —
+only standalone KB work logs under xg-knowledge-lite.
 
 ## Step binding (vendor + runtime override)
 
