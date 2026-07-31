@@ -16,13 +16,16 @@ confirmation — its value is the degraded session where they weren't.
 never auto-runs it — especially mid-grill (M4's unbroken-window advice stands; park serves the
 unavoidable interruption, it doesn't license casual ones).
 
-## Procedure (four beats)
+## Procedure
 
-1. **Resolve the card.** `park [<slug>]` — slug omitted → the session's active card;
-   ambiguous → list candidates and ask once (never guess). No card at all (standalone
-   investigate/review context) → refuse and point at that work's own doc discipline
-   (investigation/review notes); standalone handoff is out of scope.
-2. **Container-routing sweep.** Walk this session for content not yet on disk and land
+**Precondition — resolve the card** (input parsing, not a beat): `park [<slug>]` — slug
+omitted → the session's active card; ambiguous → list candidates and ask once (never guess).
+No card at all (standalone investigate/review context) → refuse and point at that work's own
+doc discipline (investigation/review notes); standalone handoff is out of scope.
+
+The four beats (numbering matches the frozen design's 四拍契约):
+
+1. **Container-routing sweep.** Walk this session for content not yet on disk and land
    each piece in its **existing** container — the scan list is "every write obligation the
    steps declare":
    - human-judgment decisions → `decisions.md` proposed blocks (grill.md「逐条入账」; park never
@@ -36,11 +39,11 @@ unavoidable interruption, it doesn't license casual ones).
      delete/merge/defer, an invalidated `[x]`) whose event happened but whose line wasn't
      written yet;
    - finished-but-unregistered slices → their `test.md` Unit-registry line;
-   - live working state → `progress.md` (beat 3).
-3. **Verify + top up `progress.md` to the resume floor** — the template's "State at a glance +
+   - live working state → `progress.md` (beat 2).
+2. **Verify + top up `progress.md` to the resume floor** — the template's "State at a glance +
    Task status". By leave-state form:
    - **mid-grill (decision zone):**「Now doing」names the open `G<n>`; grill-log persisted
-     (beat 2). This is grill.md's round-end order (verdict/receipts → doc sync → checkpoint
+     (beat 1). This is grill.md's round-end order (verdict/receipts → doc sync → checkpoint
      commit) pulled forward to an arbitrary interruption point — follow that order, don't
      restate it here.
    - **mid-task (execution zone):** Task status current; **dirty product files recorded, not
@@ -49,10 +52,10 @@ unavoidable interruption, it doesn't license casual ones).
      byte-identical);「Build/test:」line present.
    - At a gate stop (between phases) the state is already gate-committed — park degrades to
      confirmation + the closing reply.
-4. **Close out and reply.** Run **M3 first, then a scoped dev_root commit**
-   (`commit-data-repos.py --project <name>` — SKILL.md「Versioning」discipline, parallel
-   sessions' docs never ride along); nothing to land → skip the empty commit. Then the
-   **closing reply = receipts + start line** (Stop-at-gate「Ask with receipts」applies to a
+3. **M3, then a scoped dev_root commit** — run the omission check first, then
+   `commit-data-repos.py --project <name>` (SKILL.md「Versioning」discipline, parallel
+   sessions' docs never ride along); nothing to land → skip the empty commit.
+4. **Closing reply = receipts + start line** (Stop-at-gate「Ask with receipts」applies to a
    verb-run-closing reply): name the touched docs + the commit, and end with one paste-ready
    line — `xg-dev-workflow resume <slug>` — plus, when the card sits in the execution zone, an
    optional model-switch suggestion (`/model sonnet` + `/advisor opus`, SKILL.md「Subagent model
