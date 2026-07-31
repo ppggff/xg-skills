@@ -38,7 +38,7 @@ DEFAULT_LOG = Path.home() / ".config" / "xg-knowledge-wiki" / "usage.jsonl"
 KNOWN_ACTIONS = {
     "xg-dev-workflow": {
         "new", "requirement", "design", "detail", "plan", "test", "investigate",
-        "diagnose", "review", "improve", "change", "resume", "check", "retro", "status",
+        "diagnose", "review", "improve", "change", "resume", "park", "check", "retro", "status",
     },
     "xg-knowledge-lite": {"write", "compile", "query", "orient", "lint"},
 }
