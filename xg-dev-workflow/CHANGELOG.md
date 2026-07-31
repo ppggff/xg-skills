@@ -4,7 +4,22 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
-## 2026-07-30 — 判据枚举键保真 + panel receipts 成 gate 前置 + criterion-conformance 裁定者(cbdb/006)
+## 2026-07-31 — gate digest 版式改版:「Grill / 自检状态」领段 + 卡片分行 + 全段 list 化
+
+- **动因**: 用户在 014 设计 freeze gate 现场试用后拍板("先按这个订吧,用一段时间看看")。
+  旧版式把 why/alt 压进卡片同一行、段落体呈现,读 gate 时判断点不易定位; 且收敛判定
+  ("还要不要继续 grill/自检齐不齐")散落在 digest 之外,人要自己拼装"这份 ask 够不够格判"。
+- **改动** (`steps/gate-digest.md` The-digest 节重排, 7 段固定序):
+  - 新增**领段「Grill / 自检状态」**: 收敛判定 + 必做自检清单(panel/lens-4/micro-check/M3,
+    每行带 receipt 指针——吸收原「已验证(勿复核)」段职责) + 一行结论(可判/欠什么;
+    欠→先补,ask 不可摆出)。
+  - **卡片固定版式**: 加粗头行 `[<id>] <一句话陈述标题>`,陈述/why/alt(拒)/锚点各占一
+    sub-bullet 行,禁止压行; 其余 pending 行仍以`其余 pending(一并批)`清单跟出。
+  - **全段 list 化**(doc-conventions structure-over-paragraphs 应用到 chat digest);
+    gate ask 段明示 partial approve 合法。
+  - 同批回填(invariant 6): `adversarial-critic.md` Receipts 段的 已验证 引用改指领段。
+- **语义不变**: panel-receipt 前置、枚举表 paste 规则、自包含规则、--trace 附带、
+  approve transcription 全部原样; 纯呈现层改版。试用期观察,M6 retro 复盘。
 
 - **动因**:cbdb card 006 的跨 session 复盘(其 notes/review-2026-07-30-retro-second-opinion.md)。
   需求 grill 用 5 条 DDL 探测关闭了「按写者轴逐核 7 个写点」的判据(键被换掉、Effect 自勾

@@ -13,45 +13,61 @@ reading assignment.
 ## The digest (in the gate-ask chat message)
 
 **Cards are generated from the ledger** (`decisions.md`, templates/decisions.md): each card
-restates a pending (proposed) row — 陈述 + a why excerpt + its `alt:` lines + provenance —
+restates a pending (proposed) row — 陈述 + why + its `alt:` lines + provenance —
 **never a bare pointer**; present in dependency order (`depends-on`), requirement-level rows
 before design-level. A card with no ledger (pre-010) falls back to the doc-cited form below.
 
-Lead the gate ask with decision cards — **written for comprehension**: full sentences
-restating 陈述 + why + the rejected alt (plus a concrete example when the decision is
-abstract), never compressed to labels. Items 2–3 are a pair — without them the digest says
-*what* was decided but not *what the human's judgment is needed on*; keep both, scaled down
-for small gates. In this order:
+**Layout: every section renders as a list** (the doc-conventions structure-over-paragraphs
+rule applied to the chat digest); a card's 陈述 / why / alt / 锚点 each get **their own
+sub-bullet line**, never compressed into the header line. Section 1's self-check lines and
+section 5 (待你判) are a pair — without them the digest says *what* was decided but not
+*what the human's judgment is needed on*; keep both, scaled down for small gates. In this order:
 
-1. **Load-bearing decisions this phase made** (3–5) — statement + a one-line why, each citing
-   the doc section that carries the full argument. The why must have a home in the doc: a card
-   whose why can't point at a coherent section isn't presentable — write the section first.
-   The 3–5 ceiling caps **emphasis**, not disclosure: every remaining pending row still
-   appears as a compact one-line list after the cards — a pending row missing from the ask
-   would be approved by silence.
-2. **已验证（勿复核）** — what this round's machine/adversarial verification already covered:
-   one line per verification + its method/receipt pointer. Adversarial entries cite their
-   **panel receipt** (adversarial-critic.md「Receipts」— checkpoint, lenses, verdicts); an entry
-   that names no dispatched verifier is a self-verification and doesn't belong in this section.
-   Per-item correctness is
-   backstopped by the verification flow and the close-out review, not by human re-reading —
-   the gate approves **direction**, not line-by-line accuracy.
-3. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**
+1. **Grill / 自检状态 (lead section — is this ask qualified to be judged?)**
+   - The grill **convergence verdict** (grill.md auto-verdict): 继续/建议收敛 + this round's
+     facts only.
+   - The **mandatory self-check checklist**, one line each **with its receipt pointer**:
+     adversarial panel (lenses + verdicts — adversarial-critic.md「Receipts」), the
+     criterion-conformance judge (lens 4), any micro re-verify, M3 / `workflow-status.py
+     --check`. These lines carry the **已验证（勿复核）** role: an entry that names no
+     dispatched verifier is a self-verification and doesn't belong; per-item correctness is
+     backstopped by the verification flow and the close-out review, not by human re-reading —
+     the gate approves **direction**, not line-by-line accuracy.
+   - A one-line conclusion: 自检无欠账、gate 可判 — or what is still owed (owed → run it
+     first; the ask is not presentable).
+2. **Decision cards** (3–5 emphasized) — fixed card layout, written for comprehension
+   (full sentences; plus a concrete example when the decision is abstract):
+   - bold header: `[<id>] <一句话陈述标题>`;
+   - sub-bullets, one per line — `陈述:` the full-sentence decision · `why:` one line (the why
+     must have a home in the doc: a card whose why can't point at a coherent section isn't
+     presentable — write the section first) · `alt（拒）:` one line per rejected alternative ·
+     `锚点:` the doc §section carrying the full argument.
+   - The 3–5 ceiling caps **emphasis**, not disclosure: every remaining pending row still
+     appears in a compact `其余 pending（一并批）` list after the cards — a pending row
+     missing from the ask would be approved by silence.
+3. **Phase attachments** — as lists: 设计 freeze inlines the `--trace` matrix summary
+   (see Rules); enumeration-criterion tables follow the paste-the-table rule below; other
+   phases attach what their step prescribes.
+4. **假设 closure sweep** — when the phase step requires it (e.g. design freeze): the doc's
+   load-bearing 假设/推断 markers, each discharged or carried-with-a-home.
+5. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**
    (what gets deleted / what tax is added / what bet is taken). Sources: pending rows' `alt:`
    trade-offs, downgrade-class decisions, risk bets — plus the **least-confident spots**
    (假设/推断-marked items, unverified comparisons, remote-trigger sizing calls): confidence
    comes from being told where to look, not from having read everything.
-4. **Open questions** — what stays deliberately unresolved, with the default taken.
-5. **The gate question + receipts** — the Stop-at-gate go ask, naming doc paths + the dev_root
-   commit (SKILL.md「Ask with receipts」— unchanged, the digest sits on top of it).
+6. **Open questions** — what stays deliberately unresolved, with the default taken.
+7. **The gate question + receipts** — the Stop-at-gate go ask, naming doc paths + the dev_root
+   commit (SKILL.md「Ask with receipts」— unchanged, the digest sits on top of it); state that
+   **partial approve is legal** (the human names rows — Approve transcription below).
 
 ## Rules
 
 - **Panel-receipt precondition.** Before presenting any gate ask: every decision-level
   checkpoint this phase passed has a panel receipt, and the **criterion-conformance judge**
   (adversarial-critic.md lens 4) has run against this gate's criteria — its per-criterion
-  verdicts feed 已验证 (satisfied rows) and 待你判 (key-mismatch / not-satisfied rows are
-  exactly what the human must rule on). Missing receipts → run the panel first; a gate ask
+  verdicts feed section 1's self-check lines (satisfied rows) and 待你判 (key-mismatch /
+  not-satisfied rows are exactly what the human must rule on). Missing receipts → run the
+  panel first; a gate ask
   without them presents self-certified work as verified — the failure this rule exists to block.
 - **设计 freeze asks attach the trace matrix.** Run `workflow-status.py --trace
   <project>/<card>` and inline its output after the cards. At freeze time the task/test/commit

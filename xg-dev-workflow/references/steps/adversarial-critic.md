@@ -69,7 +69,8 @@ synthesis step exists anyway; don't keep the panel merged for it.
 
 **Receipts.** Every panel run leaves a one-line receipt — the grill row (`G<n>`) or round it
 served, lenses dispatched, one-line verdicts — in the grill-log (or, when the conversation is
-the log, in the round's closing message). The gate digest's 已验证 section cites these receipts;
+the log, in the round's closing message). The gate digest's lead「Grill / 自检状态」section's
+已验证 self-check lines cite these receipts;
 a decision-level checkpoint with no receipt means the panel didn't run, and the gate ask is not
 presentable (gate-digest.md). This is enforcement, not bookkeeping: a full requirement + design
 cycle once ran with zero dispatches while this file prescribed them, and both gates passed on
