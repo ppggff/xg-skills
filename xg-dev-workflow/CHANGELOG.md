@@ -4,6 +4,23 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-07-31 — 新增 park 动词:交接给新 session(resume 的写侧,014)
+
+- **动因**: 用户需求「想增加一个交接给新 session 的动词,与 resume 对应」。写侧此前无动词
+  承接——交接质量依赖各步骤随手维护 progress.md 的纪律,session-end hook 只兜底 commit、
+  不校验自足性;M4 明言 prefer fresh-session resume,但「决定离场」到「可 resume」之间无 owner。
+- **新动词 `park [<slug>]`**(`references/steps/park.md`,authored inline): 离场四拍——
+  1 容器分流(决策/事实/KB/grill-log/pending 审计行→log.md/Unit-registry 欠账,progress.md
+  是唯一入口非唯一容器)→ 2 progress.md 校验补全至 resume 自足下限(mid-grill = grill.md
+  round-end order 提前收口并强制持久化 grill-log;mid-task = 半成品只记不动)→ 3 M3 +
+  scoped commit → 4 收尾回复 = receipts + 末行 `resume <slug>` 启动指令(+execution zone
+  可选模型建议)。不变量: product tree 逐字节不变、看板/派生 status 不动、幂等、不新增交接
+  文件。人发起,Claude 仅建议(护 M4 unbroken-window)。
+- **Wiring 八落点**: SKILL.md(Verbs/M4/description 触发词)、README、grill.md ×2、
+  resume.md 互引、provenance.md、KNOWN_ACTIONS ×3 同步。
+- **验证**: 双形态 dogfood 于本卡自身——execution zone 真离场(E1 零上下文 subagent 凭一行
+  指令完整复述现场)+ mid-grill fixture(续 open G99、不重问 resolved G98);E1–E8 全绿。
+
 ## 2026-07-31 — gate digest 版式改版:「Grill / 自检状态」领段 + 卡片分行 + 全段 list 化
 
 - **动因**: 用户在 014 设计 freeze gate 现场试用后拍板("先按这个订吧,用一段时间看看")。
