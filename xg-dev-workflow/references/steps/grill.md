@@ -179,7 +179,9 @@ both run this shared step.
    (`<project>/NNN-slug: grill <phase> round N — <verdict>`), which is what gives the next
    round's dry check its baseline (phase-gate commits alone are too coarse: all rounds of one
    phase would share one baseline). A mid-grill checkpoint may create `progress.md` early
-   (ahead of the implement phase) so a fresh session can resume the grill. XS/S: one adversarial pass suffices; M+: run passes until
+   (ahead of the implement phase) so a fresh session can resume the grill; an *interrupted*
+   round is landed by the `park` verb (`park.md`), which pulls this round-end order forward
+   to the interruption point. XS/S: one adversarial pass suffices; M+: run passes until
    one comes up dry.
 3. **ADR-weighted open points**: an open point that is hard-to-reverse × surprising × a real
    trade-off (the ADR test) justifies another targeted round — recommend **continue** naming
@@ -270,7 +272,9 @@ a change goes through change-management (M2), not a grill rollback.
 If a grill is interrupted, `progress.md`「Now doing」names the open question (e.g. "grilling design,
 at G7"); resume reads `notes/grill-<phase>.md` (if persisted) and continues from the `open` row — no
 chat history needed. A small, un-persisted in-conversation grill just restarts the open question
-from the phase doc's current state.
+from the phase doc's current state. A mid-grill **leave** is landed by the `park` verb (`park.md`):
+the conversation-is-the-log exemption expires at leave time — park persists the grill-log and
+names the open row before the session ends.
 
 ## Phase-specific layers (defined in the phase steps, not here)
 Both phases apply the four **Shared elicitation tactics** above; each phase step carries only its

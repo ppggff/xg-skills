@@ -2,6 +2,8 @@
 
 Authored inline. Reconstruct full working state from **docs only** — never from chat
 history. This is what lets a brand-new session start fast (docs are the core).
+The write side is the `park` verb (`park.md`): run before leaving a session, it lands
+un-persisted state into its containers and prints the `resume` line this step answers.
 
 ## Procedure
 1. Resolve project + `dev_root` (`tools/resolve-project.py`, `--dev-root`).
