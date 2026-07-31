@@ -65,7 +65,7 @@ The four beats (numbering matches the frozen design's 四拍契约):
 
 - Product working tree **byte-identical** before/after park (park writes dev_root docs only).
 - Board `整体状态` and every ledger-derived doc `status:` (confirmed/frozen/baseline) untouched
-  — progress.md's own live frontmatter fields are normal beat-3 updates.
+  — progress.md's own live frontmatter fields are normal beat-2 updates.
 - **Idempotent**: a re-run with nothing new to land degrades to confirmation + closing reply,
   never an empty commit.
 - On exit `progress.md` ≥ the resume floor.
