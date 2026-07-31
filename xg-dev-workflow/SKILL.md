@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); or scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选')."
+description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); or scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选')."
 ---
 
 # xg-dev-workflow
@@ -263,8 +263,9 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for
   resume**; `log.md` = append-only why-history, **never on the resume path**. Never rebuild from
   chat history. Keep a decision-zone grill in one unbroken window (don't compact mid-grill); in the
-  execution zone prefer `resume` in a fresh session over pushing a degraded one.
-  `references/steps/resume.md`.
+  execution zone prefer `resume` in a fresh session over pushing a degraded one — `park` is the
+  write side that lands state before leaving (human-initiated; Claude only suggests).
+  `references/steps/resume.md` · `references/steps/park.md`.
 - **M5 Code understanding** — concept-first, layered: query xg-knowledge-lite first, then read-only
   exploration (Plan Mode / Explore subagent). The deliverable is the logical/causal analysis
   (`doc-conventions.md`「Reasoning shown」), not a grep-hit list. Existing-code questions enter through
@@ -310,6 +311,10 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
   for the human pick → roadmap Next-up. Step: `references/steps/improve.md`.
 - `change` — drive the M2 flow.
 - `resume [<slug>]` — rebuild state from `progress.md` + the phase docs (M4).
+- `park [<slug>]` — the write side of `resume` (M4): land un-persisted session content into its
+  containers, top `progress.md` up to the resume floor, M3 + scoped commit, close with receipts
+  + a one-line start instruction. Human-initiated — Claude only suggests.
+  Step: `references/steps/park.md`.
 - `check [<slug>]` — run the M3 check.
 - `status [<project> …]` — the card view (pipeline position, board 整体状态/Deps, gate-derived next
   step); read-only, computed by `tools/workflow-status.py` (`--json`; `--trace` renders the
