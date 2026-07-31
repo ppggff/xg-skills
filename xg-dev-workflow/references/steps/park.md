@@ -18,13 +18,13 @@ unavoidable interruption, it doesn't license casual ones).
 
 ## Procedure (four beats)
 
-1. **Resolve the card.** `park [<slug>]` — slug omitted → the session's active card; ambiguous →
-   list candidates and ask once (never guess). No card at all (standalone investigate/review
-   context) → refuse and point at that work's own doc discipline (investigation/review notes);
-   standalone handoff is out of scope.
-2. **Container-routing sweep.** Walk this session for content not yet on disk and land each
-   piece in its **existing** container — the scan list is "every write obligation the steps
-   declare":
+1. **Resolve the card.** `park [<slug>]` — slug omitted → the session's active card;
+   ambiguous → list candidates and ask once (never guess). No card at all (standalone
+   investigate/review context) → refuse and point at that work's own doc discipline
+   (investigation/review notes); standalone handoff is out of scope.
+2. **Container-routing sweep.** Walk this session for content not yet on disk and land
+   each piece in its **existing** container — the scan list is "every write obligation the
+   steps declare":
    - human-judgment decisions → `decisions.md` proposed blocks (grill.md「逐条入账」; park never
      writes `approved`);
    - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」);
@@ -43,7 +43,7 @@ unavoidable interruption, it doesn't license casual ones).
      (beat 2). This is grill.md's round-end order (verdict/receipts → doc sync → checkpoint
      commit) pulled forward to an arbitrary interruption point — follow that order, don't
      restate it here.
-   - **mid-task (execution zone):** Task status current;**dirty product files recorded, not
+   - **mid-task (execution zone):** Task status current; **dirty product files recorded, not
      touched** — list + where-you-are + next step in「Changed files」/「Now doing」; no WIP
      commit, no stash, no interactive ask (the product working tree must leave park
      byte-identical);「Build/test:」line present.
