@@ -85,7 +85,7 @@ algorithms whose correctness depends on the details.
    - every new mechanism — its **前提** written before its benefit (`design-grill.md`'s
      comparison-table rule applies here too);
    - every assertion about **order / dedup / idempotence / stability**
-     (`evidence.md`「两种最容易漏标的载重断言」);
+     (`evidence.md`「三种最容易漏标的载重断言」);
    - **goal-vs-means sweep**: list this section's goal/invariant sentences and its mechanism
      sentences, and pair them off — a mechanism whose precondition contradicts the goal it was
      chosen for reads perfectly fine in isolation and only shows up in the pairing.

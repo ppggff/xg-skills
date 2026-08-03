@@ -4,6 +4,31 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-03 — M3 新增 facts marker 完整性检查 (g);evidence.md 补两条载重断言形态
+
+- **动机(事故)**: longrun_test/002 的 `F6` 以 `[VERIFIED]` 落盘,而它自己的 `来源` 栏写着「由
+  [F1]+[F5] 的参数拼接位置推断(仍未实测)」。设计 grill 第 1 轮据它**结构性排除**了「复用 cb3x 起
+  容器」这一整类方案;人工反问「为什么 cb3x 不行来着」后实测证伪 —— docker 标量 flag 后置覆盖,
+  `--rm=false` + `-d` + `--restart=always` 全部可经 extra args 达成(记为 002 的 F34)。同类失误此前
+  已两次(001 的 G2;002 的 F21 把两个事实的组合推论标成 VERIFIED),本次为第三次 ⟹ 从纪律层面升级
+  为机械检查。
+- `tools/workflow-status.py` 新增 **(g) facts.md marker↔来源 完整性**:`[VERIFIED]` 块的 `来源` 若
+  自述推断(`由…推断` / `仍未实测`)无条件报;弱 hedge(`推断` / `未验证`)仅在 `来源` 无正向证据
+  token(`实测`/`实读`/`已核`/代码反引号/wikilink)时报;superseded/retired 免检。`SKILL.md` 的 M3
+  描述与 `templates/facts.md` 的纪律注释同步(并去掉 M3 里「on a ledger card」的限定 —— 该检查不
+  依赖 ledger)。
+- **校准数据**: 第一版宽匹配(扫整块 body)在 40+ 张真实卡上命中 3 条,经核**全是假阳性** —— 三条的
+  hedge 词都在描述「本条纠正了哪条旧推断」(`取代早前推断级 F7` / `修正了…那条推断` /
+  `001 的 F7 … 未验证`),那是应当鼓励的写法。收窄后:真事故 1/1 命中、全卡 0 假阳性。三种假阳性
+  形态已锁进 `tools/test_workflow_status.py`(6 个新测试,套件 49 全通过)。
+- `references/steps/evidence.md`:「Feasibility claims」新增**外部工具/运行时的行为断言 —— 跑一次,
+  别推理**(该节原先通篇在讲「怎么把本仓代码读准」,从未覆盖「断言对象是可当场调用的工具」这一格,
+  正是 F6 落空处);「最容易漏标的载重断言」从两种扩到三种,新增**「这条 alt 做不到所以否决」** ——
+  否决理由与选择理由同等载重,且比被选中方案的前提**更危险**:被选中的会在实现里被检验,被否决的
+  没有任何下游动作会碰它。`steps/detail.md` 的节名引用同步。
+- **有意不去重**: `grill.md` 的 Recommendation pre-check #1 仍保留其一行清单式表述(它是检查触发点),
+  完整规则以 `evidence.md` 为准 —— 把清单项改成跳转会在最该立即照做的时刻增加一次查阅。
+
 ## 2026-07-31 — 新增 park 动词:交接给新 session(resume 的写侧,014)
 
 - **动因**: 用户需求「想增加一个交接给新 session 的动词,与 resume 对应」。写侧此前无动词

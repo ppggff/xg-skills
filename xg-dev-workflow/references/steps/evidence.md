@@ -59,6 +59,10 @@ proof of infeasibility. Before writing "infeasible / 不可行 / can't":
 - **Verify the subagent's *inference*, not just its facts.** Re-checking that a cited line
   exists is not the same as re-checking the leap from it to "infeasible." Re-derive the
   conclusion yourself.
+- **外部工具 / 运行时的行为断言 —— 跑一次,别推理。** 「这个 flag 去不掉」「这个参数加不上」
+  「宿主没有 X」「这个语义在该文件系统上不可靠」这类断言的对象不是本仓代码,而是**可当场调用**的
+  工具或运行时 ⟹ 唯一合格的依据是执行它并记下输出。从参数拼接位置、文档语义或工具惯例推出的结论
+  标 `推断`,**不得标 VERIFIED** —— 这类断言恰恰是最便宜可测的一类,推断它没有任何时间收益。
 - Phrase the honest result as **"no ready-made interface today (would need X)"**, reserve
   **"infeasible"** for a genuine fundamental barrier you can name.
 
@@ -109,13 +113,17 @@ claims table is reserved for feasibility/runtime verdicts; elsewhere the **inlin
 every sentence. An unmarked non-trivial assertion reads as evidence-backed — if it isn't, it's a
 `(assumption)` waiting to mislead.
 
-**两种最容易漏标的载重断言** — 规则说「给载重断言标记」,难在**察觉自己正在下断言**。这两种形态
+**三种最容易漏标的载重断言** — 规则说「给载重断言标记」,难在**察觉自己正在下断言**。这三种形态
 读起来像叙述,实为运行期行为断言,必须当场给依据或标 `推断`:
 
 - **「这个机制能抓住 X」** — 你为一个机制编的使用场景,就是一条关于「X 发生时系统会怎样」的断言。
   写下它之前,把那个场景在代码里**推演一遍**;推不动就说明这个机制的理由还没成立。
 - **「这个序列按 Y 顺序 / 已去重 / 是稳定的」** — 顺序、唯一性、幂等、稳定性**只能从产生它的代码
   读出来**,不能从它的用途推。断言指向用途(「它是用来 Z 的,所以应该有序」)即为无依据。
+- **「这条 alt 做不到,所以否决」** — 否决一个候选方案的理由与选择它的理由**同等载重**:它把一整类
+  方案从设计空间里移走。而它比被选中方案的前提**更危险** —— 被选中的会在实现里被检验,被否决的
+  **没有任何下游动作会碰它**,错了可以一直错着,直到有人回头问「那条为什么不行来着」。写下否决理由
+  前,按「要据以动手的前提」那个标准验它。
 
 ## Honesty
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.

@@ -17,7 +17,8 @@ Usage:
   workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
                                        # (<card> = NNN or a slug fragment; a card-dir path works too)
   workflow-status.py --check <project>/<card>   # deterministic checks: ledger (a)-(e) +
-                                                #   design.md required sections (f);
+                                                #   design.md required sections (f) +
+                                                #   facts.md marker integrity (g);
                                        # exit 1 on findings (M3 deterministic subset)
 """
 import fnmatch
@@ -688,11 +689,52 @@ def check_design_sections(card_dir):
             if not re.search(pat, heads, re.I)]
 
 
+FACT_HEAD = re.compile(r"^###\s+(F\d+)\s+\[([^\]]+)\]\s*$", re.M)
+# Scoped to the 来源 field: only how THIS fact was obtained can contradict its marker.
+FACT_SOURCE = re.compile(r"^-\s*(?:来源|source)\s*[:：](.*?)(?=^-\s|\Z)", re.M | re.S)
+# Self-attributed inference — flags regardless of any citation alongside it.
+FACT_SELF_INFER = re.compile(r"由.{0,40}?推断|推断而来|据此推断|仍未实测|未实测|未做实测|untested")
+# Weaker hedges: only a smell when the 来源 offers no positive evidence token.
+FACT_HEDGE = re.compile(r"推断|未验证|未经验证|猜测|inferred|assumed")
+FACT_POSITIVE = re.compile(r"实测|实读|已核|复核|verified|measured|`[^`]+`|\[\[[^\]]+\]\]")
+
+
+def check_fact_markers(card_dir):
+    """(g) facts.md marker↔来源 integrity: a VERIFIED block whose own 来源 says the fact was
+    inferred rather than checked — the mislabel that lets a citer trust an unverified premise.
+
+    Scoped to 来源 and tolerant of the common correcting idiom (a VERIFIED block that says
+    it supersedes an earlier 推断): a weak hedge is flagged only when 来源 carries no positive
+    evidence token; self-attributed inference ("由 … 推断", "仍未实测") always flags.
+    Superseded/retired blocks are exempt — their body documents the disproof.
+    """
+    text = _read(os.path.join(card_dir, "facts.md"))
+    if not text:
+        return []
+    findings, heads = [], list(FACT_HEAD.finditer(text))
+    for i, m in enumerate(heads):
+        marker = m.group(2)
+        if "VERIFIED" not in marker.upper() or re.search(r"superseded|retired", marker, re.I):
+            continue
+        body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        src = FACT_SOURCE.search(body)
+        if not src:
+            continue
+        src = src.group(1)
+        hit = FACT_SELF_INFER.search(src)
+        if not hit and not FACT_POSITIVE.search(src):
+            hit = FACT_HEDGE.search(src)
+        if hit:
+            findings.append("fact-marker: %s marked [%s] but 来源 says '%s'"
+                            % (m.group(1), marker, hit.group(0).strip()))
+    return findings
+
+
 def check_card(project, card_dir):
-    """The deterministic checks: ledger (a)–(e) + design sections (f); semantic
-    contradiction stays M3 judgment. No decisions.md → ledger checks skipped
-    (old-card semantics, never flagged); (f) runs regardless of the ledger."""
-    section_findings = check_design_sections(card_dir)                       # (f)
+    """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g);
+    semantic contradiction stays M3 judgment. No decisions.md → ledger checks skipped
+    (old-card semantics, never flagged); (f) and (g) run regardless of the ledger."""
+    section_findings = check_design_sections(card_dir) + check_fact_markers(card_dir)
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
         return section_findings
     blocks, findings = parse_ledger(card_dir)

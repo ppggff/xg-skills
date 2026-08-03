@@ -443,5 +443,56 @@ class LedgerCheck(unittest.TestCase):
         self.assertEqual(ws.ledger_status(blocks)["design"]["approved"], 1)
 
 
+class FactMarkerCheck(unittest.TestCase):
+    """--check (g): facts.md marker↔来源 integrity, plus the calibration that keeps the
+    correcting idiom ("this VERIFIED fact supersedes an earlier 推断") from firing."""
+
+    def _card(self, facts):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "012-facts")
+        os.makedirs(card)
+        open(os.path.join(card, "facts.md"), "w").write(facts)
+        return card
+
+    def test_flags_self_attributed_inference(self):
+        card = self._card(
+            "### F6 [VERIFIED]\n- 事实: extra args cannot drop the flag\n"
+            "- 来源: 由 [F1] + [F5] 的参数拼接位置推断（仍未实测）\n")
+        self.assertTrue(any("F6" in f for f in ws.check_fact_markers(card)))
+
+    def test_accepts_measured_fact(self):
+        card = self._card(
+            "### F7 [VERIFIED]\n- 事实: the names are hardcoded\n"
+            "- 来源: `minio_reset()` in `cb3x`（本轮实测确认）\n")
+        self.assertEqual(ws.check_fact_markers(card), [])
+
+    def test_correcting_idiom_is_not_a_finding(self):
+        """A VERIFIED block may say it supersedes an earlier 推断 — three real cards did."""
+        card = self._card(
+            "### F7 [VERIFIED]\n- 事实: the read chain is X\n"
+            "- 来源: `steps/resume.md` step 3（已核原文；取代早前推断级 F7）\n\n"
+            "### F14 [VERIFIED]\n- 事实: build311 suffices\n"
+            "- 来源: 容器内实测 —— go build 通过\n"
+            "- 说明: 修正了 design 里那条**推断**\n")
+        self.assertEqual(ws.check_fact_markers(card), [])
+
+    def test_superseded_block_is_exempt(self):
+        card = self._card(
+            "### F21 [superseded 2026-07-31 → F22]\n- 事实（已被证伪）: data lives in S3\n"
+            "- 来源: 由两个事实的组合推断，未实测\n")
+        self.assertEqual(ws.check_fact_markers(card), [])
+
+    def test_inferred_marker_never_flagged(self):
+        card = self._card(
+            "### F2 [推断]\n- 事实: probably X\n- 来源: 由 F1 推断，未实测\n")
+        self.assertEqual(ws.check_fact_markers(card), [])
+
+    def test_no_facts_file(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "013-none")
+        os.makedirs(card)
+        self.assertEqual(ws.check_fact_markers(card), [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

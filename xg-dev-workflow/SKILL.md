@@ -256,8 +256,9 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
   Full flow: `references/steps/change.md`.
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
-  matching its KB concept); on a ledger card run `workflow-status.py --check` (the deterministic
-  ledger subset — id integrity, derived-status mappings, cycles; exit 1 = findings); reusable
+  matching its KB concept); run `workflow-status.py --check` (the deterministic subset — ledger
+  id integrity, derived-status mappings, cycles, **facts.md marker integrity**; exit 1 =
+  findings); reusable
   knowledge captured to the KB (xg-knowledge-lite Write + compile) or explicitly noted as
   deferred. `references/steps/omission-check.md`.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for

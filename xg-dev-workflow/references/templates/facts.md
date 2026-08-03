@@ -11,6 +11,10 @@ Discipline: append-mostly — a correction is a NEW block plus the old block's s
 to superseded; a refinement that narrows (not invalidates) an earlier fact is a new block
 saying so. Reusable cross-card module knowledge still graduates to the KB (xg-knowledge-lite);
 this file holds only card-local facts.
+
+Marker integrity: the marker and 来源 must agree — a block whose 来源 says it was inferred or
+untested cannot be [VERIFIED] (`workflow-status.py --check` (g) enforces this). A feasibility
+claim about an external tool/runtime reaches VERIFIED only by running it (evidence.md).
 -->
 
 ### F1 [VERIFIED]
