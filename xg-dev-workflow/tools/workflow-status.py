@@ -720,10 +720,12 @@ def _id_cells(text, title_pat, cell_picks):
 
 def _referenced_ids(card_dir):
     """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
-    id cells, detail 可追溯 详设项+R-id cells, plan Implements:, ledger depends-on lines."""
+    id cells + Parts-table R cells, detail 可追溯 详设项+R-id cells, plan Implements:,
+    ledger depends-on lines."""
     refs = set(trace_requirement(card_dir))
     refs |= _id_cells(_read(os.path.join(card_dir, "design.md")),
                       r"How it meets|如何满足", (0,))
+    refs |= set(trace_parts(card_dir)[1])
     refs |= _id_cells(_read(os.path.join(card_dir, "detail.md")), r"可追溯", (0, -1))
     for t in trace_plan(card_dir).values():
         refs |= set(t["rids"])
@@ -803,11 +805,26 @@ def check_fact_markers(card_dir):
     return findings
 
 
+def check_part_consistency(card_dir):
+    """(h) part consistency: with a new-format Parts table (R column present), every
+    non-empty plan `Part:` value must name a canonical part; legacy tables (no R
+    column) and un-split cards skip — 006-style plan-only Part grouping stays legal."""
+    parts, _ = trace_parts(card_dir)
+    if not parts:
+        return []
+    return ["part-mismatch: T%s Part '%s' not in design Parts (%s)"
+            % (tid, t["part"], ", ".join(parts))
+            for tid, t in sorted(trace_plan(card_dir).items(), key=lambda kv: int(kv[0]))
+            if t["part"] and t["part"] not in parts]
+
+
 def check_card(project, card_dir):
-    """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g);
-    semantic contradiction stays M3 judgment. No decisions.md → ledger checks skipped
-    (old-card semantics, never flagged); (f) and (g) run regardless of the ledger."""
-    section_findings = check_design_sections(card_dir) + check_fact_markers(card_dir)
+    """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g)
+    + part consistency (h); semantic contradiction stays M3 judgment. No decisions.md →
+    ledger checks skipped (old-card semantics, never flagged); (f)/(g)/(h) run
+    regardless of the ledger."""
+    section_findings = (check_design_sections(card_dir) + check_fact_markers(card_dir)
+                        + check_part_consistency(card_dir))
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
         return section_findings
     blocks, findings = parse_ledger(card_dir)

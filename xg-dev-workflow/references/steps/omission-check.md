@@ -90,6 +90,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       traces to its `plan.md` tasks (`Part:` 字段) and `test.md` 分节; each **seam** contract has a
       **联调级 (real-neighbor)** test (扩自上一条 "每个 interface op/invariant 都要有测试"). An
       **un-split** design is **not required** to have a Parts section — do **not** flag its absence.
+      The deterministic half is `--check` (h): `Part:` values ⊆ the new-format table's canonical
+      names (legacy tables without an `R` column are skipped) — this item keeps only the judgment
+      half (test 分节 coverage, seam 联调级 tests).
 - [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it.
 - [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
       TL;DR, a current **速览** (regenerated, not appended), the **diagrams** (module-interaction

@@ -257,7 +257,8 @@ drafting。字段级机制（part 轴各文档字段、看板两轴与单调约�
 - **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
   matching its KB concept); run `workflow-status.py --check` (the deterministic subset — ledger
-  id integrity, derived-status mappings, cycles, **facts.md marker integrity**; exit 1 =
+  id integrity, derived-status mappings, cycles, **facts.md marker integrity**, **part
+  consistency** (plan `Part:` ⊆ the new-format Parts table's names); exit 1 =
   findings); reusable
   knowledge captured to the KB (xg-knowledge-lite Write + compile) or explicitly noted as
   deferred. `references/steps/omission-check.md`.

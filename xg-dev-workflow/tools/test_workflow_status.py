@@ -657,5 +657,49 @@ class TraceDataParts(unittest.TestCase):
         self.assertNotIn("↔", out)
 
 
+class PartConsistency(unittest.TestCase):
+    """--check (h): plan `Part:` values ⊆ canonical part names — active only with a
+    new-format Parts table; legacy/un-split cards skip. Runs in the section_findings
+    group (a card without decisions.md is still checked)."""
+
+    def _card(self, design, plan):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "031-check")
+        os.makedirs(card)
+        open(os.path.join(card, "design.md"), "w").write(design)
+        open(os.path.join(card, "plan.md"), "w").write(plan)
+        return card
+
+    BAD_PLAN = ("### T1: one\n- **Part:** 观测\n  - [x] ok\n"
+                "### T2: two\n- **Part:** 觀測\n  - [ ] typo\n")
+
+    def test_bad_value_named(self):
+        card = self._card(NEW_PARTS_DESIGN, self.BAD_PLAN)
+        findings = ws.check_part_consistency(card)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("T2", findings[0])
+        self.assertIn("觀測", findings[0])
+
+    def test_legacy_and_unsplit_skip(self):
+        card = self._card(LEGACY_PARTS_DESIGN, self.BAD_PLAN)
+        self.assertEqual(ws.check_part_consistency(card), [])
+        card = self._card("## Chosen approach\n", self.BAD_PLAN)
+        self.assertEqual(ws.check_part_consistency(card), [])
+
+    def test_placeholder_part_not_flagged(self):
+        plan = "### T1: one\n- **Part:** —\n  - [x] ok\n"
+        card = self._card(NEW_PARTS_DESIGN, plan)
+        self.assertEqual(ws.check_part_consistency(card), [])
+
+    def test_runs_without_ledger_via_check_card(self):
+        card = self._card(NEW_PARTS_DESIGN, self.BAD_PLAN)   # no decisions.md
+        self.assertTrue(any("part-mismatch" in f for f in ws.check_card("proj", card)))
+
+    def test_parts_R_column_feeds_referenced_ids(self):
+        design = NEW_PARTS_DESIGN.replace("R1, R3", "R1, R99")
+        card = self._card(design, "### T1: one\n- **Part:** 观测\n  - [x] ok\n")
+        self.assertIn("R99", ws._referenced_ids(card))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

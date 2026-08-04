@@ -37,7 +37,9 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
   Mermaid node ids are diagram-local — exempt.
 - **Cross-scheme mappings are recorded downstream→upstream only**, each in its doc's designated
-  field (design「How it meets」· detail 可追溯 · plan `Implements:` · test Coverage rows ·
+  field (design「How it meets」· design「Decomposition/Parts」`R` column (R→part 归属; doubles
+  as the new-format marker — tools treat a Parts table without it as un-split) ·
+  detail 可追溯 · plan `Implements:` · test Coverage rows ·
   `ADR-NNNN D<n>`); the reverse map is derived (grep / M3), never hand-maintained — an upstream
   doc doesn't list who cites it (same one-way principle as workflow→KB links; M2 propagates
   along exactly these fields).
