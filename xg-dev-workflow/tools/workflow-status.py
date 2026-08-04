@@ -108,6 +108,7 @@ def parse_tasks(progress_path):
     id_i = col("task", "id", "编号") or 0
     st_i = col("status", "状态", "state")
     no_i = col("notes", "备注", "说明")
+    pt_i = col("part")
     tasks = []
     for line in lines[1:]:
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -120,9 +121,18 @@ def parse_tasks(progress_path):
         rest = first[m.end():].strip()
         status = cells[st_i] if st_i is not None and st_i < len(cells) else ""
         notes = cells[no_i] if no_i is not None and no_i < len(cells) else rest
+        part = cells[pt_i] if pt_i is not None and pt_i < len(cells) else ""
         tasks.append({"id": "T" + m.group(1), "status": status,
-                      "done": _status_done(status), "notes": notes})
+                      "done": _status_done(status), "notes": notes,
+                      "part": norm_part(part)})
     return tasks
+
+
+def norm_part(value):
+    """Part values normalize at the data source (norm_blockers' rule, 007 R1):
+    placeholders (—/-/…) → "" so consumers only test non-emptiness."""
+    s = value.strip()
+    return "" if not s or s in PLACEHOLDERS else s
 
 
 def norm_blockers(value):
@@ -402,10 +412,12 @@ def trace_plan(card):
         if nxt:
             block = block[:nxt.start()]
         imp = re.search(r"\*\*Implements:?\*\*[::]?\s*(.+)", block)
+        part = re.search(r"\*\*Part:?\*\*[::]?\s*(.+)", block)
         boxes = re.findall(r"^\s*-\s*\[([ x!])\]", block, re.M)
         tasks[m.group(1)] = {
             "title": m.group(2).strip(),
             "rids": ["R" + r for r in RID.findall(imp.group(1))] if imp else [],
+            "part": norm_part(part.group(1)) if part else "",
             "state": ("done" if boxes and all(b == "x" for b in boxes)
                       else "failed" if "!" in boxes else "todo" if boxes else "?"),
         }

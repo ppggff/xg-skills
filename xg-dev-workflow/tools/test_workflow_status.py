@@ -147,6 +147,15 @@ class ParseTasks(unittest.TestCase):
                            "| T1 exec | runtime | [ ] | wip |\n")
         self.assertEqual([r["id"] for r in rows], ["T0", "T1"])
         self.assertEqual([r["done"] for r in rows], [True, False])
+        self.assertEqual([r["part"] for r in rows], ["builder", "runtime"])
+
+    def test_part_field_pinned_and_placeholder_normalized(self):
+        rows = self._parse("## Task status\n\n| Task | Status | Notes |\n|---|---|---|\n"
+                           "| T1 | done | first |\n")
+        self.assertEqual(rows[0]["part"], "")   # no column → pinned empty
+        rows = self._parse("## Task status\n\n| Task | Part | Status |\n|---|---|---|\n"
+                           "| T1 | — | done |\n")
+        self.assertEqual(rows[0]["part"], "")   # placeholder normalized at source
 
     def test_hashdata_variant_bare_numeric_id(self):
         rows = self._parse("## Task status\n\n| Task | Part | Status | Notes |\n|---|---|---|---|\n"
@@ -182,7 +191,8 @@ class BoardFields(unittest.TestCase):
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]["blockers"], "")
         self.assertEqual(cards[0]["tasks"][0], {"id": "T1", "status": "done",
-                                                "done": True, "notes": "ok"})
+                                                "done": True, "notes": "ok",
+                                                "part": ""})
 
     def test_no_progress_md_degrades_to_empty_list(self):
         root = tempfile.mkdtemp()
@@ -519,6 +529,26 @@ LEGACY_PARTS_DESIGN = """## Chosen approach
 | **P1 catalog 侧移植** | handlers | 使能;支撑 R3/R4 | RPC 语义 |
 | **P4 工具功能** | tool | **交付价值** R1~R5 | 候选值 |
 """
+
+
+class TracePlanPart(unittest.TestCase):
+    """trace_plan(): the task `Part:` field — parsed, placeholder-normalized, pinned."""
+
+    def _plan(self, body):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "022-plan")
+        os.makedirs(card)
+        open(os.path.join(card, "plan.md"), "w").write(body)
+        return ws.trace_plan(card)
+
+    def test_part_parsed_and_normalized(self):
+        tasks = self._plan("### T1: one\n- **Implements:** R1\n- **Part:** 观测\n"
+                           "- **Acceptance:**\n  - [x] ok\n"
+                           "### T2: two\n- **Part:** —\n  - [ ] pending\n"
+                           "### T3: three\n  - [ ] pending\n")
+        self.assertEqual(tasks["1"]["part"], "观测")
+        self.assertEqual(tasks["2"]["part"], "")   # placeholder → ""
+        self.assertEqual(tasks["3"]["part"], "")   # absent → pinned empty
 
 
 class TraceParts(unittest.TestCase):
