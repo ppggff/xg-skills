@@ -26,6 +26,11 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    files likely touched, scope (XS–L; L → split). A task title containing "and" is usually two
    tasks. Cross-check: every `R-id` is implemented by ≥1 task, and every 假设 the design froze
    as *carried* (design-grill 假设 closure sweep) has a verify task or 验证策略 row.
+   **Part-split design (new-format Parts table) — group and schedule by part**: order the task
+   list by the Parts table's part order (part order IS the scheduling spine — e.g. an observe
+   part builds and lands before an advance part), one `### Part: <name>` divider per group;
+   each task's `Part:` carries the canonical part name verbatim (`--check` (h) enforces the ⊆);
+   a cross-part task lists the **seam** under Dependencies. Un-split cards skip all of this.
 5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works).
 6. **Risks & open questions** table.
 7. **Execution-authorization ask** — run the **criterion-conformance judge**

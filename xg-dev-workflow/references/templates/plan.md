@@ -29,8 +29,11 @@ One paragraph: what this plan builds, against which design.
 
 ## Task list (vertical slices, dependency-ordered)
 
-<!-- If the design is split into parts (design.md「Decomposition/Parts」), tag each task with
-     its `Part:`; cross-part tasks list the **seam** under Dependencies. Omit `Part:` when un-split. -->
+<!-- Part-split design (new-format「Decomposition/Parts」table, R column present) — REQUIRED:
+     group tasks by part in the table's part order (part order IS the scheduling spine),
+     one `### Part: <name>` divider heading per group; each task's `Part:` uses the canonical
+     part name verbatim (`--check` (h) enforces ⊆); cross-part tasks list the **seam** under
+     Dependencies. Un-split cards omit `Part:` lines and the dividers entirely. -->
 
 ### T1: <title>
 - **Description:** what this slice accomplishes.
