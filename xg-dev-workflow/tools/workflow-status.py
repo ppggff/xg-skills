@@ -323,6 +323,18 @@ def _section(text, title_pat):
     return ""
 
 
+def _section3(text, title_pat):
+    """Body of the first `### …` sub-section matching title_pat, else "".
+    Terminated by the next same-or-higher heading (`^###?\\s`) — a `^###\\s`-only
+    terminator would swallow the following `##` section when the sub-section is last."""
+    for m in re.finditer(r"^###\s+(.+)$", text, re.M):
+        if re.search(title_pat, m.group(1)):
+            start = m.end()
+            nxt = re.search(r"^###?\s", text[start:], re.M)
+            return text[start:start + nxt.start()] if nxt else text[start:]
+    return ""
+
+
 def trace_requirement(card):
     """R-id → statement, from the 需求条目 table (first cell carries the id)."""
     items = {}
@@ -347,6 +359,37 @@ def trace_design(card):
     text = _read(os.path.join(card, "design.md"))
     return (_rows_by_rid(_section(text, r"How it meets|如何满足")),
             _rows_by_rid(_section(text, r"验证策略|Verification strategy")))
+
+
+def trace_parts(card):
+    """(parts, {R-id: [part, …]}) from design.md's Decomposition/Parts table.
+    Header-keyed (parse_tasks style); the `R` column doubles as the new-format
+    marker — a table without it (legacy, e.g. a pre-015 card) parses as un-split."""
+    sect = _section3(_read(os.path.join(card, "design.md")),
+                     r"Decomposition\s*/\s*Parts")
+    lines = [ln for ln in sect.splitlines() if ln.lstrip().startswith("|")]
+    if len(lines) < 2:
+        return [], {}
+    header = [c.strip().lower() for c in lines[0].strip().strip("|").split("|")]
+    part_i = next((i for i, h in enumerate(header) if "part" in h), None)
+    r_i = next((i for i, h in enumerate(header) if h == "r"), None)
+    if part_i is None or r_i is None:
+        return [], {}
+    parts, r2p = [], {}
+    for line in lines[1:]:
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) <= max(part_i, r_i) or set(cells[part_i]) <= set("-: "):
+            continue
+        name = re.sub(r"[*`]", "", cells[part_i]).strip()
+        if not name or name == "—":
+            continue
+        if name not in parts:
+            parts.append(name)
+        for rid in RID.findall(cells[r_i]):
+            lst = r2p.setdefault("R" + rid, [])
+            if name not in lst:
+                lst.append(name)
+    return parts, r2p
 
 
 def trace_plan(card):

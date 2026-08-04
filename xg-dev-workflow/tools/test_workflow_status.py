@@ -494,5 +494,73 @@ class FactMarkerCheck(unittest.TestCase):
         self.assertEqual(ws.check_fact_markers(card), [])
 
 
+NEW_PARTS_DESIGN = """## Chosen approach
+
+body text
+
+### Decomposition / Parts (optional)
+
+| Part | 含哪些 module | R | seam |
+|------|--------------|---|------|
+| **观测** | mod-a, mod-b | R1, R3 | 候选值语义 |
+| 推进 | mod-c | R3 | — |
+
+### Design qualities
+
+- text after the table
+"""
+
+LEGACY_PARTS_DESIGN = """## Chosen approach
+
+### Decomposition / Parts(卡内 part 化,组件轴;用户 2026-07-24)
+
+| Part | 内容 | 性质 / R | seam 契约 |
+|------|------|---------|-----------|
+| **P1 catalog 侧移植** | handlers | 使能;支撑 R3/R4 | RPC 语义 |
+| **P4 工具功能** | tool | **交付价值** R1~R5 | 候选值 |
+"""
+
+
+class TraceParts(unittest.TestCase):
+    """trace_parts(): Parts-table parsing — the R column is the new-format marker
+    (no R column → legacy → treated as un-split, ADR-0001 D4/D9)."""
+
+    def _card(self, design):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "020-parts")
+        os.makedirs(card)
+        open(os.path.join(card, "design.md"), "w").write(design)
+        return card
+
+    def test_new_format_parses_order_and_multival(self):
+        parts, r2p = ws.trace_parts(self._card(NEW_PARTS_DESIGN))
+        self.assertEqual(parts, ["观测", "推进"])
+        self.assertEqual(r2p["R1"], ["观测"])
+        self.assertEqual(r2p["R3"], ["观测", "推进"])  # multi-part R (005 evidence)
+
+    def test_legacy_table_without_R_column_is_unsplit(self):
+        parts, r2p = ws.trace_parts(self._card(LEGACY_PARTS_DESIGN))
+        self.assertEqual(parts, [])
+        self.assertEqual(r2p, {})
+
+    def test_no_parts_section(self):
+        parts, r2p = ws.trace_parts(self._card("## Chosen approach\n\ntext\n"))
+        self.assertEqual((parts, r2p), ([], {}))
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "021-nodesign")
+        os.makedirs(card)
+        self.assertEqual(ws.trace_parts(card), ([], {}))
+
+    def test_terminator_stops_at_next_h2(self):
+        # Parts is the LAST ### inside its ## section; a naive ^###\s terminator
+        # would swallow the following ## section's table rows.
+        design = ("## Chosen approach\n\n### Decomposition / Parts\n\n"
+                  "| Part | R |\n|---|---|\n| alpha | R1 |\n\n"
+                  "## 影响面\n\n| Part | R |\n|---|---|\n| ghost | R9 |\n")
+        parts, r2p = ws.trace_parts(self._card(design))
+        self.assertEqual(parts, ["alpha"])
+        self.assertNotIn("R9", r2p)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
