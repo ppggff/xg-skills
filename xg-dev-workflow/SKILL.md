@@ -241,8 +241,10 @@ sizing」. Step: `references/steps/review.md`.
 证伪 = 架构级变更走 M2）；**B — 需求级拆分** = 多 **card** + 每项目 `index.md` 看板
 （Phase + **整体状态** + Deps）。**A↔B 判定**——满足任一即升 B：(a) 独立上线/发布时间线；
 (b) 能单独交付并产生价值；(c) 不同 reviewer/负责人；(d) 一部分设计能独立冻结而另一部分还在
-drafting。字段级机制（part 轴各文档字段、看板两轴与单调约束、canonical 术语表、card-还是-雾判定）：
-`references/split-isolate.md`。
+drafting。质量判据（单向必要）：seam 写不出一份**具名契约** → 不具备拆卡条件，先
+investigation 把契约摸出来再判；写得出是必要非充分。字段级机制（part 轴各文档字段、看板
+两轴与单调约束、canonical 术语表、card-还是-雾判定）与 **split-out procedure**（升 B 后的
+拆出五步）：`references/split-isolate.md`。
 
 ## Six cross-cutting mechanisms
 

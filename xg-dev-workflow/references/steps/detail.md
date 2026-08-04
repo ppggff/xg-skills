@@ -7,7 +7,10 @@ artifact is this requirement's `detail.md`; it sits **below** the frozen `design
 xg-knowledge-lite; the M1 evidence rule (no 望文生义) is enforced; ends with the **baseline
 gate** (review, not freeze).
 
-Output: `detail.md` (template: `references/templates/detail.md`).
+Output: `detail.md` (template: `references/templates/detail.md`). A part-split card
+(design has a Parts table) may split the LLD into per-part `detail-<slug>.md` sub-files;
+`detail.md` stays as the 总纲 and its part→sub-file mapping is the authoritative link
+(split-isolate.md「A」).
 
 Read-only on product code: this phase produces `detail.md` only — code changes wait for the
 execution authorization at the plan gate.
