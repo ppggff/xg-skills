@@ -471,4 +471,24 @@ t("traceGaps: counts rows with a miss or the no-cell flag; loose/unchecked are h
   assert.equal(SV.traceGaps(undefined), 0);
 });
 
+// --- groupTraceRows (015 part axis) -----------------------------------------
+t("groupTraceRows: null for un-split; design order; multi-part row in each group", () => {
+  const a = { rid: "R1", parts: ["观测"] };
+  const b = { rid: "R3", parts: ["观测", "推进"] };
+  const c = { rid: "R9", parts: [] };
+  assert.equal(SV.groupTraceRows([a, b], []), null);
+  assert.equal(SV.groupTraceRows([a, b], undefined), null);
+  const g = SV.groupTraceRows([a, b, c], ["观测", "推进"]);
+  assert.deepEqual(g.map(x => x.part), ["观测", "推进", "—"]);
+  assert.deepEqual(g[0].rows.map(r => r.rid), ["R1", "R3"]);
+  assert.deepEqual(g[1].rows.map(r => r.rid), ["R3"]);   // multi-part appears in each
+  assert.deepEqual(g[2].rows.map(r => r.rid), ["R9"]);   // ungrouped → trailing "—"
+});
+
+t("groupTraceRows: no trailing group when every row has a part", () => {
+  const g = SV.groupTraceRows([{ rid: "R1", parts: ["alpha"] }], ["alpha"]);
+  assert.equal(g.length, 1);
+  assert.equal(SV.groupTraceRows([], ["alpha"])[0].rows.length, 0);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");

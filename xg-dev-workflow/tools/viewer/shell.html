@@ -292,6 +292,10 @@
   .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
   .tr-note { color: var(--body); }   /* matches the sibling plan/doc-link lines */
   .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
+  /* 015: part group row (trace view) + task part cell */
+  .trm .tr-part td { font: 500 11px var(--chrome); color: var(--muted); text-transform: none;
+    letter-spacing: .04em; padding-top: 10px; border-bottom: 1px solid var(--line); }
+  .trm .tpart { font-family: var(--chrome); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
   /* task-table cells (same .trm geometry); status = plain tone-colored text */
   .trm .tstat { font-family: var(--chrome); font-size: 11px; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
   .trm .tstat.st-done { color: var(--s-done); }
@@ -724,6 +728,20 @@ var SV = (function () {
     return out.slice(0, cap || 8);
   }
 
+  // Group trace rows by design part, design order → [{part, rows}] (015).
+  // null when the card is un-split (parts empty) — caller renders flat; rows with
+  // no part land in a trailing "—" group; a multi-part row appears in each group.
+  function groupTraceRows(rows, parts) {
+    if (!parts || !parts.length) return null;
+    var groups = parts.map(function (p) {
+      return { part: p, rows: (rows || []).filter(function (r) {
+        return (r.parts || []).indexOf(p) !== -1; }) };
+    });
+    var rest = (rows || []).filter(function (r) { return !(r.parts || []).length; });
+    if (rest.length) groups.push({ part: "—", rows: rest });
+    return groups;
+  }
+
   // Group search hits by file, preserving first-seen order → [{tree, path, hits:[...]}].
   function groupHits(hits) {
     var order = [], by = {};
@@ -902,7 +920,7 @@ var SV = (function () {
 
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
-           groupHits: groupHits, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
+           groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows };
@@ -1391,7 +1409,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       ' <button class="iconbtn" data-cd-retrace="' + esc(v.card) + '">重算</button></div>';
     var expanded = {};   // survive 重算 re-render within this pane
     pane.querySelectorAll("tr[data-trx].x").forEach(function (tr) { expanded[tr.dataset.trx] = 1; });
-    var rows = d.rows.map(function (r) {
+    var rowHtml = function (r) {
       var p = r.present, n = 0;
       r.tasks.forEach(function (tk) { n += tk.commits.length; });
       var commit = p.commit === "unchecked" ? '<span class="trcell na">—</span>' :
@@ -1420,13 +1438,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
       });
       if (r.test) lines += '<div class="tr-line"><span class="tr-k">test</span>' + doc("test.md", r.test) + "</div>";
       var open = expanded[r.rid];
-      return '<tr data-trx="' + esc(r.rid) + '"' + (open ? ' class="x"' : "") + '><td class="rid">' + esc(r.rid) + "</td>" +
+      var multi = (r.parts || []).length > 1 ? " ↔" : "";
+      return '<tr data-trx="' + esc(r.rid) + '"' + (open ? ' class="x"' : "") + '><td class="rid">' + esc(r.rid) + multi + "</td>" +
         '<td class="name" title="' + esc(r.text) + '">' + esc(r.text) + "</td>" +
         "<td>" + mark(p.design) + "</td><td>" + mark(p.verify) + "</td>" +
         "<td>" + taskCell + "</td><td>" + mark(p.test) + "</td><td>" + commit + "</td>" +
         '<td class="tflag">' + flags.join(" ") + "</td></tr>" +
         '<tr class="trm-drow"' + (open ? "" : " hidden") + '><td></td><td colspan="7"><div class="tr-block">' + lines + "</div></td></tr>";
-    }).join("");
+    };
+    var groups = SV.groupTraceRows(d.rows, d.parts);
+    var rows = groups
+      ? groups.map(function (g) {
+          return '<tr class="tr-part"><td colspan="8">▣ ' + esc(g.part) + "</td></tr>" +
+            g.rows.map(rowHtml).join("");
+        }).join("")
+      : d.rows.map(rowHtml).join("");
     var table = '<table class="trm"><tr><th>R</th><th>需求</th><th>design</th><th>verify</th><th>task</th><th>test</th><th>commit</th><th></th></tr>' + rows + "</table>";
     if (!d.rows.length && !d.error) table = emptyHtml("此卡暂无 trace 数据", "requirement/design/plan 各表齐备后可推导");   // R8 (007 review #7)
     var orph = d.orphans.length ? '<p class="tr-orph">tasks with no R-id: ' +
@@ -1456,9 +1482,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var planTasks = {};   // tid → plan-side info, so a task row can expand with its commits
       d.rows.forEach(function (r) { r.tasks.forEach(function (tk) { planTasks["T" + tk.tid] = tk; }); });
       var counts = SV.taskCounts(card.tasks);
+      var hasPart = (card.tasks || []).some(function (tk) { return tk.part; });
       tasksSec = '<h2 class="sec">Tasks · ' + (counts.total ? counts.done + "/" + counts.total + " done" : "无 task 表") +
         ' <span class="tr-src">progress.md</span></h2>' +
-        (counts.total ? '<table class="trm"><tr><th>task</th><th>status</th><th>notes</th></tr>' +
+        (counts.total ? '<table class="trm"><tr><th>task</th>' + (hasPart ? "<th>part</th>" : "") + '<th>status</th><th>notes</th></tr>' +
           card.tasks.map(function (tk) {
             var open = expanded[tk.id];
             var lines = '<div class="tr-line"><span class="tr-k">notes</span><span class="tr-note">' + esc(tk.notes || "—") + "</span></div>";
@@ -1478,9 +1505,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
               lines += '<div class="tr-line"><span class="tr-k">plan</span><span class="trcell na">plan.md 无对应 T-id</span></div>';
             }
             return '<tr data-trx="' + esc(tk.id) + '"' + (open ? ' class="x"' : "") + '><td class="rid">' + esc(tk.id) +
-              '</td><td><span class="tstat st-' + SV.taskTone(tk) + '">' + esc(tk.status || "—") +
+              "</td>" + (hasPart ? '<td class="tpart">' + esc(tk.part || "—") + "</td>" : "") +
+              '<td><span class="tstat st-' + SV.taskTone(tk) + '">' + esc(tk.status || "—") +
               '</span></td><td class="tnotes" title="' + esc(tk.notes || "") + '">' + esc(tk.notes || "") + "</td></tr>" +
-              '<tr class="trm-drow"' + (open ? "" : " hidden") + '><td></td><td colspan="2"><div class="tr-block">' + lines + "</div></td></tr>";
+              '<tr class="trm-drow"' + (open ? "" : " hidden") + '><td></td><td colspan="' + (hasPart ? 3 : 2) + '"><div class="tr-block">' + lines + "</div></td></tr>";
           }).join("") + "</table>" : "");
     }
     var traceHead = '<h2 class="sec">Trace <span class="tr-src">plan.md 推导</span></h2>';
