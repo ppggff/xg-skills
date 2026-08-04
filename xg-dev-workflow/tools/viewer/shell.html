@@ -288,7 +288,8 @@
     color: var(--muted); border-bottom-color: var(--line2); }
   .trm tr[data-trx] { cursor: pointer; }
   .trm tr[data-trx]:hover td { background: var(--side); }
-  .trm .rid { font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap; }
+  .trm .rid { font-family: var(--chrome); font-size: 12px; color: var(--fg); white-space: nowrap;
+    width: 1%; }   /* shrink-to-fit: keeps col 1 stable when a drow's wide colspan cell appears */
   .trm .name { max-width: 30em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
   .tr-note { color: var(--body); }   /* matches the sibling plan/doc-link lines */
   .trm .tflag { font-family: var(--chrome); font-size: 10.5px; color: var(--s-blocked); white-space: nowrap; }
