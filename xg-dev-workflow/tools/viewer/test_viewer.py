@@ -208,7 +208,8 @@ class T345Endpoints(unittest.TestCase):
         code, body = get(self.base, "/api/trace?card=foo/001")
         self.assertEqual(code, 200)
         d = json.loads(body)
-        for k in ("card", "repo", "repo_anchor", "generated_at", "rows", "orphans", "error"):
+        for k in ("card", "repo", "repo_anchor", "parts", "generated_at", "rows",
+                  "orphans", "error"):
             self.assertIn(k, d)
         self.assertEqual(d["error"], "")
         self.assertEqual(d["card"], "foo/001-x")

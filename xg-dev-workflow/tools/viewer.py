@@ -337,7 +337,7 @@ def _parse_file_patch(patch):
 
 def _trace_empty(card, err):
     """Pinned /api/trace shape (fields always present) for the error path."""
-    return {"card": card or "", "repo": "", "repo_anchor": False,
+    return {"card": card or "", "repo": "", "repo_anchor": False, "parts": [],
             "generated_at": "", "rows": [], "orphans": [], "error": err}
 
 

@@ -592,5 +592,70 @@ class TraceParts(unittest.TestCase):
         self.assertNotIn("R9", r2p)
 
 
+class TraceDataParts(unittest.TestCase):
+    """trace_data(): part axis fields are pinned (always present); grouping data
+    comes from design (R→parts, freeze-ready) + plan (task part)."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def _parts_card(self, with_plan=True):
+        card = os.path.join(self.root, "p", "030-split")
+        os.makedirs(card)
+        write = lambda name, text: open(os.path.join(card, name), "w").write(text)
+        write("requirement.md", "## 需求条目\n\n| ID | 条目 | 类型 |\n|---|---|---|\n"
+              "| R1 | first | 功能 |\n| R3 | third | 功能 |\n")
+        write("design.md", NEW_PARTS_DESIGN +
+              "\n## How it meets the requirement\n\n| R-id | home |\n|---|---|\n"
+              "| [R1](./requirement.md) | mod-a |\n| [R3](./requirement.md) | mod-c |\n")
+        if with_plan:
+            write("plan.md", "### T1: one\n- **Implements:** [R1](./requirement.md)\n"
+                  "- **Part:** 观测\n- **Acceptance:**\n  - [x] ok\n\n"
+                  "### T2: two\n- **Implements:** [R3](./requirement.md)\n"
+                  "- **Part:** 推进\n- **Acceptance:**\n  - [ ] wip\n")
+        return card
+
+    def test_pinned_empty_on_unsplit_card(self):
+        card = make_card(self.root, "p", "099-fix")
+        d = ws.trace_data("p", card)
+        self.assertEqual(d["parts"], [])
+        self.assertTrue(all(r["parts"] == [] for r in d["rows"]))
+        self.assertTrue(all(t["part"] == "" for r in d["rows"] for t in r["tasks"]))
+
+    def test_parts_populated_from_design_and_plan(self):
+        d = ws.trace_data("p", self._parts_card())
+        self.assertEqual(d["parts"], ["观测", "推进"])
+        r1 = next(r for r in d["rows"] if r["rid"] == "R1")
+        r3 = next(r for r in d["rows"] if r["rid"] == "R3")
+        self.assertEqual(r1["parts"], ["观测"])
+        self.assertEqual(r3["parts"], ["观测", "推进"])
+        self.assertEqual(r1["tasks"][0]["part"], "观测")
+
+    def test_freeze_scenario_no_plan(self):
+        d = ws.trace_data("p", self._parts_card(with_plan=False))
+        self.assertEqual(d["parts"], ["观测", "推进"])
+        r3 = next(r for r in d["rows"] if r["rid"] == "R3")
+        self.assertEqual(r3["parts"], ["观测", "推进"])
+
+    def _render(self, card):
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ws.render_trace("p", card)
+        return buf.getvalue()
+
+    def test_render_groups_by_part(self):
+        out = self._render(self._parts_card())
+        self.assertIn("Part: 观测", out)
+        self.assertIn("Part: 推进", out)
+        self.assertIn("↔", out)   # multi-part R3 marked in each group
+        self.assertLess(out.index("Part: 观测"), out.index("Part: 推进"))
+
+    def test_render_unsplit_has_no_part_lines(self):
+        out = self._render(make_card(self.root, "p", "098-plain"))
+        self.assertNotIn("Part:", out)
+        self.assertNotIn("↔", out)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

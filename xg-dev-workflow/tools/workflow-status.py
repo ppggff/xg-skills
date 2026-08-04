@@ -534,6 +534,7 @@ def trace_data(project, card_dir):
     import datetime
     reqs = trace_requirement(card_dir)
     home, verify = trace_design(card_dir)
+    parts, r2p = trace_parts(card_dir)
     tasks = trace_plan(card_dir)
     cov = trace_test(card_dir)
     repo = frontmatter(os.path.join(card_dir, "progress.md")).get("repo", "") or \
@@ -552,6 +553,7 @@ def trace_data(project, card_dir):
         else:
             lines, commit_state = [], "unchecked"
         task_rows[tid] = {"tid": tid, "title": t["title"], "state": t["state"],
+                          "part": t["part"],
                           "commits": lines, "commit_state": commit_state}
 
     by_r = {}
@@ -576,6 +578,7 @@ def trace_data(project, card_dir):
         rows.append({"rid": r, "text": reqs.get(r, ""),
                      "design": home.get(r, ""), "verify": verify.get(r, ""),
                      "test": cov.get(r, ""), "tasks": [task_rows[t] for t in tids],
+                     "parts": r2p.get(r, []),
                      "dstate": dstates.get(r, ""), "flags": flags,
                      "present": {"design": r in home, "verify": r in verify,
                                  "task": bool(tids), "test": r in cov,
@@ -583,7 +586,7 @@ def trace_data(project, card_dir):
     orphans = [t for t, v in sorted(tasks.items(), key=lambda kv: int(kv[0]))
                if not v["rids"]]
     return {"card": f"{project}/{os.path.basename(card_dir)}", "repo": repo or "",
-            "repo_anchor": bool(repo),
+            "repo_anchor": bool(repo), "parts": parts,
             "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
             "rows": rows, "orphans": orphans, "error": ""}
 
@@ -592,9 +595,11 @@ def render_trace(project, card_dir):
     d = trace_data(project, card_dir)
     print(f"🔗 {d['card']}" + (f"  repo: {d['repo']}" if d["repo"] else ""))
     W = 100
-    for row in d["rows"]:
+
+    def prow(row, multi=False):
         flags = ["⚠ " + f for f in row["flags"]]
-        print(f"{row['rid']}  {row['text'][:64]}" + ("  " + " ".join(flags) if flags else ""))
+        mark = " ↔" if multi else ""
+        print(f"{row['rid']}{mark}  {row['text'][:64]}" + ("  " + " ".join(flags) if flags else ""))
         if row["design"]:
             print(f"    design : {row['design'][:W]}")
         if row["verify"]:
@@ -604,6 +609,19 @@ def render_trace(project, card_dir):
             label = "commit" if t["commit_state"] == "strict" else "commit?"  # loose = bare-T cross-card risk
             for c in t["commits"][:6]:
                 print(f"      {label}: {c[:W]}")
+
+    if d["parts"]:
+        groups = [(p, [r for r in d["rows"] if p in r["parts"]]) for p in d["parts"]]
+        rest = [r for r in d["rows"] if not r["parts"]]
+        if rest:
+            groups.append(("—", rest))
+        for pname, rows in groups:
+            print(f"▣ Part: {pname}")
+            for row in rows:
+                prow(row, multi=len(row["parts"]) > 1)
+    else:
+        for row in d["rows"]:
+            prow(row)
     if d["orphans"]:
         print("—  tasks with no R-id (scaffolding?): " + ", ".join("T" + t for t in d["orphans"]))
     if not d["repo_anchor"]:
