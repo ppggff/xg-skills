@@ -4,6 +4,23 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-04 — 拆分发起机制化 + part 轴贯穿(card 015)
+
+- **动机**: 三次真实拆分决策(longrun_test 001→002、hashdata 005 不拆卡、005→006 载体拆出)全部由
+  人发起或 freeze 后偶然发现 —— 拆分执行机制齐全(card 001)而发起机制缺位;part 轴(design Parts 表
+  → plan `Part:`)在 trace 矩阵与 viewer 里完全隐形。
+- **发起侧(零新 gate,全挂既有停点)**: requirement 步骤新增必答的**拆分审视拍**(beat 8,结论落
+  Scope 固定行、confirm digest 复述,不拆也留痕);design-grill 的 Parts bullet 改**双向** grill(向上
+  逐 part 跑 A↔B 判定)且 freeze 前置清单加「Parts 表复核」;detail/implement 各加**探测句**(「装不下
+  本卡/需独立核证」⟹ A↔B → M2 提议),change.md A.0 时窗扩为 freeze 后全程;split-isolate.md 新增
+  **split-out procedure**(五步指针序列,R-id 承接 = M2 撤销 mode 实例);SKILL.md A↔B 判定补单向必要
+  质量判据(seam 写不出具名契约 → 先 investigation)。
+- **贯穿侧(part 轴数据契约,ADR-0001)**: Parts 表增 **`R` 列**(R→part 归属,多值;兼作**新格式标记**
+  —— 无 R 列的 legacy 表全链路视作未拆,005 型卡零变化);`--trace` 三出口按 part 分组(pinned shape
+  两定义点同批);viewer trace 视图分组行 + Tasks 表条件 Part 列;plan 按 part 组织升为 step 要求;
+  `--check` 新增 **(h) part 一致性**(plan `Part:` ⊆ canonical 名集,仅新格式表激活)。
+  未拆卡零加税:CLI 输出 byte 级不变(014/005 双卡对拍验证)。测试 68+23+71 项全绿。
+
 ## 2026-08-04 — 新增 `V<n>` id 前缀:判据共用定义进账本
 
 - **动机**: longrun_test/002 的 Effect 有三个共用定义（`SNAP`/`TSUM` 及新增的 `CSUM`）被 7–12 条判据共用,
