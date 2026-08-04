@@ -97,8 +97,15 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      built & tested as one unit) + the **seam** to its neighbors. The seam's contract is the
      existing 「Interface/contract」entry and **freezes with the design** — that freeze is exactly
      what lets each part be built & unit-tested independently (mock the neighbor) before it exists.
-     Grill the cut: are parts genuinely independent at the seam, or is the seam leaky (then it's
-     one part, not two)? A seam disproved later at 联调 → M2 (`seam-contract-disproved`), never a
+     Grill the cut **both directions**: downward — are parts genuinely independent at the seam,
+     or is the seam leaky (then it's one part, not two)? — and upward — run the **A↔B 判定**
+     (SKILL.md「拆分与隔离」) per part: a part hitting an 升 B criterion (independent timeline /
+     standalone value / own reviewer / independently freezable; a seam that already reads as a
+     named contract is a strong signal) is a **card**, not a part — propose the split-out
+     (`references/split-isolate.md`). Record the per-part verdict (升/不升 + one-line why) in
+     the grill-log, 不升 included. Fill the table's **`R` column** (which R-ids each part
+     carries — it doubles as the new-format marker tools parse; one R may span several parts).
+     A seam disproved later at 联调 → M2 (`seam-contract-disproved`), never a
      silent plan edit. Omit the table for an un-split design.
 3. **Grill it relentlessly** — the shared protocol + **grill-log** + **rollback** + **convergence
    auto-verdict** live in `grill.md` (a drafting-phase rollback re-walks superseded branches; once
@@ -197,7 +204,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    (see `adr.md`).
 7. **Freeze gate:** before the ask, check the template's conditional/required sections are
    filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
-   存储足迹 (when the design touches storage) · 验证策略 (M+); `workflow-status.py --check`
+   存储足迹 (when the design touches storage) · 验证策略 (M+) · **Parts 表复核** (split
+   designs: the per-part A↔B verdicts are recorded and the `R` column is filled — "定稿" is
+   anchored here, the one decidable moment after multi-round grill churn); `workflow-status.py --check`
    verifies the unconditional sections mechanically — run the **criterion-conformance
    judge** (adversarial-critic.md lens 4, against requirement 条目 + Effect) and confirm the
    panel receipts are in place (gate-digest.md precondition); the ask itself attaches the

@@ -33,6 +33,11 @@ algorithms whose correctness depends on the details.
 - **Still trace upward.** Every structure/mechanism ties back to a `design.md` module/contract
   and to a requirement 条目 (R-id). If a detail has no design home, the design is wrong → stop and
   run change-management (M2), don't quietly invent architecture here.
+- **Split probe.** A detail-phase conclusion of the shape「X 装不下本卡 / 需独立核证」(an
+  enabling dependency growing into its own deliverable — the 005→006 载体 pattern surfaced
+  exactly here, post-freeze) forces a run of the **A↔B 判定** (SKILL.md「拆分与隔离」); an
+  升 B verdict escalates through M2 as a proposed row (`change.md` A.0), split-out procedure
+  in `references/split-isolate.md` — never absorb it silently into detail scope.
 - **Division of labour with ADRs** — an ADR records a *hard-to-reverse, surprising decision +
   its alternatives*; `detail.md` holds the *full concrete spec*. For a call that already has an
   ADR, **reference it** ("medium = local table, see ADR-0001") and don't re-argue it. For the

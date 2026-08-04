@@ -8,7 +8,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
 ### A. Requirement/design change (scope/constraints/effect shifted)
 
 0. **Gate at entry.** A requirement/design change is a decision-zone act: it comes from the
-   human, or — when Claude escalates a design-fork from the execution zone — Claude **presents
+   human, or — when Claude escalates a fork from **any post-freeze point** (详设 / 实现 /
+   测试 — the detail phase and the execution zone alike; the detail/implement steps' split
+   probes route their 升 B verdicts here) — Claude **presents
    the fork + options and waits for the human's call** before touching `requirement.md` or
    unfreezing any decision (both entry points below are gated the same way). The escalation
    itself persists as a **proposed `decisions.md` row** (fork + options folded into why/alt —

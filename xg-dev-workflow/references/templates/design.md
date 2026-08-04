@@ -143,9 +143,15 @@ seam's contract IS the relevant 「Interface / contract」entry above; it **free
 design**, and that freeze is what lets each part be built & unit-tested against it (mocking the
 neighbor) before the neighbor exists.
 
-| Part | 含哪些 module | 对外 seam (邻居 part) | seam 契约 (指向上面 Interface/contract 条目) |
-|------|--------------|----------------------|---------------------------------------------|
-| … | … | … | … |
+The **Part cell's name is the canonical part 名** (short, no id scheme — plan `Part:`, test
+分节 and the trace all key on it verbatim). The **`R` column** lists the R-ids each part
+carries (one R may appear on several rows); it **doubles as the new-format marker** — tools
+(`--trace` grouping, `--check` (h)) parse only tables that have it, so leaving it out makes
+the split invisible to them.
+
+| Part | 含哪些 module | R | 对外 seam (邻居 part) | seam 契约 (指向上面 Interface/contract 条目) |
+|------|--------------|---|----------------------|---------------------------------------------|
+| … | … | R<n>, R<m> | … | … |
 
 **Omit this section entirely for an un-split design — nothing else changes** (M3 does not require
 it). If 联调 later disproves a frozen seam contract, that's an architecture change → route through

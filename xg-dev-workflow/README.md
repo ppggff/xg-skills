@@ -43,8 +43,9 @@ config xg-knowledge-lite uses, so project names line up.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);
   plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).
-  The human re-enters the execution zone only at `log.md` (audit) and the close-out review
-  (decision). Every gate asks via a **decision digest** (load-bearing decisions + least-confident
+  The human re-enters post-freeze work only at `log.md` (audit), the close-out review
+  (decision), and a proposed `decisions.md` row escalated via M2 (a design fork or a
+  split proposal). Every gate asks via a **decision digest** (load-bearing decisions + least-confident
   spots + open questions) so approving doesn't require re-reading the whole doc; small work can
   opt into **merged gates** (XS: 需求+设计 · M: 详设+执行授权 — sizing rules).
 - **需求条目 are the traceability spine.** The requirement is an itemized list with stable `R-id`s;

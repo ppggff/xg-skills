@@ -83,7 +83,8 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
   resume, not for a human read-through.
 - **The human re-enters at exactly three artifacts** — `log.md` (the audit trail; resume never
   reads it), the 评审 review report (its 修复决策表 is a human decision), and a **proposed
-  `decisions.md` row** Claude escalates from the execution zone (design fork → M2; blockers and
+  `decisions.md` row** Claude escalates from any post-freeze phase (design fork or split
+  proposal → M2; blockers and
   push requests stay chat-level; commits autonomous, push gated).
 
 ## Ledger (决策账本) — the gate currency
