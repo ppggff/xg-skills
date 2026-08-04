@@ -323,24 +323,17 @@ def _read(path):
         return ""
 
 
-def _section(text, title_pat):
-    """Body of the first `## …` section whose title matches title_pat, else ""."""
-    for m in re.finditer(r"^##\s+(.+)$", text, re.M):
+def _section(text, title_pat, level=2):
+    """Body of the first heading at `level` (## or ###) matching title_pat, else "".
+    Terminated by the next same-or-higher heading — for level=3 that regex is `^###?\\s`;
+    a `^###\\s`-only terminator would swallow the following `##` section when the
+    sub-section is last."""
+    head = r"^%s\s+(.+)$" % ("#" * level)
+    stop = r"^#{2,%d}\s" % level
+    for m in re.finditer(head, text, re.M):
         if re.search(title_pat, m.group(1)):
             start = m.end()
-            nxt = re.search(r"^##\s", text[start:], re.M)
-            return text[start:start + nxt.start()] if nxt else text[start:]
-    return ""
-
-
-def _section3(text, title_pat):
-    """Body of the first `### …` sub-section matching title_pat, else "".
-    Terminated by the next same-or-higher heading (`^###?\\s`) — a `^###\\s`-only
-    terminator would swallow the following `##` section when the sub-section is last."""
-    for m in re.finditer(r"^###\s+(.+)$", text, re.M):
-        if re.search(title_pat, m.group(1)):
-            start = m.end()
-            nxt = re.search(r"^###?\s", text[start:], re.M)
+            nxt = re.search(stop, text[start:], re.M)
             return text[start:start + nxt.start()] if nxt else text[start:]
     return ""
 
@@ -375,8 +368,8 @@ def trace_parts(card):
     """(parts, {R-id: [part, …]}) from design.md's Decomposition/Parts table.
     Header-keyed (parse_tasks style); the `R` column doubles as the new-format
     marker — a table without it (legacy, e.g. a pre-015 card) parses as un-split."""
-    sect = _section3(_read(os.path.join(card, "design.md")),
-                     r"Decomposition\s*/\s*Parts")
+    sect = _section(_read(os.path.join(card, "design.md")),
+                    r"Decomposition\s*/\s*Parts", level=3)
     lines = [ln for ln in sect.splitlines() if ln.lstrip().startswith("|")]
     if len(lines) < 2:
         return [], {}
