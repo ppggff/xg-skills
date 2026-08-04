@@ -1513,7 +1513,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
     }
     var traceHead = '<h2 class="sec">Trace <span class="tr-src">plan.md 推导</span></h2>';
     pane.innerHTML = paneHead(side, "Trace " + d.card) + head + err + infoSec + tasksSec + traceHead + table + orph;
-    var els = [].slice.call(pane.querySelectorAll("h2.sec, tr[data-trx]"));   // TOC = 全部 section + 行
+    var seen = {};   // 015 review #3: a multi-part R renders once per group — TOC lists it once
+    var els = [].slice.call(pane.querySelectorAll("h2.sec, tr[data-trx]")).filter(function (el) {
+      var k = el.dataset && el.dataset.trx;
+      if (!k) return true;
+      if (seen[k]) return false;
+      seen[k] = 1; return true;
+    });   // TOC = 全部 section + 行
     tagSections(side, els, els.map(function (el) {
       if (el.tagName === "H2") return { text: el.textContent.trim().slice(0, 40), depth: 1 };
       var nm = el.querySelector(".name, .tnotes");
