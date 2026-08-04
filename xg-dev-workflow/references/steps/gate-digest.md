@@ -46,8 +46,9 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
      appears in a compact `其余 pending（一并批）` list after the cards — a pending row
      missing from the ask would be approved by silence.
 3. **Phase attachments** — as lists: 设计 freeze inlines the `--trace` matrix summary
-   (see Rules); enumeration-criterion tables follow the paste-the-table rule below; other
-   phases attach what their step prescribes.
+   (see Rules); the requirement confirm ask restates the **拆分审视 verdict line**
+   (steps/requirement.md beat 8 — one line, 拆/不拆 + 理由); enumeration-criterion tables
+   follow the paste-the-table rule below; other phases attach what their step prescribes.
 4. **假设 closure sweep** — when the phase step requires it (e.g. design freeze): the doc's
    load-bearing 假设/推断 markers, each discharged or carried-with-a-home.
 5. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**

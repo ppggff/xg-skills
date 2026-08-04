@@ -91,7 +91,20 @@ not transcribe the words.
 7. **Boundaries & open questions explicit.** Anything still unresolved or needing human
    input → Open questions; anything deliberately deferred → Future. **Don't grill to death**
    (`grill.md` Protocol): a point that won't converge → record it in Open questions and move on.
-8. **GATE — hard stop.** Run the **criterion-conformance judge** (adversarial-critic.md lens 4,
+8. **拆分审视 (split review — mandatory beat).** With the R-list final, answer "one card or
+   several?" — by wiring what already exists, never a parallel judgment text:
+   - run the **A↔B 判定** (SKILL.md「拆分与隔离」, quality criterion included) over the R-list;
+   - scan the adversarial panel's output for **tension between R items** that a card boundary
+     would dissolve (the 001→002 pattern: a human-raised split resolved a panel-found tension);
+   - check for an **enabling dependency that grew into its own deliverable** (the 载体 pattern,
+     005→006 — it surfaced post-freeze precisely because no one asked here).
+   Write the one-line verdict into the requirement's Scope fixed line (`**拆分审视**: 拆/不拆 —
+   理由`) — a 不拆 verdict is recorded too, never skipped (one line, no more — the un-split
+   common case pays one line). The gate digest restates the line as a §3 phase attachment
+   (gate-digest.md). **The line must be current at the gate ask**: if the R-list changes after
+   this beat ran, re-run it. Verdict = 拆 → follow the split-out procedure
+   (`references/split-isolate.md`).
+9. **GATE — hard stop.** Run the **criterion-conformance judge** (adversarial-critic.md lens 4,
    against this requirement's own claimed-closed criteria) and confirm panel receipts are in
    place (gate-digest.md precondition), then present `requirement.md` for confirmation **via the
    gate digest** (`gate-digest.md`: cards from the pending ledger rows + least-confident spots +

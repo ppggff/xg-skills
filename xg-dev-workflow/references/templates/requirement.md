@@ -50,6 +50,8 @@ it tests. E.g. 条目 `R1: 同一时刻至多一个 coordinator 运行 autovacuu
 - **In scope:** … (by R-id where it sharpens the boundary)
 - **Out of scope:** …
 - **Affected (初步影响面):** modules / callers / consumers likely touched — full analysis in `design.md`「影响面」.
+- **拆分审视:** 拆 / 不拆 — <一句理由>  (the split-review beat's verdict — steps/requirement.md
+  beat 8; recorded even when 不拆, restated in the gate digest)
 
 ## Constraints (约束)
 
