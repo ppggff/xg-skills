@@ -130,8 +130,9 @@ def parse_tasks(progress_path):
 
 def norm_part(value):
     """Part values normalize at the data source (norm_blockers' rule, 007 R1):
-    placeholders (—/-/…) → "" so consumers only test non-emptiness."""
-    s = value.strip()
+    markup (**bold**/`code`) stripped and placeholders (—/-/…) → "", so canonical
+    names compare equal across design table / plan field / progress column."""
+    s = re.sub(r"[*`]", "", value).strip()
     return "" if not s or s in PLACEHOLDERS else s
 
 
@@ -383,8 +384,8 @@ def trace_parts(card):
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) <= max(part_i, r_i) or set(cells[part_i]) <= set("-: "):
             continue
-        name = re.sub(r"[*`]", "", cells[part_i]).strip()
-        if not name or name == "—":
+        name = norm_part(cells[part_i])
+        if not name:
             continue
         if name not in parts:
             parts.append(name)
@@ -676,7 +677,7 @@ def ledger_status(blocks):
 
 
 def _id_level(i):
-    return ("requirement" if i.startswith("R") else
+    return ("requirement" if i.startswith("R") or i.startswith("V") else
             "detail" if i.startswith("S") else "design")
 
 

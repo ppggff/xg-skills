@@ -545,10 +545,12 @@ class TracePlanPart(unittest.TestCase):
         tasks = self._plan("### T1: one\n- **Implements:** R1\n- **Part:** 观测\n"
                            "- **Acceptance:**\n  - [x] ok\n"
                            "### T2: two\n- **Part:** —\n  - [ ] pending\n"
-                           "### T3: three\n  - [ ] pending\n")
+                           "### T3: three\n  - [ ] pending\n"
+                           "### T4: four\n- **Part:** **观测**\n  - [ ] wip\n")
         self.assertEqual(tasks["1"]["part"], "观测")
         self.assertEqual(tasks["2"]["part"], "")   # placeholder → ""
         self.assertEqual(tasks["3"]["part"], "")   # absent → pinned empty
+        self.assertEqual(tasks["4"]["part"], "观测")   # markup stripped (015 review #1)
 
 
 class TraceParts(unittest.TestCase):
@@ -657,6 +659,34 @@ class TraceDataParts(unittest.TestCase):
         self.assertNotIn("↔", out)
 
 
+class VPrefixLedger(unittest.TestCase):
+    """V<n> (shared verification-criteria definitions) are requirement-level ledger
+    rows — reference checks must fire on requirement-only cards (015 review #2)."""
+
+    def _card(self, decisions):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "032-vpfx")
+        os.makedirs(card)
+        open(os.path.join(card, "decisions.md"), "w").write(decisions)
+        return card
+
+    def test_superseded_v_ref_flagged_on_requirement_only_card(self):
+        card = self._card(
+            "### V1 [requirement] superseded\n- 陈述: old snapshot definition\n\n"
+            "### R1 [requirement] proposed\n- 陈述: x\n- depends-on: V1\n")
+        self.assertTrue(any("superseded-ref: V1" in f for f in ws.check_card("proj", card)))
+
+    def test_dangling_v_ref_flagged(self):
+        card = self._card("### R1 [requirement] proposed\n- 陈述: x\n- depends-on: V9\n")
+        self.assertTrue(any("dangling-id: V9" in f for f in ws.check_card("proj", card)))
+
+    def test_v_header_parses(self):
+        blocks, findings = ws.parse_ledger(self._card(
+            "### V2 [requirement] proposed\n- 陈述: tsum definition\n"))
+        self.assertEqual(findings, [])
+        self.assertEqual(blocks[0]["id"], "V2")
+
+
 class PartConsistency(unittest.TestCase):
     """--check (h): plan `Part:` values ⊆ canonical part names — active only with a
     new-format Parts table; legacy/un-split cards skip. Runs in the section_findings
@@ -690,6 +720,19 @@ class PartConsistency(unittest.TestCase):
         plan = "### T1: one\n- **Part:** —\n  - [x] ok\n"
         card = self._card(NEW_PARTS_DESIGN, plan)
         self.assertEqual(ws.check_part_consistency(card), [])
+
+    def test_bold_part_value_matches_design(self):
+        # 015 review #1: design cells are conventionally bold — a plan author copying
+        # that style must not trip a false part-mismatch.
+        plan = "### T1: one\n- **Part:** **观测**\n  - [x] ok\n"
+        card = self._card(NEW_PARTS_DESIGN, plan)
+        self.assertEqual(ws.check_part_consistency(card), [])
+
+    def test_placeholder_part_cell_not_registered(self):
+        design = NEW_PARTS_DESIGN.replace("| 推进 | mod-c | R3 | — |",
+                                          "| TBD | mod-c | R3 | — |")
+        parts, _ = ws.trace_parts(self._card(design, ""))
+        self.assertEqual(parts, ["观测"])   # TBD cell is a placeholder, not a part
 
     def test_runs_without_ledger_via_check_card(self):
         card = self._card(NEW_PARTS_DESIGN, self.BAD_PLAN)   # no decisions.md

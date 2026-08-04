@@ -8,7 +8,7 @@ Reader = human at gates (via the gate digest, generated FROM pending blocks) + t
 
 Contract (design 010, ADR-0001):
 - One decision = one block. Header: `### <id> [<level>] <state>` — id reuses the existing
-  scheme (R<n> / D<n> / S<n> / ADR-NNNN [D<n>]; the ledger never mints ids); level ∈
+  scheme (R<n> / V<n> / D<n> / S<n> / ADR-NNNN [D<n>]; the ledger never mints ids); level ∈
   requirement | design | detail; state ∈ proposed | approved | superseded | retired (the ONLY
   state words — freeze/baseline force derives from level, never written as a state).
 - Single active block per id: at most one block per id is not superseded/retired.
