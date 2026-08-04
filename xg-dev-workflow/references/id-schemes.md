@@ -17,6 +17,10 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   approved carries baseline force — see `templates/decisions.md`). Number only items that enter
   the ledger, not every spec line.
 - `P<n>` — implement's principles (`implement.md` Principles).
+- `V<n>` — **verification-criteria definitions** shared by several Effect items (`SNAP`-class: what
+  a judgement compares, over which scope, with which cardinality assertions). Requirement-level
+  ledger rows, so changing one definition supersedes **one** row instead of cascading through every
+  `R<n>` whose Effect cites it. Effect items cite them as `[V<n>]`.
 - `F<n>` — fact entries, **per-container scoped** (`references/doc-conventions.md`「Provenance」): card →
   the card's `facts.md` (phase docs cite `[F<n>]`, no doc-local list); standalone doc → its
   doc-local「事实清单」section. Never both containers for one doc.

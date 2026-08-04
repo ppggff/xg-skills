@@ -563,12 +563,12 @@ def render_trace(project, card_dir):
 # (progressive adoption — both degradation axes, design 010).
 
 LEDGER_HEAD = re.compile(
-    r"^###\s+(R\d+|S\d+|D\d+|ADR-\d{4}(?:\s+D\d+)?)\s+"
+    r"^###\s+(R\d+|V\d+|S\d+|D\d+|ADR-\d{4}(?:\s+D\d+)?)\s+"
     r"\[(requirement|design|detail)\]\s+"
     r"(proposed|approved|superseded|retired)\s*$", re.M)
 APPROVE_NOTE = re.compile(r"^-\s*approved:\s*\d{4}-\d{2}-\d{2}\s+gate\s+\S+", re.M)
 ACTIVE_STATES = ("proposed", "approved")
-LEDGER_ID = re.compile(r"\b(ADR-\d{4}\s+D\d+|ADR-\d{4}|R\d+|S\d+|D\d+)\b")
+LEDGER_ID = re.compile(r"\b(ADR-\d{4}\s+D\d+|ADR-\d{4}|R\d+|V\d+|S\d+|D\d+)\b")
 
 
 def parse_ledger(card_dir):

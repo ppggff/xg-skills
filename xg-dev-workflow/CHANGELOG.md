@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-04 — 新增 `V<n>` id 前缀:判据共用定义进账本
+
+- **动机**: longrun_test/002 的 Effect 有三个共用定义（`SNAP`/`TSUM` 及新增的 `CSUM`）被 7–12 条判据共用,
+  而它们**没有账本行** ⟹ 改一个定义就要 supersede 每条引用它的 `R` 行（该卡是 8 行）,而那些行的**陈述
+  其实没变**。给判据定义独立行后,一次定义变更只 supersede 一行。
+- `references/id-schemes.md` 登记 `V<n>` = **verification-criteria definitions**（判据比什么、作用域、
+  基数断言）,requirement 级账本行,Effect 以 `[V<n>]` 引用。
+- `tools/workflow-status.py`: `LEDGER_HEAD` 与 `LEDGER_ID` 两处正则加上 `V\d+` —— 不加则 `### V1
+  [requirement] proposed` 会被检查判成 `bad-header`（新前缀落地时最容易漏的一步）。测试 49 项全通过。
+
 ## 2026-08-03 — M3 新增 facts marker 完整性检查 (g);evidence.md 补两条载重断言形态
 
 - **动机(事故)**: longrun_test/002 的 `F6` 以 `[VERIFIED]` 落盘,而它自己的 `来源` 栏写着「由
