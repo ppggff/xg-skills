@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-04 — retro(015 周期):新前缀接线 checklist;depends-on 占位归一
+
+- **新前缀接线 checklist**(id-schemes.md Rules 新条):V<n> 前缀落地时提交自述「LEDGER_HEAD 是
+  最容易漏的一步」却仍漏了 `_id_level`/decisions 模板枚举/回归测试三处(015 close-out review #2
+  抓获,requirement 阶段的 V 引用失效检测曾静默失效);连同 (g) 检查落地时的 M3 枚举句义务
+  (commit 2573df5 先例),「闭合枚举必须同批接线」已两例 ⟹ class-to-constraint,checklist 六项
+  成文。
+- **`depends-on: —` 占位在 parse 层归一**(parse_ledger 过滤 PLACEHOLDERS;decisions 模板头注
+  明示省略):015 需求/设计两阶段各被 `--check` 打回一次——占位 `—` 在 design 级块出现后被
+  `_id_level("—")→design` 判成 dangling id。与 norm_part/norm_blockers 同款「源头归一」。
+- KB `viewer-architecture` 补「数据 API 两道准入门」(board 需 index.md;trace/diff 需项目注册
+  ——2026-08-04 demo 卡三轮返工实证);roadmap 挂 loose-匹配收紧与存量账本 findings 判定两候选;
+  KB compile backlog(cbdb/common/hashdata 各 2)属他项目 session,本 retro 明示 deferred。
+
 ## 2026-08-04 — 拆分发起机制化 + part 轴贯穿(card 015)
 
 - **动机**: 三次真实拆分决策(longrun_test 001→002、hashdata 005 不拆卡、005→006 载体拆出)全部由

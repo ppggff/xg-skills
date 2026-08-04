@@ -25,7 +25,8 @@ Contract (design 010, ADR-0001):
   the derived status (SKILL.md「Ledger」derived-status rule).
 - `depends-on:` is the ONLY dependency source tools parse (comma-separated ids, **one
   line** — a wrapped continuation is silently ignored); prose mentions of ids inside
-  陈述/why are not references.
+  陈述/why are not references. No dependencies → omit the line (a `—` placeholder is
+  tolerated but pointless).
 
 Decision-shaped 陈述, e.g.（示意）:
   ✅ 陈述: 心跳超时取 3×interval（9s）—— 一句话内有对象、有取值、可直接判对错;

@@ -33,6 +33,13 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   supersession renames/consolidates instead of adding another prime. Introducing a second
   staging/tier scheme alongside an existing one requires a one-line statement of their relation
   at first use, and its letter must not collide with the list above.
+- **New ledger-entering prefix wiring checklist** — a prefix whose ids enter `decisions.md`
+  must land ALL of these in one batch (each is a closed enumeration that fails silently when
+  skipped): (1) this registry; (2) `workflow-status.py` `LEDGER_HEAD` + `LEDGER_ID` regexes;
+  (3) `_id_level()` (an unmapped prefix falls through to design — reference checks then skip
+  it on requirement-stage cards); (4) `templates/decisions.md` header id enum; (5) a
+  regression-test group shaped like the existing per-prefix ones; (6) SKILL.md's M3
+  deterministic-subset sentence when the prefix adds a check.
 - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
   only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.
   Mermaid node ids are diagram-local — exempt.

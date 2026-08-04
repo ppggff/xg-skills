@@ -680,6 +680,13 @@ class VPrefixLedger(unittest.TestCase):
         card = self._card("### R1 [requirement] proposed\n- 陈述: x\n- depends-on: V9\n")
         self.assertTrue(any("dangling-id: V9" in f for f in ws.check_card("proj", card)))
 
+    def test_placeholder_depends_on_ignored(self):
+        # retro 2026-08-04: "- depends-on: —" placeholders flagged as dangling ids
+        # twice during card 015 — normalize at the parser like every other field.
+        blocks, _ = ws.parse_ledger(self._card(
+            "### R1 [requirement] proposed\n- 陈述: x\n- depends-on: —\n"))
+        self.assertEqual(blocks[0]["deps"], [])
+
     def test_v_header_parses(self):
         blocks, findings = ws.parse_ledger(self._card(
             "### V2 [requirement] proposed\n- 陈述: tsum definition\n"))
