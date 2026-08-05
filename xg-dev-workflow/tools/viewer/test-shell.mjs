@@ -598,7 +598,7 @@ t("offsetToNode: run boundary / inside a folded whitespace run / out of bounds",
   assert.equal(SV.offsetToNode(runs, 11), null);
 });
 t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes only", () => {
-  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, section\.grp\[hidden\]";/, "static exclusion list matches S1's table");
+  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, section\.grp\[hidden\]";/, "static exclusion list matches S1's table (+ T5's own findbar overlay)");
   assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
   assert.match(html, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks idx.root's Text nodes");
   assert.match(html, /root: pane,/, "idx.root is always the pane itself (D19)");
@@ -607,6 +607,34 @@ t("T4: rangeOf skips a stale hit instead of throwing, never caches the Range", (
   assert.match(html, /function rangeOf\(idx, start, end\)/, "rangeOf defined");
   assert.match(html, /if \(!a \|\| !b\) return null;/, "either endpoint out of bounds → skip, don't throw");
   assert.match(html, /range\.setStart\(a\.node, a\.nodeOff\); range\.setEnd\(b\.node, b\.nodeOff\);/, "builds a fresh Range from both endpoints");
+});
+
+// --- find box + paint + f/Esc wiring (016 T5) ---
+t("T5: Escape closes an open find box before help/change-history (position matters)", () => {
+  const m = html.match(/if \(e\.key === "Escape" && PANES\[focus\]\._findOpen\) \{ findClose\(focus\); return; \}[\s\S]{0,80}?if \(e\.key === "Escape" && helpEl/);
+  assert.ok(m, "find's Escape branch comes before the existing help/Escape branch");
+});
+t("T5: bare f opens/focuses find (not while typing); cmd/ctrl+F stays native", () => {
+  assert.match(html, /if \(e\.key === "f" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ e\.preventDefault\(\); findOpen\(focus\); \}/, "bare f only, guarded by !typing");
+});
+t("T5: paint unregisters all seven highlight names for this pane before repainting", () => {
+  assert.match(html, /if \(!window\.CSS \|\| !CSS\.highlights\) return;/, "no Custom Highlight API → skip (ADR-0001 corollary 2)");
+  assert.match(html, /"sv-hit-" \+ side, "sv-cur-" \+ side, "sv-sel-" \+ side,/, "unregisters hit/cur/sel names even though only hit is populated yet");
+  assert.match(html, /"sv-pin-" \+ side \+ "-0", "sv-pin-" \+ side \+ "-1", "sv-pin-" \+ side \+ "-2", "sv-pin-" \+ side \+ "-3"/, "and all four pin slots");
+  assert.match(html, /hl\.priority = 100;/, "hits register at priority 100 (S11)");
+});
+t("T5: reindex skips empty models and clamps cur via Math.min; find reuses the cached idx", () => {
+  assert.match(html, /if \(!h\.q && !h\.pins\.length\) return;/, "nothing to search → skip rebuilding the index");
+  assert.match(html, /h\.cur = Math\.min\(h\.cur, h\.hits\.length - 1\);/, "clamp doubles as the empty-hits → -1 case");
+  assert.match(html, /if \(!h\.idx\) h\.idx = buildIndex\(p\);\s+\/\/ find box opened before any render's reindex ran/, "find lazily builds the index if reindex hasn't run yet");
+});
+t("T5: findClose clears this pane's model (R13) and unpaints; findOpen anchors off .doc-head", () => {
+  assert.match(html, /p\._hits\.q = ""; p\._hits\.hits = \[\]; p\._hits\.cur = -1;\s+paint\(side\);/, "closing clears q/hits/cur then repaints (clears highlight)");
+  assert.match(html, /head\.insertAdjacentHTML\("afterend", findBarHtml\(side\)\);/, "find bar is inserted right after .doc-head, every view kind");
+});
+t("T5: two non-full-render visibility toggles reindex too (found live — neither goes through afterRender)", () => {
+  assert.match(html, /cd\.classList\.toggle\("open", detailOpen\);\s+reindex\(t\.closest\("#left"\) \? "left" : "right"\); return; \}/, "board drawer open/close reindexes (else its text stays searchable while hidden, or vice versa)");
+  assert.match(html, /grp\.hidden = !chk\.checked;\s+reindex\(focus\); return; \}/, "TOC-filtered group hide/show reindexes (else a filtered-out group stays searchable)");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");

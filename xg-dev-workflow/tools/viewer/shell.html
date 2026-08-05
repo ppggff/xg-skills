@@ -79,6 +79,17 @@
      padding, so top:0 sticks flush; negative side margins let it span the pane's full width. */
   .doc-head { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 6;
     background: var(--bg); margin: 0 -28px 0; padding: 12px 28px 8px; border-bottom: 1px solid var(--line); }
+  /* R3/R5: not sticky — sits in normal flow right below .doc-head; jump (T6) scrolls the hit into
+     view, which is enough to keep it reachable without stacking a second sticky offset here. */
+  .findbar { display: flex; align-items: center; gap: 6px; padding: 6px 0; }
+  .findbar input { flex: 1; font: inherit; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--line2); border-radius: var(--radius); padding: 3px 8px; }
+  .find-count { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 3em; text-align: right; }
+  .find-count.zero { color: var(--s-blocked); }   /* R14: an explicit zero-hit state, never a bare "0/0" */
+  /* ADR-0001/S5: zero DOM mutation — CSS Custom Highlight API paints ranges directly. sv-todo is
+     the one distinguishable color the palette can spare for hits (S5); sv-cur/-sel/-pin land with
+     the tasks that give them meaning (T6/T8/T9). */
+  ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
   .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
@@ -1068,7 +1079,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     try { var s = JSON.parse(lsGet("sv-tree-scope")); if (s && typeof s.dev === "boolean" && typeof s.kb === "boolean") return s; } catch (e) {}
     return { dev: true, kb: true };
   })();
-  ["left", "right"].forEach(function (s) { var p = PANES[s]; p._hist = []; p._hi = -1; p._view = null; p._sections = []; p._cur = 0; });
+  ["left", "right"].forEach(function (s) { var p = PANES[s]; p._hist = []; p._hi = -1; p._view = null; p._sections = []; p._cur = 0;
+    p._findOpen = false; p._hits = { idx: null, q: "", hits: [], cur: -1, pins: [], slotUsed: [false, false, false, false] }; });   // S2 (016)
 
   function api(p) { return fetch(p).then(function (r) {
     if (!r.ok) throw new Error(p + " → " + r.status); return r; }); }
@@ -1142,7 +1154,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
         '<button class="iconbtn" data-resetlayout="1" title="reset pane widths (equal / fill)">↺</button>'
       : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
-    return '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>";
+    return '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>" +
+      (p._findOpen ? findBarHtml(side) : "");   // R3/R5: every view kind gets the find bar via this one shared choke point
+  }
+  function findBarHtml(side) {
+    var q = PANES[side]._hits.q;
+    return '<div class="findbar"><input type="text" data-find-input placeholder="find…" autocomplete="off" value="' + esc(q) + '">' +
+      '<span class="find-count" data-find-count></span>' +
+      '<button class="iconbtn" data-find-close title="close (Esc)">✕</button></div>';
   }
   // sections: give each addressable block an id + record {text,depth} for the TOC/scroll-spy.
   function tagSections(side, els, metas) {
@@ -1735,7 +1754,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // S1 (016 T4): this view's toolable chrome — never counted as content. `.cd-body` is
   // conditionally excluded (only while the board drawer is closed) — R15: visible drawer content
   // is fair game to search, hidden content isn't.
-  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, section.grp[hidden]";
+  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, .findbar, section.grp[hidden]";
   function idxTextExcluded(node) {
     var el = node.parentElement; if (!el) return true;
     if (el.closest(IDX_EXCLUDE)) return true;
@@ -1770,6 +1789,63 @@ if (typeof window !== "undefined" && window.marked) (function () {
     range.setStart(a.node, a.nodeOff); range.setEnd(b.node, b.nodeOff);
     return range;
   }
+  // ADR-0001 D1/D13/D14: paint registers this pane's hits as a CSS Custom Highlight — zero DOM
+  // mutation (D1's core benefit: selection/comment/search never fight over wrapper nodes). T5
+  // only populates sv-hit-<side> (one undifferentiated bucket); sv-cur/-sel/-pin come with the
+  // tasks that give them meaning (T6/T8/T9) but are unregistered here too so nothing goes stale.
+  function paint(side) {
+    if (!window.CSS || !CSS.highlights) return;   // no Custom Highlight API → skip, rest of app works (ADR-0001 corollary 2)
+    var h = PANES[side]._hits;
+    ["sv-hit-" + side, "sv-cur-" + side, "sv-sel-" + side,
+     "sv-pin-" + side + "-0", "sv-pin-" + side + "-1", "sv-pin-" + side + "-2", "sv-pin-" + side + "-3"
+    ].forEach(function (name) { CSS.highlights.delete(name); });
+    if (!h.idx) return;
+    var hl = new Highlight();
+    h.hits.forEach(function (hit) { var r = rangeOf(h.idx, hit[0], hit[1]); if (r) hl.add(r); });   // skip a stale/OOB hit
+    hl.priority = 100;
+    if (hl.size) CSS.highlights.set("sv-hit-" + side, hl);
+  }
+  // reindex: rebuild the index + rescan the current query against it. Triggered from afterRender
+  // (content changed) — never on keystrokes, `find` below reuses the cached idx for that.
+  function reindex(side) {
+    var p = PANES[side], h = p._hits;
+    if (!h.q && !h.pins.length) return;   // nothing to search for — building an index nobody reads is wasted work
+    h.idx = buildIndex(p);
+    h.hits = h.q ? SV.scanHits(h.idx.text, h.q) : [];
+    h.cur = Math.min(h.cur, h.hits.length - 1);   // fewer hits → clamp; none left → -1 (Math.min gives this for free)
+    paint(side); updateFindCount(side);
+  }
+  function updateFindCount(side) {
+    var p = PANES[side], el = p.querySelector("[data-find-count]"); if (!el) return;
+    var h = p._hits;
+    if (!h.q) { el.textContent = ""; el.classList.remove("zero"); return; }
+    if (!h.hits.length) { el.textContent = "无命中"; el.classList.add("zero"); return; }
+    el.textContent = (h.cur + 1) + "/" + h.hits.length; el.classList.remove("zero");
+  }
+  function find(side, q) {   // input event on the find box — reuses the cached idx, never rebuilds it
+    var p = PANES[side], h = p._hits;
+    if (!h.idx) h.idx = buildIndex(p);   // find box opened before any render's reindex ran — build lazily
+    h.q = q.toLowerCase();
+    h.hits = h.q ? SV.scanHits(h.idx.text, h.q) : [];
+    h.cur = h.hits.length ? 0 : -1;
+    paint(side); updateFindCount(side);
+  }
+  function findOpen(side) {
+    var p = PANES[side];
+    if (p._findOpen) { var inp = p.querySelector("[data-find-input]"); if (inp) inp.focus(); return; }
+    var head = p.querySelector(".doc-head"); if (!head) return;   // view hasn't rendered yet — nothing to anchor to
+    p._findOpen = true;
+    head.insertAdjacentHTML("afterend", findBarHtml(side));
+    var input = p.querySelector("[data-find-input]"); input.focus();
+    updateFindCount(side);
+  }
+  function findClose(side) {   // R13: closing clears this pane's hits (memory-layer clear lands with T11+)
+    var p = PANES[side]; if (!p._findOpen) return;
+    p._findOpen = false;
+    var bar = p.querySelector(".findbar"); if (bar) bar.remove();
+    p._hits.q = ""; p._hits.hits = []; p._hits.cur = -1;
+    paint(side);
+  }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
   function afterRender(side, blockSel, tocFilter) {
@@ -1778,6 +1854,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
     var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
+    reindex(side);   // S1/S2: rescan this pane's query/pins against the fresh content
   }
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block
@@ -2032,6 +2109,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (PANES.left._view) navigate("right", Object.assign({}, PANES.left._view)); return; }
     if ((t = e.target.closest("[data-swap]"))) { e.preventDefault(); swapPanes(); return; }
     if ((t = e.target.closest("[data-resetlayout]"))) { e.preventDefault(); resetLayout(); return; }
+    if ((t = e.target.closest("[data-find-close]"))) { e.preventDefault();
+      findClose(t.closest("#left") ? "left" : "right"); return; }   // R5
     if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle reading-width tier, persist
       var hasCustom = typeof layoutState.mLeft === "number" && typeof layoutState.mWidth === "number";
       layoutState.mMode = layoutState.mMode === "default" ? (hasCustom ? "custom" : "full")
@@ -2043,7 +2122,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
     if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
       detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
-      var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen); return; }
+      var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen);
+      reindex(t.closest("#left") ? "left" : "right"); return; }   // R15: drawer visibility changed what's searchable
     if ((t = e.target.closest("[data-cd-retrace]"))) { e.preventDefault();  // 007: manual recompute (click-only)
       var rk = t.dataset.cdRetrace;
       delete traceCache[rk]; ensureTrace(rk); rerenderTrace(rk);
@@ -2085,7 +2165,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (chk) { var pf = PANES[focus], tf = pf._tocFilter; if (!tf) return;
       var key = tf.keys[+chk.dataset.tocf]; tf.set[key] = !chk.checked;
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
-      return; }
+      reindex(focus); return; }   // R15: a filtered-out group is no longer searchable
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
     var side = sel.dataset.hist; PANES[side]._hi = +sel.value; setFocus(side); render(side);
   });
@@ -2299,11 +2379,18 @@ if (typeof window !== "undefined" && window.marked) (function () {
   helpBack.addEventListener("click", closeHelp);
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
+    if (e.key === "Escape" && PANES[focus]._findOpen) { findClose(focus); return; }   // R5/R13: find closes first, ahead of help/change-history
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
     if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
     var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
+    if (e.key === "f" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); findOpen(focus); }   // R5; cmd/ctrl+F stays native
+  });
+  // R3/R5: the find box is rebuilt on every render (like .mrule) — delegated, not bound per-element.
+  document.addEventListener("input", function (e) {
+    var inp = e.target.closest && e.target.closest("[data-find-input]"); if (!inp) return;
+    find(inp.closest("#left") ? "left" : "right", inp.value);
   });
 
   // R2: hover an internal doc link → a floating rendered preview of the target (hovercard).
