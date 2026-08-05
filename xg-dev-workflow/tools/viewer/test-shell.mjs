@@ -567,4 +567,46 @@ t("T3: renderDiffOverlay reuses SV.blockSpans and labels plain/add blocks with t
   assert.match(html, /blocks\[i\]\.dataset\.srcline = SV\.blockLineNumbers\(\[useSpans\[i\]\], fmLines\)\[0\];/, "plain segment labels each block");
 });
 
+// --- buildIndexText / scanHits / offsetToNode (016 T4: content coordinate layer, S1/S2) ---
+t("buildIndexText: folds whitespace to one space + lowercases; a source-line-break phrase becomes searchable", () => {
+  const shells = [
+    { node: "N1", off: 0, len: 5, isSpace: false, text: "Hello" },
+    { node: "N1", off: 5, len: 1, isSpace: true },   // a single "\n" between two text nodes
+    { node: "N2", off: 0, len: 5, isSpace: false, text: "World" },
+  ];
+  const { text, runs } = SV.buildIndexText(shells);
+  assert.equal(text, "hello world");
+  assert.deepEqual(runs.map(r => r.at), [0, 5, 6]);
+  assert.equal(SV.scanHits(text, "hello world").length, 1, "phrase spanning the folded line-break is searchable");
+});
+t("scanHits: empty needle / overlapping candidates / CJK / case-sensitive (caller lowercases first)", () => {
+  assert.deepEqual(SV.scanHits("hello world", ""), []);
+  assert.deepEqual(SV.scanHits("aaaa", "aa"), [[0, 2], [2, 4]]);   // non-overlapping, greedy left-to-right
+  assert.deepEqual(SV.scanHits("设计文档 说明", "设计"), [[0, 2]]);
+  assert.deepEqual(SV.scanHits("hello world", "World"), []);       // scanHits itself is case-sensitive
+  assert.deepEqual(SV.scanHits("hello world", "world"), [[6, 11]]);
+});
+t("offsetToNode: run boundary / inside a folded whitespace run / out of bounds", () => {
+  const runs = [
+    { at: 0, node: "A", off: 0, len: 5, isSpace: false },
+    { at: 5, node: "A", off: 5, len: 3, isSpace: true },   // 3 original spaces, folded to 1 char at idx.text[5]
+    { at: 6, node: "B", off: 0, len: 5, isSpace: false },
+  ];
+  assert.deepEqual(SV.offsetToNode(runs, 6), { node: "B", nodeOff: 0 });   // boundary → the next run, no spillover
+  assert.deepEqual(SV.offsetToNode(runs, 5), { node: "A", nodeOff: 5 });   // folded run → its own original start, not off+len
+  assert.equal(SV.offsetToNode(runs, -1), null);
+  assert.equal(SV.offsetToNode(runs, 11), null);
+});
+t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes only", () => {
+  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, section\.grp\[hidden\]";/, "static exclusion list matches S1's table");
+  assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
+  assert.match(html, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks idx.root's Text nodes");
+  assert.match(html, /root: pane,/, "idx.root is always the pane itself (D19)");
+});
+t("T4: rangeOf skips a stale hit instead of throwing, never caches the Range", () => {
+  assert.match(html, /function rangeOf\(idx, start, end\)/, "rangeOf defined");
+  assert.match(html, /if \(!a \|\| !b\) return null;/, "either endpoint out of bounds → skip, don't throw");
+  assert.match(html, /range\.setStart\(a\.node, a\.nodeOff\); range\.setEnd\(b\.node, b\.nodeOff\);/, "builds a fresh Range from both endpoints");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");

@@ -955,13 +955,48 @@ var SV = (function () {
     return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
   }
 
+  // T4 (016) S1: pure assembly of the normalized index text + its run table, from run "shells"
+  // the caller already produced by walking idx.root's Text nodes and splitting each one into
+  // non-whitespace/whitespace segments (DOM traversal stays in the caller; this is string-only).
+  // A whitespace shell folds to exactly one space char in idx.text regardless of its original
+  // length (`len`) — that length is kept on the run for offsetToNode to map back correctly.
+  function buildIndexText(runs) {
+    var text = "", out = [], at = 0;
+    (runs || []).forEach(function (r) {
+      out.push({ at: at, node: r.node, off: r.off, len: r.len, isSpace: !!r.isSpace });
+      if (r.isSpace) { text += " "; at += 1; } else { text += r.text; at += r.text.length; }
+    });
+    return { text: text.toLowerCase(), runs: out };
+  }
+  // S2: non-overlapping, document-order hit scan. Case-sensitive — the caller normalizes both
+  // idx.text and the query to lowercase before calling, once, at the index/query boundary.
+  function scanHits(text, needle) {
+    if (!needle) return [];
+    var hits = [], i = 0, at;
+    while ((at = text.indexOf(needle, i)) !== -1) { hits.push([at, at + needle.length]); i = at + needle.length; }
+    return hits;
+  }
+  // S1: normalized-text offset → {node, nodeOff}. A whitespace run's idx.text span is always
+  // exactly 1 char, so `off - r.at` is always 0 there — the formula below lands on the run's own
+  // original start without a separate isSpace branch (never off+len, which would swallow the
+  // folded whitespace into a Range's boundary).
+  function offsetToNode(runs, off) {
+    var list = runs || [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i], w = r.isSpace ? 1 : r.len;
+      if (off >= r.at && off < r.at + w) return { node: r.node, nodeOff: r.off + (off - r.at) };
+    }
+    return null;
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure,
-           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers };
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
+           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1696,6 +1731,44 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
       setCurLine(side, p._curEl, y, p._curTarget);
     });
+  }
+  // S1 (016 T4): this view's toolable chrome — never counted as content. `.cd-body` is
+  // conditionally excluded (only while the board drawer is closed) — R15: visible drawer content
+  // is fair game to search, hidden content isn't.
+  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, section.grp[hidden]";
+  function idxTextExcluded(node) {
+    var el = node.parentElement; if (!el) return true;
+    if (el.closest(IDX_EXCLUDE)) return true;
+    var cd = el.closest(".cd-body");
+    return !!(cd && cd.offsetParent === null);
+  }
+  // D19: idx.root is always the pane itself — no view has a single container wrapping every block
+  // unit (board's kanban branch puts the filter bar / card grid / drawer in as parallel siblings),
+  // so "take the container" would structurally exclude the drawer regardless of visibility.
+  function buildIndex(pane) {
+    var shells = [];
+    var walker = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) { return idxTextExcluded(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+    });
+    var node;
+    while ((node = walker.nextNode())) {
+      var off = 0;
+      (node.data.match(/\S+|\s+/g) || []).forEach(function (seg) {
+        var isSpace = /^\s/.test(seg);
+        shells.push({ node: node, off: off, len: seg.length, isSpace: isSpace, text: isSpace ? "" : seg });
+        off += seg.length;
+      });
+    }
+    var built = SV.buildIndexText(shells);
+    return { text: built.text, runs: built.runs, root: pane,
+      blocks: pane._blockSel ? [].slice.call(pane.querySelectorAll(pane._blockSel)) : [] };
+  }
+  function rangeOf(idx, start, end) {   // [F10]: never cache the Range — it doesn't survive a DOM rebuild
+    var a = SV.offsetToNode(idx.runs, start), b = SV.offsetToNode(idx.runs, end);
+    if (!a || !b) return null;   // stale index (post-rebuild) — the caller skips this hit, doesn't throw
+    var range = document.createRange();
+    range.setStart(a.node, a.nodeOff); range.setEnd(b.node, b.nodeOff);
+    return range;
   }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
