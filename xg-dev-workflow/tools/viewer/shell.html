@@ -91,6 +91,10 @@
      the tasks that give them meaning (T6/T8/T9). */
   ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
   ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: color-mix(in srgb, var(--s-todo) 42%, transparent); text-decoration: underline; }
+  /* S6: sticky so it stays put as content scrolls, unlike .curline-ov's position:absolute (D20).
+     Negative margin keeps it from taking up measure width. */
+  .rail { position: sticky; top: 0; float: right; width: 10px; height: 100vh; margin-right: -10px; z-index: 2; }
+  .rail i { position: absolute; left: 0; right: 0; height: 2px; background: var(--s-todo); }
   .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
@@ -1008,6 +1012,13 @@ var SV = (function () {
     if (cur < 0) return dir < 0 ? total - 1 : 0;
     return ((cur + dir) % total + total) % total;
   }
+  // S6: pixel-derived track position (design rejected a text-offset ratio — a large mermaid
+  // diagram or wide table would make that ratio diverge from the true scroll position).
+  function railTop(hitTop, rootTop, contentH, trackH) {
+    if (!contentH) return 0;
+    var top = (hitTop - rootTop) / contentH * trackH;
+    return Math.max(0, Math.min(top, trackH - 2));
+  }
 
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
@@ -1016,7 +1027,8 @@ var SV = (function () {
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure,
            blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
-           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex };
+           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
+           railTop: railTop };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1164,8 +1176,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
         '<button class="iconbtn" data-resetlayout="1" title="reset pane widths (equal / fill)">↺</button>'
       : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
-    return '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>" +
-      (p._findOpen ? findBarHtml(side) : "");   // R3/R5: every view kind gets the find bar via this one shared choke point
+    return '<div class="rail"></div>' +   // S6: pane's first child, every view kind, via this one shared choke point
+      '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>" +
+      (p._findOpen ? findBarHtml(side) : "");   // R3/R5: same choke point for the find bar
   }
   function findBarHtml(side) {
     var q = PANES[side]._hits.q;
@@ -1758,15 +1771,17 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (p._geoRaf) return;
     p._geoRaf = requestAnimationFrame(function () {
       p._geoRaf = null; p._geoDirty = false;
-      if (!p._curEl || !p._curEl.isConnected) return;   // the marked block is gone — skip, don't throw
-      var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
-      setCurLine(side, p._curEl, y, p._curTarget);
+      if (p._curEl && p._curEl.isConnected) {   // the marked block is gone — skip that part, don't throw
+        var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
+        setCurLine(side, p._curEl, y, p._curTarget);
+      }
+      rail(side);   // T7/S9: marker rail geometry depends on the same pane/docbody layout
     });
   }
   // S1 (016 T4): this view's toolable chrome — never counted as content. `.cd-body` is
   // conditionally excluded (only while the board drawer is closed) — R15: visible drawer content
   // is fair game to search, hidden content isn't.
-  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, .findbar, section.grp[hidden]";
+  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, .findbar, .rail, section.grp[hidden]";
   function idxTextExcluded(node) {
     var el = node.parentElement; if (!el) return true;
     if (el.closest(IDX_EXCLUDE)) return true;
@@ -1808,18 +1823,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function paint(side) {
     if (!window.CSS || !CSS.highlights) return;   // no Custom Highlight API → skip, rest of app works (ADR-0001 corollary 2)
     var h = PANES[side]._hits;
+    ensureHitVisible(side);   // R15: reveal a collapsed trace row holding the current hit before painting it
     ["sv-hit-" + side, "sv-cur-" + side, "sv-sel-" + side,
      "sv-pin-" + side + "-0", "sv-pin-" + side + "-1", "sv-pin-" + side + "-2", "sv-pin-" + side + "-3"
     ].forEach(function (name) { CSS.highlights.delete(name); });
-    if (!h.idx) return;
-    var allHl = new Highlight(), curHl = new Highlight();   // T6: current hit is its own highlight, priority 200
-    h.hits.forEach(function (hit, i) {
-      var r = rangeOf(h.idx, hit[0], hit[1]); if (!r) return;   // skip a stale/OOB hit
-      (i === h.cur ? curHl : allHl).add(r);
-    });
-    allHl.priority = 100; curHl.priority = 200;   // S11: current always on top, even over a future pinned color
-    if (allHl.size) CSS.highlights.set("sv-hit-" + side, allHl);
-    if (curHl.size) CSS.highlights.set("sv-cur-" + side, curHl);
+    if (h.idx) {
+      var allHl = new Highlight(), curHl = new Highlight();   // T6: current hit is its own highlight, priority 200
+      h.hits.forEach(function (hit, i) {
+        var r = rangeOf(h.idx, hit[0], hit[1]); if (!r) return;   // skip a stale/OOB hit
+        (i === h.cur ? curHl : allHl).add(r);
+      });
+      allHl.priority = 100; curHl.priority = 200;   // S11: current always on top, even over a future pinned color
+      if (allHl.size) CSS.highlights.set("sv-hit-" + side, allHl);
+      if (curHl.size) CSS.highlights.set("sv-cur-" + side, curHl);
+    }
+    rail(side);   // S6: marker rail redraws alongside the highlights
   }
   // reindex: rebuild the index + rescan the current query against it. Triggered from afterRender
   // (content changed) — never on keystrokes, `find` below reuses the cached idx for that.
@@ -1874,6 +1892,42 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var r = rangeOf(h.idx, h.hits[h.cur][0], h.hits[h.cur][1]); if (!r) return;
     var rects = r.getClientRects(); if (!rects.length) return;   // hit not currently rendered — nothing to scroll to
     p.scrollTop = p.scrollTop + (rects[0].top - p.getBoundingClientRect().top) - HEAD_PAD;
+  }
+  // R15: a hit inside a collapsed trace detail row is invisible (display:none) until expanded —
+  // called from paint (before painting) so the current hit is always something you can actually
+  // see, not just a Range registered on hidden content. Setting the summary row's .x class (not
+  // just the detail row's hidden=false) matters: renderTraceView() reads .x from the OLD DOM to
+  // decide which rows reopen after a rebuild (e.g. the "重算" retrace button) — set only hidden
+  // and the expansion doesn't survive one.
+  function ensureHitVisible(side) {
+    var h = PANES[side]._hits; if (h.cur < 0 || !h.hits[h.cur] || !h.idx) return;
+    var a = SV.offsetToNode(h.idx.runs, h.hits[h.cur][0]); if (!a) return;
+    var el = a.node.parentElement, dr = el && el.closest("tr.trm-drow[hidden]"); if (!dr) return;
+    dr.hidden = false;
+    var tr = dr.previousElementSibling; if (tr && tr.matches("tr[data-trx]")) tr.classList.add("x");
+  }
+  // S6: sticky pixel-derived track (railTop), one mark per hit (first rect only — a hit spanning
+  // multiple rects, e.g. across a **bold** boundary, still gets exactly one). A hit with no rect at
+  // all (only remaining cause: a still-collapsed trace row for a hit that isn't `cur`) falls back
+  // to its containing block's rect, so "there's a hit here" stays visible without forcing it open.
+  function rail(side) {
+    var p = PANES[side], h = p._hits, track = p.querySelector(".rail"); if (!track) return;
+    track.innerHTML = "";
+    if (!h.idx) return;
+    var pr = p.getBoundingClientRect(), contentH = p.scrollHeight, trackH = track.clientHeight;
+    h.hits.forEach(function (hit) {
+      var r = rangeOf(h.idx, hit[0], hit[1]); if (!r) return;
+      var rect = r.getClientRects()[0];
+      if (!rect || (!rect.width && !rect.height)) {
+        var a = SV.offsetToNode(h.idx.runs, hit[0]);
+        var blk = a && a.node.parentElement && a.node.parentElement.closest(p._blockSel);
+        rect = blk ? blk.getBoundingClientRect() : null;
+      }
+      if (!rect) return;
+      var mark = document.createElement("i");
+      mark.style.top = SV.railTop(rect.top, pr.top, contentH, trackH) + "px";
+      track.appendChild(mark);
+    });
   }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.

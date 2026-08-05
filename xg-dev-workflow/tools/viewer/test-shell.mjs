@@ -505,7 +505,8 @@ t("clampMeasure: crossing / narrow-window / already-in-bounds", () => {
 t("T2: invalidateGeometry rAF-coalesces and skips a detached current block", () => {
   assert.match(html, /function invalidateGeometry\(side\)/, "invalidateGeometry defined");
   assert.match(html, /requestAnimationFrame\(function \(\) \{/, "coalesces via rAF");
-  assert.match(html, /if \(!p\._curEl \|\| !p\._curEl\.isConnected\) return;/, "skips a detached current block, no throw");
+  assert.match(html, /if \(p\._curEl && p\._curEl\.isConnected\) \{   \/\/ the marked block is gone — skip that part, don't throw/, "curline reposition skipped for a detached block, no throw");
+  assert.match(html, /rail\(side\);   \/\/ T7\/S9: marker rail geometry depends on the same pane\/docbody layout/, "T7: rail redraws too, regardless of curline's own guard");
 });
 t("T2: setCurLine stores a block-relative y offset, not the raw viewport clientY", () => {
   assert.match(html, /p\._curYOff = clientY == null \? null : clientY - blk\.getBoundingClientRect\(\)\.top;/, "offset stored relative to blk");
@@ -598,7 +599,7 @@ t("offsetToNode: run boundary / inside a folded whitespace run / out of bounds",
   assert.equal(SV.offsetToNode(runs, 11), null);
 });
 t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes only", () => {
-  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, section\.grp\[hidden\]";/, "static exclusion list matches S1's table (+ T5's own findbar overlay)");
+  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, \.rail, section\.grp\[hidden\]";/, "static exclusion list matches S1's table (+ T5/T7's own findbar/rail overlays)");
   assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
   assert.match(html, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks idx.root's Text nodes");
   assert.match(html, /root: pane,/, "idx.root is always the pane itself (D19)");
@@ -658,3 +659,25 @@ t("T6: Enter/⇧Enter in the find input steps without the global !typing guard b
   assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
   assert.match(html, /if \(e\.key === "Enter" && fi\) \{ e\.preventDefault\(\); step\(fi\.closest\("#left"\) \? "left" : "right", e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction");
 });
+
+// --- railTop (016 T7: marker rail vertical position, pixel-derived per design) ---
+t("railTop: contentH=0 / out-of-bounds clamp / midpoint", () => {
+  assert.equal(SV.railTop(100, 0, 0, 500), 0);          // contentH===0 → 0, not NaN/Infinity
+  assert.equal(SV.railTop(-50, 0, 1000, 500), 0);        // above content start clamps to the track's top
+  assert.equal(SV.railTop(2000, 0, 1000, 500), 498);     // beyond content end clamps to trackH-2
+  assert.equal(SV.railTop(500, 0, 1000, 500), 250);      // midpoint: 500/1000 * 500
+});
+t("T7: .rail is the pane's first child (every view kind, via paneHead) and paint redraws it", () => {
+  assert.match(html, /return '<div class="rail"><\/div>' \+   \/\/ S6: pane's first child/, "rail comes before .doc-head in paneHead's own string");
+  assert.match(html, /rail\(side\);   \/\/ S6: marker rail redraws alongside the highlights/, "paint always redraws the rail too");
+});
+t("T7: rail takes the first rect only (one mark per hit) and falls back to the containing block when hidden", () => {
+  assert.match(html, /var rect = r\.getClientRects\(\)\[0\];/, "first rect only — a bold/code-boundary hit still gets one mark");
+  assert.match(html, /var blk = a && a\.node\.parentElement && a\.node\.parentElement\.closest\(p\._blockSel\);/, "falls back to the hit's containing block (only remaining zero-rect cause: a collapsed trace row)");
+});
+t("T7: ensureHitVisible expands a collapsed trace row holding the current hit and marks its summary row .x", () => {
+  assert.match(html, /var el = a\.node\.parentElement, dr = el && el\.closest\("tr\.trm-drow\[hidden\]"\); if \(!dr\) return;/, "finds the collapsed detail row via the hit's own node");
+  assert.match(html, /dr\.hidden = false;\s+var tr = dr\.previousElementSibling; if \(tr && tr\.matches\("tr\[data-trx\]"\)\) tr\.classList\.add\("x"\);/, "sets .x too — renderTraceView() reads it from the old DOM to decide what reopens after a rebuild");
+});
+
+console.log("\n" + pass + " shell-helper tests passed");
