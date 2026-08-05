@@ -93,11 +93,14 @@
   h2.sec.sec-proj { display: flex; align-items: center; gap: 8px; margin: 12px 0 9px; text-transform: uppercase;
     font-size: 11px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
   h2.sec.sec-proj::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-  /* R2/R11: default reading measure (left-aligned, so the left edge is stable), toggle to full.
+  /* R1/R2/R11: three-tier reading measure (default/custom/full) driven by two CSS vars JS writes
+     on .docbody itself — never an inline max-width, which would always beat this class rule.
      measure lives ON .docbody so the R52 current-line band (keyed off .docbody rect) stays aligned. */
-  .docbody { color: var(--body); max-width: 52em; }   /* R21: doc body dimmer than chrome */
-  .docbody.full { max-width: none; }
+  .docbody { color: var(--body); max-width: none; margin-left: var(--m-l, 0); width: var(--m-w, 52em); }   /* R21: doc body dimmer than chrome */
+  #lp .lp-body.docbody { width: auto; max-width: 52em; margin-left: 0; }   /* hovercard preview: not a pane docbody, keeps the old shrink-to-fit measure */
   .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
+  .mrule { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); cursor: col-resize; z-index: 1; }   /* R1: measure boundary, always visible */
+  .mrule:hover { background: var(--accent); }
   .docbody h1,.docbody h2,.docbody h3,.docbody h4 { color: var(--fg); }
   /* R2/R40/R52 current marker — a band over the current UNIT: a single wrapped line in a doc, or a
      whole card/hit/commit in board/search/recent. Set by click / TOC jump / default only; it scrolls
@@ -919,12 +922,23 @@ var SV = (function () {
     return segs;
   }
 
+  // T1 (016): clamp a dragged {left, width} measure box into [0, paneW] with a minimum width —
+  // crossing (width < min) collapses to min width anchored at left; a pane narrower than min
+  // degrades to filling the whole pane rather than overflowing it.
+  function clampMeasure(left, width, paneW, min) {
+    var maxW = Math.max(paneW, 0);
+    min = Math.min(min, maxW);
+    width = Math.min(Math.max(width, min), maxW);
+    left = Math.min(Math.max(left, 0), maxW - width);
+    return { left: left, width: width };
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
-           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows };
+           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -943,26 +957,48 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   var basket = [], project = lsGet("sv-project") || "", focus = "left";   // R65: persist project scope
+  var MEASURE_MIN = 240;   // R1: minimum measure width a drag can clamp down to
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
-    var d = { leftW: null, tocW: 240, leftCustom: false, sideW: null };   // #right width is intentionally NOT stored
+    var d = { leftW: null, tocW: 240, leftCustom: false, sideW: null,   // #right width is intentionally NOT stored
+              mMode: "default", mLeft: null, mWidth: null };            // R1/R2: measure tier + custom bounds
     try { var s = JSON.parse(lsGet("sv-layout") || "null");
       if (s && typeof s === "object") {
         if (typeof s.leftW === "number") d.leftW = s.leftW;
         if (typeof s.tocW === "number") d.tocW = s.tocW;
         if (typeof s.sideW === "number") d.sideW = s.sideW;
         d.leftCustom = !!s.leftCustom;
+        if (s.mMode === "custom" || s.mMode === "full") d.mMode = s.mMode;
+        if (typeof s.mLeft === "number") d.mLeft = s.mLeft;
+        if (typeof s.mWidth === "number") d.mWidth = s.mWidth;
       } } catch (e) {}
+    // R11 migration: sv-layout carries no mMode of its own yet → fall back to the old sv-docwidth key
+    if (d.mMode === "default" && lsGet("sv-docwidth") === "full") d.mMode = "full";
     return d;
   })();
   function saveLayout() { lsSet("sv-layout", JSON.stringify({
-    leftW: layoutState.leftW, tocW: layoutState.tocW, leftCustom: layoutState.leftCustom, sideW: layoutState.sideW })); }
+    leftW: layoutState.leftW, tocW: layoutState.tocW, leftCustom: layoutState.leftCustom, sideW: layoutState.sideW,
+    mMode: layoutState.mMode, mLeft: layoutState.mLeft, mWidth: layoutState.mWidth })); }
   (function () {                             // R6: on load, restore #side width + apply persisted left/toc
     var sideEl = document.getElementById("side");
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
     applyLayout();
   })();
-  var docWidth = (function () { try { return localStorage.getItem("sv-docwidth") === "full" ? "full" : "measure"; }
-    catch (e) { return "measure"; } })();   // R11: reading width (measure | full), persisted
+  function applyMeasure(side) {   // R1/R2: write the two docbody measure vars + reposition that pane's mrule lines
+    var pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
+    var paneW = pane.getBoundingClientRect().width;
+    if (layoutState.mMode === "full") { db.style.setProperty("--m-w", "100%"); db.style.setProperty("--m-l", "0"); }
+    else if (layoutState.mMode === "custom") {
+      var c = SV.clampMeasure(layoutState.mLeft, layoutState.mWidth, paneW, MEASURE_MIN);
+      db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
+    } else { db.style.removeProperty("--m-l"); db.style.removeProperty("--m-w"); }
+    positionMrules(side, pane, db);
+  }
+  function positionMrules(side, pane, db) {
+    var pr = pane.getBoundingClientRect(), dr = db.getBoundingClientRect();
+    var lm = pane.querySelector('.mrule[data-resize="measure-left"]'), rm = pane.querySelector('.mrule[data-resize="measure-right"]');
+    if (lm) lm.style.left = (dr.left - pr.left) + "px";
+    if (rm) rm.style.left = (dr.right - pr.left) + "px";
+  }
   var staleSides = {}, lastDevRev = 0, lastKbRev = 0;   // R63: live-refresh state (stale doc panes; last dev/kb rev tokens)
   var treeSort = (function () {   // R1: per-section sort (name|mtime + dir), default A↑, persisted; survives live-refresh
     try { var s = JSON.parse(lsGet("sv-tree-sort")); if (s && s.dev && s.kb) return s; } catch (e) {}
@@ -1078,7 +1114,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
           '<button class="iconbtn" data-changelog="' + side + '" title="变更历史">◷</button>' +
           '<button class="iconbtn" data-docwidth title="reading width: measure / full">↔</button>') +
         frontmatterTable(fm.fields) +
-        '<div class="docbody' + (docWidth === "full" ? " full" : "") + '">' + window.marked.parse(fm.body) + "</div>";
+        '<i class="mrule" data-resize="measure-left"></i><i class="mrule" data-resize="measure-right"></i>' +
+        '<div class="docbody">' + window.marked.parse(fm.body) + "</div>";
+      applyMeasure(side);   // R1/R2: size the measure box + position its two lines
       var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
       markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(pane.querySelector(".docbody"));
@@ -1831,6 +1869,26 @@ if (typeof window !== "undefined" && window.marked) (function () {
       document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
     });
   });
+  // R1: the two measure-boundary lines are rebuilt on every render (unlike .gutter above, bound
+  // once at load) — drag is delegated on document instead of bound per-element.
+  document.addEventListener("mousedown", function (e) {
+    var t = e.target.closest && e.target.closest(".mrule[data-resize]"); if (!t) return;
+    e.preventDefault();
+    var side = t.closest("#left") ? "left" : "right", pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
+    var pr = pane.getBoundingClientRect(), dr = db.getBoundingClientRect();
+    var left0 = dr.left - pr.left, width0 = dr.width, startX = e.clientX, isLeft = t.dataset.resize === "measure-left";
+    function move(ev) {
+      var dx = ev.clientX - startX;
+      var c = SV.clampMeasure(isLeft ? left0 + dx : left0, isLeft ? width0 - dx : width0 + dx, pr.width, MEASURE_MIN);
+      layoutState.mMode = "custom"; layoutState.mLeft = c.left; layoutState.mWidth = c.width;
+      db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
+      positionMrules(side, pane, db);
+    }
+    function up() { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up);
+      document.body.style.userSelect = ""; saveLayout(); }
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+  });
 
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
   document.addEventListener("click", function (e) {
@@ -1844,11 +1902,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (PANES.left._view) navigate("right", Object.assign({}, PANES.left._view)); return; }
     if ((t = e.target.closest("[data-swap]"))) { e.preventDefault(); swapPanes(); return; }
     if ((t = e.target.closest("[data-resetlayout]"))) { e.preventDefault(); resetLayout(); return; }
-    if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R11: toggle reading width, persist
-      docWidth = docWidth === "full" ? "measure" : "full";
-      try { localStorage.setItem("sv-docwidth", docWidth); } catch (ex) {}
-      document.querySelectorAll(".docbody").forEach(function (d) { d.classList.toggle("full", docWidth === "full"); });
-      return; }
+    if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle reading-width tier, persist
+      var hasCustom = typeof layoutState.mLeft === "number" && typeof layoutState.mWidth === "number";
+      layoutState.mMode = layoutState.mMode === "default" ? (hasCustom ? "custom" : "full")
+        : layoutState.mMode === "custom" ? "full" : "default";
+      saveLayout(); applyMeasure("left"); applyMeasure("right"); return; }
     if ((t = e.target.closest("[data-cd-close]"))) { e.preventDefault();   // R64: deselect → drop the drawer
       boardSelected = null; try { localStorage.removeItem("sv-detail-card"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
@@ -2214,7 +2272,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var useSpans = spans.length === blocks.length ? spans          // aligned; else degrade (best-effort fallback)
           : blocks.map(function (_, i) { return spans[i] || { start: 0, end: 0 }; });
         var segs = SV.diffSegments(useSpans, addedBody, dels);
-        var docbody = document.createElement("div"); docbody.className = "docbody" + (docWidth === "full" ? " full" : "");
+        var docbody = document.createElement("div"); docbody.className = "docbody";
         segs.forEach(function (s) {
           if (s.del) { var g = document.createElement("div"); g.className = "diffrun del";
             g.innerHTML = "<span class='difftag'>本次删除</span>" + window.marked.parse((s.del || []).join("\n"));
@@ -2230,7 +2288,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
           '<button class="iconbtn" data-diffexit="' + side + '" title="退出变更视图">✕</button>');
         var bar = document.createElement("div"); bar.className = "diffbar";
         bar.textContent = "变更 " + sha.slice(0, 7) + "：增 / 删以低饱和标出（只读，不改源文件）";
-        pane.appendChild(bar); pane.appendChild(docbody);
+        var lm = document.createElement("i"); lm.className = "mrule"; lm.dataset.resize = "measure-left";
+        var rm = document.createElement("i"); rm.className = "mrule"; rm.dataset.resize = "measure-right";
+        pane.appendChild(bar); pane.appendChild(lm); pane.appendChild(rm); pane.appendChild(docbody);
+        applyMeasure(side);   // R1/R2: size the measure box + position its two lines
         markLinks(docbody, tree, rel); renderMermaid(docbody);
         var hs = [].slice.call(docbody.querySelectorAll("h1,h2,h3,h4,h5,h6"));
         tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));

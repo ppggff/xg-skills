@@ -491,4 +491,14 @@ t("groupTraceRows: no trailing group when every row has a part", () => {
   assert.equal(SV.groupTraceRows([], ["alpha"])[0].rows.length, 0);
 });
 
+// --- clampMeasure (016 T1: reading-measure drag keeps the box inside the pane) ---
+t("clampMeasure: crossing / narrow-window / already-in-bounds", () => {
+  // 左右交叉: dragging the left edge past the right edge collapses to min width at the drag point
+  assert.deepEqual(SV.clampMeasure(700, -150, 1000, 200), { left: 700, width: 200 });
+  // 窄窗口: pane itself is narrower than min → fill the whole pane, no overflow
+  assert.deepEqual(SV.clampMeasure(20, 100, 150, 300), { left: 0, width: 150 });
+  // 边界相等: right edge already exactly at paneW → passes through unchanged (idempotent)
+  assert.deepEqual(SV.clampMeasure(300, 500, 800, 200), { left: 300, width: 500 });
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
