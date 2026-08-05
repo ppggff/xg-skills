@@ -501,4 +501,21 @@ t("clampMeasure: crossing / narrow-window / already-in-bounds", () => {
   assert.deepEqual(SV.clampMeasure(300, 500, 800, 200), { left: 300, width: 500 });
 });
 
+// --- invalidateGeometry (016 T2: rAF-coalesced, five hookpoints wired this slice) ---
+t("T2: invalidateGeometry rAF-coalesces and skips a detached current block", () => {
+  assert.match(html, /function invalidateGeometry\(side\)/, "invalidateGeometry defined");
+  assert.match(html, /requestAnimationFrame\(function \(\) \{/, "coalesces via rAF");
+  assert.match(html, /if \(!p\._curEl \|\| !p\._curEl\.isConnected\) return;/, "skips a detached current block, no throw");
+});
+t("T2: setCurLine stores a block-relative y offset, not the raw viewport clientY", () => {
+  assert.match(html, /p\._curYOff = clientY == null \? null : clientY - blk\.getBoundingClientRect\(\)\.top;/, "offset stored relative to blk");
+});
+t("T2: all five hookpoints call invalidateGeometry", () => {
+  assert.match(html, /positionMrules\(side, pane, db\);\s+invalidateGeometry\(side\);.*hookpoint 1/, "hookpoint 1: measure drag");
+  assert.match(html, /applyMeasure\("left"\); applyMeasure\("right"\);\s+invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 2/, "hookpoint 2: width-tier button");
+  assert.match(html, /invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 5/, "hookpoint 5: applyLayout end");
+  assert.match(html, /padForDrawer\(pane\);\s+invalidateGeometry\(side\);.*hookpoint 6/, "hookpoint 6: updateDetail end");
+  assert.match(html, /window\.addEventListener\("resize", function \(\) \{.*hookpoint 7/, "hookpoint 7: window resize");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");

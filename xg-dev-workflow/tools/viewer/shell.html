@@ -1403,6 +1403,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
     padForDrawer(pane);
+    invalidateGeometry(side);   // S9 hookpoint 6: drawer open/close changes the docbody's available height
   }
   function list(order, byProj) {                    // R61: each project group wrapped so the TOC can hide it
     return order.map(function (p) {
@@ -1643,7 +1644,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
     ov.style.top = (top - paneR.top + p.scrollTop) + "px"; ov.style.height = height + "px";
     ov.style.left = (left - paneR.left + p.scrollLeft) + "px"; ov.style.width = width + "px";
     ov.style.display = "block";
+    // S13 (016): remember the line's position as an offset from blk's own top, not the raw
+    // viewport clientY (which goes stale the moment geometry changes) — invalidateGeometry
+    // re-derives clientY from this offset so a reflow re-picks the same line, not the block's first.
+    p._curYOff = clientY == null ? null : clientY - blk.getBoundingClientRect().top;
+    p._curTarget = target;
     p._curEl = blk; p._cur = sectionOf(side, blk); if (focus === side) markCurrent();
+  }
+  // S9 (016): geometry invalidation — rAF-coalesced so a drag's many events settle to one
+  // recompute per frame. Reused by every hookpoint that can move/resize a docbody or pane.
+  function invalidateGeometry(side) {
+    var p = PANES[side]; p._geoDirty = true;
+    if (p._geoRaf) return;
+    p._geoRaf = requestAnimationFrame(function () {
+      p._geoRaf = null; p._geoDirty = false;
+      if (!p._curEl || !p._curEl.isConnected) return;   // the marked block is gone — skip, don't throw
+      var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
+      setCurLine(side, p._curEl, y, p._curTarget);
+    });
   }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
@@ -1808,6 +1826,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     } else {
       L.style.flex = ""; L.style.width = "";                        // #left is the single-pane filler
     }
+    invalidateGeometry("left"); invalidateGeometry("right");   // S9 hookpoint 5: covers showRight/gutter drag/showToc/resetLayout/mirror
   }
   function showRight(on) {
     var was = PANES.right.classList.contains("show");
@@ -1883,11 +1902,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
       layoutState.mMode = "custom"; layoutState.mLeft = c.left; layoutState.mWidth = c.width;
       db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
       positionMrules(side, pane, db);
+      invalidateGeometry(side);   // S9 hookpoint 1: measure boundary drag
     }
     function up() { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up);
       document.body.style.userSelect = ""; saveLayout(); }
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+  });
+  window.addEventListener("resize", function () {   // S9 hookpoint 7: fixes a pre-existing curline misalignment on resize (D6)
+    invalidateGeometry("left"); invalidateGeometry("right");
   });
 
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
@@ -1906,7 +1929,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var hasCustom = typeof layoutState.mLeft === "number" && typeof layoutState.mWidth === "number";
       layoutState.mMode = layoutState.mMode === "default" ? (hasCustom ? "custom" : "full")
         : layoutState.mMode === "custom" ? "full" : "default";
-      saveLayout(); applyMeasure("left"); applyMeasure("right"); return; }
+      saveLayout(); applyMeasure("left"); applyMeasure("right");
+      invalidateGeometry("left"); invalidateGeometry("right"); return; }   // S9 hookpoint 2
     if ((t = e.target.closest("[data-cd-close]"))) { e.preventDefault();   // R64: deselect → drop the drawer
       boardSelected = null; try { localStorage.removeItem("sv-detail-card"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
