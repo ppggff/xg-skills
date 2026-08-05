@@ -316,6 +316,18 @@ def render_text(cards):
 TASK_HEAD = re.compile(r"^###\s+(?:Task\s*|T)(\d+)\s*[::]?\s*(.*)$", re.M)
 RID = re.compile(r"\bR(\d+)\b")
 
+# `001 的 R34` names another card's item; harvesting it as a local R-id made the trace
+# matrix invent rows (R31–R36 on a card whose own items stop at R22) and flag them
+# `not-in-需求条目`. Strip cross-card references before any local-id harvest.
+XCARD_REF = re.compile(r"\d{3}\s*的\s*[*`~]{0,2}R\d+")
+
+
+def _strip_xcard(text):
+    return XCARD_REF.sub("⟨xcard⟩", text)
+
+
+RETIRED_ITEM = re.compile(r"\s*~*\s*retired\b", re.I)
+
 
 def _read(path):
     try:
@@ -340,9 +352,14 @@ def _section(text, title_pat, level=2):
 
 
 def trace_requirement(card):
-    """R-id → statement, from the 需求条目 table (first cell carries the id)."""
+    """R-id → statement, from the 需求条目 table (first cell carries the id).
+
+    The id cell may be wrapped in markdown emphasis or strikethrough — `**R21**`
+    (a newly added item) and `~~R16~~` (a retired row) are both id cells; missing
+    them made the trace matrix report a false `not-in-需求条目` for every such row.
+    """
     items = {}
-    for m in re.finditer(r"^\|\s*\[?(R\d+)\]?[^|]*\|([^|]*)\|",
+    for m in re.finditer(r"^\|\s*(?:\*\*|~~|\[)?\s*(R\d+)[^|]*\|([^|]*)\|",
                          _read(os.path.join(card, "requirement.md")), re.M):
         items.setdefault(m.group(1), re.sub(r"\*\*", "", m.group(2)).strip())
     return items
@@ -353,7 +370,7 @@ def _rows_by_rid(sect):
     for line in sect.splitlines():
         if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
             continue
-        for rid in RID.findall(line):
+        for rid in RID.findall(_strip_xcard(line)):
             out.setdefault("R" + rid, re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
     return out
 
@@ -565,10 +582,13 @@ def trace_data(project, card_dir):
         commit_state = ("unchecked" if not repo else
                         "strict" if "strict" in states else
                         "loose" if "loose" in states else "none")
-        flags = [w for cond, w in ((r not in reqs, "not-in-需求条目"),
-                                   (r not in home, "no-design-home"),
-                                   (r not in by_r, "no-task"),
-                                   (r not in cov, "no-test-coverage")) if cond]
+        # A retired item has no design home / task / test by construction — flagging it
+        # as a gap points the gate reader at rows that are already resolved.
+        flags = [] if RETIRED_ITEM.match(reqs.get(r, "")) else \
+                [w for cond, w in ((r not in reqs, "not-in-需求条目"),
+                                  (r not in home, "no-design-home"),
+                                  (r not in by_r, "no-task"),
+                                  (r not in cov, "no-test-coverage")) if cond]
         rows.append({"rid": r, "text": reqs.get(r, ""),
                      "design": home.get(r, ""), "verify": verify.get(r, ""),
                      "test": cov.get(r, ""), "tasks": [task_rows[t] for t in tids],
@@ -709,7 +729,8 @@ def _id_cells(text, title_pat, cell_picks):
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         for pick in cell_picks:
             if -len(cells) <= pick < len(cells):
-                refs |= {m.group(1) for m in LEDGER_ID.finditer(cells[pick])}
+                refs |= {m.group(1)
+                         for m in LEDGER_ID.finditer(_strip_xcard(cells[pick]))}
     return refs
 
 

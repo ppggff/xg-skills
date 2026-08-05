@@ -127,6 +127,70 @@ class TraceData(unittest.TestCase):
         self.assertEqual(r1["tasks"][0]["commit_state"], "unchecked")
 
 
+class TraceIdCellMarkup(unittest.TestCase):
+    """Emphasised / struck-through id cells are still id cells.
+
+    A card that adds an item writes `| **R21** | …` and a retired row keeps
+    `| ~~R16~~ | …`; both were invisible to the 需求条目 parser, so the trace
+    matrix reported a false `not-in-需求条目` for every such row — at the very
+    gate that reads the matrix to find R-ids with no design home.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def test_bold_and_struck_ids_are_parsed(self):
+        card = make_card(self.root, "p", "096-markup")
+        req = Path(card) / "requirement.md"
+        req.write_text(req.read_text() + (
+            "| **R21** | bold id, newly added item | 功能 | — |\n"
+            "| ~~R16~~ | retired (moved to card 001) | — | — |\n"
+            "| [R17] | bracketed id stays supported | 功能 | — |\n"))
+        items = ws.trace_requirement(card)
+        self.assertEqual(items["R21"], "bold id, newly added item")
+        self.assertEqual(items["R16"], "retired (moved to card 001)")
+        self.assertEqual(items["R17"], "bracketed id stays supported")
+
+
+class TraceCrossCardRefs(unittest.TestCase):
+    """`001 的 R34` is another card's item, not a local gap.
+
+    Harvesting it as a local R-id invented trace rows for ids the card never had
+    (a card whose items stop at R22 grew R31–R36 rows) and flagged each
+    `not-in-需求条目` — noise pointed straight at the gate reader.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def test_cross_card_ref_makes_no_row(self):
+        card = make_card(self.root, "p", "095-xcard")
+        des = Path(card) / "design.md"
+        des.write_text(des.read_text() + (
+            "\n### 验证策略\n\n| Effect 项 | 观测点 |\n|---|---|\n"
+            "| 恢复完整性（R1） | catalog 引用的数据文件全部存在，**经 001 的 R34 取得** |\n"))
+        d = ws.trace_data("p", card)
+        rids = [r["rid"] for r in d["rows"]]
+        self.assertNotIn("R34", rids)
+        self.assertIn("R1", rids)
+
+
+class TraceRetiredRows(unittest.TestCase):
+    """A retired item is resolved, not a gap — it gets no ⚠ flags."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def test_retired_row_has_no_gap_flags(self):
+        card = make_card(self.root, "p", "094-retired")
+        req = Path(card) / "requirement.md"
+        req.write_text(req.read_text() +
+                       "| ~~R9~~ | retired (2026-08-05: moved to card 001) | — | — |\n")
+        d = ws.trace_data("p", card)
+        row = next(r for r in d["rows"] if r["rid"] == "R9")
+        self.assertEqual(row["flags"], [])
+
+
 class ParseTasks(unittest.TestCase):
     def _parse(self, body):
         d = tempfile.mkdtemp()

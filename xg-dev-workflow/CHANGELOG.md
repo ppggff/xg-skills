@@ -4,6 +4,19 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-05 — trace 矩阵三类假信号修掉(gate 仪表可信度)
+
+- **加粗/删除线 id 单元格不再被漏读**(`trace_requirement`):条目表里 `| **R21** |`(新增条目的写法)
+  与 `| ~~R16~~ |`(retired 行)都是 id 单元格,而正则只认 `| R21 |`/`| [R21] |` ⟹ 每个这样的行都被
+  报 `not-in-需求条目`。发现于 longrun_test/002 的设计 freeze ask ——「设计 freeze 必须附 trace 矩阵,
+  人读的是 R→design 列:一个没有设计落点的 R-id 是缺口」,而缺口列表里两条是工具自己造的假信号。
+- **跨卡引用不再算本卡 id**(`XCARD_REF`/`_strip_xcard`):`001 的 R34` 是另一张卡的条目,被当作本地
+  R-id 收割后,一张条目止于 R22 的卡凭空长出 R31–R36 六行、逐行报 `not-in-需求条目`。
+- **retired 行不再报缺口**(`RETIRED_ITEM`):retired 条目按构造就没有设计落点/task/test,把它标成
+  ⚠ 等于把已解决的行推到 gate 读者眼前。
+- 三条共同的教训:**gate 仪表的假信号比没有仪表更糟** —— 它训练人忽略 ⚠。三条各配回归测试
+  (74 → 全绿),因为都是「正则少认一种写法」这类最容易在下次重构中退回的缺陷。
+
 ## 2026-08-04 — retro(015 周期):新前缀接线 checklist;depends-on 占位归一
 
 - **新前缀接线 checklist**(id-schemes.md Rules 新条):V<n> 前缀落地时提交自述「LEDGER_HEAD 是
