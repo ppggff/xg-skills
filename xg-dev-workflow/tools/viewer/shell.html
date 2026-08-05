@@ -90,6 +90,7 @@
      the one distinguishable color the palette can spare for hits (S5); sv-cur/-sel/-pin land with
      the tasks that give them meaning (T6/T8/T9). */
   ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
+  ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: color-mix(in srgb, var(--s-todo) 42%, transparent); text-decoration: underline; }
   .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
@@ -999,6 +1000,14 @@ var SV = (function () {
     }
     return null;
   }
+  // T6: next/previous hit index, wrapping at both endpoints. cur === -1 (no current yet) treats
+  // "next" as starting at the first hit and "previous" as starting at the last one — the natural
+  // default pairing rather than an arbitrary single starting point.
+  function stepHitIndex(cur, total, dir) {
+    if (!total) return -1;
+    if (cur < 0) return dir < 0 ? total - 1 : 0;
+    return ((cur + dir) % total + total) % total;
+  }
 
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
@@ -1007,7 +1016,7 @@ var SV = (function () {
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure,
            blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
-           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode };
+           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1027,6 +1036,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   var basket = [], project = lsGet("sv-project") || "", focus = "left";   // R65: persist project scope
   var MEASURE_MIN = 240;   // R1: minimum measure width a drag can clamp down to
+  var HEAD_PAD = 56;   // R4: jump's scroll offset, matching the existing scroll-margin-top: 56px
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     var d = { leftW: null, tocW: 240, leftCustom: false, sideW: null,   // #right width is intentionally NOT stored
               mMode: "default", mLeft: null, mWidth: null };            // R1/R2: measure tier + custom bounds
@@ -1161,6 +1171,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var q = PANES[side]._hits.q;
     return '<div class="findbar"><input type="text" data-find-input placeholder="find…" autocomplete="off" value="' + esc(q) + '">' +
       '<span class="find-count" data-find-count></span>' +
+      '<button class="iconbtn" data-find-prev title="previous (⇧Enter)">↑</button>' +
+      '<button class="iconbtn" data-find-next title="next (Enter)">↓</button>' +
       '<button class="iconbtn" data-find-close title="close (Esc)">✕</button></div>';
   }
   // sections: give each addressable block an id + record {text,depth} for the TOC/scroll-spy.
@@ -1800,10 +1812,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
      "sv-pin-" + side + "-0", "sv-pin-" + side + "-1", "sv-pin-" + side + "-2", "sv-pin-" + side + "-3"
     ].forEach(function (name) { CSS.highlights.delete(name); });
     if (!h.idx) return;
-    var hl = new Highlight();
-    h.hits.forEach(function (hit) { var r = rangeOf(h.idx, hit[0], hit[1]); if (r) hl.add(r); });   // skip a stale/OOB hit
-    hl.priority = 100;
-    if (hl.size) CSS.highlights.set("sv-hit-" + side, hl);
+    var allHl = new Highlight(), curHl = new Highlight();   // T6: current hit is its own highlight, priority 200
+    h.hits.forEach(function (hit, i) {
+      var r = rangeOf(h.idx, hit[0], hit[1]); if (!r) return;   // skip a stale/OOB hit
+      (i === h.cur ? curHl : allHl).add(r);
+    });
+    allHl.priority = 100; curHl.priority = 200;   // S11: current always on top, even over a future pinned color
+    if (allHl.size) CSS.highlights.set("sv-hit-" + side, allHl);
+    if (curHl.size) CSS.highlights.set("sv-cur-" + side, curHl);
   }
   // reindex: rebuild the index + rescan the current query against it. Triggered from afterRender
   // (content changed) — never on keystrokes, `find` below reuses the cached idx for that.
@@ -1845,6 +1861,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var bar = p.querySelector(".findbar"); if (bar) bar.remove();
     p._hits.q = ""; p._hits.hits = []; p._hits.cur = -1;
     paint(side);
+  }
+  function step(side, dir) {   // next/previous button or Enter/⇧Enter in the find box
+    var h = PANES[side]._hits; if (!h.hits.length) return;
+    h.cur = SV.stepHitIndex(h.cur, h.hits.length, dir);
+    paint(side); updateFindCount(side); jump(side);
+  }
+  // R4: hand-computed scroll offset, not scrollIntoView() — the existing scroll-margin-top only
+  // sits on heading elements, and most hits land in paragraphs/tables/code blocks it can't cover.
+  function jump(side) {
+    var p = PANES[side], h = p._hits; if (h.cur < 0 || !h.hits[h.cur]) return;
+    var r = rangeOf(h.idx, h.hits[h.cur][0], h.hits[h.cur][1]); if (!r) return;
+    var rects = r.getClientRects(); if (!rects.length) return;   // hit not currently rendered — nothing to scroll to
+    p.scrollTop = p.scrollTop + (rects[0].top - p.getBoundingClientRect().top) - HEAD_PAD;
   }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
@@ -2111,6 +2140,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-resetlayout]"))) { e.preventDefault(); resetLayout(); return; }
     if ((t = e.target.closest("[data-find-close]"))) { e.preventDefault();
       findClose(t.closest("#left") ? "left" : "right"); return; }   // R5
+    if ((t = e.target.closest("[data-find-next]"))) { e.preventDefault();
+      step(t.closest("#left") ? "left" : "right", 1); return; }   // R4
+    if ((t = e.target.closest("[data-find-prev]"))) { e.preventDefault();
+      step(t.closest("#left") ? "left" : "right", -1); return; }   // R4
     if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle reading-width tier, persist
       var hasCustom = typeof layoutState.mLeft === "number" && typeof layoutState.mWidth === "number";
       layoutState.mMode = layoutState.mMode === "default" ? (hasCustom ? "custom" : "full")
@@ -2386,6 +2419,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
     if (e.key === "f" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); findOpen(focus); }   // R5; cmd/ctrl+F stays native
+    var fi = t.closest && t.closest("[data-find-input]");
+    if (e.key === "Enter" && fi) { e.preventDefault(); step(fi.closest("#left") ? "left" : "right", e.shiftKey ? -1 : 1); }   // R4
   });
   // R3/R5: the find box is rebuilt on every render (like .mrule) — delegated, not bound per-element.
   document.addEventListener("input", function (e) {

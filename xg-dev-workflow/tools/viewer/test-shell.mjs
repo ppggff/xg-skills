@@ -617,11 +617,11 @@ t("T5: Escape closes an open find box before help/change-history (position matte
 t("T5: bare f opens/focuses find (not while typing); cmd/ctrl+F stays native", () => {
   assert.match(html, /if \(e\.key === "f" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ e\.preventDefault\(\); findOpen\(focus\); \}/, "bare f only, guarded by !typing");
 });
-t("T5: paint unregisters all seven highlight names for this pane before repainting", () => {
+t("T5/T6: paint unregisters all seven highlight names for this pane, then splits hit vs current", () => {
   assert.match(html, /if \(!window\.CSS \|\| !CSS\.highlights\) return;/, "no Custom Highlight API → skip (ADR-0001 corollary 2)");
-  assert.match(html, /"sv-hit-" \+ side, "sv-cur-" \+ side, "sv-sel-" \+ side,/, "unregisters hit/cur/sel names even though only hit is populated yet");
+  assert.match(html, /"sv-hit-" \+ side, "sv-cur-" \+ side, "sv-sel-" \+ side,/, "unregisters hit/cur/sel names even though sel/pin aren't populated yet");
   assert.match(html, /"sv-pin-" \+ side \+ "-0", "sv-pin-" \+ side \+ "-1", "sv-pin-" \+ side \+ "-2", "sv-pin-" \+ side \+ "-3"/, "and all four pin slots");
-  assert.match(html, /hl\.priority = 100;/, "hits register at priority 100 (S11)");
+  assert.match(html, /allHl\.priority = 100; curHl\.priority = 200;/, "current hit outranks the rest (S11)");
 });
 t("T5: reindex skips empty models and clamps cur via Math.min; find reuses the cached idx", () => {
   assert.match(html, /if \(!h\.q && !h\.pins\.length\) return;/, "nothing to search → skip rebuilding the index");
@@ -637,4 +637,24 @@ t("T5: two non-full-render visibility toggles reindex too (found live — neithe
   assert.match(html, /grp\.hidden = !chk\.checked;\s+reindex\(focus\); return; \}/, "TOC-filtered group hide/show reindexes (else a filtered-out group stays searchable)");
 });
 
-console.log("\n" + pass + " shell-helper tests passed");
+// --- stepHitIndex (016 T6: hit navigation, wraps at both endpoints) ---
+t("stepHitIndex: total=0 / cur=-1 (no current yet) / wraps at both endpoints", () => {
+  assert.equal(SV.stepHitIndex(0, 0, 1), -1);
+  assert.equal(SV.stepHitIndex(-1, 0, -1), -1);
+  assert.equal(SV.stepHitIndex(-1, 5, 1), 0);     // next from nothing → the first hit
+  assert.equal(SV.stepHitIndex(-1, 5, -1), 4);    // previous from nothing → the last hit
+  assert.equal(SV.stepHitIndex(4, 5, 1), 0);      // last → next wraps to first
+  assert.equal(SV.stepHitIndex(0, 5, -1), 4);     // first → previous wraps to last
+  assert.equal(SV.stepHitIndex(2, 5, 1), 3);      // ordinary advance, no wrap
+});
+t("T6: jump hand-computes the scroll offset (HEAD_PAD), never scrollIntoView", () => {
+  assert.match(html, /var HEAD_PAD = 56;/, "matches the existing scroll-margin-top: 56px");
+  const m = html.match(/function jump\(side\) \{[\s\S]*?\n  \}/);
+  assert.ok(m, "jump defined");
+  assert.match(m[0], /p\.scrollTop = p\.scrollTop \+ \(rects\[0\]\.top - p\.getBoundingClientRect\(\)\.top\) - HEAD_PAD;/, "manual scrollTop math");
+  assert.doesNotMatch(m[0], /scrollIntoView/, "jump itself never falls back to scrollIntoView (existing scroll-margin-top can't cover paragraphs/tables) — scrollToSection's own use is unrelated");
+});
+t("T6: Enter/⇧Enter in the find input steps without the global !typing guard blocking it", () => {
+  assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
+  assert.match(html, /if \(e\.key === "Enter" && fi\) \{ e\.preventDefault\(\); step\(fi\.closest\("#left"\) \? "left" : "right", e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction");
+});
