@@ -91,6 +91,7 @@
      the tasks that give them meaning (T6/T8/T9). */
   ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
   ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: color-mix(in srgb, var(--s-todo) 42%, transparent); text-decoration: underline; }
+  ::highlight(sv-sel-left), ::highlight(sv-sel-right) { background-color: color-mix(in srgb, var(--sel) 55%, transparent); }   /* R6: echoes the existing ::selection color, not the search-hit palette */
   /* S6: sticky so it stays put as content scrolls, unlike .curline-ov's position:absolute (D20).
      Negative margin keeps it from taking up measure width. */
   .rail { position: sticky; top: 0; float: right; width: 10px; height: 100vh; margin-right: -10px; z-index: 2; }
@@ -2287,9 +2288,31 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var r = sel.getRangeAt(0).getBoundingClientRect();
         cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, r.left) + "px";
         cmtBtn.style.display = "block";
-      } else if (document.activeElement !== cmtBtn) cmtBtn.style.display = "none";
+        updateSelectionEcho(focus, sel);   // R6: T8
+      } else {
+        if (document.activeElement !== cmtBtn) cmtBtn.style.display = "none";
+        updateSelectionEcho(focus, null);   // selection gone → echo clears too, doesn't linger
+      }
     }, 0);
   });
+  // R6/ADR-0001 D1: no second selection listener — the mouseup above already does pane-ownership
+  // + empty-selection checks, and a second listener would race the same selection. Zero DOM
+  // mutation (Custom Highlight) is why `c` still picks up the selected text through this.
+  // Deliberately independent of _hits (S2) — it's one-shot, cleared the instant the selection is,
+  // so folding it into the model would need its own "this batch is temporary" flag for no benefit.
+  function updateSelectionEcho(side, sel) {
+    if (!window.CSS || !CSS.highlights) return;
+    var name = "sv-sel-" + side;
+    var text = sel ? String(sel).trim() : "";
+    if (!text || text.length < 2 || /\n/.test(text)) { CSS.highlights.delete(name); return; }
+    var pane = PANES[side], h = pane._hits;
+    if (!h.idx) h.idx = buildIndex(pane);   // no search run yet in this pane — build lazily
+    var hits = SV.scanHits(h.idx.text, text.toLowerCase());
+    var hl = new Highlight();
+    hits.forEach(function (hit) { var r = rangeOf(h.idx, hit[0], hit[1]); if (r) hl.add(r); });
+    hl.priority = 150;
+    if (hl.size) CSS.highlights.set(name, hl); else CSS.highlights.delete(name);
+  }
   function renderBasket() {
     document.getElementById("basket-list").innerHTML =
       basket.map(function (b) { return "<li><code>" + esc(b.split("\n")[0]) + "</code></li>"; }).join("");

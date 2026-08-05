@@ -680,4 +680,17 @@ t("T7: ensureHitVisible expands a collapsed trace row holding the current hit an
   assert.match(html, /dr\.hidden = false;\s+var tr = dr\.previousElementSibling; if \(tr && tr\.matches\("tr\[data-trx\]"\)\) tr\.classList\.add\("x"\);/, "sets .x too — renderTraceView() reads it from the old DOM to decide what reopens after a rebuild");
 });
 
+// --- selectionEcho (016 T8): no second selection listener, piggybacks the existing #cmt mouseup ---
+t("T8: selectionEcho piggybacks the existing mouseup handler, not a second selection listener", () => {
+  const m = html.match(/document\.addEventListener\("mouseup", function \(\) \{ {28}\/\/ show 💬 by the selection[\s\S]*?\n {2}\}\);/);
+  assert.ok(m, "the #cmt mouseup handler block");
+  assert.match(m[0], /updateSelectionEcho\(focus, sel\);   \/\/ R6: T8/, "echo updates right after #cmt positioning, same handler");
+  assert.match(m[0], /updateSelectionEcho\(focus, null\);   \/\/ selection gone → echo clears too, doesn't linger/, "empty selection clears the echo too");
+});
+t("T8: updateSelectionEcho rejects short/multiline selections and never touches _hits", () => {
+  assert.match(html, /if \(!text \|\| text\.length < 2 \|\| \/\\n\/\.test\(text\)\) \{ CSS\.highlights\.delete\(name\); return; \}/, "length<2 or a newline in the selection → no echo");
+  assert.match(html, /hl\.priority = 150;/, "S5: between hit (100) and current (200)");
+  assert.doesNotMatch(html.match(/function updateSelectionEcho[\s\S]*?\n  \}/)[0], /_hits\.hits|_hits\.q|_hits\.cur/, "reads only h.idx — never writes into the search model (S2's deliberate independence)");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
