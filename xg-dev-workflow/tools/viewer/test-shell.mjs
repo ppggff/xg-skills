@@ -40,7 +40,7 @@ t("R1: --code leads with Sarasa Fixed SC and pre/code adopt it, chrome stays --m
 t("R7: renderMermaid drops mermaid's orphaned body temp node in both settle paths", () => {
   assert.match(html, /\["d" \+ gid, "i" \+ gid\]\.forEach/, "cleanup targets #d<gid>/#i<gid>");
   assert.match(html, /parentNode === document\.body\) el\.remove\(\)/, "only body-level orphans removed");
-  assert.match(html, /\.then\(function \(res\) \{ holder\.innerHTML = res\.svg; dropTemp\(\); \}\)/, "cleanup on success too");
+  assert.match(html, /\.then\(function \(res\) \{ holder\.innerHTML = res\.svg; dropTemp\(\);/, "cleanup on success too");
 });
 
 // --- R6: pane widths (side/left/toc) persist to sv-layout; #right width is not stored ---
@@ -516,6 +516,55 @@ t("T2: all five hookpoints call invalidateGeometry", () => {
   assert.match(html, /invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 5/, "hookpoint 5: applyLayout end");
   assert.match(html, /padForDrawer\(pane\);\s+invalidateGeometry\(side\);.*hookpoint 6/, "hookpoint 6: updateDetail end");
   assert.match(html, /window\.addEventListener\("resize", function \(\) \{.*hookpoint 7/, "hookpoint 7: window resize");
+});
+
+// --- blockSpans / blockLineNumbers (016 T3: F8's top-level-HTML-comment off-by-one) ---
+t("blockSpans: skips a top-level HTML-comment token so spans.length == block count [F8]", () => {
+  // marked.lexer("<!-- c -->\n\n# Title\n\npara one\n\npara two") shape, per facts.md F8:
+  // non-space tokens = 4 (html, heading, paragraph, paragraph); marked.parse() renders 3 elements
+  // (the comment becomes a Comment node, not an Element child).
+  const tokens = [
+    { type: "html", raw: "<!-- c -->\n\n" },
+    { type: "heading", raw: "# Title\n\n" },
+    { type: "paragraph", raw: "para one\n\n" },
+    { type: "paragraph", raw: "para two" },
+  ];
+  const spans = SV.blockSpans(tokens);
+  assert.equal(spans.length, 3, "comment token excluded — matches the 3 rendered elements");
+  assert.deepEqual(spans[0], { start: 2, end: 4 });   // heading starts after the comment's 2 lines
+  assert.deepEqual(spans[1], { start: 4, end: 6 });
+  assert.deepEqual(spans[2], { start: 6, end: 6 });   // last token, no trailing \n to count
+});
+t("blockSpans: skips space tokens; a non-comment html token still counts (raw block HTML)", () => {
+  const tokens = [
+    { type: "space", raw: "\n" },
+    { type: "html", raw: "<div>raw</div>\n\n" },   // not a bare comment — still renders an Element
+    { type: "paragraph", raw: "text" },
+  ];
+  const spans = SV.blockSpans(tokens);
+  assert.equal(spans.length, 2);
+  assert.deepEqual(spans[0], { start: 1, end: 3 });   // the leading space token's 1 line still counts toward ln
+});
+t("blockLineNumbers: 1-based file line = span.start + fmLines + 1", () => {
+  const spans = [{ start: 0, end: 1 }, { start: 2, end: 3 }];
+  assert.deepEqual(SV.blockLineNumbers(spans, 4), [5, 7]);
+  assert.deepEqual(SV.blockLineNumbers([], 4), []);
+  assert.deepEqual(SV.blockLineNumbers(spans, 0), [1, 3]);
+});
+t("T3: lineGutter tags blocks via dataset (not textContent) and warns once on mismatch", () => {
+  assert.match(html, /function lineGutter\(blocks, tokens, fmLines\)/, "lineGutter defined");
+  assert.match(html, /b\.dataset\.srcline = nums\[i\];/, "tags via dataset, never a text node");
+  assert.match(html, /console\.warn\("line-gutter: block\/span mismatch/, "warns on mismatch instead of showing a wrong number");
+  assert.match(html, /lineGutter\(\[\]\.slice\.call\(pane\.querySelectorAll\("\.docbody > \*"\)\), window\.marked\.lexer\(fm\.body\), pane\._doc\.fmLines\);/, "renderDoc wires it in");
+});
+t("T3: renderMermaid takes side and invalidates geometry from its inner .then (hookpoint 4)", () => {
+  assert.match(html, /function renderMermaid\(side, body\)/, "renderMermaid takes side");
+  assert.match(html, /holder\.innerHTML = res\.svg; dropTemp\(\);\s+invalidateGeometry\(side\); \}\).*hookpoint 4/, "inner .then invalidates, not the outer ensureMermaid().then");
+});
+t("T3: renderDiffOverlay reuses SV.blockSpans and labels plain/add blocks with their source line", () => {
+  assert.match(html, /var tokens = window\.marked\.lexer\(body\), spans = SV\.blockSpans\(tokens\);/, "diff overlay no longer duplicates the span-building loop");
+  assert.match(html, /wrap\.dataset\.srcline = SV\.blockLineNumbers\(\[useSpans\[s\.from\]\], fmLines\)\[0\];/, "add segment labels its first block");
+  assert.match(html, /blocks\[i\]\.dataset\.srcline = SV\.blockLineNumbers\(\[useSpans\[i\]\], fmLines\)\[0\];/, "plain segment labels each block");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");

@@ -101,6 +101,11 @@
   .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
   .mrule { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); cursor: col-resize; z-index: 1; }   /* R1: measure boundary, always visible */
   .mrule:hover { background: var(--accent); }
+  /* R9 [F8]: source line number, generated content only (D8: a real child would shift block
+     indices and the digits would be searchable) — inline prefix so it never overflows the pane
+     regardless of measure mode. */
+  .docbody > [data-srcline]::before { content: attr(data-srcline); display: inline-block; min-width: 2.6em;
+    margin-right: 6px; font-family: var(--chrome); font-size: 9.5px; color: var(--muted); vertical-align: text-top; }
   .docbody h1,.docbody h2,.docbody h3,.docbody h4 { color: var(--fg); }
   /* R2/R40/R52 current marker — a band over the current UNIT: a single wrapped line in a doc, or a
      whole card/hit/commit in board/search/recent. Set by click / TOC jump / default only; it scrolls
@@ -933,12 +938,30 @@ var SV = (function () {
     return { left: left, width: width };
   }
 
+  // T3 (016) [F8]: token → source-line span, one per rendered block. Skips 'space' tokens (no
+  // DOM block) and a top-level HTML-comment token (marked.parse() turns it into a Comment node,
+  // not an Element child — counting it desyncs spans.length from the actual block count).
+  function blockSpans(tokens) {
+    var spans = [], ln = 0;
+    (tokens || []).forEach(function (tk) {
+      var lines = ((tk.raw || "").match(/\n/g) || []).length;
+      var isComment = tk.type === "html" && /^<!--[\s\S]*-->$/.test((tk.raw || "").trim());
+      if (tk.type !== "space" && !isComment) spans.push({ start: ln, end: ln + lines });
+      ln += lines;
+    });
+    return spans;
+  }
+  function blockLineNumbers(spans, fmLines) {
+    return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
            stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
-           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure };
+           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure,
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1103,6 +1126,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var doc = PANES[side]._doc; if (!doc) return;
     if (!scrollToSection(side, SV.sectionForLine(doc.headings, fileLine, doc.fmLines || 0))) PANES[side].scrollTop = 0;
   }
+  // R9 [F8]: tag each top-level block with its 1-based source line (`::before` CSS, never
+  // textContent — D8: a real DOM child would shift block indices and the digits would be
+  // searchable). A mismatch (best-effort span/block alignment) means no numbers, not wrong ones.
+  function lineGutter(blocks, tokens, fmLines) {
+    var spans = SV.blockSpans(tokens);
+    if (spans.length !== blocks.length) { console.warn("line-gutter: block/span mismatch (" + spans.length + " spans vs " + blocks.length + " blocks) — skipping"); return; }
+    var nums = SV.blockLineNumbers(spans, fmLines);
+    blocks.forEach(function (b, i) { b.dataset.srcline = nums[i]; });
+  }
   function renderDoc(side, v) {
     var pane = PANES[side], mt = 0;
     api("/raw/" + v.tree + "/" + v.rel).then(function (r) { mt = +r.headers.get("X-Mtime") || 0; return r.text(); }).then(function (text) {
@@ -1117,9 +1149,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<i class="mrule" data-resize="measure-left"></i><i class="mrule" data-resize="measure-right"></i>' +
         '<div class="docbody">' + window.marked.parse(fm.body) + "</div>";
       applyMeasure(side);   // R1/R2: size the measure box + position its two lines
+      lineGutter([].slice.call(pane.querySelectorAll(".docbody > *")), window.marked.lexer(fm.body), pane._doc.fmLines);   // R9
       var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
-      markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(pane.querySelector(".docbody"));
+      markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(side, pane.querySelector(".docbody"));
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
       if (v.line) scrollToLine(side, v.line);   // R4: a search hit carried a line → jump to its section
@@ -1170,7 +1203,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     });
     return mermaidLoading;
   }
-  function renderMermaid(body) {
+  function renderMermaid(side, body) {
     var blocks = body.querySelectorAll("pre > code.language-mermaid");
     if (!blocks.length) return;
     ensureMermaid().then(function (mermaid) {
@@ -1183,7 +1216,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
         // rejects WITHOUT removing it, orphaning it at the page bottom — so drop it ourselves.
         var dropTemp = function () { ["d" + gid, "i" + gid].forEach(function (id) {
           var el = document.getElementById(id); if (el && el.parentNode === document.body) el.remove(); }); };
-        mermaid.render(gid, src).then(function (res) { holder.innerHTML = res.svg; dropTemp(); })
+        mermaid.render(gid, src).then(function (res) { holder.innerHTML = res.svg; dropTemp();
+          invalidateGeometry(side); })   // S9 hookpoint 4: this inner .then is where geometry actually changes
           .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; dropTemp(); });
       });
     }).catch(function () {});
@@ -2282,18 +2316,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
       .then(function (r) { return r.json(); }).then(function (d) {
         var fm = SV.parseFrontmatter(d.after || ""), body = fm.body;
         var totalLines = body.split("\n").length, fmLines = (d.after || "").split("\n").length - totalLines;
-        var tokens = window.marked.lexer(body), spans = [], ln = 0;      // top-level block → source-line span
-        tokens.forEach(function (tk) {
-          var lines = ((tk.raw || "").match(/\n/g) || []).length;
-          if (tk.type !== "space") spans.push({ start: ln, end: ln + lines });   // 'space' tokens render no DOM block
-          ln += lines;
-        });
+        var tokens = window.marked.lexer(body), spans = SV.blockSpans(tokens);   // [F8]: shared with the doc path
         if (spans.length) spans[spans.length - 1].end = Math.max(spans[spans.length - 1].end, totalLines);
         var addedBody = (d.adds || []).map(function (x) { return x - 1 - fmLines; });
         var dels = (d.dels || []).map(function (g) { return { at: g.at - 1 - fmLines, lines: g.lines }; });
         var tmp = document.createElement("div"); tmp.innerHTML = window.marked.parse(body);
         var blocks = [].slice.call(tmp.children);
-        var useSpans = spans.length === blocks.length ? spans          // aligned; else degrade (best-effort fallback)
+        var aligned = spans.length === blocks.length;   // R9: only trust spans for line numbers when truly 1:1
+        var useSpans = aligned ? spans          // else degrade (best-effort fallback) — diff coloring only, no numbers
           : blocks.map(function (_, i) { return spans[i] || { start: 0, end: 0 }; });
         var segs = SV.diffSegments(useSpans, addedBody, dels);
         var docbody = document.createElement("div"); docbody.className = "docbody";
@@ -2303,8 +2333,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
             docbody.appendChild(g); return; }
           var into = docbody, wrap = null;
           if (s.add) { wrap = document.createElement("div"); wrap.className = "diffrun add";
-            wrap.innerHTML = "<span class='difftag'>本次新增</span>"; into = wrap; }
-          for (var i = s.from; i <= s.to; i++) if (blocks[i]) into.appendChild(blocks[i]);
+            wrap.innerHTML = "<span class='difftag'>本次新增</span>"; into = wrap;
+            if (aligned) wrap.dataset.srcline = SV.blockLineNumbers([useSpans[s.from]], fmLines)[0]; }   // R9: add 段标首块
+          for (var i = s.from; i <= s.to; i++) if (blocks[i]) {
+            if (aligned && !wrap) blocks[i].dataset.srcline = SV.blockLineNumbers([useSpans[i]], fmLines)[0];   // R9: plain 段逐块标
+            into.appendChild(blocks[i]);
+          }
           if (wrap) docbody.appendChild(wrap);
         });
         pane.innerHTML = paneHead(side, tree + "/" + rel + " @ " + sha.slice(0, 7),
@@ -2316,7 +2350,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var rm = document.createElement("i"); rm.className = "mrule"; rm.dataset.resize = "measure-right";
         pane.appendChild(bar); pane.appendChild(lm); pane.appendChild(rm); pane.appendChild(docbody);
         applyMeasure(side);   // R1/R2: size the measure box + position its two lines
-        markLinks(docbody, tree, rel); renderMermaid(docbody);
+        markLinks(docbody, tree, rel); renderMermaid(side, docbody);
         var hs = [].slice.call(docbody.querySelectorAll("h1,h2,h3,h4,h5,h6"));
         tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
         afterRender(side, ".docbody > *");
