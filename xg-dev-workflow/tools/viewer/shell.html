@@ -1125,7 +1125,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var MEASURE_MIN = 240;   // R1: minimum measure width a drag can clamp down to
   var GUTTER_PAD = 46;     // S8: measure-left offset that leaves room for the hanging line-number gutter
   var FULL_PAD = 16;       // S7: the full tier only needs enough left offset to keep that gutter inside the scrollport
-  var HEAD_PAD = 56;   // R4: jump's scroll offset, matching the existing scroll-margin-top: 56px
+  var HEAD_PAD = 56;   // R4: how far below the sticky head a scrolled-to target lands (= scroll-margin-top: 56px)
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
     // sits on the right is the normal use of a split view, and one shared set fights itself.
@@ -1997,6 +1997,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   // Pin hits are derived from the index (S2 stores only term + slot), so they are rescanned
   // wherever either side of that derivation changes: a rebuilt index here, a new term in pin().
+  function pinTerms(h) { return h.pins.map(function (pn) { return pn.term; }); }   // what memory stores: words, not slots
   function rescanPins(h) {
     h.pins.forEach(function (pn) { pn.hits = h.idx ? SV.scanHits(h.idx.text, pn.term) : []; });
   }
@@ -2037,13 +2038,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function step(side, dir) {   // next/previous button or Enter/⇧Enter in the find box
     var h = PANES[side]._hits; if (!h.hits.length) return;
     h.cur = SV.stepHitIndex(h.cur, h.hits.length, dir);
-    paint(side); updateFindCount(side); jump(side);
-  }
-  // R4: hand-computed scroll offset, not scrollIntoView() — the existing scroll-margin-top only
-  // sits on heading elements, and most hits land in paragraphs/tables/code blocks it can't cover.
-  function jump(side, force) {
-    var p = PANES[side], h = p._hits; if (h.cur < 0 || !h.hits[h.cur]) return;
-    scrollToInterval(side, h.hits[h.cur], force);
+    paint(side); updateFindCount(side);
+    if (h.hits[h.cur]) scrollToInterval(side, h.hits[h.cur]);
   }
   // S14: stepping through hits that already share the screen shouldn't move the page — losing your
   // surroundings on every keypress costs more than the scroll saves. The visible band excludes both
@@ -2070,7 +2066,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var slot = SV.pinSlot(h.slotUsed, h.pins.length);
     h.slotUsed[slot] = true;
     h.pins.push({ term: t, slot: slot, hits: SV.scanHits(h.idx.text, t) });
-    writeField(side, "p", h.pins.map(function (pn) { return pn.term; }));
+    writeField(side, "p", pinTerms(h));
     paint(side);
   }
   function unpin(side, at) {
@@ -2080,7 +2076,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // once nobody else holds it — past 4 pins two entries share one slot.
     var shared = h.pins.some(function (pn) { return pn.slot === gone.slot; });
     if (!shared) h.slotUsed[gone.slot] = false;
-    writeField(side, "p", h.pins.map(function (pn) { return pn.term; }));   // R13, single pin
+    writeField(side, "p", pinTerms(h));   // R13, single pin
     paint(side);
   }
   function clearPins(side) {   // R13: ⇧h — this pane's pins only; find state and the other pane untouched
@@ -2170,7 +2166,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (!v || !p._blockSel || !blockEls(p).length) return;   // error panel / placeholder: never overwrite good memory with an empty anchor
     var key = SV.viewKey(side, v, project);
     var entry = { a: SV.anchorOf(blockPrefixes(p), topBlockIndex(p)), y: p.scrollTop,
-                  q: h.q, p: h.pins.map(function (pn) { return pn.term; }) };   // R11; slots aren't stored — color isn't identity
+                  q: h.q, p: pinTerms(h) };   // R11; slots aren't stored — color isn't identity
     lsSet("sv-viewstate", JSON.stringify(SV.recallPut(viewStore(), key, entry, 50)));
   }
   // R13: an explicit clear must reach storage field by field — Esc drops the query without

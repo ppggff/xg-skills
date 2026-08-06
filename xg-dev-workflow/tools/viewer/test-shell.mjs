@@ -695,6 +695,7 @@ t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is 
 t("T6: Enter/⇧Enter in the find input steps without the global !typing guard blocking it", () => {
   assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
   assert.match(html, /if \(e\.key === "Enter" && fi\) \{ e\.preventDefault\(\); step\(fi\.closest\("#left"\) \? "left" : "right", e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction");
+  assert.match(html, /if \(h\.hits\[h\.cur\]\) scrollToInterval\(side, h\.hits\[h\.cur\]\);/, "step scrolls through the one scroll helper — no separate jump wrapper");
 });
 
 // --- railTop (016 T7: marker rail vertical position, pixel-derived per design) ---
@@ -842,10 +843,11 @@ t("T11: restore yields to an explicit target and never writes an empty anchor", 
 });
 
 t("T12: the query and pin terms are remembered, and cleared field by field", () => {
-  assert.match(html, /q: h\.q, p: h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\) \};   \/\/ R11/, "leaveView stores the terms, never the slots");
+  assert.match(html, /q: h\.q, p: pinTerms\(h\) \};   \/\/ R11/, "leaveView stores the terms, never the slots");
   assert.match(html, /writeField\(side, "q", ""\);   \/\/ R13: the query is gone for good/, "Esc drops only the query");
   assert.match(html, /writeField\(side, "p", \[\]\);/, "⇧h drops only the pins");
-  assert.match(html, /writeField\(side, "p", h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\)\);   \/\/ R13, single pin/, "unpin rewrites the remaining list");
+  assert.match(html, /function pinTerms\(h\) \{ return h\.pins\.map/, "one name for the remembered shape of the pin list");
+  assert.match(html, /writeField\(side, "p", pinTerms\(h\)\);   \/\/ R13, single pin/, "unpin rewrites the remaining list");
   const wf = html.match(/function writeField\(side, field, value\) \{[\s\S]*?\n  \}/)[0];
   assert.match(wf, /e\[field\] = value;/, "one field at a time — Esc must not take the pins with it");
 });
