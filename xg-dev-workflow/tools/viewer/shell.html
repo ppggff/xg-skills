@@ -1373,7 +1373,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (staleSides[side]) { delete staleSides[side]; showStale(); }   // freshly (re)loaded → not stale
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel,
           '<button class="iconbtn" data-changelog="' + side + '" title="变更历史">◷</button>' +
-          '<button class="iconbtn" data-docwidth title="reading width: measure / full">↔</button>') +
+          '<button class="iconbtn" data-docwidth title="reading width: default / custom / full">↔</button>') +
         frontmatterTable(fm.fields) +
         '<i class="mrule" data-resize="measure-left"></i><i class="mrule" data-resize="measure-right"></i>' +
         '<div class="docbody">' + window.marked.parse(fm.body) + "</div>";
@@ -1921,10 +1921,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // S9 (016): geometry invalidation — rAF-coalesced so a drag's many events settle to one
   // recompute per frame. Reused by every hookpoint that can move/resize a docbody or pane.
   function invalidateGeometry(side) {
-    var p = PANES[side]; p._geoDirty = true;
+    var p = PANES[side];
     if (p._geoRaf) return;
     p._geoRaf = requestAnimationFrame(function () {
-      p._geoRaf = null; p._geoDirty = false;
+      p._geoRaf = null;
       if (p._idxDirty) { p._idxDirty = false; reindex(side); }
       if (p._curEl && p._curEl.isConnected) {   // the marked block is gone — skip that part, don't throw
         var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
@@ -1967,8 +1967,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       });
     }
     var built = SV.buildIndexText(shells);
-    return { text: built.text, runs: built.runs, root: pane,
-      blocks: pane._blockSel ? [].slice.call(pane.querySelectorAll(pane._blockSel)) : [] };
+    return { text: built.text, runs: built.runs };
   }
   function rangeOf(idx, start, end) {   // [F10]: never cache the Range — it doesn't survive a DOM rebuild
     var a = SV.offsetToNode(idx.runs, start), b = SV.offsetToNode(idx.runs, end);
@@ -2293,13 +2292,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
     var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
-    reindex(side);   // S1/S2: rescan this pane's query/pins against the fresh content
     // S12/D12: the entering flag is read once and burned. That is the whole reason a poll or a
     // theme switch can't yank a reader back to the anchor they entered on — those paths re-render
     // through here without ever setting it. An explicit target (a search hit's line) outranks the
     // anchor, so yield to it here rather than scrolling twice.
     var entering = p._entering; p._entering = false;
-    if (entering) restoreView(side, !(p._view && p._view.line));
+    // S1/S2: rescan this pane's query/pins against the fresh content — but only when the terms are
+    // staying. Entering a view replaces them from that view's memory and rescans there, so scanning
+    // here first would be a full pass with the term of the view being left.
+    if (entering) restoreView(side, !(p._view && p._view.line)); else reindex(side);
   }
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block

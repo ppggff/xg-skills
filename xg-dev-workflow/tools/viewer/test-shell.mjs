@@ -606,8 +606,11 @@ t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes on
   assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, \.rail, section\.grp\[hidden\], style";/, "static exclusion list matches S1's table (+ the findbar/rail overlays and injected <style>)");
   assert.match(html, /function blockText\(el\) \{[\s\S]*?idxTextExcluded\(n\)/, "anchors read the same content rule as the index, so a diagram's generated style id can't poison the prefix");
   assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
-  assert.match(html, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks idx.root's Text nodes");
-  assert.match(html, /root: pane,/, "idx.root is always the pane itself (D19)");
+  // Review #13: assert the exclusion is wired into the walker, not merely that both exist — the
+  // acceptNode callback IS the enforcement point, and the old assertions survived removing it.
+  const bi = html.match(/function buildIndex\(pane\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(bi, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks the pane's Text nodes (D19: the root is the pane; no view wraps every block unit)");
+  assert.match(bi, /acceptNode: function \(node\) \{ return idxTextExcluded\(node\) \? NodeFilter\.FILTER_REJECT : NodeFilter\.FILTER_ACCEPT; \}/, "…rejecting the excluded subtrees as it walks");
 });
 t("T4: rangeOf skips a stale hit instead of throwing, never caches the Range", () => {
   assert.match(html, /function rangeOf\(idx, start, end\)/, "rangeOf defined");
@@ -624,6 +627,11 @@ t("T5: bare f opens/focuses find (not while typing); cmd/ctrl+F stays native", (
   assert.match(html, /if \(e\.key === "f" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ e\.preventDefault\(\); findOpen\(focus\); \}/, "bare f only, guarded by !typing");
 });
 t("T5/T6: paint unregisters all seven highlight names for this pane, then splits hit vs current", () => {
+  // Review #13: the deregistration has to be asserted inside paint itself. reset() carries the same
+  // hlNames(...).forEach shape, so a file-wide match stayed green with paint's copy deleted — and
+  // deleting it is exactly how stale highlights survive a repaint.
+  const pf = html.match(/function paint\(side\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(pf, /hlNames\(side\)\.forEach\(function \(name\) \{ CSS\.highlights\.delete\(name\); \}\);/, "paint clears this pane's own registrations before drawing");
   assert.match(html, /if \(!window\.CSS \|\| !CSS\.highlights\) return;/, "no Custom Highlight API → skip (ADR-0001 corollary 2)");
   assert.match(html, /"sv-hit-" \+ side, "sv-cur-" \+ side, "sv-sel-" \+ side,/, "unregisters hit/cur/sel names even though sel/pin aren't populated yet");
   assert.match(html, /"sv-pin-" \+ side \+ "-0", "sv-pin-" \+ side \+ "-1", "sv-pin-" \+ side \+ "-2", "sv-pin-" \+ side \+ "-3"/, "and all four pin slots");
@@ -857,6 +865,10 @@ t("T11: the entering flag is set on every entry path and burned on read", () => 
 });
 t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
   assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "D12 priority 1 beats 2: a search hit's line suppresses the anchor scroll");
+  // Review #12: only the re-render path rescans here. Entering replaces the terms from memory and
+  // rescans inside restoreView, so scanning first would be a full pass with the outgoing view's term.
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\); else reindex\(side\);/, "one scan per render, not two");
+  assert.doesNotMatch(html.match(/function afterRender\(side, blockSel, tocFilter\) \{[\s\S]*?\n  \}/)[0], /^\s*reindex\(side\);\s*\/\//m, "no unconditional rescan ahead of the entering check");
   assert.match(html, /if \(!v \|\| !p\._blockSel \|\| !blockEls\(p\)\.length\) return;/, "an error panel has no blocks — don't overwrite good memory");
   assert.match(html, /if \(!e\) return;   \/\/ nothing remembered for this view yet/, "a field write can't conjure an entry out of nothing");
   assert.match(html, /else if \(typeof e\.y === "number"\) p\.scrollTop = e\.y;/, "D5: pixel fallback when the anchor is gone");
