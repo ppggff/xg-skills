@@ -675,6 +675,9 @@ t("T14/S7: the measure is per pane, with the old flat fields migrating to both s
 });
 t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
   assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -44px; width: 32px;/, "hangs left of the rule");
+  assert.match(html, /line-height: var\(--gl, inherit\);/, "shares the block's first line box, so a heading's number doesn't float above its text");
+  assert.match(html, /b\.style\.setProperty\("--gl", getComputedStyle\(b\)\.lineHeight\);/, "that line-height comes from the block itself");
+  assert.match(html, /\.mrule:hover::before, \.mrule\.on::before \{ opacity: 1; \}/, "R1: the boundary line surfaces on approach or during a drag, not always");
   assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
   assert.match(html, /var GUTTER_PAD = 46;/, "the default/full tiers reserve the strip, or every default view falls back to the inline gutter");
   assert.match(html, /\} else \{ db\.style\.setProperty\("--m-l", GUTTER_PAD \+ "px"\); db\.style\.removeProperty\("--m-w"\); \}/, "default tier offsets the measure instead of sitting on the pane edge");
@@ -685,7 +688,7 @@ t("T14/S8: the source-line gutter hangs outside the measure, folding back inline
 t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is a reversed chip", () => {
   assert.match(html, /\.findbar \{[^}]*order: 99;\s*position: sticky; bottom: 0;/, "last in the flex column, stuck to the bottom");
   assert.match(html, /padding: 6px 0 8px; bottom: -20px;/, "rests 20px lower — the pane's own bottom padding — so it sits flush with the pane edge");
-  assert.match(html, /\.rail i\.cur \{ left: -7px; background-color: var\(--fg\); z-index: 1; \}/, "background-color, never the shorthand — the shorthand resets background-clip and paints the whole 8px hit area");
+  assert.match(html, /\.rail i\.cur \{ right: -7px; background-color: var\(--fg\); z-index: 1; \}/, "reaches right, off the text; background-color never the shorthand — that resets background-clip and paints the whole 8px hit area");
   assert.match(html, /h\.hits\.forEach\(function \(hit, i\) \{ mark\(hit, i === h\.cur \? "cur" : "", i\); \}\);/, "the current index drives that class");
   assert.match(html, /::highlight\(sv-cur-left\), ::highlight\(sv-cur-right\) \{ background-color: var\(--s-todo\); color: var\(--bg\);/, "reversed, not a second shade of the same wash");
 });
