@@ -671,7 +671,14 @@ t("T14/S6: rail marks carry their interval and act as jump targets", () => {
 t("T14/S7: the measure is per pane, with the old flat fields migrating to both sides", () => {
   assert.match(html, /m: \{ left: \{ mode: "default", l: null, w: null \}, right: \{ mode: "default", l: null, w: null \} \}/, "two sets, not one");
   assert.match(html, /var flat = \{ mode: s\.mMode, l: s\.mLeft, w: s\.mWidth \};\s+takeSide\(d\.m\.left, flat\); takeSide\(d\.m\.right, flat\);/, "D7: an old preference was about reading, not about a pane");
-  assert.match(html, /var paneW = pane\.getBoundingClientRect\(\)\.width, m = layoutState\.m\[side\];/, "applyMeasure reads its own side");
+  assert.match(html, /function applyMeasure\(side\) \{[\s\S]*?var m = layoutState\.m\[side\];/, "applyMeasure reads its own side");
+  // Review #2: --m-l/--m-w are content-box quantities. Every producer must say so, or a drag
+  // shifts the body by one padding-left per grab.
+  const measureProducers = html.match(/SV\.clampMeasure\([^)]*\)/g) || [];
+  assert.ok(measureProducers.length >= 2, "both the drag and applyMeasure clamp");
+  measureProducers.forEach(call => assert.match(call, /measureSpace\(pane\)|space/, "clamped against the content-box width, never a border-box rect: " + call));
+  assert.match(html, /var left0 = measureLeftOf\(pane, db\)/, "the drag's starting left is content-box relative too");
+  assert.match(html, /function measureLeftOf\(pane, db\) \{[\s\S]*?- parseFloat\(getComputedStyle\(pane\)\.paddingLeft\)/, "…which is what subtracting padding-left buys");
 });
 t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
   assert.match(html, /left: calc\(-44px - var\(--gx, 0px\)\);/, "hangs left of the rule, cancelling each block's own indent");
@@ -683,7 +690,7 @@ t("T14/S8: the source-line gutter hangs outside the measure, folding back inline
   assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
   assert.match(html, /var GUTTER_PAD = 46;/, "the default/full tiers reserve the strip, or every default view falls back to the inline gutter");
   assert.match(html, /\} else \{ db\.style\.setProperty\("--m-l", GUTTER_PAD \+ "px"\); db\.style\.removeProperty\("--m-w"\); \}/, "default tier offsets the measure instead of sitting on the pane edge");
-  assert.match(html, /db\.style\.setProperty\("--m-w", \(contentW - FULL_PAD - Math\.max\(0, FULL_PAD - sbw\)\) \+ "px"\);/, "full tier's gaps look equal — the scrollbar already ate into the right one");
+  assert.match(html, /db\.style\.setProperty\("--m-w", \(measureSpace\(pane\) - FULL_PAD - Math\.max\(0, FULL_PAD - sbw\)\) \+ "px"\);/, "full tier's gaps look equal — the scrollbar already ate into the right one");
   assert.match(html, /var FULL_PAD = 16;/, "full leaves only what the gutter needs to stay inside the scrollport");
   assert.match(html, /var top = db\.offsetTop \+ "px", h = db\.offsetHeight \+ "px";/, "the lines start at the body and run its whole height, not one screenful");
 });

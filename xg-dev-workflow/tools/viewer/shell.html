@@ -1167,22 +1167,31 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
     applyLayout();
   })();
+  // `--m-l`/`--m-w` land on .docbody's margin/width, so both are measured from the pane's CONTENT
+  // box. Every producer of those two numbers has to work in that frame — a border-box rect (which
+  // getBoundingClientRect gives) is one padding-left off and drifts by that much per drag.
+  function measureSpace(pane) {
+    var cs = getComputedStyle(pane);
+    return pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  }
+  function measureLeftOf(pane, db) {
+    return db.getBoundingClientRect().left - pane.getBoundingClientRect().left - parseFloat(getComputedStyle(pane).paddingLeft);
+  }
   function applyMeasure(side) {   // R1/R2: write the two docbody measure vars + reposition that pane's mrule lines
     var pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
     // S8: default and full keep GUTTER_PAD of measure-left offset so the source-line gutter has a
     // strip to hang in — the pane's own 28px padding isn't enough, and without it every default
     // view falls back to the inline gutter that crowds the first line.
-    var paneW = pane.getBoundingClientRect().width, m = layoutState.m[side];
+    var m = layoutState.m[side];
     if (m.mode === "full") {
       // Equal gaps as the eye sees them: the scrollbar already eats into the right side, so the
       // right margin is the gutter strip minus whatever the scrollbar took.
-      var sbw = pane.offsetWidth - pane.clientWidth, cs = getComputedStyle(pane);
-      var contentW = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      db.style.setProperty("--m-w", (contentW - FULL_PAD - Math.max(0, FULL_PAD - sbw)) + "px");
+      var sbw = pane.offsetWidth - pane.clientWidth;
+      db.style.setProperty("--m-w", (measureSpace(pane) - FULL_PAD - Math.max(0, FULL_PAD - sbw)) + "px");
       db.style.setProperty("--m-l", FULL_PAD + "px");
     }
     else if (m.mode === "custom") {
-      var c = SV.clampMeasure(m.l, m.w, paneW, MEASURE_MIN);
+      var c = SV.clampMeasure(m.l, m.w, measureSpace(pane), MEASURE_MIN);
       db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
     } else { db.style.setProperty("--m-l", GUTTER_PAD + "px"); db.style.removeProperty("--m-w"); }
     positionMrules(side, pane, db);
@@ -2503,11 +2512,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var t = e.target.closest && e.target.closest(".mrule[data-resize]"); if (!t) return;
     e.preventDefault();
     var side = t.closest("#left") ? "left" : "right", pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
-    var pr = pane.getBoundingClientRect(), dr = db.getBoundingClientRect();
-    var left0 = dr.left - pr.left, width0 = dr.width, startX = e.clientX, isLeft = t.dataset.resize === "measure-left";
+    var left0 = measureLeftOf(pane, db), width0 = db.getBoundingClientRect().width;
+    var space = measureSpace(pane), startX = e.clientX, isLeft = t.dataset.resize === "measure-left";
     function move(ev) {
       var dx = ev.clientX - startX;
-      var c = SV.clampMeasure(isLeft ? left0 + dx : left0, isLeft ? width0 - dx : width0 + dx, pr.width, MEASURE_MIN);
+      var c = SV.clampMeasure(isLeft ? left0 + dx : left0, isLeft ? width0 - dx : width0 + dx, space, MEASURE_MIN);
       var m = layoutState.m[side]; m.mode = "custom"; m.l = c.left; m.w = c.width;
       db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
       positionMrules(side, pane, db);
