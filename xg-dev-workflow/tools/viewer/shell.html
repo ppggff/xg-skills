@@ -2004,7 +2004,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // (content changed) — never on keystrokes, `find` below reuses the cached idx for that.
   function reindex(side) {
     var p = PANES[side], h = p._hits;
-    if (!h.q && !h.pins.length) return;   // nothing to search for — building an index nobody reads is wasted work
+    // Nothing to search for: don't build an index nobody reads — but DO drop the old one. It holds
+    // text-node references into the DOM this render just replaced, and the three lazy builders
+    // (find/pin/selectionEcho) only test it for null, not for freshness.
+    if (!h.q && !h.pins.length) { h.idx = null; return; }
     h.idx = buildIndex(p);
     h.hits = h.q ? SV.scanHits(h.idx.text, h.q) : [];
     h.cur = Math.min(h.cur, h.hits.length - 1);   // fewer hits → clamp; none left → -1 (Math.min gives this for free)

@@ -630,7 +630,7 @@ t("T5/T6: paint unregisters all seven highlight names for this pane, then splits
   assert.match(html, /allHl\.priority = 100; curHl\.priority = 200;/, "current hit outranks the rest (S11)");
 });
 t("T5: reindex skips empty models and clamps cur via Math.min; find reuses the cached idx", () => {
-  assert.match(html, /if \(!h\.q && !h\.pins\.length\) return;/, "nothing to search → skip rebuilding the index");
+  assert.match(html, /if \(!h\.q && !h\.pins\.length\) \{ h\.idx = null; return; \}/, "nothing to search → skip rebuilding the index, but drop the one pointing at the replaced DOM");
   assert.match(html, /h\.cur = Math\.min\(h\.cur, h\.hits\.length - 1\);/, "clamp doubles as the empty-hits → -1 case");
   assert.match(html, /if \(!h\.idx\) h\.idx = buildIndex\(p\);\s+\/\/ find box opened before any render's reindex ran/, "find lazily builds the index if reindex hasn't run yet");
 });
