@@ -634,13 +634,20 @@ t("T5: reindex skips empty models and clamps cur via Math.min; find reuses the c
   assert.match(html, /h\.cur = Math\.min\(h\.cur, h\.hits\.length - 1\);/, "clamp doubles as the empty-hits → -1 case");
   assert.match(html, /if \(!h\.idx\) h\.idx = buildIndex\(p\);\s+\/\/ find box opened before any render's reindex ran/, "find lazily builds the index if reindex hasn't run yet");
 });
+t("R5: an Escape consumer stops the event so the document chain doesn't close a second thing", () => {
+  // Review #6: the find branch sits ahead of help/change-history by design and before the `typing`
+  // guard, so an input-level consumer that lets Escape bubble also silently closes the find bar.
+  assert.match(html, /if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); treeFilter = ""/, "tree filter");
+  assert.match(html, /else if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); qoClose\(\); \}/, "quick-open palette");
+  assert.match(html, /if \(e\.key === "Escape" && PANES\[focus\]\._findOpen\) \{ findClose\(focus\); return; \}/, "and the find bar still wins the document-level chain");
+});
 t("T5: findClose clears this pane's model (R13) and unpaints; findOpen anchors off .doc-head", () => {
   assert.match(html, /p\._hits\.q = ""; p\._hits\.hits = \[\]; p\._hits\.cur = -1;\s+writeField\(side, "q", ""\);.*\s+paint\(side\);/, "closing clears q/hits/cur, drops the remembered query (T12), then repaints");
   assert.match(html, /head\.insertAdjacentHTML\("afterend", findBarHtml\(side\)\);/, "find bar is inserted right after .doc-head, every view kind");
 });
 t("T5: two non-full-render visibility toggles reindex too (found live — neither goes through afterRender)", () => {
-  assert.match(html, /cd\.classList\.toggle\("open", detailOpen\);\s+reindex\(t\.closest\("#left"\) \? "left" : "right"\); return; \}/, "board drawer open/close reindexes (else its text stays searchable while hidden, or vice versa)");
-  assert.match(html, /grp\.hidden = !chk\.checked;\s+reindex\(focus\); return; \}/, "TOC-filtered group hide/show reindexes (else a filtered-out group stays searchable)");
+  assert.match(html, /cd\.classList\.toggle\("open", detailOpen\);\s+reindex\(sideOf\(t\)\); return; \}/, "board drawer open/close reindexes (else its text stays searchable while hidden, or vice versa)");
+  assert.match(html, /grp\.hidden = !chk\.checked;\s+reindex\(focus\); invalidateGeometry\(focus\); return; \}/, "TOC-filtered group hide/show reindexes AND re-measures (review #4: it moves everything below it)");
 });
 
 // --- stepHitIndex (016 T6: hit navigation, wraps at both endpoints) ---
@@ -703,8 +710,12 @@ t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is 
 });
 t("T6: Enter/⇧Enter in the find input steps without the global !typing guard blocking it", () => {
   assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
-  assert.match(html, /var es = fi\.closest\("#left"\) \? "left" : "right"; findHistPush\(PANES\[es\]\._hits\.q\); step\(es, e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction, and stepping records the query");
+  assert.match(html, /findHistPush\(PANES\[es\]\._hits\.q\); step\(es, e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction, and stepping records the query");
   assert.match(html, /if \(h\.hits\[h\.cur\]\) scrollToInterval\(side, h\.hits\[h\.cur\]\);/, "step scrolls through the one scroll helper — no separate jump wrapper");
+  // Review #7: everything that consumes the debounce's result must first settle it.
+  assert.match(html, /var es = sideOf\(fi\); clearTimeout\(PANES\[es\]\._findT\);\s+if \(PANES\[es\]\._hits\.q !== fi\.value\.toLowerCase\(\)\) find\(es, fi\.value\);/, "Enter flushes a pending scan instead of stepping the previous query's hits");
+  assert.match(html.match(/function findClose\(side\) \{[\s\S]*?\n  \}/)[0], /clearTimeout\(p\._findT\);/, "closing cancels it, or the cleared query repaints itself 160ms later");
+  assert.match(html.match(/function restoreView\(side, scroll\) \{[\s\S]*?\n  \}/)[0], /clearTimeout\(p\._findT\);/, "entering a view cancels it, or the previous view's word lands here");
 });
 
 // --- railTop (016 T7: marker rail vertical position, pixel-derived per design) ---
@@ -757,7 +768,7 @@ t("T9: h pins the selection, ⇧h clears this pane's pins, and the find box has 
   assert.match(html, /if \(e\.key === "h" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ pinCurrent\(focus\); \}/, "h pins/unpins, never while typing");
   assert.match(html, /if \(e\.key === "H" && e\.shiftKey && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ clearPins\(focus\); \}/, "⇧h clears");
   assert.match(html, /data-find-pin title="pin this term"/, "inside the input h is typing, so the find term needs a button");
-  assert.match(html, /var pinSide = t\.closest\("#left"\) \? "left" : "right"; pin\(pinSide, PANES\[pinSide\]\._hits\.q\);/, "the button pins the current query");
+  assert.match(html, /var pinSide = sideOf\(t\); pin\(pinSide, PANES\[pinSide\]\._hits\.q\);/, "the button pins the current query");
 });
 t("T9: pin toggles on the same term and only frees a slot nobody else holds", () => {
   const fn = html.match(/function pin\(side, term\) \{[\s\S]*?\n  \}/)[0];
@@ -886,8 +897,14 @@ t("R17: the find box seeds from the selection, remembers past queries, and waits
   assert.match(html, /return \(t\.length >= 2 && t\.length <= 80 && !\/\\n\/\.test\(t\)\) \? t : "";/, "a paragraph-sized or multiline selection isn't a query");
   assert.match(html, /var FIND_DEBOUNCE = 160;/, "a one-letter query matches half the document — don't pay for that on the way to a word");
   assert.match(html, /clearTimeout\(p\._findT\);\s+p\._findT = setTimeout\(function \(\) \{ find\(side, inp\.value\); \}, FIND_DEBOUNCE\);/, "each keystroke restarts the wait");
-  assert.match(html, /lsSet\("sv-findhist", JSON\.stringify\(SV\.recentPush\(findHist\(\), q, 20\)\)\);/, "the recall list reuses the existing MRU primitive");
-  assert.match(html, /findHistStep\(fi\.closest\("#left"\) \? "left" : "right", e\.key === "ArrowUp" \? 1 : -1\); \}/, "↑/↓ walks it, shell-style");
+  // Review #8: the card's constraint was to reuse the existing carrier, not to grow a second one —
+  // and the carrier's clear() list is exactly what a new kind has to be backfilled into.
+  assert.match(html, /RecentStore\.record\("find", q, FIND_HIST_CAP\);/, "the recall list rides the existing bounded-history store");
+  assert.match(html, /var p = PANES\[side\], list = RecentStore\.list\("find"\);/, "…and reads back through it");
+  assert.match(html, /clear: function \(\) \{ \["filter", "opened", "search", "find"\]/, "so `clear history` reaches the find terms too");
+  assert.match(html, /record: function \(kind, item, cap\) \{ if \(item\) lsSet\("sv-recent-" \+ kind, JSON\.stringify\(SV\.recentPush\(this\.list\(kind\), item, cap \|\| 8\)\)\); \}/, "one store, per-kind cap");
+  assert.doesNotMatch(html, /sv-findhist/, "the second store is gone, not merely wrapped");
+  assert.match(html, /findHistStep\(sideOf\(fi\), e\.key === "ArrowUp" \? 1 : -1\); \}/, "↑/↓ walks it, shell-style");
   assert.match(html, /findHistPush\(p\._hits\.q\); p\._histAt = null;/, "closing the box records what was searched");
 });
 

@@ -1121,6 +1121,9 @@ if (typeof window !== "undefined") window.SV = SV;
 // ---------------------------------------------------------------------------
 if (typeof window !== "undefined" && window.marked) (function () {
   var PANES = { left: document.getElementById("left"), right: document.getElementById("right") };
+  // Which content pane an event landed in. Delegated handlers all need this, and the `.pane` class is
+  // on #side/#toc too, so the question is always "#left or the other one" — never a class lookup.
+  function sideOf(el) { return el.closest("#left") ? "left" : "right"; }
   var tocPane = document.getElementById("toc"), treeEl = document.getElementById("tree");
   var projSel = document.getElementById("proj"), searchBox = document.getElementById("search");
   var TREES = { dev: new Map(), kb: new Map() }, RAW = { dev: [], kb: [] };
@@ -1664,6 +1667,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
     reset(side);   // D18 hookpoint 7: the drawer's local re-render replaced content afterRender never saw
+    reindex(side);   // …and the replacement is searchable, so rescan rather than leave the readout blank
     padForDrawer(pane);
     invalidateGeometry(side);   // S9 hookpoint 6: drawer open/close changes the docbody's available height
   }
@@ -2082,14 +2086,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return (t.length >= 2 && t.length <= 80 && !/\n/.test(t)) ? t : "";
   }
   // R17: a short recall list of past queries, shared by both panes — the same term is usually
-  // wanted on the other side too. ↑/↓ in the box walks it (shell-style), newest first.
-  function findHist() { try { return JSON.parse(lsGet("sv-findhist")) || []; } catch (e) { return []; } }
+  // wanted on the other side too. ↑/↓ in the box walks it (shell-style), newest first. Rides the
+  // existing bounded-history store so `clear history` reaches it like every other recall list.
+  var FIND_HIST_CAP = 20;
   function findHistPush(q) {
     if (!q || q.length < 2) return;
-    lsSet("sv-findhist", JSON.stringify(SV.recentPush(findHist(), q, 20)));
+    RecentStore.record("find", q, FIND_HIST_CAP);
   }
   function findHistStep(side, dir) {
-    var p = PANES[side], list = findHist(); if (!list.length) return;
+    var p = PANES[side], list = RecentStore.list("find"); if (!list.length) return;
     var at = p._histAt == null ? -1 : p._histAt;
     at = Math.max(-1, Math.min(list.length - 1, at + dir));
     p._histAt = at;
@@ -2099,6 +2104,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function findClose(side) {   // R13: closing clears this pane's hits (memory-layer clear lands with T11+)
     var p = PANES[side]; if (!p._findOpen) return;
+    clearTimeout(p._findT);   // a pending scan would repaint a query this call is throwing away (R13)
     findHistPush(p._hits.q); p._histAt = null;   // R17: remember what was searched, not that it was closed
     p._findOpen = false;
     var bar = p.querySelector(".findbar"); if (bar) bar.remove();
@@ -2255,6 +2261,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // reader around (R11). Scrolling is separate because an explicit target outranks the anchor.
   function restoreView(side, scroll) {
     var p = PANES[side], h = p._hits, e = viewStore().map[SV.viewKey(side, p._view, project)] || {};
+    clearTimeout(p._findT);   // a scan queued in the view we just left must not land on this one (R11)
     // cur starts at the first hit, exactly as typing the query would — reindex's clamp turns it
     // back into -1 if the remembered term no longer matches anything here.
     h.q = e.q || ""; h.hits = []; h.cur = e.q ? 0 : -1;
@@ -2515,7 +2522,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("mousedown", function (e) {
     var t = e.target.closest && e.target.closest(".mrule[data-resize]"); if (!t) return;
     e.preventDefault();
-    var side = t.closest("#left") ? "left" : "right", pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
+    var side = sideOf(t), pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
     var left0 = measureLeftOf(pane, db), width0 = db.getBoundingClientRect().width;
     var space = measureSpace(pane), startX = e.clientX, isLeft = t.dataset.resize === "measure-left";
     function move(ev) {
@@ -2549,19 +2556,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-swap]"))) { e.preventDefault(); swapPanes(); return; }
     if ((t = e.target.closest("[data-resetlayout]"))) { e.preventDefault(); resetLayout(); return; }
     if ((t = e.target.closest("[data-find-close]"))) { e.preventDefault();
-      findClose(t.closest("#left") ? "left" : "right"); return; }   // R5
+      findClose(sideOf(t)); return; }   // R5
     if ((t = e.target.closest("[data-find-next]"))) { e.preventDefault();
-      step(t.closest("#left") ? "left" : "right", 1); return; }   // R4
+      step(sideOf(t), 1); return; }   // R4
     if ((t = e.target.closest("[data-find-prev]"))) { e.preventDefault();
-      step(t.closest("#left") ? "left" : "right", -1); return; }   // R4
+      step(sideOf(t), -1); return; }   // R4
     if ((t = e.target.closest(".rail i"))) { e.preventDefault();   // R8: a mark is a jump target
-      var rs = t.closest("#left") ? "left" : "right", rh = PANES[rs]._hits;
+      var rs = sideOf(t), rh = PANES[rs]._hits;
       if (t.dataset.hit != null) { rh.cur = +t.dataset.hit; paint(rs); updateFindCount(rs); }
       scrollToInterval(rs, [+t.dataset.s, +t.dataset.e], true); return; }
     if ((t = e.target.closest("[data-find-pin]"))) { e.preventDefault();
-      var pinSide = t.closest("#left") ? "left" : "right"; pin(pinSide, PANES[pinSide]._hits.q); return; }   // R7
+      var pinSide = sideOf(t); pin(pinSide, PANES[pinSide]._hits.q); return; }   // R7
     if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle THIS pane's width tier
-      var ws = t.closest("#left") ? "left" : "right", m = layoutState.m[ws];
+      var ws = sideOf(t), m = layoutState.m[ws];
       var hasCustom = typeof m.l === "number" && typeof m.w === "number";
       m.mode = m.mode === "default" ? (hasCustom ? "custom" : "full") : m.mode === "custom" ? "full" : "default";
       saveLayout(); applyMeasure(ws); invalidateGeometry(ws); return; }   // S9 hookpoint 2
@@ -2571,7 +2578,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-cd-toggle]"))) {                       // R64: collapse / expand the drawer
       detailOpen = !detailOpen; try { localStorage.setItem("sv-detail-open", detailOpen ? "1" : "0"); } catch (ex) {}
       var cd = t.closest(".card-detail"); if (cd) cd.classList.toggle("open", detailOpen);
-      reindex(t.closest("#left") ? "left" : "right"); return; }   // R15: drawer visibility changed what's searchable
+      reindex(sideOf(t)); return; }   // R15: drawer visibility changed what's searchable
     if ((t = e.target.closest("[data-cd-retrace]"))) { e.preventDefault();  // 007: manual recompute (click-only)
       var rk = t.dataset.cdRetrace;
       delete traceCache[rk]; ensureTrace(rk); rerenderTrace(rk);
@@ -2585,7 +2592,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("tr[data-trx]"))) {                           // 007 V1: matrix row → toggle detail
       var dr = t.nextElementSibling;
-      if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden); }
+      if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden);
+        invalidateGeometry(sideOf(t)); }   // S9 hookpoint 3: the revealed row pushes every mark below it down
       return; }
     if ((t = e.target.closest(".card")) && t.dataset.key) {                 // R64: select a card → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
@@ -2617,7 +2625,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (chk) { var pf = PANES[focus], tf = pf._tocFilter; if (!tf) return;
       var key = tf.keys[+chk.dataset.tocf]; tf.set[key] = !chk.checked;
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
-      reindex(focus); return; }   // R15: a filtered-out group is no longer searchable
+      reindex(focus); invalidateGeometry(focus); return; }   // R15 + S9 hookpoint 8: hiding a group also moves everything below it
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
     var side = sel.dataset.hist; leaveView(side); PANES[side]._hi = +sel.value;   // write point 3 of 5
     PANES[side]._entering = true; setFocus(side); render(side);   // S12: a history jump is an entry
@@ -2729,7 +2737,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   var treeFilterEl = document.getElementById("treeFilter");   // R3: bottom filename filter
   treeFilterEl.addEventListener("input", function () { treeFilter = treeFilterEl.value.trim(); renderTree(); });
-  treeFilterEl.addEventListener("keydown", function (e) { if (e.key === "Escape") { treeFilter = ""; treeFilterEl.value = ""; renderTree(); } });
+  // R5: one Escape closes exactly one thing — a consumer stops the event rather than letting the
+  // document-level chain also close whatever it would have closed.
+  treeFilterEl.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); treeFilter = ""; treeFilterEl.value = ""; renderTree(); } });
   ["dev", "kb"].forEach(function (t) {   // R4: dev/kb scope — off means "don't filter this section" (shown in full)
     var b = document.getElementById("fscope-" + t);
     b.classList.toggle("off", !filterScope[t]);
@@ -2742,8 +2752,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- R6/R7/R8: bounded "recent use" histories (filter terms / opened files / search terms) in localStorage ---
   var RecentStore = {
     list: function (kind) { try { return JSON.parse(lsGet("sv-recent-" + kind)) || []; } catch (e) { return []; } },
-    record: function (kind, item) { if (item) lsSet("sv-recent-" + kind, JSON.stringify(SV.recentPush(this.list(kind), item, 8))); },
-    clear: function () { ["filter", "opened", "search"].forEach(function (k) { try { localStorage.removeItem("sv-recent-" + k); } catch (e) {} }); }
+    record: function (kind, item, cap) { if (item) lsSet("sv-recent-" + kind, JSON.stringify(SV.recentPush(this.list(kind), item, cap || 8))); },
+    clear: function () { ["filter", "opened", "search", "find"].forEach(function (k) { try { localStorage.removeItem("sv-recent-" + k); } catch (e) {} }); }
   };
   function fillDatalist(id, kind) {   // R6/R8: recent terms surface as native <datalist> options on the input
     var dl = document.getElementById(id); if (!dl) return;
@@ -2844,7 +2854,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         e.preventDefault();
       } else qoChoose(e.shiftKey);
     }
-    else if (e.key === "Escape") { qoClose(); }
+    else if (e.key === "Escape") { e.stopPropagation(); qoClose(); }   // R5: not also the find bar
   });
   qoBack.addEventListener("click", qoClose);
   document.getElementById("qoClear").addEventListener("click", function () {   // one-tap clear of all recent histories
@@ -2867,16 +2877,20 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "H" && e.shiftKey && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { clearPins(focus); }   // R13
     var fi = t.closest && t.closest("[data-find-input]");
     if (e.key === "Enter" && fi) { e.preventDefault();
-      var es = fi.closest("#left") ? "left" : "right"; findHistPush(PANES[es]._hits.q); step(es, e.shiftKey ? -1 : 1); }
+      // Enter right after the last keystroke must act on what's in the box, not on the term the
+      // pending debounce hasn't applied yet — flush it first, or you step the PREVIOUS query's hits.
+      var es = sideOf(fi); clearTimeout(PANES[es]._findT);
+      if (PANES[es]._hits.q !== fi.value.toLowerCase()) find(es, fi.value);
+      findHistPush(PANES[es]._hits.q); step(es, e.shiftKey ? -1 : 1); }
     if ((e.key === "ArrowUp" || e.key === "ArrowDown") && fi) { e.preventDefault();   // R17: walk the recall list
-      findHistStep(fi.closest("#left") ? "left" : "right", e.key === "ArrowUp" ? 1 : -1); }   // R4
+      findHistStep(sideOf(fi), e.key === "ArrowUp" ? 1 : -1); }   // R4
   });
   // R3/R5: the find box is rebuilt on every render (like .mrule) — delegated, not bound per-element.
   document.addEventListener("input", function (e) {
     var inp = e.target.closest && e.target.closest("[data-find-input]"); if (!inp) return;
     // R17: wait for a pause before scanning — a one-letter query matches half the document, and
     // paying for that scan on the way to a real word is what makes typing feel heavy.
-    var side = inp.closest("#left") ? "left" : "right", p = PANES[side];
+    var side = sideOf(inp), p = PANES[side];
     p._histAt = null;
     clearTimeout(p._findT);
     p._findT = setTimeout(function () { find(side, inp.value); }, FIND_DEBOUNCE);
