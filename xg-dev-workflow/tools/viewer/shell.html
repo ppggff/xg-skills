@@ -92,13 +92,13 @@
      the one distinguishable color the palette can spare for hits (S5), leaving the other four
      distinguishable status hues for the pin cycle. --s-backlog/-dropped/-unknown are three near
      greys, unusable here. */
-  ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
+  ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 38%, transparent); }
   ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: var(--s-todo); color: var(--bg); text-decoration: underline; }
   ::highlight(sv-sel-left), ::highlight(sv-sel-right) { background-color: color-mix(in srgb, var(--sel) 55%, transparent); }   /* R6: echoes the existing ::selection color, not the search-hit palette */
-  ::highlight(sv-pin-left-0), ::highlight(sv-pin-right-0) { background-color: color-mix(in srgb, var(--s-active) 22%, transparent); }
-  ::highlight(sv-pin-left-1), ::highlight(sv-pin-right-1) { background-color: color-mix(in srgb, var(--s-done) 22%, transparent); }
-  ::highlight(sv-pin-left-2), ::highlight(sv-pin-right-2) { background-color: color-mix(in srgb, var(--s-blocked) 22%, transparent); }
-  ::highlight(sv-pin-left-3), ::highlight(sv-pin-right-3) { background-color: color-mix(in srgb, var(--s-paused) 22%, transparent); }
+  ::highlight(sv-pin-left-0), ::highlight(sv-pin-right-0) { background-color: color-mix(in srgb, var(--s-active) 34%, transparent); }
+  ::highlight(sv-pin-left-1), ::highlight(sv-pin-right-1) { background-color: color-mix(in srgb, var(--s-done) 34%, transparent); }
+  ::highlight(sv-pin-left-2), ::highlight(sv-pin-right-2) { background-color: color-mix(in srgb, var(--s-blocked) 34%, transparent); }
+  ::highlight(sv-pin-left-3), ::highlight(sv-pin-right-3) { background-color: color-mix(in srgb, var(--s-paused) 34%, transparent); }
   /* S6: sticky so it stays put as content scrolls, unlike .curline-ov's position:absolute (D20).
      The pane is a flex column, so `float` would be ignored and this 100vh item would push the whole
      document a viewport down — align-self puts it at the right edge and the negative margins keep
@@ -147,8 +147,8 @@
   /* line-height comes from the block itself (--gl, set in lineGutter) so the number shares the
      first line box — otherwise a heading's tall line box parks its number well above the text. */
   .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; left: -44px; width: 32px;
-    top: 0; line-height: var(--gl, inherit); text-align: right; font-family: var(--chrome); font-size: 9.5px;
-    color: color-mix(in srgb, var(--muted) 55%, transparent); }
+    top: var(--gt, 0); line-height: var(--gl, inherit); text-align: right; font-family: var(--chrome);
+    font-size: 9.5px; color: color-mix(in srgb, var(--muted) 55%, transparent); }
   /* fallback when the measure starts too close to the pane edge for a hanging gutter (T3) */
   .docbody.gutter-in > [data-srcline]::before { position: static; display: inline-block; width: auto;
     min-width: 2.6em; margin-right: 6px; text-align: left; vertical-align: text-top; }
@@ -1126,6 +1126,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var GUTTER_PAD = 46;     // S8: measure-left offset that leaves room for the hanging line-number gutter
   var FULL_PAD = 16;       // S7: the full tier only needs enough left offset to keep that gutter inside the scrollport
   var HEAD_PAD = 56;   // R4: how far below the sticky head a scrolled-to target lands (= scroll-margin-top: 56px)
+  var FIND_DEBOUNCE = 160;   // R17: pause before a typed query is scanned
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
     // sits on the right is the normal use of a split view, and one shared set fights itself.
@@ -1320,8 +1321,26 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var spans = SV.blockSpans(tokens);
     if (spans.length !== blocks.length) { console.warn("line-gutter: block/span mismatch (" + spans.length + " spans vs " + blocks.length + " blocks) — skipping"); return; }
     var nums = SV.blockLineNumbers(spans, fmLines);
-    blocks.forEach(function (b, i) { b.dataset.srcline = nums[i];
-      b.style.setProperty("--gl", getComputedStyle(b).lineHeight); });   // align the number with this block's first line
+    // Measure first, write after: a block's own line-height and content top are wrong for
+    // blockquote / list / pre, where the first line lives in a child and padding sits above it.
+    var geo = blocks.map(function (b) {
+      // The first CHARACTER's rect, not the block's: a range over a list or a blockquote returns
+      // one rect per child block, so its "first rect" is a whole paragraph, not a line.
+      var w = document.createTreeWalker(b, NodeFilter.SHOW_TEXT), n, line = null;
+      while (!line && (n = w.nextNode())) {
+        if (!n.data.trim()) continue;
+        var r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1);
+        line = r.getClientRects()[0];
+      }
+      var box = b.getBoundingClientRect();
+      return line ? { top: line.top - box.top, h: line.height } : null;
+    });
+    blocks.forEach(function (b, i) {
+      b.dataset.srcline = nums[i];
+      if (!geo[i]) return;
+      b.style.setProperty("--gt", geo[i].top + "px");
+      b.style.setProperty("--gl", geo[i].h + "px");
+    });
   }
   function renderDoc(side, v) {
     var pane = PANES[side], mt = 0;
@@ -2020,15 +2039,45 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // stealing the caret on every navigation is not.
   function findOpen(side, quiet) {
     var p = PANES[side];
-    if (p._findOpen) { var inp = p.querySelector("[data-find-input]"); if (inp && !quiet) inp.focus(); return; }
+    // R17: opening with something selected means you want to find THAT — seed the box with it.
+    var seed = quiet ? "" : selectedIn(side);
+    if (p._findOpen) {
+      var inp = p.querySelector("[data-find-input]");
+      if (inp && !quiet) { if (seed) { inp.value = seed; find(side, seed); } inp.focus(); inp.select(); }
+      return;
+    }
     var head = p.querySelector(".doc-head"); if (!head) return;   // view hasn't rendered yet — nothing to anchor to
     p._findOpen = true;
+    if (seed) find(side, seed);
     head.insertAdjacentHTML("afterend", findBarHtml(side));
-    var input = p.querySelector("[data-find-input]"); if (!quiet) input.focus();
+    var input = p.querySelector("[data-find-input]"); if (!quiet) { input.focus(); input.select(); }
     updateFindCount(side);
+  }
+  function selectedIn(side) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !PANES[side].contains(sel.anchorNode)) return "";
+    var t = String(sel).trim();
+    return (t.length >= 2 && t.length <= 80 && !/\n/.test(t)) ? t : "";
+  }
+  // R17: a short recall list of past queries, shared by both panes — the same term is usually
+  // wanted on the other side too. ↑/↓ in the box walks it (shell-style), newest first.
+  function findHist() { try { return JSON.parse(lsGet("sv-findhist")) || []; } catch (e) { return []; } }
+  function findHistPush(q) {
+    if (!q || q.length < 2) return;
+    lsSet("sv-findhist", JSON.stringify(SV.recentPush(findHist(), q, 20)));
+  }
+  function findHistStep(side, dir) {
+    var p = PANES[side], list = findHist(); if (!list.length) return;
+    var at = p._histAt == null ? -1 : p._histAt;
+    at = Math.max(-1, Math.min(list.length - 1, at + dir));
+    p._histAt = at;
+    var inp = p.querySelector("[data-find-input]"); if (!inp) return;
+    inp.value = at < 0 ? "" : list[at];
+    find(side, inp.value); inp.select();
   }
   function findClose(side) {   // R13: closing clears this pane's hits (memory-layer clear lands with T11+)
     var p = PANES[side]; if (!p._findOpen) return;
+    findHistPush(p._hits.q); p._histAt = null;   // R17: remember what was searched, not that it was closed
     p._findOpen = false;
     var bar = p.querySelector(".findbar"); if (bar) bar.remove();
     p._hits.q = ""; p._hits.hits = []; p._hits.cur = -1;
@@ -2791,12 +2840,20 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "h" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { pinCurrent(focus); }   // R7: pin/unpin the selection
     if (e.key === "H" && e.shiftKey && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { clearPins(focus); }   // R13
     var fi = t.closest && t.closest("[data-find-input]");
-    if (e.key === "Enter" && fi) { e.preventDefault(); step(fi.closest("#left") ? "left" : "right", e.shiftKey ? -1 : 1); }   // R4
+    if (e.key === "Enter" && fi) { e.preventDefault();
+      var es = fi.closest("#left") ? "left" : "right"; findHistPush(PANES[es]._hits.q); step(es, e.shiftKey ? -1 : 1); }
+    if ((e.key === "ArrowUp" || e.key === "ArrowDown") && fi) { e.preventDefault();   // R17: walk the recall list
+      findHistStep(fi.closest("#left") ? "left" : "right", e.key === "ArrowUp" ? 1 : -1); }   // R4
   });
   // R3/R5: the find box is rebuilt on every render (like .mrule) — delegated, not bound per-element.
   document.addEventListener("input", function (e) {
     var inp = e.target.closest && e.target.closest("[data-find-input]"); if (!inp) return;
-    find(inp.closest("#left") ? "left" : "right", inp.value);
+    // R17: wait for a pause before scanning — a one-letter query matches half the document, and
+    // paying for that scan on the way to a real word is what makes typing feel heavy.
+    var side = inp.closest("#left") ? "left" : "right", p = PANES[side];
+    p._histAt = null;
+    clearTimeout(p._findT);
+    p._findT = setTimeout(function () { find(side, inp.value); }, FIND_DEBOUNCE);
   });
 
   // R2: hover an internal doc link → a floating rendered preview of the target (hovercard).

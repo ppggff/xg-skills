@@ -676,7 +676,8 @@ t("T14/S7: the measure is per pane, with the old flat fields migrating to both s
 t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
   assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -44px; width: 32px;/, "hangs left of the rule");
   assert.match(html, /line-height: var\(--gl, inherit\);/, "shares the block's first line box, so a heading's number doesn't float above its text");
-  assert.match(html, /b\.style\.setProperty\("--gl", getComputedStyle\(b\)\.lineHeight\);/, "that line-height comes from the block itself");
+  assert.match(html, /var w = document\.createTreeWalker\(b, NodeFilter\.SHOW_TEXT\), n, line = null;/, "measures the first character's line — a range over a list returns one rect per child block, not per line");
+  assert.match(html, /b\.style\.setProperty\("--gt", geo\[i\]\.top \+ "px"\);/, "so both the offset and the line height are measured, not inferred");
   assert.match(html, /\.mrule:hover::before, \.mrule\.on::before \{ opacity: 1; \}/, "R1: the boundary line surfaces on approach or during a drag, not always");
   assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
   assert.match(html, /var GUTTER_PAD = 46;/, "the default/full tiers reserve the strip, or every default view falls back to the inline gutter");
@@ -694,7 +695,7 @@ t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is 
 });
 t("T6: Enter/⇧Enter in the find input steps without the global !typing guard blocking it", () => {
   assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
-  assert.match(html, /if \(e\.key === "Enter" && fi\) \{ e\.preventDefault\(\); step\(fi\.closest\("#left"\) \? "left" : "right", e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction");
+  assert.match(html, /var es = fi\.closest\("#left"\) \? "left" : "right"; findHistPush\(PANES\[es\]\._hits\.q\); step\(es, e\.shiftKey \? -1 : 1\); \}/, "shift reverses direction, and stepping records the query");
   assert.match(html, /if \(h\.hits\[h\.cur\]\) scrollToInterval\(side, h\.hits\[h\.cur\]\);/, "step scrolls through the one scroll helper — no separate jump wrapper");
 });
 
@@ -867,6 +868,16 @@ t("T13: every exit from a view writes through the one named hook", () => {
   [1, 2, 3, 4, 5].forEach(n => assert.match(html, new RegExp("write point " + n + " of 5"), "write point " + n + " is labelled"));
   assert.match(html, /window\.addEventListener\("pagehide", function \(\) \{ visiblePanes\(\)\.forEach\(function \(side\) \{ leaveView\(side\); \}\); \}\);/, "closing the tab never reaches the five entries");
   assert.match(html, /leaveView\("left"\); leaveView\("right"\);   \/\/ write point 5 of 5\s+var tmp = \{ h: L\._hist/, "swapPanes writes BEFORE the histories move — the key carries the pane");
+});
+
+t("R17: the find box seeds from the selection, remembers past queries, and waits before scanning", () => {
+  assert.match(html, /var seed = quiet \? "" : selectedIn\(side\);/, "opening with something selected means you want to find that");
+  assert.match(html, /return \(t\.length >= 2 && t\.length <= 80 && !\/\\n\/\.test\(t\)\) \? t : "";/, "a paragraph-sized or multiline selection isn't a query");
+  assert.match(html, /var FIND_DEBOUNCE = 160;/, "a one-letter query matches half the document — don't pay for that on the way to a word");
+  assert.match(html, /clearTimeout\(p\._findT\);\s+p\._findT = setTimeout\(function \(\) \{ find\(side, inp\.value\); \}, FIND_DEBOUNCE\);/, "each keystroke restarts the wait");
+  assert.match(html, /lsSet\("sv-findhist", JSON\.stringify\(SV\.recentPush\(findHist\(\), q, 20\)\)\);/, "the recall list reuses the existing MRU primitive");
+  assert.match(html, /findHistStep\(fi\.closest\("#left"\) \? "left" : "right", e\.key === "ArrowUp" \? 1 : -1\); \}/, "↑/↓ walks it, shell-style");
+  assert.match(html, /findHistPush\(p\._hits\.q\); p\._histAt = null;/, "closing the box records what was searched");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");
