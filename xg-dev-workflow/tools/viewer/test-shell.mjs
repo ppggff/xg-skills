@@ -693,4 +693,37 @@ t("T8: updateSelectionEcho rejects short/multiline selections and never touches 
   assert.doesNotMatch(html.match(/function updateSelectionEcho[\s\S]*?\n  \}/)[0], /_hits\.hits|_hits\.q|_hits\.cur/, "reads only h.idx — never writes into the search model (S2's deliberate independence)");
 });
 
+
+// --- pinSlot (016 T9: color-slot allocation from the occupancy table) ---
+t("pinSlot: empty table / reuses a released middle slot / full table cycles by pin count", () => {
+  assert.equal(SV.pinSlot([false, false, false, false], 0), 0);
+  assert.equal(SV.pinSlot([true, false, true, false], 2), 1);    // first free slot, not the next index
+  assert.equal(SV.pinSlot([true, true, false, true], 3), 2);     // a released middle slot comes back
+  assert.equal(SV.pinSlot([true, true, true, true], 4), 0);      // full → count % 4 (5th pin shares the 1st color)
+  assert.equal(SV.pinSlot([true, true, true, true], 6), 2);
+  assert.equal(SV.pinSlot(undefined, 0), 0);                     // no table yet
+});
+t("T9: h pins the selection, ⇧h clears this pane's pins, and the find box has its own pin button", () => {
+  assert.match(html, /if \(e\.key === "h" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ pinCurrent\(focus\); \}/, "h pins/unpins, never while typing");
+  assert.match(html, /if \(e\.key === "H" && e\.shiftKey && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ clearPins\(focus\); \}/, "⇧h clears");
+  assert.match(html, /data-find-pin title="pin this term"/, "inside the input h is typing, so the find term needs a button");
+  assert.match(html, /var pinSide = t\.closest\("#left"\) \? "left" : "right"; pin\(pinSide, PANES\[pinSide\]\._hits\.q\);/, "the button pins the current query");
+});
+t("T9: pin toggles on the same term and only frees a slot nobody else holds", () => {
+  const fn = html.match(/function pin\(side, term\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(fn, /if \(at >= 0\) \{ unpin\(side, at\); return; \}/, "same word again → unpin (h is a toggle)");
+  assert.match(fn, /var slot = SV\.pinSlot\(h\.slotUsed, h\.pins\.length\);/, "slot comes from the occupancy table, not the array index");
+  assert.match(html, /var shared = h\.pins\.some\(function \(pn\) \{ return pn\.slot === gone\.slot; \}\);\s+if \(!shared\) h\.slotUsed\[gone\.slot\] = false;/, "past 4 pins two entries share a slot — don't free it under the other one");
+});
+t("T9: paint merges pins by slot under hit priority, and the rail stays outside the Highlight-API guard", () => {
+  const fn = html.match(/function paint\(side\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(fn, /var hl = bySlot\[pn\.slot\] \|\| \(bySlot\[pn\.slot\] = new Highlight\(\)\);/, "one highlight per color, not per pin");
+  assert.match(fn, /hl\.priority = i;/, "S11: pin order stacks pins; still below hit's 100");
+  assert.match(fn, /\}\s+\}\s+rail\(side\);   \/\/ S6: marker rail redraws alongside the highlights\s+\}$/, "rail is drawn even where CSS.highlights is unsupported");
+});
+t("T9: rail marks pins with their slot class so the track color matches the highlight", () => {
+  assert.match(html, /h\.pins\.forEach\(function \(pn\) \{ pn\.hits\.forEach\(function \(hit\) \{ mark\(hit, "p" \+ pn\.slot\); \}\); \}\);/, "R8: pinned items get marks too");
+  assert.match(html, /\.rail i\.p0 \{ background: var\(--s-active\); \}/, "slot 0 rail color matches its ::highlight rule");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
