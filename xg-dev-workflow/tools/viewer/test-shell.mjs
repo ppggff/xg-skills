@@ -678,11 +678,13 @@ t("T14/S8: the source-line gutter hangs outside the measure, folding back inline
   assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
   assert.match(html, /var GUTTER_PAD = 46;/, "the default/full tiers reserve the strip, or every default view falls back to the inline gutter");
   assert.match(html, /\} else \{ db\.style\.setProperty\("--m-l", GUTTER_PAD \+ "px"\); db\.style\.removeProperty\("--m-w"\); \}/, "default tier offsets the measure instead of sitting on the pane edge");
+  assert.match(html, /db\.style\.setProperty\("--m-w", \(contentW - GUTTER_PAD - Math\.max\(0, GUTTER_PAD - sbw\)\) \+ "px"\);/, "full tier's gaps look equal — the scrollbar already ate into the right one");
+  assert.match(html, /var top = db\.offsetTop \+ "px";/, "the measure lines start at the body, not over the header strips");
 });
 t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is a reversed chip", () => {
   assert.match(html, /\.findbar \{[^}]*order: 99;\s*position: sticky; bottom: 0;/, "last in the flex column, stuck to the bottom");
   assert.match(html, /padding: 6px 0 8px; bottom: -20px;/, "rests 20px lower — the pane's own bottom padding — so it sits flush with the pane edge");
-  assert.match(html, /\.rail i\.cur \{ height: 14px;/, "R12 on the rail: the current hit's mark is unmistakable");
+  assert.match(html, /\.rail i\.cur \{ left: -7px; background: var\(--fg\); z-index: 1; \}/, "R12 on the rail: same size as the rest, distinguished by reach and colour");
   assert.match(html, /h\.hits\.forEach\(function \(hit, i\) \{ mark\(hit, i === h\.cur \? "cur" : "", i\); \}\);/, "the current index drives that class");
   assert.match(html, /::highlight\(sv-cur-left\), ::highlight\(sv-cur-right\) \{ background-color: var\(--s-todo\); color: var\(--bg\);/, "reversed, not a second shade of the same wash");
 });
