@@ -79,9 +79,10 @@
      padding, so top:0 sticks flush; negative side margins let it span the pane's full width. */
   .doc-head { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 6;
     background: var(--bg); margin: 0 -28px 0; padding: 12px 28px 8px; border-bottom: 1px solid var(--line); }
-  /* R3/R5: not sticky — sits in normal flow right below .doc-head; jump (T6) scrolls the hit into
-     view, which is enough to keep it reachable without stacking a second sticky offset here. */
-  .findbar { display: flex; align-items: center; gap: 6px; padding: 6px 0; }
+  /* S10: last in the flex column (order) and stuck to the pane's bottom edge, so the readout stays
+     visible while scrolling without stacking a second sticky band under .doc-head. */
+  .findbar { display: flex; align-items: center; gap: 6px; padding: 6px 0 8px; order: 99;
+    position: sticky; bottom: 0; z-index: 4; background: var(--bg); border-top: 1px solid var(--line); }
   .findbar input { flex: 1; font: inherit; background: var(--bg); color: var(--fg);
     border: 1px solid var(--line2); border-radius: var(--radius); padding: 3px 8px; }
   .find-count { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 3em; text-align: right; }
@@ -91,7 +92,7 @@
      distinguishable status hues for the pin cycle. --s-backlog/-dropped/-unknown are three near
      greys, unusable here. */
   ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 20%, transparent); }
-  ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: color-mix(in srgb, var(--s-todo) 42%, transparent); text-decoration: underline; }
+  ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: var(--s-todo); color: var(--bg); text-decoration: underline; }
   ::highlight(sv-sel-left), ::highlight(sv-sel-right) { background-color: color-mix(in srgb, var(--sel) 55%, transparent); }   /* R6: echoes the existing ::selection color, not the search-hit palette */
   ::highlight(sv-pin-left-0), ::highlight(sv-pin-right-0) { background-color: color-mix(in srgb, var(--s-active) 22%, transparent); }
   ::highlight(sv-pin-left-1), ::highlight(sv-pin-right-1) { background-color: color-mix(in srgb, var(--s-done) 22%, transparent); }
@@ -103,7 +104,9 @@
      it from taking either width or height from the content. */
   .rail { position: sticky; top: 0; align-self: flex-end; width: 10px; height: 100vh;
     margin: 0 -10px -100vh 0; z-index: 2; }
-  .rail i { position: absolute; left: 0; right: 0; height: 2px; background: var(--s-todo); }
+  .rail i { position: absolute; left: 0; right: 0; height: 8px; margin-top: -3px; cursor: pointer;
+    background: var(--s-todo); background-clip: content-box; border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent; }
   .rail i.p0 { background: var(--s-active); } .rail i.p1 { background: var(--s-done); }
   .rail i.p2 { background: var(--s-blocked); } .rail i.p3 { background: var(--s-paused); }
   .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
@@ -131,8 +134,12 @@
   /* R9 [F8]: source line number, generated content only (D8: a real child would shift block
      indices and the digits would be searchable) — inline prefix so it never overflows the pane
      regardless of measure mode. */
-  .docbody > [data-srcline]::before { content: attr(data-srcline); display: inline-block; min-width: 2.6em;
-    margin-right: 6px; font-family: var(--chrome); font-size: 9.5px; color: var(--muted); vertical-align: text-top; }
+  .docbody > [data-srcline] { position: relative; }
+  .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; left: -3.6em; width: 3em;
+    text-align: right; font-family: var(--chrome); font-size: 9.5px; color: var(--muted); }
+  /* fallback when the measure starts too close to the pane edge for a hanging gutter (T3) */
+  .docbody.gutter-in > [data-srcline]::before { position: static; display: inline-block; width: auto;
+    min-width: 2.6em; margin-right: 6px; text-align: left; vertical-align: text-top; }
   .docbody h1,.docbody h2,.docbody h3,.docbody h4 { color: var(--fg); }
   /* R2/R40/R52 current marker — a band over the current UNIT: a single wrapped line in a doc, or a
      whole card/hit/commit in board/search/recent. Set by click / TOC jump / default only; it scrolls
@@ -1106,25 +1113,35 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var MEASURE_MIN = 240;   // R1: minimum measure width a drag can clamp down to
   var HEAD_PAD = 56;   // R4: jump's scroll offset, matching the existing scroll-margin-top: 56px
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
+    // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
+    // sits on the right is the normal use of a split view, and one shared set fights itself.
     var d = { leftW: null, tocW: 240, leftCustom: false, sideW: null,   // #right width is intentionally NOT stored
-              mMode: "default", mLeft: null, mWidth: null };            // R1/R2: measure tier + custom bounds
+              m: { left: { mode: "default", l: null, w: null }, right: { mode: "default", l: null, w: null } } };
+    function takeSide(dst, src) {
+      if (!src || typeof src !== "object") return;
+      if (src.mode === "custom" || src.mode === "full") dst.mode = src.mode;
+      if (typeof src.l === "number") dst.l = src.l;
+      if (typeof src.w === "number") dst.w = src.w;
+    }
     try { var s = JSON.parse(lsGet("sv-layout") || "null");
       if (s && typeof s === "object") {
         if (typeof s.leftW === "number") d.leftW = s.leftW;
         if (typeof s.tocW === "number") d.tocW = s.tocW;
         if (typeof s.sideW === "number") d.sideW = s.sideW;
         d.leftCustom = !!s.leftCustom;
-        if (s.mMode === "custom" || s.mMode === "full") d.mMode = s.mMode;
-        if (typeof s.mLeft === "number") d.mLeft = s.mLeft;
-        if (typeof s.mWidth === "number") d.mWidth = s.mWidth;
+        if (s.m) { takeSide(d.m.left, s.m.left); takeSide(d.m.right, s.m.right); }
+        else {   // D7 migration: the old flat fields were one preference about reading, not about a pane
+          var flat = { mode: s.mMode, l: s.mLeft, w: s.mWidth };
+          takeSide(d.m.left, flat); takeSide(d.m.right, flat);
+        }
       } } catch (e) {}
-    // R11 migration: sv-layout carries no mMode of its own yet → fall back to the old sv-docwidth key
-    if (d.mMode === "default" && lsGet("sv-docwidth") === "full") d.mMode = "full";
+    if (lsGet("sv-docwidth") === "full") ["left", "right"].forEach(function (k) {   // the even older key
+      if (d.m[k].mode === "default") d.m[k].mode = "full"; });
     return d;
   })();
   function saveLayout() { lsSet("sv-layout", JSON.stringify({
     leftW: layoutState.leftW, tocW: layoutState.tocW, leftCustom: layoutState.leftCustom, sideW: layoutState.sideW,
-    mMode: layoutState.mMode, mLeft: layoutState.mLeft, mWidth: layoutState.mWidth })); }
+    m: layoutState.m })); }
   (function () {                             // R6: on load, restore #side width + apply persisted left/toc
     var sideEl = document.getElementById("side");
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
@@ -1132,13 +1149,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
   })();
   function applyMeasure(side) {   // R1/R2: write the two docbody measure vars + reposition that pane's mrule lines
     var pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
-    var paneW = pane.getBoundingClientRect().width;
-    if (layoutState.mMode === "full") { db.style.setProperty("--m-w", "100%"); db.style.setProperty("--m-l", "0"); }
-    else if (layoutState.mMode === "custom") {
-      var c = SV.clampMeasure(layoutState.mLeft, layoutState.mWidth, paneW, MEASURE_MIN);
+    var paneW = pane.getBoundingClientRect().width, m = layoutState.m[side];
+    if (m.mode === "full") { db.style.setProperty("--m-w", "100%"); db.style.setProperty("--m-l", "0"); }
+    else if (m.mode === "custom") {
+      var c = SV.clampMeasure(m.l, m.w, paneW, MEASURE_MIN);
       db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
     } else { db.style.removeProperty("--m-l"); db.style.removeProperty("--m-w"); }
     positionMrules(side, pane, db);
+    // S8: the gutter hangs outside the left rule when there is room for it, and folds back inline
+    // when the measure starts too close to the pane edge (T3's clipping finding).
+    db.classList.toggle("gutter-in", db.getBoundingClientRect().left - pane.getBoundingClientRect().left < 44);
   }
   function positionMrules(side, pane, db) {
     var pr = pane.getBoundingClientRect(), dr = db.getBoundingClientRect();
@@ -1991,11 +2011,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   // R4: hand-computed scroll offset, not scrollIntoView() — the existing scroll-margin-top only
   // sits on heading elements, and most hits land in paragraphs/tables/code blocks it can't cover.
-  function jump(side) {
+  function jump(side, force) {
     var p = PANES[side], h = p._hits; if (h.cur < 0 || !h.hits[h.cur]) return;
-    var r = rangeOf(h.idx, h.hits[h.cur][0], h.hits[h.cur][1]); if (!r) return;
-    var rects = r.getClientRects(); if (!rects.length) return;   // hit not currently rendered — nothing to scroll to
-    p.scrollTop = p.scrollTop + (rects[0].top - p.getBoundingClientRect().top) - HEAD_PAD;
+    scrollToInterval(side, h.hits[h.cur], force);
+  }
+  // S14: stepping through hits that already share the screen shouldn't move the page — losing your
+  // surroundings on every keypress costs more than the scroll saves. The visible band excludes both
+  // sticky strips: inside the viewport but under .doc-head or the find bar is not visible.
+  function scrollToInterval(side, iv, force) {
+    var p = PANES[side], h = p._hits;
+    var r = rangeOf(h.idx, iv[0], iv[1]); if (!r) return;
+    var rects = r.getClientRects(); if (!rects.length) return;   // not currently rendered — nothing to scroll to
+    var pr = p.getBoundingClientRect(), bar = p.querySelector(".findbar");
+    var lo = pr.top + HEAD_PAD, hi = pr.bottom - (bar ? bar.getBoundingClientRect().height : 0);
+    if (!force && rects[0].top >= lo && rects[0].bottom <= hi) return;
+    p.scrollTop = p.scrollTop + (rects[0].top - pr.top) - HEAD_PAD;
   }
   // R7/D14: pin a word as a persistent highlight. Same gesture on an already-pinned word removes
   // it (`h` toggles). No cap — colors cycle through the four-slot table (S5), identity being the
@@ -2056,7 +2086,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     track.innerHTML = "";
     if (!h.idx) return;
     var pr = p.getBoundingClientRect(), contentH = p.scrollHeight, trackH = track.clientHeight;
-    function mark(hit, cls) {
+    function mark(hit, cls, idx) {
       var r = rangeOf(h.idx, hit[0], hit[1]); if (!r) return;
       var rect = r.getClientRects()[0];
       if (!rect || (!rect.width && !rect.height)) {
@@ -2067,12 +2097,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (!rect) return;
       var el = document.createElement("i");
       if (cls) el.className = cls;
+      el.dataset.s = hit[0]; el.dataset.e = hit[1];   // S6: the interval is the mark's identity — a Range wouldn't survive a rebuild [F10]
+      if (idx != null) el.dataset.hit = idx;
       // + scrollTop: the mark's place on the track is the hit's position in the whole document, not
       // in the current viewport. Without it a hit scrolled above the fold clamps to the track top.
       el.style.top = SV.railTop(rect.top + p.scrollTop, pr.top, contentH, trackH) + "px";
       track.appendChild(el);
     }
-    h.hits.forEach(function (hit) { mark(hit, ""); });
+    h.hits.forEach(function (hit, i) { mark(hit, "", i); });
     h.pins.forEach(function (pn) { pn.hits.forEach(function (hit) { mark(hit, "p" + pn.slot); }); });   // R8: pin marks carry their highlight color
   }
   // L4 (S4): reading memory, keyed by (pane, view). Stored as {order, map} so the MRU cap can drop
@@ -2388,7 +2420,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     function move(ev) {
       var dx = ev.clientX - startX;
       var c = SV.clampMeasure(isLeft ? left0 + dx : left0, isLeft ? width0 - dx : width0 + dx, pr.width, MEASURE_MIN);
-      layoutState.mMode = "custom"; layoutState.mLeft = c.left; layoutState.mWidth = c.width;
+      var m = layoutState.m[side]; m.mode = "custom"; m.l = c.left; m.w = c.width;
       db.style.setProperty("--m-l", c.left + "px"); db.style.setProperty("--m-w", c.width + "px");
       positionMrules(side, pane, db);
       invalidateGeometry(side);   // S9 hookpoint 1: measure boundary drag
@@ -2421,14 +2453,17 @@ if (typeof window !== "undefined" && window.marked) (function () {
       step(t.closest("#left") ? "left" : "right", 1); return; }   // R4
     if ((t = e.target.closest("[data-find-prev]"))) { e.preventDefault();
       step(t.closest("#left") ? "left" : "right", -1); return; }   // R4
+    if ((t = e.target.closest(".rail i"))) { e.preventDefault();   // R8: a mark is a jump target
+      var rs = t.closest("#left") ? "left" : "right", rh = PANES[rs]._hits;
+      if (t.dataset.hit != null) { rh.cur = +t.dataset.hit; paint(rs); updateFindCount(rs); }
+      scrollToInterval(rs, [+t.dataset.s, +t.dataset.e], true); return; }
     if ((t = e.target.closest("[data-find-pin]"))) { e.preventDefault();
       var pinSide = t.closest("#left") ? "left" : "right"; pin(pinSide, PANES[pinSide]._hits.q); return; }   // R7
-    if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle reading-width tier, persist
-      var hasCustom = typeof layoutState.mLeft === "number" && typeof layoutState.mWidth === "number";
-      layoutState.mMode = layoutState.mMode === "default" ? (hasCustom ? "custom" : "full")
-        : layoutState.mMode === "custom" ? "full" : "default";
-      saveLayout(); applyMeasure("left"); applyMeasure("right");
-      invalidateGeometry("left"); invalidateGeometry("right"); return; }   // S9 hookpoint 2
+    if ((t = e.target.closest("[data-docwidth]"))) { e.preventDefault();   // R1/R11: cycle THIS pane's width tier
+      var ws = t.closest("#left") ? "left" : "right", m = layoutState.m[ws];
+      var hasCustom = typeof m.l === "number" && typeof m.w === "number";
+      m.mode = m.mode === "default" ? (hasCustom ? "custom" : "full") : m.mode === "custom" ? "full" : "default";
+      saveLayout(); applyMeasure(ws); invalidateGeometry(ws); return; }   // S9 hookpoint 2
     if ((t = e.target.closest("[data-cd-close]"))) { e.preventDefault();   // R64: deselect → drop the drawer
       boardSelected = null; try { localStorage.removeItem("sv-detail-card"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }

@@ -513,7 +513,7 @@ t("T2: setCurLine stores a block-relative y offset, not the raw viewport clientY
 });
 t("T2: all five hookpoints call invalidateGeometry", () => {
   assert.match(html, /positionMrules\(side, pane, db\);\s+invalidateGeometry\(side\);.*hookpoint 1/, "hookpoint 1: measure drag");
-  assert.match(html, /applyMeasure\("left"\); applyMeasure\("right"\);\s+invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 2/, "hookpoint 2: width-tier button");
+  assert.match(html, /saveLayout\(\); applyMeasure\(ws\); invalidateGeometry\(ws\);.*hookpoint 2/, "hookpoint 2: width-tier button (per-pane since the M2 change)");
   assert.match(html, /invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 5/, "hookpoint 5: applyLayout end");
   assert.match(html, /padForDrawer\(pane\);\s+invalidateGeometry\(side\);.*hookpoint 6/, "hookpoint 6: updateDetail end");
   assert.match(html, /window\.addEventListener\("resize", function \(\) \{.*hookpoint 7/, "hookpoint 7: window resize");
@@ -653,12 +653,33 @@ t("stepHitIndex: total=0 / cur=-1 (no current yet) / wraps at both endpoints", (
   assert.equal(SV.stepHitIndex(0, 5, -1), 4);     // first → previous wraps to last
   assert.equal(SV.stepHitIndex(2, 5, 1), 3);      // ordinary advance, no wrap
 });
-t("T6: jump hand-computes the scroll offset (HEAD_PAD), never scrollIntoView", () => {
+t("T6/S14: scrolling is hand-computed (HEAD_PAD), and only when the target isn't already visible", () => {
   assert.match(html, /var HEAD_PAD = 56;/, "matches the existing scroll-margin-top: 56px");
-  const m = html.match(/function jump\(side\) \{[\s\S]*?\n  \}/);
-  assert.ok(m, "jump defined");
-  assert.match(m[0], /p\.scrollTop = p\.scrollTop \+ \(rects\[0\]\.top - p\.getBoundingClientRect\(\)\.top\) - HEAD_PAD;/, "manual scrollTop math");
-  assert.doesNotMatch(m[0], /scrollIntoView/, "jump itself never falls back to scrollIntoView (existing scroll-margin-top can't cover paragraphs/tables) — scrollToSection's own use is unrelated");
+  const m = html.match(/function scrollToInterval\(side, iv, force\) \{[\s\S]*?\n  \}/);
+  assert.ok(m, "scrollToInterval defined");
+  assert.match(m[0], /p\.scrollTop = p\.scrollTop \+ \(rects\[0\]\.top - pr\.top\) - HEAD_PAD;/, "manual scrollTop math");
+  assert.match(m[0], /var lo = pr\.top \+ HEAD_PAD, hi = pr\.bottom - \(bar \? bar\.getBoundingClientRect\(\)\.height : 0\);/, "the visible band excludes both sticky strips");
+  assert.match(m[0], /if \(!force && rects\[0\]\.top >= lo && rects\[0\]\.bottom <= hi\) return;/, "S14: already on screen → don't move the page");
+  assert.doesNotMatch(m[0], /scrollIntoView/, "never falls back to scrollIntoView — scroll-margin-top can't cover paragraphs/tables");
+});
+t("T14/S6: rail marks carry their interval and act as jump targets", () => {
+  assert.match(html, /el\.dataset\.s = hit\[0\]; el\.dataset\.e = hit\[1\];/, "the interval is the mark's identity, not a Range");
+  assert.match(html, /if \(t\.dataset\.hit != null\) \{ rh\.cur = \+t\.dataset\.hit; paint\(rs\); updateFindCount\(rs\); \}/, "clicking a hit mark also makes it current");
+  assert.match(html, /scrollToInterval\(rs, \[\+t\.dataset\.s, \+t\.dataset\.e\], true\); return; \}/, "a click always scrolls, unlike stepping");
+  assert.match(html, /\.rail i \{[^}]*height: 8px;[^}]*background-clip: content-box;/, "8px hit area, 2px of visible bar");
+});
+t("T14/S7: the measure is per pane, with the old flat fields migrating to both sides", () => {
+  assert.match(html, /m: \{ left: \{ mode: "default", l: null, w: null \}, right: \{ mode: "default", l: null, w: null \} \}/, "two sets, not one");
+  assert.match(html, /var flat = \{ mode: s\.mMode, l: s\.mLeft, w: s\.mWidth \};\s+takeSide\(d\.m\.left, flat\); takeSide\(d\.m\.right, flat\);/, "D7: an old preference was about reading, not about a pane");
+  assert.match(html, /var paneW = pane\.getBoundingClientRect\(\)\.width, m = layoutState\.m\[side\];/, "applyMeasure reads its own side");
+});
+t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
+  assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -3\.6em;/, "hangs left of the rule");
+  assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
+});
+t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is a reversed chip", () => {
+  assert.match(html, /\.findbar \{[^}]*order: 99;\s*position: sticky; bottom: 0;/, "last in the flex column, stuck to the bottom");
+  assert.match(html, /::highlight\(sv-cur-left\), ::highlight\(sv-cur-right\) \{ background-color: var\(--s-todo\); color: var\(--bg\);/, "reversed, not a second shade of the same wash");
 });
 t("T6: Enter/⇧Enter in the find input steps without the global !typing guard blocking it", () => {
   assert.match(html, /var fi = t\.closest && t\.closest\("\[data-find-input\]"\);/, "checked independently of the shared `typing` flag");
