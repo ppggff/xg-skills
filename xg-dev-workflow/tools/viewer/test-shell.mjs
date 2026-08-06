@@ -692,8 +692,8 @@ t("T7: ensureHitVisible expands a collapsed trace row holding the current hit an
 t("T8: selectionEcho piggybacks the existing mouseup handler, not a second selection listener", () => {
   const m = html.match(/document\.addEventListener\("mouseup", function \(\) \{ {28}\/\/ show 💬 by the selection[\s\S]*?\n {2}\}\);/);
   assert.ok(m, "the #cmt mouseup handler block");
-  assert.match(m[0], /updateSelectionEcho\(focus, sel\);   \/\/ R6: T8/, "echo updates right after #cmt positioning, same handler");
-  assert.match(m[0], /updateSelectionEcho\(focus, null\);   \/\/ selection gone → echo clears too, doesn't linger/, "empty selection clears the echo too");
+  assert.match(m[0], /updateSelectionEcho\(focus, own \? sel : null\);   \/\/ R6: T8/, "one echo call, driven by pane ownership alone");
+  assert.match(m[0], /if \(own && doc\) \{/, "T14: the 💬 button still needs a doc, but the echo is pane-level — it must work on board/trace/search/recent too");
 });
 t("T8: updateSelectionEcho rejects short/multiline selections and never touches _hits", () => {
   assert.match(html, /if \(!text \|\| text\.length < 2 \|\| \/\\n\/\.test\(text\)\) \{ CSS\.highlights\.delete\(name\); return; \}/, "length<2 or a newline in the selection → no echo");

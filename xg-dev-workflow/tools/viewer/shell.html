@@ -2513,15 +2513,17 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("mouseup", function () {                            // show 💬 by the selection
     setTimeout(function () {
       var sel = window.getSelection(), doc = PANES[focus] && PANES[focus]._doc;
-      if (doc && sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode)) {
+      var own = sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode);
+      // The 💬 button needs a doc to anchor a comment to; the echo doesn't — it is pane-level (R6),
+      // so it must also work on board / trace / search / recent / diff.
+      if (own && doc) {
         var r = sel.getRangeAt(0).getBoundingClientRect();
         cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, r.left) + "px";
         cmtBtn.style.display = "block";
-        updateSelectionEcho(focus, sel);   // R6: T8
-      } else {
-        if (document.activeElement !== cmtBtn) cmtBtn.style.display = "none";
-        updateSelectionEcho(focus, null);   // selection gone → echo clears too, doesn't linger
+      } else if (document.activeElement !== cmtBtn) {
+        cmtBtn.style.display = "none";
       }
+      updateSelectionEcho(focus, own ? sel : null);   // R6: T8; selection gone → echo clears, doesn't linger
     }, 0);
   });
   // R6/ADR-0001 D1: no second selection listener — the mouseup above already does pane-ownership
