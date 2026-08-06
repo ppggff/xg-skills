@@ -675,6 +675,9 @@ t("T7: .rail is the pane's first child (every view kind, via paneHead) and paint
 });
 t("T7: rail takes the first rect only (one mark per hit) and falls back to the containing block when hidden", () => {
   assert.match(html, /var rect = r\.getClientRects\(\)\[0\];/, "first rect only — a bold/code-boundary hit still gets one mark");
+  // T11 fix: a client rect is viewport-relative, so marks drawn while scrolled down clamped to the
+  // track top. The track maps the whole document, hence + scrollTop.
+  assert.match(html, /SV\.railTop\(rect\.top \+ p\.scrollTop, pr\.top, contentH, trackH\)/, "mark position is document-absolute");
   assert.match(html, /var blk = a && a\.node\.parentElement && a\.node\.parentElement\.closest\(p\._blockSel\);/, "falls back to the hit's containing block (only remaining zero-rect cause: a collapsed trace row)");
 });
 t("T7: ensureHitVisible expands a collapsed trace row holding the current hit and marks its summary row .x", () => {
@@ -748,6 +751,55 @@ t("T10: a settled mermaid diagram invalidates content, not just geometry", () =>
   assert.match(html, /invalidateContent\(side\); \}\)   \/\/ S9 hookpoint 4/, "the inner .then swaps the source <pre> for the SVG");
   assert.match(html, /function invalidateContent\(side\) \{\s+PANES\[side\]\._idxDirty = true; invalidateGeometry\(side\);/, "rides the geometry frame so N diagrams cost one rescan");
   assert.match(html, /if \(p\._idxDirty\) \{ p\._idxDirty = false; reindex\(side\); \}/, "the rAF callback rescans before relocating the band");
+});
+
+// --- view memory (016 T11): view identity, MRU store, content anchor ---
+t("viewKey: one key shape per view kind, pane-prefixed, unknown kind degrades", () => {
+  assert.equal(SV.viewKey("left", { kind: "doc", tree: "dev", rel: "a/b.md" }), "left|doc:dev/a/b.md");
+  assert.equal(SV.viewKey("right", { kind: "doc", tree: "dev", rel: "a/b.md" }), "right|doc:dev/a/b.md");
+  assert.equal(SV.viewKey("left", { kind: "diff", card: "xg-skills/016" }), "left|diff:xg-skills/016");
+  assert.equal(SV.viewKey("left", { kind: "trace", card: "xg-skills/016" }), "left|trace:xg-skills/016");
+  assert.equal(SV.viewKey("left", { kind: "search", q: "pane" }), "left|search:pane");
+  assert.equal(SV.viewKey("left", { kind: "recent" }), "left|recent");
+  assert.equal(SV.viewKey("left", { kind: "board" }, "cbdb"), "left|board:cbdb");
+  assert.equal(SV.viewKey("left", { kind: "board" }, ""), "left|board:");   // all-projects board is its own view
+  assert.equal(SV.viewKey("left", { kind: "future" }), "left|future");      // degrades, never throws
+});
+t("recallPut: MRU order, re-put moves to front, cap evicts from the map too", () => {
+  let s = SV.recallPut(null, "k1", { y: 1 }, 2);
+  s = SV.recallPut(s, "k2", { y: 2 }, 2);
+  assert.deepEqual(s.order, ["k2", "k1"]);
+  s = SV.recallPut(s, "k1", { y: 9 }, 2);
+  assert.deepEqual(s.order, ["k1", "k2"], "re-put moves the key to the front, no duplicate");
+  assert.equal(s.map.k1.y, 9, "and overwrites its entry");
+  s = SV.recallPut(s, "k3", { y: 3 }, 2);
+  assert.deepEqual(s.order, ["k3", "k1"]);
+  assert.equal(s.map.k2, undefined, "the evicted key's entry is dropped, not orphaned in the map");
+});
+t("anchorOf / anchorFind: index hit, index moved (prefix rescue), both miss", () => {
+  const blocks = ["alpha block text", "beta block text", "gamma block text"];
+  assert.deepEqual(SV.anchorOf(blocks, 1), { b: 1, p: "beta block text" });
+  assert.equal(SV.anchorOf(blocks, 5), null);
+  assert.equal(SV.anchorFind(blocks, { b: 1, p: "beta block text" }), 1);
+  // two blocks inserted above → the recorded index now points elsewhere, the prefix still finds it
+  assert.equal(SV.anchorFind(["new", "also new", ...blocks], { b: 1, p: "beta block text" }), 3);
+  assert.equal(SV.anchorFind(blocks, { b: 1, p: "deleted block" }), -1);
+  assert.equal(SV.anchorFind(blocks, null), -1);
+});
+
+t("T11: the entering flag is set on every entry path and burned on read", () => {
+  assert.match(html, /p\._entering = true;   \/\/ S12/, "navigate sets it before render");
+  assert.match(html, /if \(p\._hi > 0\) \{ saveView\(side\); p\._hi--; p\._entering = true;/, "back sets it");
+  assert.match(html, /PANES\[side\]\._entering = true; setFocus\(side\); render\(side\);   \/\/ S12: a history jump is an entry/, "the history dropdown sets it");
+  assert.match(html, /L\._entering = R\._entering = true;   \/\/ S12/, "swapPanes sets it for both panes");
+  assert.match(html, /var entering = p\._entering; p\._entering = false;/, "afterRender reads once and clears");
+  const rv = html.match(/function refreshView\(side\) \{[\s\S]*?\n  \}/)[0];
+  assert.doesNotMatch(rv, /_entering/, "D12 priority 3: the re-render path must never set it");
+});
+t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
+  assert.match(html, /if \(entering && !\(p\._view && p\._view\.line\)\) restoreView\(side\);/, "D12 priority 1 beats 2: a search hit's line wins");
+  assert.match(html, /if \(!v \|\| !p\._blockSel \|\| !blockEls\(p\)\.length\) return;/, "an error panel has no blocks — don't overwrite good memory");
+  assert.match(html, /else if \(typeof e\.y === "number"\) p\.scrollTop = e\.y;/, "D5: pixel fallback when the anchor is gone");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");

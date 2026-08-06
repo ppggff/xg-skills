@@ -1020,6 +1020,42 @@ var SV = (function () {
     if (cur < 0) return dir < 0 ? total - 1 : 0;
     return ((cur + dir) % total + total) % total;
   }
+  // S3: a view's memory key. Pane-prefixed because two panes on the same file are the point of a
+  // split view — a single key would let them overwrite each other's position. Kept next to
+  // histLabel: both are branch tables over view.kind, and they go stale together.
+  function viewKey(side, view, project) {
+    var v = view || {}, k = v.kind;
+    if (k === "doc") return side + "|doc:" + v.tree + "/" + v.rel;
+    if (k === "diff") return side + "|diff:" + v.card;
+    if (k === "trace") return side + "|trace:" + v.card;
+    if (k === "search") return side + "|search:" + v.q;
+    if (k === "board") return side + "|board:" + (project || "");   // switching project changes the whole content
+    if (k === "recent") return side + "|recent";
+    return side + "|" + k;   // an unregistered kind still gets a key of its own rather than throwing
+  }
+  // S4: MRU put over {order, map}. The evicted key's entry goes with it — otherwise the cap bounds
+  // the order list while the map grows forever.
+  function recallPut(store, key, entry, cap) {
+    var s = store && store.map ? store : { order: [], map: {} };
+    var order = recentPush(s.order, key, cap || 50), map = {};
+    order.forEach(function (k) { map[k] = k === key ? entry : s.map[k]; });
+    return { order: order, map: map };
+  }
+  // S4/D5: the content anchor — block index plus a prefix of that block's text. The index alone
+  // breaks on any edit above it; the prefix alone is ambiguous; together the index is a fast path
+  // and the prefix is the rescue.
+  function anchorOf(blockTexts, scrollIdx) {
+    var list = blockTexts || [];
+    if (scrollIdx < 0 || scrollIdx >= list.length) return null;
+    return { b: scrollIdx, p: (list[scrollIdx] || "").slice(0, 40) };
+  }
+  function anchorFind(blockTexts, anchor) {
+    var list = blockTexts || [];
+    if (!anchor || !anchor.p) return -1;
+    if (list[anchor.b] && list[anchor.b].indexOf(anchor.p) === 0) return anchor.b;
+    for (var i = 0; i < list.length; i++) if (list[i].indexOf(anchor.p) === 0) return i;
+    return -1;
+  }
   // S5/D14: allocate from an occupancy table rather than by array index, so unpinning a middle
   // item leaves every other pin's color untouched. Past 4 pins colors repeat (R7: no cap, identity
   // is the highlighted word itself).
@@ -1044,7 +1080,8 @@ var SV = (function () {
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows, clampMeasure: clampMeasure,
            blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
-           railTop: railTop, pinSlot: pinSlot };
+           railTop: railTop, pinSlot: pinSlot,
+           viewKey: viewKey, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1153,11 +1190,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // instead of collapsing the column and reflowing both panes.
   function navigate(side, view, push) {
     var p = PANES[side];
+    saveView(side);   // L4 write point: leaving this view (the rest of the entries land with leaveView)
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
     if (side === "right") showRight(true);
+    p._entering = true;   // S12
     setFocus(side); render(side);
   }
-  function back(side) { var p = PANES[side]; if (p._hi > 0) { p._hi--; setFocus(side); render(side); } }
+  function back(side) { var p = PANES[side]; if (p._hi > 0) { saveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }
   function highlightNav() {   // mark the nav item matching the left pane's current view (board/recent)
     var k = PANES.left._view && PANES.left._view.kind;
     document.querySelectorAll(".navbtn[data-go]").forEach(function (b) { b.classList.toggle("on", b.dataset.go === k); });
@@ -2019,11 +2058,42 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (!rect) return;
       var el = document.createElement("i");
       if (cls) el.className = cls;
-      el.style.top = SV.railTop(rect.top, pr.top, contentH, trackH) + "px";
+      // + scrollTop: the mark's place on the track is the hit's position in the whole document, not
+      // in the current viewport. Without it a hit scrolled above the fold clamps to the track top.
+      el.style.top = SV.railTop(rect.top + p.scrollTop, pr.top, contentH, trackH) + "px";
       track.appendChild(el);
     }
     h.hits.forEach(function (hit) { mark(hit, ""); });
     h.pins.forEach(function (pn) { pn.hits.forEach(function (hit) { mark(hit, "p" + pn.slot); }); });   // R8: pin marks carry their highlight color
+  }
+  // L4 (S4): reading memory, keyed by (pane, view). Stored as {order, map} so the MRU cap can drop
+  // both halves together; the anchor is content-based (D5) because a pixel offset means nothing
+  // after the file is edited.
+  function viewStore() {
+    try { return JSON.parse(lsGet("sv-viewstate")) || { order: [], map: {} }; } catch (e) { return { order: [], map: {} }; }
+  }
+  function blockEls(pane) { return pane._blockSel ? [].slice.call(pane.querySelectorAll(pane._blockSel)) : []; }
+  function blockPrefixes(pane) {
+    return blockEls(pane).map(function (el) { return el.textContent.replace(/\s+/g, " ").trim().slice(0, 40); });
+  }
+  function topBlockIndex(pane) {   // the block the reader is actually looking at, not the one at scrollTop 0
+    var els = blockEls(pane), edge = pane.getBoundingClientRect().top + HEAD_PAD;
+    for (var i = 0; i < els.length; i++) if (els[i].getBoundingClientRect().bottom > edge) return i;
+    return els.length - 1;
+  }
+  function saveView(side) {
+    var p = PANES[side], v = p._view;
+    if (!v || !p._blockSel || !blockEls(p).length) return;   // error panel / placeholder: never overwrite good memory with an empty anchor
+    var key = SV.viewKey(side, v, project);
+    var entry = { a: SV.anchorOf(blockPrefixes(p), topBlockIndex(p)), y: p.scrollTop };
+    lsSet("sv-viewstate", JSON.stringify(SV.recallPut(viewStore(), key, entry, 50)));
+  }
+  function restoreView(side) {
+    var p = PANES[side], e = viewStore().map[SV.viewKey(side, p._view, project)];
+    if (!e) return;
+    var i = SV.anchorFind(blockPrefixes(p), e.a), els = blockEls(p);
+    if (i >= 0 && els[i]) p.scrollTop += els[i].getBoundingClientRect().top - p.getBoundingClientRect().top - HEAD_PAD;
+    else if (typeof e.y === "number") p.scrollTop = e.y;   // D5: the anchor is gone — pixel fallback
   }
   // R52: one shared tail for EVERY view — TOC (built once from the sections) + a default current
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
@@ -2034,6 +2104,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
     reindex(side);   // S1/S2: rescan this pane's query/pins against the fresh content
+    // S12/D12: the entering flag is read once and burned. That is the whole reason a poll or a
+    // theme switch can't yank a reader back to the anchor they entered on — those paths re-render
+    // through here without ever setting it. An explicit target (a search hit's line) outranks the
+    // anchor, so yield to it here rather than scrolling twice.
+    var entering = p._entering; p._entering = false;
+    if (entering && !(p._view && p._view.line)) restoreView(side);
   }
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block
@@ -2333,6 +2409,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var L = PANES.left, R = PANES.right;
     var tmp = { h: L._hist, i: L._hi }; L._hist = R._hist; L._hi = R._hi; R._hist = tmp.h; R._hi = tmp.i;
     setFocus("left");
+    L._entering = R._entering = true;   // S12: both panes are entering a view they didn't have
     if (!R._hist.length) { showRight(false); } else { showRight(true); render("right"); }
     if (L._hist.length) render("left"); else { L.innerHTML = ""; renderToc(); }
   }
@@ -2352,7 +2429,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
       reindex(focus); return; }   // R15: a filtered-out group is no longer searchable
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
-    var side = sel.dataset.hist; PANES[side]._hi = +sel.value; setFocus(side); render(side);
+    var side = sel.dataset.hist; saveView(side); PANES[side]._hi = +sel.value;
+    PANES[side]._entering = true; setFocus(side); render(side);   // S12: a history jump is an entry
   });
   // R6 fix: shift-clicking a nav target must not extend the text selection / flash.
   document.addEventListener("mousedown", function (e) {
