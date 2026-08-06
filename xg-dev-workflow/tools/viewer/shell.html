@@ -2101,7 +2101,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     inp.value = at < 0 ? "" : list[at];
     find(side, inp.value); inp.select();
   }
-  function findClose(side) {   // R13: closing clears this pane's hits (memory-layer clear lands with T11+)
+  function findClose(side) {   // R13: closing clears this pane's hits and the query this view remembers
     var p = PANES[side]; if (!p._findOpen) return;
     clearTimeout(p._findT);   // a pending scan would repaint a query this call is throwing away (R13)
     findHistPush(p._hits.q); p._histAt = null;   // R17: remember what was searched, not that it was closed

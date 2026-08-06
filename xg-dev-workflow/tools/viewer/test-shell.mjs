@@ -493,11 +493,11 @@ t("groupTraceRows: no trailing group when every row has a part", () => {
 
 // --- clampMeasure (016 T1: reading-measure drag keeps the box inside the pane) ---
 t("clampMeasure: crossing / narrow-window / already-in-bounds", () => {
-  // 左右交叉: dragging the left edge past the right edge collapses to min width at the drag point
+  // crossing: dragging the left edge past the right edge collapses to min width at the drag point
   assert.deepEqual(SV.clampMeasure(700, -150, 1000, 200), { left: 700, width: 200 });
-  // 窄窗口: pane itself is narrower than min → fill the whole pane, no overflow
+  // narrow window: pane itself is narrower than min → fill the whole pane, no overflow
   assert.deepEqual(SV.clampMeasure(20, 100, 150, 300), { left: 0, width: 150 });
-  // 边界相等: right edge already exactly at paneW → passes through unchanged (idempotent)
+  // edges equal: right edge already exactly at paneW → passes through unchanged (idempotent)
   assert.deepEqual(SV.clampMeasure(300, 500, 800, 200), { left: 300, width: 500 });
 });
 
@@ -521,7 +521,7 @@ t("T2: all five hookpoints call invalidateGeometry", () => {
 
 // --- blockSpans / blockLineNumbers (016 T3: F8's top-level-HTML-comment off-by-one) ---
 t("blockSpans: skips a top-level HTML-comment token so spans.length == block count [F8]", () => {
-  // marked.lexer("<!-- c -->\n\n# Title\n\npara one\n\npara two") shape, per facts.md F8:
+  // marked.lexer("<!-- c -->\n\n# Title\n\npara one\n\npara two") shape, per [F8]:
   // non-space tokens = 4 (html, heading, paragraph, paragraph); marked.parse() renders 3 elements
   // (the comment becomes a Comment node, not an Element child).
   const tokens = [
@@ -560,8 +560,8 @@ t("T3: lineGutter tags blocks via dataset (not textContent) and warns once on mi
 });
 t("T3: renderMermaid takes side and invalidates from its inner .then (hookpoint 4)", () => {
   assert.match(html, /function renderMermaid\(side, body\)/, "renderMermaid takes side");
-  // T10 widened this from invalidateGeometry to invalidateContent (which calls it) — the diagram
-  // swap changes the indexed text too, not only the layout. The hookpoint is unchanged.
+  // The diagram swap changes the indexed text, not only the layout, so this hookpoint has to reach
+  // the index — invalidateContent, which calls invalidateGeometry in turn.
   assert.match(html, /holder\.innerHTML = res\.svg; dropTemp\(\);\s+invalidateContent\(side\); \}\).*hookpoint 4/, "inner .then invalidates, not the outer ensureMermaid().then");
 });
 t("T3: renderDiffOverlay reuses SV.blockSpans and labels plain/add blocks with their source line", () => {
@@ -601,8 +601,8 @@ t("offsetToNode: run boundary / inside a folded whitespace run / out of bounds",
   assert.equal(SV.offsetToNode(runs, 11), null);
 });
 t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes only", () => {
-  // T12 added `style`: mermaid injects a <style> into each rendered SVG, and CSS text is never
-  // visible content — searching it yields hits with no rect.
+  // `style` is in the list because mermaid injects a <style> into each rendered SVG, and CSS text
+  // is never visible content — searching it yields hits with no rect.
   assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, \.rail, section\.grp\[hidden\], style";/, "static exclusion list matches S1's table (+ the findbar/rail overlays and injected <style>)");
   assert.match(html, /function blockText\(el\) \{[\s\S]*?idxTextExcluded\(n\)/, "anchors read the same content rule as the index, so a diagram's generated style id can't poison the prefix");
   assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
@@ -739,8 +739,8 @@ t("T7: .rail is the pane's first child (every view kind, via paneHead) and paint
 });
 t("T7: rail takes the first rect only (one mark per hit) and falls back to the containing block when hidden", () => {
   assert.match(html, /var rect = r\.getClientRects\(\)\[0\];/, "first rect only — a bold/code-boundary hit still gets one mark");
-  // T11 fix: a client rect is viewport-relative, so marks drawn while scrolled down clamped to the
-  // track top. The track maps the whole document, hence + scrollTop.
+  // The track maps the whole document, but a client rect is viewport-relative — hence + scrollTop,
+  // without which every mark for a hit above the fold clamps to the track top.
   assert.match(html, /SV\.railTop\(rect\.top \+ p\.scrollTop, pr\.top, contentH, trackH\)/, "mark position is document-absolute");
   assert.match(html, /var blk = a && a\.node\.parentElement && a\.node\.parentElement\.closest\(p\._blockSel\);/, "falls back to the hit's containing block (only remaining zero-rect cause: a collapsed trace row)");
 });
