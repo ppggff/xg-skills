@@ -558,9 +558,11 @@ t("T3: lineGutter tags blocks via dataset (not textContent) and warns once on mi
   assert.match(html, /console\.warn\("line-gutter: block\/span mismatch/, "warns on mismatch instead of showing a wrong number");
   assert.match(html, /lineGutter\(\[\]\.slice\.call\(pane\.querySelectorAll\("\.docbody > \*"\)\), window\.marked\.lexer\(fm\.body\), pane\._doc\.fmLines\);/, "renderDoc wires it in");
 });
-t("T3: renderMermaid takes side and invalidates geometry from its inner .then (hookpoint 4)", () => {
+t("T3: renderMermaid takes side and invalidates from its inner .then (hookpoint 4)", () => {
   assert.match(html, /function renderMermaid\(side, body\)/, "renderMermaid takes side");
-  assert.match(html, /holder\.innerHTML = res\.svg; dropTemp\(\);\s+invalidateGeometry\(side\); \}\).*hookpoint 4/, "inner .then invalidates, not the outer ensureMermaid().then");
+  // T10 widened this from invalidateGeometry to invalidateContent (which calls it) — the diagram
+  // swap changes the indexed text too, not only the layout. The hookpoint is unchanged.
+  assert.match(html, /holder\.innerHTML = res\.svg; dropTemp\(\);\s+invalidateContent\(side\); \}\).*hookpoint 4/, "inner .then invalidates, not the outer ensureMermaid().then");
 });
 t("T3: renderDiffOverlay reuses SV.blockSpans and labels plain/add blocks with their source line", () => {
   assert.match(html, /var tokens = window\.marked\.lexer\(body\), spans = SV\.blockSpans\(tokens\);/, "diff overlay no longer duplicates the span-building loop");
@@ -724,6 +726,28 @@ t("T9: paint merges pins by slot under hit priority, and the rail stays outside 
 t("T9: rail marks pins with their slot class so the track color matches the highlight", () => {
   assert.match(html, /h\.pins\.forEach\(function \(pn\) \{ pn\.hits\.forEach\(function \(hit\) \{ mark\(hit, "p" \+ pn\.slot\); \}\); \}\);/, "R8: pinned items get marks too");
   assert.match(html, /\.rail i\.p0 \{ background: var\(--s-active\); \}/, "slot 0 rail color matches its ::highlight rule");
+});
+
+// --- reset (016 T10): the render tails that bypass afterRender ---
+t("T10: all seven bypass paths call reset", () => {
+  const hooks = html.match(/reset\(side\);/g) || [];
+  assert.equal(hooks.length, 7, "five render .catch branches + the trace placeholder + the board drawer");
+  [1, 2, 3, 4, 5, 6, 7].forEach(n => assert.match(html, new RegExp("D18 hookpoint " + n + "\\b"), "hookpoint " + n + " is labelled"));
+  assert.match(html, /'<p class="tr-loading">计算中…<\/p>';\s+reset\(side\); return; \}/, "the trace early return resets before returning");
+});
+t("T10: reset drops everything derived from the dead DOM and blanks the readout", () => {
+  const fn = html.match(/function reset\(side\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(fn, /h\.idx = null; h\.hits = \[\]; h\.cur = -1;/, "the index and its hits are gone");
+  assert.match(fn, /h\.pins\.forEach\(function \(pn\) \{ pn\.hits = \[\]; \}\);/, "pin hits are derived too — empty the array, don't leave stale ranges or undefined");
+  assert.match(fn, /hlNames\(side\)\.forEach/, "unregisters every highlight this pane owns");
+  assert.match(fn, /var track = p\.querySelector\("\.rail"\); if \(track\) track\.innerHTML = "";/, "clears the marker rail");
+  assert.match(fn, /el\.textContent = ""; el\.classList\.remove\("zero"\);/, "R14: blank readout, not a 0/0 that reads as a real zero-hit result");
+  assert.doesNotMatch(fn, /h\.q = |h\.pins = \[\]/, "the terms survive — the view is often right back");
+});
+t("T10: a settled mermaid diagram invalidates content, not just geometry", () => {
+  assert.match(html, /invalidateContent\(side\); \}\)   \/\/ S9 hookpoint 4/, "the inner .then swaps the source <pre> for the SVG");
+  assert.match(html, /function invalidateContent\(side\) \{\s+PANES\[side\]\._idxDirty = true; invalidateGeometry\(side\);/, "rides the geometry frame so N diagrams cost one rescan");
+  assert.match(html, /if \(p\._idxDirty\) \{ p\._idxDirty = false; reindex\(side\); \}/, "the rAF callback rescans before relocating the band");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");

@@ -1258,6 +1258,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         (is404 ? "📄 该文件不存在或已被移动。" : "无法打开：" + esc(e.message)) +
         "<div class='hint'>" + esc(v.tree + "/" + v.rel) + "</div></div>";
       pane._sections = []; if (focus === side) renderToc();
+      reset(side);   // D18 hookpoint 1: error panel, no content to search
     });
   }
   function frontmatterTable(f) {                    // R3: compact meta (status pill + key:value), not a table
@@ -1313,7 +1314,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var dropTemp = function () { ["d" + gid, "i" + gid].forEach(function (id) {
           var el = document.getElementById(id); if (el && el.parentNode === document.body) el.remove(); }); };
         mermaid.render(gid, src).then(function (res) { holder.innerHTML = res.svg; dropTemp();
-          invalidateGeometry(side); })   // S9 hookpoint 4: this inner .then is where geometry actually changes
+          invalidateContent(side); })   // S9 hookpoint 4: this inner .then is where the content and its geometry actually change
           .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; dropTemp(); });
       });
     }).catch(function () {});
@@ -1343,7 +1344,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var secs = [].slice.call(pane.querySelectorAll("h2.sec"));
         tagSections(side, secs, groups.map(function (g) { return { text: g.tree + "/" + g.path, depth: 1 }; }));
         afterRender(side, ".hit, h2.sec", { set: searchHideFile, keys: groups.map(function (g) { return g.tree + ":" + g.path; }) });
-      }).catch(function (e) { pane.innerHTML = paneHead(side, "search") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+      }).catch(function (e) { pane.innerHTML = paneHead(side, "search") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 2
   }
 
   // R10: unified empty/zero state (board filtered-to-empty, search no-match)
@@ -1422,7 +1423,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var secs = [].slice.call(pane.querySelectorAll(boardKanban ? ".col h3" : "h2.sec"));
       tagSections(side, secs, secs.map(function (s) { return { text: s.textContent, depth: 1 }; }));
       afterRender(side, ".card, " + (boardKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
-    }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 3
   }
   function boardFilters(states) {                   // R60: status chips only (no dots), colored by status
     var ss = STATE_ORDER.filter(function (s) { return states.indexOf(s) !== -1; })
@@ -1532,6 +1533,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
+    reset(side);   // D18 hookpoint 7: the drawer's local re-render replaced content afterRender never saw
     padForDrawer(pane);
     invalidateGeometry(side);   // S9 hookpoint 6: drawer open/close changes the docbody's available height
   }
@@ -1563,7 +1565,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var pane = PANES[side]; pane._doc = null;
     var d = traceCache[v.card];
     if (!d) { ensureTrace(v.card);
-      pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>'; return; }
+      pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>';
+      reset(side); return; }   // D18 hookpoint 6: the placeholder has no content to search
     if (!boardCardMap[v.card]) {   // deep entry without a rendered board: fetch once for the task table
       api("/api/board").then(function (r) { return r.json(); })
         .then(function (b) { fillBoardMap(b); render(side); })
@@ -1709,7 +1712,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var secs = [].slice.call(pane.querySelectorAll("h2.commit"));
       tagSections(side, secs, commits.map(function (c) { return { text: c.subject, depth: 1 }; }));
       afterRender(side, "h2.commit");   // R52
-    }).catch(function (e) { pane.innerHTML = paneHead(side, "Recent") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "Recent") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 4
   }
   function splitCommits(text) {
     var parts = text.split(/\n(?=commit [0-9a-f]{7,})/), out = [];
@@ -1788,12 +1791,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (p._geoRaf) return;
     p._geoRaf = requestAnimationFrame(function () {
       p._geoRaf = null; p._geoDirty = false;
+      if (p._idxDirty) { p._idxDirty = false; reindex(side); }
       if (p._curEl && p._curEl.isConnected) {   // the marked block is gone — skip that part, don't throw
         var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
         setCurLine(side, p._curEl, y, p._curTarget);
       }
       rail(side);   // T7/S9: marker rail geometry depends on the same pane/docbody layout
     });
+  }
+  // Content — not just geometry — changed outside a full render: mermaid swaps each diagram's
+  // source <pre> for the rendered SVG long after afterRender's reindex ran, so the index still
+  // points into removed nodes. Rides the geometry frame so N diagrams settling cost one rescan.
+  function invalidateContent(side) {
+    PANES[side]._idxDirty = true; invalidateGeometry(side);
   }
   // S1 (016 T4): this view's toolable chrome — never counted as content. `.cd-body` is
   // conditionally excluded (only while the board drawer is closed) — R15: visible drawer content
@@ -1833,6 +1843,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     range.setStart(a.node, a.nodeOff); range.setEnd(b.node, b.nodeOff);
     return range;
   }
+  // Every highlight this pane can own — the deregistration list for both paint and reset.
+  function hlNames(side) {
+    return ["sv-hit-" + side, "sv-cur-" + side, "sv-sel-" + side,
+            "sv-pin-" + side + "-0", "sv-pin-" + side + "-1", "sv-pin-" + side + "-2", "sv-pin-" + side + "-3"];
+  }
   // D1/D13/D14: paint registers this pane's hits as CSS Custom Highlights — zero DOM mutation, so
   // selection/comment/search never fight over wrapper nodes. The rail is drawn outside the API
   // guard on purpose: where Custom Highlight is unsupported the rest of the retrieval layer still
@@ -1841,9 +1856,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var h = PANES[side]._hits;
     ensureHitVisible(side);   // R15: reveal a collapsed trace row holding the current hit before painting it
     if (window.CSS && CSS.highlights) {
-      ["sv-hit-" + side, "sv-cur-" + side, "sv-sel-" + side,
-       "sv-pin-" + side + "-0", "sv-pin-" + side + "-1", "sv-pin-" + side + "-2", "sv-pin-" + side + "-3"
-      ].forEach(function (name) { CSS.highlights.delete(name); });
+      hlNames(side).forEach(function (name) { CSS.highlights.delete(name); });
       if (h.idx) {
         var allHl = new Highlight(), curHl = new Highlight();   // T6: current hit is its own highlight, priority 200
         h.hits.forEach(function (hit, i) {
@@ -1876,6 +1889,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     h.cur = Math.min(h.cur, h.hits.length - 1);   // fewer hits → clamp; none left → -1 (Math.min gives this for free)
     rescanPins(h);
     paint(side); updateFindCount(side);
+  }
+  // D18: the paths that replace a pane's content without reaching afterRender — the five render
+  // error branches, the trace "computing…" early return, the board drawer's local re-render —
+  // leave the model pointing at dead nodes. Drop everything derived from the old DOM and blank the
+  // readout (blank, not "0/0": the view has no content to search, which is not the same as a term
+  // with no matches). The terms themselves survive, because the view is often right back.
+  function reset(side) {
+    var p = PANES[side], h = p._hits;
+    h.idx = null; h.hits = []; h.cur = -1;
+    h.pins.forEach(function (pn) { pn.hits = []; });
+    if (window.CSS && CSS.highlights) hlNames(side).forEach(function (n) { CSS.highlights.delete(n); });
+    var track = p.querySelector(".rail"); if (track) track.innerHTML = "";
+    var el = p.querySelector("[data-find-count]"); if (el) { el.textContent = ""; el.classList.remove("zero"); }
   }
   // Pin hits are derived from the index (S2 stores only term + slot), so they are rescanned
   // wherever either side of that derivation changes: a rebuilt index here, a new term in pin().
@@ -2315,7 +2341,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     api("/api/diff?card=" + encodeURIComponent(v.card)).then(function (r) { return r.text(); }).then(function (t) {
       pane.innerHTML = paneHead(side, "diff " + v.card) + "<pre class='diff'>" + SV.colorizeDiff(t) + "</pre>";
       pane._sections = []; afterRender(side, "pre.diff");   // R52 (no sections → no TOC; the pre is the block)
-    }).catch(function (e) { pane.innerHTML = paneHead(side, "diff") + "<p class='broken'>" + esc(e.message) + "</p>"; });
+    }).catch(function (e) { pane.innerHTML = paneHead(side, "diff") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 5
   }
 
   // R30: jump to any point in a pane's history via the dropdown
