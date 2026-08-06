@@ -112,7 +112,7 @@
   .rail i.p2 { background: var(--s-blocked); } .rail i.p3 { background: var(--s-paused); }
   /* R12 on the rail: same size as every other mark — it reaches further left and takes the
      foreground colour, which is enough to find yourself without the track jumping around. */
-  .rail i.cur { left: -7px; background: var(--fg); z-index: 1; }
+  .rail i.cur { left: -7px; background-color: var(--fg); z-index: 1; }   /* -color, not the shorthand: that would reset background-clip and paint the 8px hit area */
   .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
@@ -133,13 +133,13 @@
   .docbody { color: var(--body); max-width: none; margin-left: var(--m-l, 0); width: var(--m-w, 52em); }   /* R21: doc body dimmer than chrome */
   #lp .lp-body.docbody { width: auto; max-width: 52em; margin-left: 0; }   /* hovercard preview: not a pane docbody, keeps the old shrink-to-fit measure */
   .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
-  .mrule { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); cursor: col-resize; z-index: 1; }   /* R1: measure boundary, always visible */
+  .mrule { position: absolute; top: 0; width: 1px; background: var(--line); cursor: col-resize; z-index: 1; }   /* R1: measure boundary; height is set to the body's (JS) */
   .mrule:hover { background: var(--accent); }
   /* R9 [F8]: source line number, generated content only (D8: a real child would shift block
      indices and the digits would be searchable) — inline prefix so it never overflows the pane
      regardless of measure mode. */
   .docbody > [data-srcline] { position: relative; }
-  .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; left: -3.6em; width: 3em;
+  .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; left: -44px; width: 32px;
     text-align: right; font-family: var(--chrome); font-size: 9.5px; color: var(--muted); }
   /* fallback when the measure starts too close to the pane edge for a hanging gutter (T3) */
   .docbody.gutter-in > [data-srcline]::before { position: static; display: inline-block; width: auto;
@@ -1116,6 +1116,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var basket = [], project = lsGet("sv-project") || "", focus = "left";   // R65: persist project scope
   var MEASURE_MIN = 240;   // R1: minimum measure width a drag can clamp down to
   var GUTTER_PAD = 46;     // S8: measure-left offset that leaves room for the hanging line-number gutter
+  var FULL_PAD = 16;       // S7: the full tier only needs enough left offset to keep that gutter inside the scrollport
   var HEAD_PAD = 56;   // R4: jump's scroll offset, matching the existing scroll-margin-top: 56px
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
@@ -1163,8 +1164,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       // right margin is the gutter strip minus whatever the scrollbar took.
       var sbw = pane.offsetWidth - pane.clientWidth, cs = getComputedStyle(pane);
       var contentW = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      db.style.setProperty("--m-w", (contentW - GUTTER_PAD - Math.max(0, GUTTER_PAD - sbw)) + "px");
-      db.style.setProperty("--m-l", GUTTER_PAD + "px");
+      db.style.setProperty("--m-w", (contentW - FULL_PAD - Math.max(0, FULL_PAD - sbw)) + "px");
+      db.style.setProperty("--m-l", FULL_PAD + "px");
     }
     else if (m.mode === "custom") {
       var c = SV.clampMeasure(m.l, m.w, paneW, MEASURE_MIN);
@@ -1180,9 +1181,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var lm = pane.querySelector('.mrule[data-resize="measure-left"]'), rm = pane.querySelector('.mrule[data-resize="measure-right"]');
     // The lines mark the body's measure, so they start where the body does — running them up
     // through the sticky header and the frontmatter strip crosses rows they say nothing about.
-    var top = db.offsetTop + "px";
-    if (lm) { lm.style.left = (dr.left - pr.left) + "px"; lm.style.top = top; }
-    if (rm) { rm.style.left = (dr.right - pr.left) + "px"; rm.style.top = top; }
+    // Absolute top/bottom inside a scroller only spans the scrollport, so the lines used to stop
+    // after the first screenful. They mark the body's column — give them the body's height.
+    var top = db.offsetTop + "px", h = db.offsetHeight + "px";
+    if (lm) { lm.style.left = (dr.left - pr.left) + "px"; lm.style.top = top; lm.style.height = h; }
+    if (rm) { rm.style.left = (dr.right - pr.left) + "px"; rm.style.top = top; rm.style.height = h; }
   }
   var staleSides = {}, lastDevRev = 0, lastKbRev = 0;   // R63: live-refresh state (stale doc panes; last dev/kb rev tokens)
   var treeSort = (function () {   // R1: per-section sort (name|mtime + dir), default A↑, persisted; survives live-refresh

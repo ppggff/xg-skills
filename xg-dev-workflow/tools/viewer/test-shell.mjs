@@ -674,17 +674,18 @@ t("T14/S7: the measure is per pane, with the old flat fields migrating to both s
   assert.match(html, /var paneW = pane\.getBoundingClientRect\(\)\.width, m = layoutState\.m\[side\];/, "applyMeasure reads its own side");
 });
 t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
-  assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -3\.6em;/, "hangs left of the rule");
+  assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -44px; width: 32px;/, "hangs left of the rule");
   assert.match(html, /db\.classList\.toggle\("gutter-in", db\.getBoundingClientRect\(\)\.left - pane\.getBoundingClientRect\(\)\.left < 44\);/, "T3's clipping finding kept as the fallback trigger");
   assert.match(html, /var GUTTER_PAD = 46;/, "the default/full tiers reserve the strip, or every default view falls back to the inline gutter");
   assert.match(html, /\} else \{ db\.style\.setProperty\("--m-l", GUTTER_PAD \+ "px"\); db\.style\.removeProperty\("--m-w"\); \}/, "default tier offsets the measure instead of sitting on the pane edge");
-  assert.match(html, /db\.style\.setProperty\("--m-w", \(contentW - GUTTER_PAD - Math\.max\(0, GUTTER_PAD - sbw\)\) \+ "px"\);/, "full tier's gaps look equal — the scrollbar already ate into the right one");
-  assert.match(html, /var top = db\.offsetTop \+ "px";/, "the measure lines start at the body, not over the header strips");
+  assert.match(html, /db\.style\.setProperty\("--m-w", \(contentW - FULL_PAD - Math\.max\(0, FULL_PAD - sbw\)\) \+ "px"\);/, "full tier's gaps look equal — the scrollbar already ate into the right one");
+  assert.match(html, /var FULL_PAD = 16;/, "full leaves only what the gutter needs to stay inside the scrollport");
+  assert.match(html, /var top = db\.offsetTop \+ "px", h = db\.offsetHeight \+ "px";/, "the lines start at the body and run its whole height, not one screenful");
 });
 t("T14/S10+S11: the find bar sits at the pane's bottom edge; the current hit is a reversed chip", () => {
   assert.match(html, /\.findbar \{[^}]*order: 99;\s*position: sticky; bottom: 0;/, "last in the flex column, stuck to the bottom");
   assert.match(html, /padding: 6px 0 8px; bottom: -20px;/, "rests 20px lower — the pane's own bottom padding — so it sits flush with the pane edge");
-  assert.match(html, /\.rail i\.cur \{ left: -7px; background: var\(--fg\); z-index: 1; \}/, "R12 on the rail: same size as the rest, distinguished by reach and colour");
+  assert.match(html, /\.rail i\.cur \{ left: -7px; background-color: var\(--fg\); z-index: 1; \}/, "background-color, never the shorthand — the shorthand resets background-clip and paints the whole 8px hit area");
   assert.match(html, /h\.hits\.forEach\(function \(hit, i\) \{ mark\(hit, i === h\.cur \? "cur" : "", i\); \}\);/, "the current index drives that class");
   assert.match(html, /::highlight\(sv-cur-left\), ::highlight\(sv-cur-right\) \{ background-color: var\(--s-todo\); color: var\(--bg\);/, "reversed, not a second shade of the same wash");
 });
