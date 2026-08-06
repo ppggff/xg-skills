@@ -105,11 +105,15 @@
      it from taking either width or height from the content. */
   .rail { position: sticky; top: 0; align-self: flex-end; width: 10px; height: 100vh;
     margin: 0 -10px -100vh 0; z-index: 2; }
+  /* Marks are a map, not an alarm — muted enough to scan past, and every colour is set with
+     background-COLOR: the shorthand would reset background-clip and paint the 8px hit area. */
   .rail i { position: absolute; left: 0; right: 0; height: 8px; margin-top: -3px; cursor: pointer;
-    background: var(--s-todo); background-clip: content-box; border-top: 3px solid transparent;
-    border-bottom: 3px solid transparent; }
-  .rail i.p0 { background: var(--s-active); } .rail i.p1 { background: var(--s-done); }
-  .rail i.p2 { background: var(--s-blocked); } .rail i.p3 { background: var(--s-paused); }
+    background-color: color-mix(in srgb, var(--s-todo) 55%, transparent); background-clip: content-box;
+    border-top: 3px solid transparent; border-bottom: 3px solid transparent; }
+  .rail i.p0 { background-color: color-mix(in srgb, var(--s-active) 55%, transparent); }
+  .rail i.p1 { background-color: color-mix(in srgb, var(--s-done) 55%, transparent); }
+  .rail i.p2 { background-color: color-mix(in srgb, var(--s-blocked) 55%, transparent); }
+  .rail i.p3 { background-color: color-mix(in srgb, var(--s-paused) 55%, transparent); }
   /* R12 on the rail: same size as every other mark — it reaches further left and takes the
      foreground colour, which is enough to find yourself without the track jumping around. */
   .rail i.cur { right: -7px; background-color: var(--fg); z-index: 1; }   /* reaches right, away from the text; -color, not the shorthand — that would reset background-clip */

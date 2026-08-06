@@ -766,7 +766,7 @@ t("T9: paint merges pins by slot under hit priority, and the rail stays outside 
 });
 t("T9: rail marks pins with their slot class so the track color matches the highlight", () => {
   assert.match(html, /h\.pins\.forEach\(function \(pn\) \{ pn\.hits\.forEach\(function \(hit\) \{ mark\(hit, "p" \+ pn\.slot\); \}\); \}\);/, "R8: pinned items get marks too");
-  assert.match(html, /\.rail i\.p0 \{ background: var\(--s-active\); \}/, "slot 0 rail color matches its ::highlight rule");
+  assert.match(html, /\.rail i\.p0 \{ background-color: color-mix\(in srgb, var\(--s-active\) 55%, transparent\); \}/, "slot 0 rail colour matches its ::highlight rule, muted, and set without the shorthand");
 });
 
 // --- reset (016 T10): the render tails that bypass afterRender ---
