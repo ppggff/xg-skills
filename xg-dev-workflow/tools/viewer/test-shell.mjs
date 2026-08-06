@@ -674,7 +674,8 @@ t("T14/S7: the measure is per pane, with the old flat fields migrating to both s
   assert.match(html, /var paneW = pane\.getBoundingClientRect\(\)\.width, m = layoutState\.m\[side\];/, "applyMeasure reads its own side");
 });
 t("T14/S8: the source-line gutter hangs outside the measure, folding back inline when cramped", () => {
-  assert.match(html, /\.docbody > \[data-srcline\]::before \{ content: attr\(data-srcline\); position: absolute; left: -44px; width: 32px;/, "hangs left of the rule");
+  assert.match(html, /left: calc\(-44px - var\(--gx, 0px\)\);/, "hangs left of the rule, cancelling each block's own indent");
+  assert.match(html, /b\.style\.setProperty\("--gx", geo\[i\]\.x \+ "px"\);/, "so a blockquote's padding doesn't carry its number right with it");
   assert.match(html, /line-height: var\(--gl, inherit\);/, "shares the block's first line box, so a heading's number doesn't float above its text");
   assert.match(html, /var w = document\.createTreeWalker\(b, NodeFilter\.SHOW_TEXT\), n, line = null;/, "measures the first character's line — a range over a list returns one rect per child block, not per line");
   assert.match(html, /b\.style\.setProperty\("--gt", geo\[i\]\.top \+ "px"\);/, "so both the offset and the line height are measured, not inferred");

@@ -92,13 +92,13 @@
      the one distinguishable color the palette can spare for hits (S5), leaving the other four
      distinguishable status hues for the pin cycle. --s-backlog/-dropped/-unknown are three near
      greys, unusable here. */
-  ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 38%, transparent); }
+  ::highlight(sv-hit-left), ::highlight(sv-hit-right) { background-color: color-mix(in srgb, var(--s-todo) 55%, transparent); }
   ::highlight(sv-cur-left), ::highlight(sv-cur-right) { background-color: var(--s-todo); color: var(--bg); text-decoration: underline; }
   ::highlight(sv-sel-left), ::highlight(sv-sel-right) { background-color: color-mix(in srgb, var(--sel) 55%, transparent); }   /* R6: echoes the existing ::selection color, not the search-hit palette */
-  ::highlight(sv-pin-left-0), ::highlight(sv-pin-right-0) { background-color: color-mix(in srgb, var(--s-active) 34%, transparent); }
-  ::highlight(sv-pin-left-1), ::highlight(sv-pin-right-1) { background-color: color-mix(in srgb, var(--s-done) 34%, transparent); }
-  ::highlight(sv-pin-left-2), ::highlight(sv-pin-right-2) { background-color: color-mix(in srgb, var(--s-blocked) 34%, transparent); }
-  ::highlight(sv-pin-left-3), ::highlight(sv-pin-right-3) { background-color: color-mix(in srgb, var(--s-paused) 34%, transparent); }
+  ::highlight(sv-pin-left-0), ::highlight(sv-pin-right-0) { background-color: color-mix(in srgb, var(--s-active) 46%, transparent); }
+  ::highlight(sv-pin-left-1), ::highlight(sv-pin-right-1) { background-color: color-mix(in srgb, var(--s-done) 46%, transparent); }
+  ::highlight(sv-pin-left-2), ::highlight(sv-pin-right-2) { background-color: color-mix(in srgb, var(--s-blocked) 46%, transparent); }
+  ::highlight(sv-pin-left-3), ::highlight(sv-pin-right-3) { background-color: color-mix(in srgb, var(--s-paused) 46%, transparent); }
   /* S6: sticky so it stays put as content scrolls, unlike .curline-ov's position:absolute (D20).
      The pane is a flex column, so `float` would be ignored and this 100vh item would push the whole
      document a viewport down — align-self puts it at the right edge and the negative margins keep
@@ -146,7 +146,8 @@
   .docbody > [data-srcline] { position: relative; }
   /* line-height comes from the block itself (--gl, set in lineGutter) so the number shares the
      first line box — otherwise a heading's tall line box parks its number well above the text. */
-  .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; left: -44px; width: 32px;
+  .docbody > [data-srcline]::before { content: attr(data-srcline); position: absolute; width: 32px;
+    left: calc(-44px - var(--gx, 0px));
     top: var(--gt, 0); line-height: var(--gl, inherit); text-align: right; font-family: var(--chrome);
     font-size: 9.5px; color: color-mix(in srgb, var(--muted) 55%, transparent); }
   /* fallback when the measure starts too close to the pane edge for a hanging gutter (T3) */
@@ -1323,6 +1324,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var nums = SV.blockLineNumbers(spans, fmLines);
     // Measure first, write after: a block's own line-height and content top are wrong for
     // blockquote / list / pre, where the first line lives in a child and padding sits above it.
+    var body = blocks.length ? blocks[0].parentElement : null;
+    var bodyLeft = body ? body.getBoundingClientRect().left + (parseFloat(getComputedStyle(body).paddingLeft) || 0) : 0;
     var geo = blocks.map(function (b) {
       // The first CHARACTER's rect, not the block's: a range over a list or a blockquote returns
       // one rect per child block, so its "first rect" is a whole paragraph, not a line.
@@ -1332,14 +1335,17 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1);
         line = r.getClientRects()[0];
       }
-      var box = b.getBoundingClientRect();
-      return line ? { top: line.top - box.top, h: line.height } : null;
+      var box = b.getBoundingClientRect(), bl = parseFloat(getComputedStyle(b).borderLeftWidth) || 0;
+      // x: how far this block's own box is indented inside the body — a blockquote's padding and a
+      // list's marker space would otherwise carry their numbers right along with them.
+      return line ? { top: line.top - box.top, h: line.height, x: box.left - bodyLeft + bl } : null;
     });
     blocks.forEach(function (b, i) {
       b.dataset.srcline = nums[i];
       if (!geo[i]) return;
       b.style.setProperty("--gt", geo[i].top + "px");
       b.style.setProperty("--gl", geo[i].h + "px");
+      b.style.setProperty("--gx", geo[i].x + "px");
     });
   }
   function renderDoc(side, v) {
