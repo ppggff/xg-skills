@@ -1847,7 +1847,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // S1 (016 T4): this view's toolable chrome — never counted as content. `.cd-body` is
   // conditionally excluded (only while the board drawer is closed) — R15: visible drawer content
   // is fair game to search, hidden content isn't.
-  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, .findbar, .rail, section.grp[hidden]";
+  var IDX_EXCLUDE = ".doc-head, .frontmatter, .diffbar, .tr-asof, .cd-bar, .board-filters, .findbar, .rail, section.grp[hidden], style";
   function idxTextExcluded(node) {
     var el = node.parentElement; if (!el) return true;
     if (el.closest(IDX_EXCLUDE)) return true;
@@ -1962,13 +1962,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
     h.cur = h.hits.length ? 0 : -1;
     paint(side); updateFindCount(side);
   }
-  function findOpen(side) {
+  // quiet: the bar is being reopened for a remembered query, not asked for — showing it is right,
+  // stealing the caret on every navigation is not.
+  function findOpen(side, quiet) {
     var p = PANES[side];
-    if (p._findOpen) { var inp = p.querySelector("[data-find-input]"); if (inp) inp.focus(); return; }
+    if (p._findOpen) { var inp = p.querySelector("[data-find-input]"); if (inp && !quiet) inp.focus(); return; }
     var head = p.querySelector(".doc-head"); if (!head) return;   // view hasn't rendered yet — nothing to anchor to
     p._findOpen = true;
     head.insertAdjacentHTML("afterend", findBarHtml(side));
-    var input = p.querySelector("[data-find-input]"); input.focus();
+    var input = p.querySelector("[data-find-input]"); if (!quiet) input.focus();
     updateFindCount(side);
   }
   function findClose(side) {   // R13: closing clears this pane's hits (memory-layer clear lands with T11+)
@@ -1976,6 +1978,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     p._findOpen = false;
     var bar = p.querySelector(".findbar"); if (bar) bar.remove();
     p._hits.q = ""; p._hits.hits = []; p._hits.cur = -1;
+    writeField(side, "q", "");   // R13: the query is gone for good — coming back must not revive it
     paint(side);
   }
   function step(side, dir) {   // next/previous button or Enter/⇧Enter in the find box
@@ -2004,6 +2007,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var slot = SV.pinSlot(h.slotUsed, h.pins.length);
     h.slotUsed[slot] = true;
     h.pins.push({ term: t, slot: slot, hits: SV.scanHits(h.idx.text, t) });
+    writeField(side, "p", h.pins.map(function (pn) { return pn.term; }));
     paint(side);
   }
   function unpin(side, at) {
@@ -2013,11 +2017,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // once nobody else holds it — past 4 pins two entries share one slot.
     var shared = h.pins.some(function (pn) { return pn.slot === gone.slot; });
     if (!shared) h.slotUsed[gone.slot] = false;
+    writeField(side, "p", h.pins.map(function (pn) { return pn.term; }));   // R13, single pin
     paint(side);
   }
   function clearPins(side) {   // R13: ⇧h — this pane's pins only; find state and the other pane untouched
     var h = PANES[side]._hits;
     h.pins = []; h.slotUsed = [false, false, false, false];
+    writeField(side, "p", []);
     paint(side);
   }
   function pinCurrent(side) {   // R7: in the body the pin source is the selection (the find box has a button)
@@ -2073,8 +2079,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     try { return JSON.parse(lsGet("sv-viewstate")) || { order: [], map: {} }; } catch (e) { return { order: [], map: {} }; }
   }
   function blockEls(pane) { return pane._blockSel ? [].slice.call(pane.querySelectorAll(pane._blockSel)) : []; }
+  // Same content rule as the search index — textContent would drag in mermaid's injected <style>,
+  // whose selector carries a fresh generated id on every render, so an anchor taken on a diagram
+  // block would never match itself again.
+  function blockText(el) {
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) { return idxTextExcluded(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+    });
+    var out = "", n;
+    while ((n = w.nextNode())) out += n.data;
+    return out.replace(/\s+/g, " ").trim();
+  }
   function blockPrefixes(pane) {
-    return blockEls(pane).map(function (el) { return el.textContent.replace(/\s+/g, " ").trim().slice(0, 40); });
+    return blockEls(pane).map(function (el) { return blockText(el).slice(0, 40); });
   }
   function topBlockIndex(pane) {   // the block the reader is actually looking at, not the one at scrollTop 0
     var els = blockEls(pane), edge = pane.getBoundingClientRect().top + HEAD_PAD;
@@ -2082,15 +2099,43 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return els.length - 1;
   }
   function saveView(side) {
-    var p = PANES[side], v = p._view;
+    var p = PANES[side], v = p._view, h = p._hits;
     if (!v || !p._blockSel || !blockEls(p).length) return;   // error panel / placeholder: never overwrite good memory with an empty anchor
     var key = SV.viewKey(side, v, project);
-    var entry = { a: SV.anchorOf(blockPrefixes(p), topBlockIndex(p)), y: p.scrollTop };
+    var entry = { a: SV.anchorOf(blockPrefixes(p), topBlockIndex(p)), y: p.scrollTop,
+                  q: h.q, p: h.pins.map(function (pn) { return pn.term; }) };   // R11; slots aren't stored — color isn't identity
     lsSet("sv-viewstate", JSON.stringify(SV.recallPut(viewStore(), key, entry, 50)));
   }
-  function restoreView(side) {
-    var p = PANES[side], e = viewStore().map[SV.viewKey(side, p._view, project)];
-    if (!e) return;
+  // R13: an explicit clear must reach storage field by field — Esc drops the query without
+  // touching the pins, ⇧h the reverse — so returning to the view doesn't resurrect what was
+  // just cleared.
+  function writeField(side, field, value) {
+    var p = PANES[side]; if (!p._view) return;
+    var store = viewStore(), key = SV.viewKey(side, p._view, project), e = store.map[key];
+    if (!e) return;   // nothing remembered for this view yet — the next saveView writes the truth
+    e[field] = value;
+    lsSet("sv-viewstate", JSON.stringify(SV.recallPut(store, key, e, 50)));
+  }
+  // Entering a view (never a re-render): the search state becomes what this view remembers —
+  // including nothing, which is what keeps the previous doc's query and pins from following the
+  // reader around (R11). Scrolling is separate because an explicit target outranks the anchor.
+  function restoreView(side, scroll) {
+    var p = PANES[side], h = p._hits, e = viewStore().map[SV.viewKey(side, p._view, project)] || {};
+    // cur starts at the first hit, exactly as typing the query would — reindex's clamp turns it
+    // back into -1 if the remembered term no longer matches anything here.
+    h.q = e.q || ""; h.hits = []; h.cur = e.q ? 0 : -1;
+    h.pins = []; h.slotUsed = [false, false, false, false];
+    (e.p || []).forEach(function (term) {   // slots are reassigned in order — they were never stored
+      var slot = SV.pinSlot(h.slotUsed, h.pins.length);
+      h.slotUsed[slot] = true;
+      h.pins.push({ term: term, slot: slot, hits: [] });
+    });
+    if (h.q && !p._findOpen) findOpen(side, true);
+    // Nothing remembered → reset, not reindex: reindex bows out early when there is nothing to
+    // search, which would leave the previous view's highlights registered against dead nodes.
+    if (h.q || h.pins.length) reindex(side); else reset(side);
+    updateFindCount(side);
+    if (!scroll) return;
     var i = SV.anchorFind(blockPrefixes(p), e.a), els = blockEls(p);
     if (i >= 0 && els[i]) p.scrollTop += els[i].getBoundingClientRect().top - p.getBoundingClientRect().top - HEAD_PAD;
     else if (typeof e.y === "number") p.scrollTop = e.y;   // D5: the anchor is gone — pixel fallback
@@ -2109,7 +2154,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // through here without ever setting it. An explicit target (a search hit's line) outranks the
     // anchor, so yield to it here rather than scrolling twice.
     var entering = p._entering; p._entering = false;
-    if (entering && !(p._view && p._view.line)) restoreView(side);
+    if (entering) restoreView(side, !(p._view && p._view.line));
   }
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block

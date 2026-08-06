@@ -601,7 +601,10 @@ t("offsetToNode: run boundary / inside a folded whitespace run / out of bounds",
   assert.equal(SV.offsetToNode(runs, 11), null);
 });
 t("T4: buildIndex excludes chrome (S1's exclusion table) and walks Text nodes only", () => {
-  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, \.rail, section\.grp\[hidden\]";/, "static exclusion list matches S1's table (+ T5/T7's own findbar/rail overlays)");
+  // T12 added `style`: mermaid injects a <style> into each rendered SVG, and CSS text is never
+  // visible content — searching it yields hits with no rect.
+  assert.match(html, /var IDX_EXCLUDE = "\.doc-head, \.frontmatter, \.diffbar, \.tr-asof, \.cd-bar, \.board-filters, \.findbar, \.rail, section\.grp\[hidden\], style";/, "static exclusion list matches S1's table (+ the findbar/rail overlays and injected <style>)");
+  assert.match(html, /function blockText\(el\) \{[\s\S]*?idxTextExcluded\(n\)/, "anchors read the same content rule as the index, so a diagram's generated style id can't poison the prefix");
   assert.match(html, /var cd = el\.closest\("\.cd-body"\);\s+return !!\(cd && cd\.offsetParent === null\);/, "cd-body excluded only while hidden (R15)");
   assert.match(html, /document\.createTreeWalker\(pane, NodeFilter\.SHOW_TEXT,/, "walks idx.root's Text nodes");
   assert.match(html, /root: pane,/, "idx.root is always the pane itself (D19)");
@@ -632,7 +635,7 @@ t("T5: reindex skips empty models and clamps cur via Math.min; find reuses the c
   assert.match(html, /if \(!h\.idx\) h\.idx = buildIndex\(p\);\s+\/\/ find box opened before any render's reindex ran/, "find lazily builds the index if reindex hasn't run yet");
 });
 t("T5: findClose clears this pane's model (R13) and unpaints; findOpen anchors off .doc-head", () => {
-  assert.match(html, /p\._hits\.q = ""; p\._hits\.hits = \[\]; p\._hits\.cur = -1;\s+paint\(side\);/, "closing clears q/hits/cur then repaints (clears highlight)");
+  assert.match(html, /p\._hits\.q = ""; p\._hits\.hits = \[\]; p\._hits\.cur = -1;\s+writeField\(side, "q", ""\);.*\s+paint\(side\);/, "closing clears q/hits/cur, drops the remembered query (T12), then repaints");
   assert.match(html, /head\.insertAdjacentHTML\("afterend", findBarHtml\(side\)\);/, "find bar is inserted right after .doc-head, every view kind");
 });
 t("T5: two non-full-render visibility toggles reindex too (found live — neither goes through afterRender)", () => {
@@ -733,8 +736,11 @@ t("T9: rail marks pins with their slot class so the track color matches the high
 
 // --- reset (016 T10): the render tails that bypass afterRender ---
 t("T10: all seven bypass paths call reset", () => {
-  const hooks = html.match(/reset\(side\);/g) || [];
+  const hooks = html.match(/\/\/ D18 hookpoint \d/g) || [];
   assert.equal(hooks.length, 7, "five render .catch branches + the trace placeholder + the board drawer");
+  // 9 = the function itself + the labelled seven + restoreView's empty-memory path. A bare extra
+  // call means someone added a hookpoint without labelling it.
+  assert.equal((html.match(/reset\(side\)/g) || []).length, 9, "no unlabelled reset call sites");
   [1, 2, 3, 4, 5, 6, 7].forEach(n => assert.match(html, new RegExp("D18 hookpoint " + n + "\\b"), "hookpoint " + n + " is labelled"));
   assert.match(html, /'<p class="tr-loading">计算中…<\/p>';\s+reset\(side\); return; \}/, "the trace early return resets before returning");
 });
@@ -797,9 +803,27 @@ t("T11: the entering flag is set on every entry path and burned on read", () => 
   assert.doesNotMatch(rv, /_entering/, "D12 priority 3: the re-render path must never set it");
 });
 t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
-  assert.match(html, /if \(entering && !\(p\._view && p\._view\.line\)\) restoreView\(side\);/, "D12 priority 1 beats 2: a search hit's line wins");
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "D12 priority 1 beats 2: a search hit's line suppresses the anchor scroll");
   assert.match(html, /if \(!v \|\| !p\._blockSel \|\| !blockEls\(p\)\.length\) return;/, "an error panel has no blocks — don't overwrite good memory");
   assert.match(html, /else if \(typeof e\.y === "number"\) p\.scrollTop = e\.y;/, "D5: pixel fallback when the anchor is gone");
+});
+
+t("T12: the query and pin terms are remembered, and cleared field by field", () => {
+  assert.match(html, /q: h\.q, p: h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\) \};   \/\/ R11/, "saveView stores the terms, never the slots");
+  assert.match(html, /writeField\(side, "q", ""\);   \/\/ R13: the query is gone for good/, "Esc drops only the query");
+  assert.match(html, /writeField\(side, "p", \[\]\);/, "⇧h drops only the pins");
+  assert.match(html, /writeField\(side, "p", h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\)\);   \/\/ R13, single pin/, "unpin rewrites the remaining list");
+  const wf = html.match(/function writeField\(side, field, value\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(wf, /e\[field\] = value;/, "one field at a time — Esc must not take the pins with it");
+});
+t("T12: entering a view adopts exactly what that view remembers", () => {
+  const rv = html.match(/function restoreView\(side, scroll\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(rv, /h\.q = e\.q \|\| ""; h\.hits = \[\]; h\.cur = e\.q \? 0 : -1;/, "no memory → empty, so the previous doc's query doesn't follow along (R11); a restored query lands on its first hit, not a 0/n readout");
+  assert.match(rv, /h\.pins = \[\]; h\.slotUsed = \[false, false, false, false\];/, "pins likewise start from this view's memory");
+  assert.match(rv, /var slot = SV\.pinSlot\(h\.slotUsed, h\.pins\.length\);/, "slots are reassigned on reflow — color was never identity");
+  assert.match(rv, /if \(h\.q && !p\._findOpen\) findOpen\(side, true\);/, "a remembered query reopens the bar quietly, without stealing the caret");
+  assert.match(rv, /if \(h\.q \|\| h\.pins\.length\) reindex\(side\); else reset\(side\);/, "entering a view that remembers nothing must unregister the last view's highlights — reindex returns early there");
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "the explicit target suppresses only the scroll, not the term reflow");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");
