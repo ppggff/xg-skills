@@ -795,7 +795,7 @@ t("anchorOf / anchorFind: index hit, index moved (prefix rescue), both miss", ()
 
 t("T11: the entering flag is set on every entry path and burned on read", () => {
   assert.match(html, /p\._entering = true;   \/\/ S12/, "navigate sets it before render");
-  assert.match(html, /if \(p\._hi > 0\) \{ saveView\(side\); p\._hi--; p\._entering = true;/, "back sets it");
+  assert.match(html, /if \(p\._hi > 0\) \{ leaveView\(side\); p\._hi--; p\._entering = true;/, "back sets it");
   assert.match(html, /PANES\[side\]\._entering = true; setFocus\(side\); render\(side\);   \/\/ S12: a history jump is an entry/, "the history dropdown sets it");
   assert.match(html, /L\._entering = R\._entering = true;   \/\/ S12/, "swapPanes sets it for both panes");
   assert.match(html, /var entering = p\._entering; p\._entering = false;/, "afterRender reads once and clears");
@@ -805,11 +805,12 @@ t("T11: the entering flag is set on every entry path and burned on read", () => 
 t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
   assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "D12 priority 1 beats 2: a search hit's line suppresses the anchor scroll");
   assert.match(html, /if \(!v \|\| !p\._blockSel \|\| !blockEls\(p\)\.length\) return;/, "an error panel has no blocks — don't overwrite good memory");
+  assert.match(html, /if \(!e\) return;   \/\/ nothing remembered for this view yet/, "a field write can't conjure an entry out of nothing");
   assert.match(html, /else if \(typeof e\.y === "number"\) p\.scrollTop = e\.y;/, "D5: pixel fallback when the anchor is gone");
 });
 
 t("T12: the query and pin terms are remembered, and cleared field by field", () => {
-  assert.match(html, /q: h\.q, p: h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\) \};   \/\/ R11/, "saveView stores the terms, never the slots");
+  assert.match(html, /q: h\.q, p: h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\) \};   \/\/ R11/, "leaveView stores the terms, never the slots");
   assert.match(html, /writeField\(side, "q", ""\);   \/\/ R13: the query is gone for good/, "Esc drops only the query");
   assert.match(html, /writeField\(side, "p", \[\]\);/, "⇧h drops only the pins");
   assert.match(html, /writeField\(side, "p", h\.pins\.map\(function \(pn\) \{ return pn\.term; \}\)\);   \/\/ R13, single pin/, "unpin rewrites the remaining list");
@@ -824,6 +825,14 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
   assert.match(rv, /if \(h\.q && !p\._findOpen\) findOpen\(side, true\);/, "a remembered query reopens the bar quietly, without stealing the caret");
   assert.match(rv, /if \(h\.q \|\| h\.pins\.length\) reindex\(side\); else reset\(side\);/, "entering a view that remembers nothing must unregister the last view's highlights — reindex returns early there");
   assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "the explicit target suppresses only the scroll, not the term reflow");
+});
+
+t("T13: every exit from a view writes through the one named hook", () => {
+  const calls = (html.match(/(?<!function )leaveView\((side|"left"|"right")\)/g) || []);
+  assert.equal(calls.length, 7, "navigate + back + history + closeright + swapPanes' two + pagehide");
+  [1, 2, 3, 4, 5].forEach(n => assert.match(html, new RegExp("write point " + n + " of 5"), "write point " + n + " is labelled"));
+  assert.match(html, /window\.addEventListener\("pagehide", function \(\) \{ visiblePanes\(\)\.forEach\(function \(side\) \{ leaveView\(side\); \}\); \}\);/, "closing the tab never reaches the five entries");
+  assert.match(html, /leaveView\("left"\); leaveView\("right"\);   \/\/ write point 5 of 5\s+var tmp = \{ h: L\._hist/, "swapPanes writes BEFORE the histories move — the key carries the pane");
 });
 
 console.log("\n" + pass + " shell-helper tests passed");

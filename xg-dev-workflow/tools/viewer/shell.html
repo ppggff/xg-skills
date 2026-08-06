@@ -98,8 +98,11 @@
   ::highlight(sv-pin-left-2), ::highlight(sv-pin-right-2) { background-color: color-mix(in srgb, var(--s-blocked) 22%, transparent); }
   ::highlight(sv-pin-left-3), ::highlight(sv-pin-right-3) { background-color: color-mix(in srgb, var(--s-paused) 22%, transparent); }
   /* S6: sticky so it stays put as content scrolls, unlike .curline-ov's position:absolute (D20).
-     Negative margin keeps it from taking up measure width. */
-  .rail { position: sticky; top: 0; float: right; width: 10px; height: 100vh; margin-right: -10px; z-index: 2; }
+     The pane is a flex column, so `float` would be ignored and this 100vh item would push the whole
+     document a viewport down — align-self puts it at the right edge and the negative margins keep
+     it from taking either width or height from the content. */
+  .rail { position: sticky; top: 0; align-self: flex-end; width: 10px; height: 100vh;
+    margin: 0 -10px -100vh 0; z-index: 2; }
   .rail i { position: absolute; left: 0; right: 0; height: 2px; background: var(--s-todo); }
   .rail i.p0 { background: var(--s-active); } .rail i.p1 { background: var(--s-done); }
   .rail i.p2 { background: var(--s-blocked); } .rail i.p3 { background: var(--s-paused); }
@@ -1190,13 +1193,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // instead of collapsing the column and reflowing both panes.
   function navigate(side, view, push) {
     var p = PANES[side];
-    saveView(side);   // L4 write point: leaving this view (the rest of the entries land with leaveView)
+    leaveView(side);   // L4 write point 1 of 5
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
     if (side === "right") showRight(true);
     p._entering = true;   // S12
     setFocus(side); render(side);
   }
-  function back(side) { var p = PANES[side]; if (p._hi > 0) { saveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }
+  function back(side) { var p = PANES[side]; if (p._hi > 0) { leaveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }   // write point 2 of 5
   function highlightNav() {   // mark the nav item matching the left pane's current view (board/recent)
     var k = PANES.left._view && PANES.left._view.kind;
     document.querySelectorAll(".navbtn[data-go]").forEach(function (b) { b.classList.toggle("on", b.dataset.go === k); });
@@ -2098,7 +2101,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     for (var i = 0; i < els.length; i++) if (els[i].getBoundingClientRect().bottom > edge) return i;
     return els.length - 1;
   }
-  function saveView(side) {
+  // The single write point: every way of leaving a view goes through this, so a new exit path is
+  // one call away from being remembered rather than silently losing the reader's place.
+  function leaveView(side) {
     var p = PANES[side], v = p._view, h = p._hits;
     if (!v || !p._blockSel || !blockEls(p).length) return;   // error panel / placeholder: never overwrite good memory with an empty anchor
     var key = SV.viewKey(side, v, project);
@@ -2112,7 +2117,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function writeField(side, field, value) {
     var p = PANES[side]; if (!p._view) return;
     var store = viewStore(), key = SV.viewKey(side, p._view, project), e = store.map[key];
-    if (!e) return;   // nothing remembered for this view yet — the next saveView writes the truth
+    if (!e) return;   // nothing remembered for this view yet — the next leaveView writes the truth
     e[field] = value;
     lsSet("sv-viewstate", JSON.stringify(SV.recallPut(store, key, e, 50)));
   }
@@ -2403,7 +2408,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
-    if ((t = e.target.closest("[data-closeright]"))) { PANES.right.innerHTML = ""; PANES.right._view = null;
+    if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 4 of 5
+      PANES.right.innerHTML = ""; PANES.right._view = null;
       PANES.right._hist = []; PANES.right._hi = -1; showRight(false); if (focus === "right") setFocus("left"); return; }
     if ((t = e.target.closest("[data-mirror]"))) { e.preventDefault();
       if (PANES.left._view) navigate("right", Object.assign({}, PANES.left._view)); return; }
@@ -2452,6 +2458,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
   });
   function swapPanes() {
     var L = PANES.left, R = PANES.right;
+    // The memory key carries the pane, so a swap can't move entries — write both sides under their
+    // old keys first, then let each side read back under its new one (both ends are idempotent).
+    leaveView("left"); leaveView("right");   // write point 5 of 5
     var tmp = { h: L._hist, i: L._hi }; L._hist = R._hist; L._hi = R._hi; R._hist = tmp.h; R._hi = tmp.i;
     setFocus("left");
     L._entering = R._entering = true;   // S12: both panes are entering a view they didn't have
@@ -2474,7 +2483,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
       reindex(focus); return; }   // R15: a filtered-out group is no longer searchable
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
-    var side = sel.dataset.hist; saveView(side); PANES[side]._hi = +sel.value;
+    var side = sel.dataset.hist; leaveView(side); PANES[side]._hi = +sel.value;   // write point 3 of 5
     PANES[side]._entering = true; setFocus(side); render(side);   // S12: a history jump is an entry
   });
   // R6 fix: shift-clicking a nav target must not extend the text selection / flash.
@@ -2902,6 +2911,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.getElementById("stale").onclick = function () {
     Object.keys(staleSides).forEach(refreshView); staleSides = {}; showStale();
   };
+  // Closing the tab is a way of leaving the view too, and it never reaches the five entries.
+  window.addEventListener("pagehide", function () { visiblePanes().forEach(function (side) { leaveView(side); }); });
   setInterval(pollUpdates, 2500);
 
   // R9: on manual theme toggle, re-init mermaid to the new theme + re-render visible doc panes
