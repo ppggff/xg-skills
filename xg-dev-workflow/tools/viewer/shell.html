@@ -2264,7 +2264,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
       h.slotUsed[slot] = true;
       h.pins.push({ term: term, slot: slot, hits: [] });
     });
-    if (h.q && !p._findOpen) findOpen(side, true);
+    // _findOpen is a pane-level flag, so paneHead re-inserted the bar during this render using the
+    // PREVIOUS view's term — the box has to be told what this view remembers, or it keeps showing a
+    // word the model no longer holds (R11 in the only place the reader can see it).
+    if (!p._findOpen) { if (h.q) findOpen(side, true); }
+    else { var inp = p.querySelector("[data-find-input]"); if (inp) inp.value = h.q; }
     // Nothing remembered → reset, not reindex: reindex bows out early when there is nothing to
     // search, which would leave the previous view's highlights registered against dead nodes.
     if (h.q || h.pins.length) reindex(side); else reset(side);

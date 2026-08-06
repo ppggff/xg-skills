@@ -865,7 +865,10 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
   assert.match(rv, /h\.q = e\.q \|\| ""; h\.hits = \[\]; h\.cur = e\.q \? 0 : -1;/, "no memory → empty, so the previous doc's query doesn't follow along (R11); a restored query lands on its first hit, not a 0/n readout");
   assert.match(rv, /h\.pins = \[\]; h\.slotUsed = \[false, false, false, false\];/, "pins likewise start from this view's memory");
   assert.match(rv, /var slot = SV\.pinSlot\(h\.slotUsed, h\.pins\.length\);/, "slots are reassigned on reflow — color was never identity");
-  assert.match(rv, /if \(h\.q && !p\._findOpen\) findOpen\(side, true\);/, "a remembered query reopens the bar quietly, without stealing the caret");
+  assert.match(rv, /if \(!p\._findOpen\) \{ if \(h\.q\) findOpen\(side, true\); \}/, "a remembered query reopens the bar quietly, without stealing the caret");
+  // Review #3: the bar survives navigation (_findOpen is per pane), and paneHead re-rendered it from
+  // the term of the view being LEFT — so an already-open box must be told what this view remembers.
+  assert.match(rv, /else \{ var inp = p\.querySelector\("\[data-find-input\]"\); if \(inp\) inp\.value = h\.q; \}/, "an already-open box is resynced instead of keeping the previous view's word");
   assert.match(rv, /if \(h\.q \|\| h\.pins\.length\) reindex\(side\); else reset\(side\);/, "entering a view that remembers nothing must unregister the last view's highlights — reindex returns early there");
   assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "the explicit target suppresses only the scroll, not the term reflow");
 });
