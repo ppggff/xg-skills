@@ -29,7 +29,9 @@ checkpoints — **dispatched by stakes**: an **M+ design's
 decision-level checkpoints** default to **one agent per lens, in parallel**; **XS/S designs and
 edit-only rounds** default to the **single-agent multi-lens form** (accepting some secondary-lens
 satisficing at low stakes — the reasoning below stands for M+; the conformance judge's output
-stays a per-criterion verdict list even when folded into one agent). *Why one-each at M+:*
+stays a per-criterion verdict list even when folded into one agent). Lens agents follow
+SKILL.md「Subagent model assignment」— session model capped at opus (a fable session
+dispatches lenses at `model: opus`; the orchestrator adjudicates on the session model). *Why one-each at M+:*
 a mixed-mandate agent satisfices on its secondary lenses, and independent contexts
 decorrelate blind spots; parallel dispatch keeps wall-clock and token cost roughly flat when
 paired with the verified-facts pack below (it removes the only overlap, shared background
@@ -67,9 +69,14 @@ synthesis step exists anyway; don't keep the panel merged for it.
    then survived every in-context pass). → catches self-reported satisfaction and silent key
    narrowing.
 
-**Receipts.** Every panel run leaves a one-line receipt — the grill row (`G<n>`) or round it
-served, lenses dispatched, one-line verdicts — in the grill-log (or, when the conversation is
-the log, in the round's closing message). The gate digest's lead「Grill / 自检状态」section's
+**Receipts.** Every panel run leaves a receipt in the grill-log (or, when the conversation is
+the log, in the round's closing message): a header line — the grill row (`G<n>`) or round it
+served + lenses dispatched — then **one line per finding with its disposition**:
+`adopted → G<n>/D<n>` (became a question or ledger row) · `refuted — <one-sentence why>` ·
+`open → G<n>`. The refuted-with-why lines are the content a verdict-only receipt loses:
+they are what stops a dead concern from being re-found every pass, and the only audit trail
+M6 has of panel quality. A clean run stays one line ("no findings").
+The gate digest's lead「Grill / 自检状态」section's
 已验证 self-check lines cite these receipts;
 a decision-level checkpoint with no receipt means the panel didn't run, and the gate ask is not
 presentable (gate-digest.md). This is enforcement, not bookkeeping: a full requirement + design
@@ -93,14 +100,18 @@ self-certified work.
 
 - **Causal-coverage table** — `cause ↔ mechanism/log`, bijective; the deliverable of lens 1.
 - **Assumptions-to-verify list** — each load-bearing assumption + its verification status.
-- **Panel receipts** — one line per dispatch (grill row/round · lenses · verdicts); see
+- **Panel receipts** — per dispatch: header (grill row/round · lenses) + one finding-level
+  disposition line each (adopted / refuted-with-why / open); see
   「Receipts」above. Lens 4 additionally leaves its per-criterion verdict list.
 - **Verified-facts pack** — the accumulated CONFIRMED findings and positive verifications of
   this grill (claim + `file:func` citation each), kept in the grill log. **Every subsequent
   dispatch attaches the pack and scopes the mandate to the delta + integration seams**; agents
   treat packed facts as given (spot-check only when a new finding contradicts one), never
   re-derive them from scratch. This is what keeps multi-round grills from re-verifying the
-  same kernel chains three times.
+  same kernel chains three times. The pack also carries a **dead-findings section** — each
+  refuted finding as one line (claim + why-dead, lifted from the receipts) — so later
+  dispatches don't re-raise a concern already adjudicated dead; an agent may resurrect one
+  only with new evidence against the recorded why.
 
 ## The invariant ledger (per subsystem, lives in the KB)
 

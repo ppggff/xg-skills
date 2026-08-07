@@ -62,7 +62,8 @@ count omitted; return empty if none — don't invent issues."
 **Model assignment (per-lens application):** checklist/verification-driven lenses default
 to the cheaper model (Agent tool, `model: sonnet`) — **conventions conformance** (comment
 hygiene, check-code-refs run, terminology), **tests hygiene**, **docs accuracy**,
-**git-history**, **quality/simplify**; the inference-heavy lenses stay on the session model —
+**git-history**, **quality/simplify**; the inference-heavy lenses stay on the session model,
+capped at opus (a fable session dispatches them at `model: opus`) —
 **correctness-vs-invariants**, the **adversarial trio**, **security** (perf: judge by the
 diff). Rationale + M6 calibration: SKILL.md「Subagent model assignment」(5b's overlap stats
 feed that calibration).

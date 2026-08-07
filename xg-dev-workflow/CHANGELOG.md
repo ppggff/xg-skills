@@ -4,6 +4,27 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-07 — panel finding 落盘;subagent 封顶 opus;resume 停顿等 go
+
+- **Panel receipts 升级为 finding 级**(adversarial-critic.md):原一行 verdicts 丢掉的正是
+  后续轮需要的内容 —— 被裁死 finding 的 why。新形态:header(row · lenses)+ 每条 finding
+  一行 disposition(adopted → G/D ref · refuted — 一句 why · open → G row);落点不变
+  (grill-log / closing message,park 兜底)。verified-facts pack 增加 **dead-findings 区**
+  (claim + why-dead),后续 dispatch 附带,防止死 concern 每轮被重新"发现";凭新证据方可复活。
+- **Subagent 封顶 opus**(SKILL.md「Subagent model assignment」+ adversarial-critic /
+  review / review-deep / improve / evidence 各引用点):fable session 只让 orchestrator 本体
+  跑 fable,inference-heavy dispatch(panel lenses、review axes、improve scan)默认
+  `model: opus` —— 与 sonnet-for-gather 同构(限定域 mandate + orchestrator 复核),
+  单价减半(Opus 5 $5/$25 vs Fable $10/$50);仍挂 M6 calibration。evidence.md 的
+  recall-无兜底 carve-out 豁免 cap(cap 的安全论证正是 orchestrator 兜底,该场景不存在)。
+  gather → sonnet、执行区 `/model sonnet` + `/advisor opus` 维持不变;不引入 haiku。
+- **resume 汇报后停**(resume.md step 5):3 行 situation report 后 STOP 等 go,不再自动
+  continue —— resume 是人的重入口,常带改向意图;调用自带指令("resume 016 继续 T5")则
+  直接执行;go 后执行区自治照常。
+- **环境事实边界半句**(grill.md「载重事实入账」):用户口述的环境事实(版本/规模/部署形态)
+  未验证前不入 facts.md,归 phase doc Context 并标 provenance(M1)。
+- 方案与四点评估:dev_root `xg-skills/notes/2026-08-07-panel-persistence-models-resume.md`。
+
 ## 2026-08-07 — grill 写入节奏钉死(round = 决策簇;doc 按轮写;禁转写确认 ask)
 
 - **起因**:grill 中实际出现「已按推荐写进文档,要一句确认」—— 人未作答先落 doc,再加

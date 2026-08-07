@@ -89,6 +89,8 @@ priorities and tactics (see "Phase-specific layers").
   `[F<n>]` from the phase doc. Boundary with the adversarial-critic **verified-facts pack**:
   the pack is session-state (avoids re-verifying within a grill); `facts.md` is the card's
   persistent layer — only facts that later phases/rewrites will lean on get an F block.
+  User-stated environment facts (versions, scale, deployment shape) are not F-block material
+  until verified — they land in the phase doc's Context with provenance marked (M1).
 - **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
   requirement intake; design with live candidate approaches), the first round(s) may run
   **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction

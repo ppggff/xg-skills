@@ -41,7 +41,7 @@ the **only exit is roadmap Next-up** — improve never creates a card.
 - **In-flight list**: `index.md` board rows with 整体状态 ∉ {done, dropped} + one Scope line from
   each card's `requirement.md`.
 
-### 2. Scan (one agent, session model)
+### 2. Scan (one agent, session model capped at opus — SKILL.md「Subagent model assignment」)
 Dispatch one Explore-type agent over the bounded region. Its prompt must contain:
 - the deep-module vocabulary gloss above + the KB domain vocabulary (name candidates in domain
   terms where they exist);

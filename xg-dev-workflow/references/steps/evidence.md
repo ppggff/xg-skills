@@ -79,8 +79,9 @@ evidence — then record the finding (in the relevant doc, and in the KB if reus
 Surface conflicts (docs vs code, source vs source) to the human; don't silently pick.
 
 **Model (cost):** follows SKILL.md「Subagent model assignment」(gather → cheaper `model: sonnet`;
-inference/adjudication → session model, safe because the orchestrator re-derives). Evidence-specific
-carve-out: keep the **session model** where recall itself is the deliverable with no cheap backstop —
+inference → session model capped at opus, safe because the orchestrator re-derives). Evidence-specific
+carve-out: keep the **full session model** (the opus cap waived — its safety argument is the
+orchestrator backstop, absent here) where recall itself is the deliverable with no cheap backstop —
 the swappable-seam every-registration-site enumeration, and the hop-by-hop trace behind a
 birth-certificate-grade negative.
 

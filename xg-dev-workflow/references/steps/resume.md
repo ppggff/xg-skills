@@ -26,8 +26,12 @@ un-persisted state into its containers and prints the `resume` line this step an
    design froze; then re-open the requirement's own `[[wiki/…]]` links / cited `func()`/files
    on demand — don't trust prose; verify anything you're about to act on (M1). (This Orient is
    part of the resume run — covered by its log record, not logged separately.)
-5. State back a 3-line situation report (phase / next step / blockers) and continue from
-   `progress.md`'s "Next step". Resuming into an in-flight 实现 → rebuild the harness task
+5. State back a 3-line situation report (phase / next step / blockers), then **STOP and wait
+   for go** — resume is the human's re-entry point and they may redirect; auto-continuing
+   burns work in a direction they came back to change. Exception: the resume invocation
+   itself carries a directive ("resume 016 继续 T5") — follow it directly. On go, continue
+   from `progress.md`'s "Next step"; execution-zone autonomy resumes as usual from there.
+   Resuming into an in-flight 实现 → rebuild the harness task
    list from `progress.md`'s Task status (display mirror, `implement.md`「Harness task list」);
    never treat a stale harness list as state.
 
