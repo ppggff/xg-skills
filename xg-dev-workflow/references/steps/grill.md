@@ -19,7 +19,22 @@ priorities and tactics (see "Phase-specific layers").
   round surfaces several independent siblings; the human sets the pace and can drop back to
   single-question any time. Anything dependent stays sequenced — batching never reorders the
   tree walk.
+- **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
+  cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
+  and their siblings — a sibling batch stays inside its round). It closes when the walk leaves
+  the cluster (the next question hangs off a different branch point) or the cluster is exhausted
+  (all resolved / explicitly Open); an adversarial pass is its own round. Backstop for deep or
+  fuzzy-edged branches: force-close after ~6-8 resolved questions so unflushed state stays
+  bounded. This one boundary drives three mechanisms — the panel's branch checkpoints, the
+  per-round doc sync (write cadence below), and the go-ask pace — and is the unit the
+  ~3-round rule counts in.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
+- **A recommendation is not a decision — and transcription is never an ask.** Until the human
+  answers, a recommendation lands in neither the phase doc nor the ledgers. A grill stops for
+  exactly three ask shapes: the per-question answer ask, the round-end go ask, and the gate ask.
+  "Written into the doc per my recommendation — please confirm" is forbidden on both counts:
+  it decides before the answer, and it adds a per-item micro-gate for transcription correctness
+  that the gate digest already covers (it approves ledger rows, not doc text).
 - **Recommendation pre-check (self-proposals get the same rigor as external ones).** Before
   recommending an approach/idea of your own — inline in discussion, not only in dispatched
   panels — pass four checks; failing any, present it as an **open question with the check as
@@ -53,8 +68,11 @@ priorities and tactics (see "Phase-specific layers").
   NEXT phase's grill.
 - **Don't grill to death** — if one point won't converge in ~3 rounds, record it as an Open
   question and move on; an honest "still ambiguous" beats grinding.
-- Convergence lands **inline in the phase doc** (`requirement.md` / `design.md`) as you go — the
-  doc is the durable output; the grill-log below is the *path* to it.
+- **Write cadence — the phase doc's write unit is the round, not the question.** Three levels:
+  **per-question** → ledgers only (逐条入账 / 载重事实入账 below); **per-round** → phase doc
+  fold-in + checkpoint commit (the Round-end order in「Convergence」is the SoT); **per-gate** →
+  human confirmation (the gate digest approves ledger rows, never doc text). The phase doc
+  (`requirement.md` / `design.md`) is the durable output; the grill-log below is the *path* to it.
 - **逐条入账 (ledger as you converge).** When a `G<n>` resolves into a **human-judgment
   decision** (requirement 条目 / design D/ADR decision / 详设 `S<n>` item), append it to the
   card's `decisions.md` as a **proposed** block right then (`templates/decisions.md`; the file
@@ -76,7 +94,7 @@ priorities and tactics (see "Phase-specific layers").
   **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction
   stabilizes — a doc drafted mid-discussion anchors the very text the grill is trying to move,
   and every subsequent round then pays a patch cost (Fold-in). The doc must exist before any
-  gate ask (Stop-at-gate「Ask with receipts」); once it exists, convergence lands inline as above.
+  gate ask (Stop-at-gate「Ask with receipts」); once it exists, the write cadence above applies.
 
 ## Shared elicitation tactics (lenses)
 
@@ -156,8 +174,8 @@ investigation notes); the phase doc + ADRs are what persist.
 pass can always ask more — so question-exhaustion is an unreachable stop state. Convergence is
 judged by **materiality**: would another round still change the decision this phase gates?
 
-At the end of each round (a batch of resolved questions, or one adversarial pass), **Claude runs
-this check and states a one-line verdict**. The verdict is a *recommendation* — the human still
+At the end of each round (one decision cluster resolved — Protocol「Round」— or one adversarial
+pass), **Claude runs this check and states a one-line verdict**. The verdict is a *recommendation* — the human still
 decides at the gate; it replaces neither the gate nor the human's "keep going".
 
 **MANDATORY — surface it, don't just file it.** The verdict must appear in the **user-facing

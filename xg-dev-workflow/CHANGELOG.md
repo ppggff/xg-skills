@@ -4,6 +4,26 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-07 — grill 写入节奏钉死(round = 决策簇;doc 按轮写;禁转写确认 ask)
+
+- **起因**:grill 中实际出现「已按推荐写进文档,要一句确认」—— 人未作答先落 doc,再加
+  逐条转写确认 micro-gate。诱因是 grill.md 旧句 "convergence lands inline as you go" 与
+  Round-end order(round 末才 sync doc)有张力,doc 写入单位没钉死;且 round 本身只有
+  "a batch of resolved questions" 的模糊界定。方案:dev_root
+  `xg-skills/notes/2026-08-07-grill-write-cadence-and-round-boundary.md`。
+- **grill.md Protocol 三处**:(1) 写入三级节奏 —— per-question 只入账(逐条入账/载重事实
+  入账)、per-round 才 doc fold-in + checkpoint(Round-end order 为 SoT)、per-gate 确认
+  (digest 批账本行,不批 doc 文本);(2) 新 bullet「recommendation is not a decision」——
+  人未作答前推荐不落 doc/ledger,合法 ask 仅三种(答案 ask · round-end go ask · gate ask),
+  转写确认 ask 为禁止形态;(3) round 定义 —— 一个决策簇的解决过程(载重分支点开轮,
+  walk 离开簇或簇内全 resolved/Open 收轮;adversarial pass 自成一轮;~6-8 resolved 问题
+  兜底强制收轮),panel checkpoint / doc 写入 / go-ask 三机制共用此边界,~3-round 规则
+  单位随之明确。共享层一改两阶段(requirement/design-grill)同继承;detail 无 grill 不涉及。
+- 连带扫齐(invariant 6):试行窗口尾句改指 write cadence · Convergence 开头括注改指
+  Protocol「Round」;requirement.md:85 原句已与新节奏一致,未动。
+- 暂缓(记观察):requirement 阶段 ledger-first / prose 推迟到收敛后统一重写 —— 牵动
+  试行窗口/fold-in/park,先观察钉死后的效果,M6 凭 usage log 再定。
+
 ## 2026-08-07 — gate digest 与 M2 修改列表体量收敛(digest 单条 chat 消息;M2 提案先入账本)
 
 - **起因**:实测 longrun_test 项目落盘了 10 个本不该存在的文件共 1270 行 —— gate ask 两份
