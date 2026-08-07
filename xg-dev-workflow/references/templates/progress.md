@@ -32,6 +32,8 @@ updated: YYYY-MM-DD
 > - Long scratch / blow-by-blow → `notes/` (resume reads it only if needed), not here.
 > - **No secrets.** These docs are committed (dev_root repo): redact API keys / passwords / PII.
 > - What resume actually needs: **State at a glance + Task status**. Everything else stays terse.
+> - **Hard cap ≈150 lines** (M3 flags an over-cap file). Beyond it, prune before adding:
+>   resolved → one-line verdict + link; history → `log.md`; scratch → `notes/`; deferred → roadmap.
 > - **History / why-we-got-here → `log.md`** (append-only). This file is the *snapshot*; the log is the *story*.
 
 ## State at a glance
@@ -60,8 +62,9 @@ updated: YYYY-MM-DD
 
 ## Design iterations
 
-Dated notes on how understanding/design evolved (and any change-management pivots).
+**Open** tensions / in-flight pivots only — a resolved iteration collapses to its outcome
+(one line + `design.md`/ADR/`log.md` link) and leaves this file.
 
 ## Discovered issues
 
-Things found mid-execution (spawn new requirements or KB notes as appropriate).
+**Open** finds only — once spawned (requirement / KB note / roadmap row), the item moves there.

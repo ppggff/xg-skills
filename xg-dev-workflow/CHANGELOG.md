@@ -4,6 +4,27 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-07 — 复杂度评估第一批:progress cap · XS KB 默认缓记 · gate 成本预算 · model-tiering 外移
+
+- **起因**:同日复杂度评估(dev_root `xg-skills/notes/2026-08-07-workflow-complexity-assessment.md`)
+  实证:决策区一次 gate 的固定附属动作 ≥8 类且不随 sizing 缩放;card 016 文档 4231 行、
+  decisions.md 799 行超过 design.md 本体;resume 006 时 progress.md 已 2335 行而 resume 实际只读
+  4 节(usage note)。主刀(治理层按 sizing 降级为 M+/L 叠加)与次刀(文档约定共享包)入
+  roadmap 待开卡;本批只落 retro 尺寸的四小修。
+- **progress.md 硬上限 ≈150 行**(templates/progress.md + omission-check「snapshot, not a log」
+  项):超限即 flag、不豁免;Design iterations / Discovered issues 改为**只留 open 项** ——
+  resolved 的收敛成一行链接迁出(此前两节按日期追加,是 2335 行事故的主要来源)。
+- **XS 卡 KB-capture 默认满足**(omission-check「Knowledge captured & compiled」项):不再要求
+  每轮显式 capture/defer 表态;发现明显可复用仍写 KB。
+- **Pruning pass 新增 gate-cost budget 检查**(retro.md):新增 per-gate 动作须说明替换了哪条
+  既有动作、或如何随 sizing 缩放;答不出即拒。把「per-gate 固定成本是主要膨胀轴」变成每次
+  retro 的显式预算项。
+- **model-tiering 外移**(SKILL.md → `references/model-tiering.md`):rationale + session-model
+  tiering 段外移,SKILL.md 留核心规则 stub(heading 保留,既有「SKILL.md〈Subagent model
+  assignment〉」引用继续解析);park.md / review-deep.md 改指新文件;Usage logging 段同批压缩。
+  SKILL.md 374→365 行 —— 剩余大头是契约文本,继续瘦身属治理卡范围,本批不强压。
+- **step binding 段检视后不动**:7 行全为载重条款(no-op test 反向结论 —— 非 sediment 不砍)。
+
 ## 2026-08-07 — panel finding 落盘;subagent 封顶 opus;resume 停顿等 go
 
 - **Panel receipts 升级为 finding 级**(adversarial-critic.md):原一行 verdicts 丢掉的正是

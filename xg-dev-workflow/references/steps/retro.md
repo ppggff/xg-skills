@@ -67,6 +67,10 @@ to cut.
 - **Sediment check** — a rule whose justifying friction no longer shows up (usage log / recent
   cards show the failure mode gone) gets retired, with a CHANGELOG note saying why; and any
   surviving inline `(Learned …/date/card)` justification moves to the CHANGELOG now.
+- **Gate-cost budget** — an addition that puts a new per-gate action on the decision zone (a doc
+  to write, a check to run, a transcription) names the existing action it replaces **or** how it
+  scales down with sizing (XS/S lighter or exempt); one that can answer neither is rejected — the
+  per-gate fixed cost is the skill's dominant bloat axis.
 
 Deletions in SKILL.md/templates need the same human confirm as additions (step 3).
 

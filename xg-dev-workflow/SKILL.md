@@ -283,19 +283,11 @@ investigation 把契约摸出来再判；写得出是必要非充分。字段级
 
 ## Subagent model assignment (cost)
 
-Checklist / gather / verification subagent work defaults to the cheaper model (Agent tool
-`model: sonnet`); inference-heavy analysis stays on the session model, **capped at opus** —
-subagents never run fable: a fable session dispatches its inference-heavy agents (panel lenses,
-review axes) at `model: opus` and keeps fable for the orchestrator itself (adjudication,
-synthesis). Safe for the same reason as the sonnet default — a lens mandate is a scoped attack
-and the orchestrator re-derives / adjudicates (M1; review step 5) — at half the per-token cost.
-**Deterministic checks are scripted, not delegated**; every downgrade sits under M6 calibration
-(findings that repeatedly die in adjudication revoke it). Per-lens application: `review.md` step 4.
-
-**Session-model tiering follows the two zones.** Decision-zone gates deserve the strong session
-model; the execution zone runs well on a cheaper one — the plan gate digest reminds the human of
-the optional `/model sonnet` + `/advisor opus` switch after go (a fresh session via `resume` makes
-it free). The cheap-model 评审 adjudication tradeoff sits under M6 calibration like every downgrade.
+Checklist / gather / verification subagent work → cheaper model (Agent tool `model: sonnet`);
+inference-heavy analysis → session model **capped at opus** (subagents never run fable; a fable
+session dispatches them at `model: opus`). **Deterministic checks are scripted, not delegated**;
+every downgrade sits under M6 calibration. Rationale, per-lens application, and the session-model
+tiering (optional post-go `/model sonnet` + `/advisor opus` switch): `references/model-tiering.md`.
 
 ## Verbs
 
@@ -334,12 +326,11 @@ Any phase verb accepts a `use:<skill>` suffix to override that step's implementa
 
 ## Usage logging (self-feedback)
 
-Logging rule lives in `~/.claude/CLAUDE.md` (Skill Usage Logging). This skill's `--action` = the
-verb just run (vocabulary: `KNOWN_ACTIONS` in `tools/log-usage.py`; `status` only as a deliberate
-standalone view). Exceptions: an `investigate` inside an active requirement logs `design`;
-implement-phase task work logs `plan` (one record per task/checkpoint). **One event = one record:**
-a KB write inside an `investigate`/`diagnose`/`review`/`improve` run is covered by that record —
-only standalone KB work logs under xg-knowledge-lite.
+Rule: `~/.claude/CLAUDE.md` (Skill Usage Logging); `--action` = the verb just run (vocabulary:
+`KNOWN_ACTIONS` in `tools/log-usage.py`; `status` only as a deliberate standalone view). Mappings:
+an in-card `investigate` logs `design`; implement-phase task work logs `plan` (one record per
+task/checkpoint). **One event = one record** — a KB write inside a verb run is covered by that
+record; only standalone KB work logs under xg-knowledge-lite.
 
 ## Step binding (vendor + runtime override)
 
@@ -363,6 +354,7 @@ vendored file to change behavior; the **contract never changes**, only the imple
   待你判 + stakes; one chat message ≤~70 lines, never a file); read before every
   decision-zone gate ask.
 - `references/steps/review-deep.md` — the `review` verb's deep-tier continuation.
+- `references/model-tiering.md` — subagent model assignment rationale + session-model tiering.
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.
 - `references/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).

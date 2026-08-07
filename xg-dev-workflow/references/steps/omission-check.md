@@ -93,7 +93,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       The deterministic half is `--check` (h): `Part:` values ⊆ the new-format table's canonical
       names (legacy tables without an `R` column are skipped) — this item keeps only the judgment
       half (test 分节 coverage, seam 联调级 tests).
-- [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it.
+- [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it. Deterministic half: the template's **≈150-line cap** — an over-cap file is flagged for pruning, not grandfathered.
 - [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
       TL;DR, a current **速览** (regenerated, not appended), the **diagrams** (module-interaction
       + data-flow **walking one named flow end-to-end** — a static relationship map no flow
@@ -143,6 +143,8 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       deferred — <why>` in the raw's frontmatter); not left only in the requirement dir, and not
       left as an uncompiled raw (which `kb-backlog.py` will flag each
       session). Compile back-annotates `compiled_to:` and updates `wiki/index.md`.
+      **XS cards: satisfied by default** — no per-round capture/defer statement required;
+      still write to the KB when a find is plainly reusable.
 - [ ] **Roadmap fed** — deferred work this card surfaced (Future / Discovered issues) is captured
       in `<project>/roadmap.md`, not only buried in the card; a graduated roadmap item links its NNN.
 - [ ] **Architecture / invariants current (KB)** — a frozen design that changed the system's shape

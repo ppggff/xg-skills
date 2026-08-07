@@ -65,7 +65,7 @@ hygiene, check-code-refs run, terminology), **tests hygiene**, **docs accuracy**
 **git-history**, **quality/simplify**; the inference-heavy lenses stay on the session model,
 capped at opus (a fable session dispatches them at `model: opus`) —
 **correctness-vs-invariants**, the **adversarial trio**, **security** (perf: judge by the
-diff). Rationale + M6 calibration: SKILL.md「Subagent model assignment」(5b's overlap stats
+diff). Rationale + M6 calibration: `references/model-tiering.md` (5b's overlap stats
 feed that calibration).
 **Standing model-diversity agent:** besides the lens agents, dispatch **one light-sweep
 agent on a different model** (Agent tool, `model: sonnet`) — same-model lenses share

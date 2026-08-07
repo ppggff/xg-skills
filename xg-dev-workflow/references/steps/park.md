@@ -58,8 +58,8 @@ The four beats (numbering matches the frozen design's 四拍契约):
 4. **Closing reply = receipts + start line** (Stop-at-gate「Ask with receipts」applies to a
    verb-run-closing reply): name the touched docs + the commit, and end with one paste-ready
    line — `xg-dev-workflow resume <slug>` — plus, when the card sits in the execution zone, an
-   optional model-switch suggestion (`/model sonnet` + `/advisor opus`, SKILL.md「Subagent model
-   assignment」).
+   optional model-switch suggestion (`/model sonnet` + `/advisor opus`,
+   `references/model-tiering.md`).
 
 ## Contract invariants
 
