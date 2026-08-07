@@ -63,8 +63,8 @@ priorities and tactics (see "Phase-specific layers").
   round's checkpoint commit is what the eventual approve annotation will cite as receipts.
 - **Self-contained 陈述.** A ledger 陈述 whose decision object is a list/count follows
   gate-digest.md's self-containment rule at write time (same thresholds, same evidence-ref
-  exemption) — the digest *restates* pending rows verbatim, so compression here cannot be
-  repaired at presentation time.
+  exemption) — a digest card *leads with* the row's 陈述 (why/alt compress to the card
+  shape), so a 陈述 that isn't self-contained cannot be repaired at presentation time.
 - **载重事实入账 (facts as you verify).** When a grill/investigate round **verifies a
   load-bearing fact** a decision rests on, append it to the card's `facts.md` as an `F<n>`
   block right then (`templates/facts.md`; created lazily like `decisions.md`) and cite it as

@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-07 — gate digest 与 M2 修改列表体量收敛(digest 单条 chat 消息;M2 提案先入账本)
+
+- **起因**:实测 longrun_test 项目落盘了 10 个本不该存在的文件共 1270 行 —— gate ask 两份
+  (169/160 行,违反「digest never lands on disk」)、M2 修改列表八份(62–183 行,最大那份
+  是完整变更提案而非 touch-list)。根因四条:卡片/自检段实际形态是 spec 设想的 2–3 倍;
+  trace/pending 附件条款落后于实践(实践已自行压缩);「确认前零写入」把 M2 提案实质逼进
+  note 文件(确认后誊入账本 = 双写);全局「长内容写文件」约定与「digest 是 chat 消息」冲突
+  未显式解决。方案与答疑:dev_root `xg-skills/notes/2026-08-07-gate-digest-change-list-slimming.md`。
+- **gate-digest.md 六处收敛**:自检段严格「verifier · receipt · verdict」一行制、上限 ~10 行
+  (战报归 grill notes);卡片定形 ≤7 行(why ≤2 行 · alt 展示 ≤2 条 · 禁注意/连带类子弹,
+  其家在账本行/doc §);trace 附件改为缺口行 + 一行统计 + 全表命令(不再全量内联);
+  其余 pending 改按级别分组 id 清单,需特别注意的行单独点名;待你判每项 ≤3 行;新增
+  「One chat message, never a file」规则 —— digest ≤~70 行,超限是内容回家的 routing 信号,
+  落盘禁止,并明示 digest 是全局「长内容写文件」约定的唯一例外。
+- **change.md 0b 顺序重排**:M2 提案实质(新陈述+why+alt)先以 proposed block 入账
+  (推广 case A 步骤 0 的既有先例;被拒 → retired 留一行原因);修改列表回归 touch-list
+  (写操作每行「id · doc · action · 一句话」指向 proposed 块;re-verify 归并一行),不落盘;
+  确认门守的是「approved 行不翻、phase doc 不动」。净效果:双写变单写,dev_root 总量净减。
+- **decisions.md 模板细则**:proposed 块确认前可就地改写(git 留痕,016 已有实践),
+  supersede-into-new-block 只约束 approved 块;why ≤1 段,更长论证归 doc §/ADR。
+- 连带扫齐(invariant 6):SKILL.md M2 摘要与目录行 · design-grill.md trace 附件句 ·
+  grill.md「restates verbatim」句 · README.md M2 句。
+
 ## 2026-08-05 — trace 矩阵三类假信号修掉(gate 仪表可信度)
 
 - **加粗/删除线 id 单元格不再被漏读**(`trace_requirement`):条目表里 `| **R21** |`(新增条目的写法)

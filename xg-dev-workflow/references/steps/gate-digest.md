@@ -26,33 +26,44 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
 1. **Grill / 自检状态 (lead section — is this ask qualified to be judged?)**
    - The grill **convergence verdict** (grill.md auto-verdict): 继续/建议收敛 + this round's
      facts only.
-   - The **mandatory self-check checklist**, one line each **with its receipt pointer**:
-     adversarial panel (lenses + verdicts — adversarial-critic.md「Receipts」), the
-     criterion-conformance judge (lens 4), any micro re-verify, M3 / `workflow-status.py
-     --check`. These lines carry the **已验证（勿复核）** role: an entry that names no
+   - The **mandatory self-check checklist**, strictly one line each — `verifier · receipt
+     pointer · verdict`: adversarial panel (lenses + verdicts — adversarial-critic.md
+     「Receipts」), the criterion-conformance judge (lens 4), any micro re-verify, M3 /
+     `workflow-status.py --check`. What a round *found* is grill-notes content the receipt
+     already reaches — never restated here; the whole section caps at ~10 lines. These lines
+     carry the **已验证（勿复核）** role: an entry that names no
      dispatched verifier is a self-verification and doesn't belong; per-item correctness is
      backstopped by the verification flow and the close-out review, not by human re-reading —
      the gate approves **direction**, not line-by-line accuracy.
    - A one-line conclusion: 自检无欠账、gate 可判 — or what is still owed (owed → run it
      first; the ask is not presentable).
 2. **Decision cards** (3–5 emphasized) — fixed card layout, written for comprehension
-   (full sentences; plus a concrete example when the decision is abstract):
+   (full sentences; plus a concrete example when the decision is abstract). **A card is
+   ≤7 lines total**:
    - bold header: `[<id>] <一句话陈述标题>`;
-   - sub-bullets, one per line — `陈述:` the full-sentence decision · `why:` one line (the why
+   - sub-bullets, one per line — `陈述:` the full-sentence decision (1–2 lines) · `why:`
+     ≤2 lines (the why
      must have a home in the doc: a card whose why can't point at a coherent section isn't
-     presentable — write the section first) · `alt（拒）:` one line per rejected alternative ·
+     presentable — write the section first) · `alt（拒）:` one line per rejected alternative,
+     ≤2 shown (further alternatives live at the 锚点) ·
      `锚点:` the doc §section carrying the full argument.
+   - **No other sub-bullets.** 注意/连带/已知情形-style caveats have a home — the ledger row
+     or a doc § the 锚点 reaches; no home yet → write the home first, then cite it. Inlining
+     them is how a card doubles.
    - The 3–5 ceiling caps **emphasis**, not disclosure: every remaining pending row still
-     appears in a compact `其余 pending（一并批）` list after the cards — a pending row
-     missing from the ask would be approved by silence.
+     appears after the cards as a `其余 pending（一并批）` id list **grouped by level (1–2
+     lines per level)** — a pending row missing from the ask would be approved by silence;
+     rows needing individual attention (e.g. an Effect enumeration key changed since approval)
+     are named out of the group, one line each.
 3. **Phase attachments** — as lists: 设计 freeze inlines the `--trace` matrix summary
    (see Rules); the requirement confirm ask restates the **拆分审视 verdict line**
    (steps/requirement.md beat 8 — one line, 拆/不拆 + 理由); enumeration-criterion tables
    follow the paste-the-table rule below; other phases attach what their step prescribes.
 4. **假设 closure sweep** — when the phase step requires it (e.g. design freeze): the doc's
    load-bearing 假设/推断 markers, each discharged or carried-with-a-home.
-5. **待你判** — the owner trade-offs an agent can't make, numbered, each naming its **stake**
-   (what gets deleted / what tax is added / what bet is taken). Sources: pending rows' `alt:`
+5. **待你判** — the owner trade-offs an agent can't make, numbered, **≤3 lines each: the
+   question + its stake** (what gets deleted / what tax is added / what bet is taken);
+   background by reference to a card or doc §, not restated. Sources: pending rows' `alt:`
    trade-offs, downgrade-class decisions, risk bets — plus the **least-confident spots**
    (假设/推断-marked items, unverified comparisons, remote-trigger sizing calls): confidence
    comes from being told where to look, not from having read everything.
@@ -70,11 +81,12 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
   not-satisfied rows are exactly what the human must rule on). Missing receipts → run the
   panel first; a gate ask
   without them presents self-certified work as verified — the failure this rule exists to block.
-- **设计 freeze asks attach the trace matrix.** Run `workflow-status.py --trace
-  <project>/<card>` and inline its output after the cards. At freeze time the task/test/commit
-  columns are legitimately empty — what the human reads is the R→design column: an R-id with
-  no design home is a gap the ask must name, not paper over. Later gates may re-attach it as
-  the columns fill (optional there).
+- **设计 freeze asks attach the trace gap summary, not the matrix.** Run `workflow-status.py
+  --trace <project>/<card>`; inline the **gap rows only** — an R-id with no design home is a
+  gap the ask must name, not paper over — plus a one-line 统计 (`N/N 有落点，缺口 0`) and the
+  command for the full matrix. Never inline the full output. At freeze time the task/test/
+  commit columns are legitimately empty. Later gates may re-attach the same summary as the
+  columns fill (optional there).
 - **Enumeration criteria: paste the table, not the conclusion.** A criterion of the form
   "every X …" claimed satisfied is presented as its table (declared key × rows × evidence
   columns, blanks visible) or its missing-row list — never as a prose conclusion
@@ -94,6 +106,16 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
   disk; what lands is the **ledger row** (`decisions.md`) and the phase doc. A decision that
   exists only in the digest is an omission — enter it as a proposed row (and its home section)
   first; M3/--check catch the reverse (a doc-cited id with no ledger row).
+- **One chat message, never a file.** The digest exists to be read at the gate: target
+  **≤~70 lines** (an L card; a typical M card lands ~50). Over the ceiling is a **routing
+  signal, not a reason to land a file** — the overflow belongs in its home (ledger row ·
+  doc §/ADR · grill notes) and the digest cites it; no home yet → write the home first, the
+  same discipline as a card's why. Persisting the digest under `notes/` (a `freeze-ask.md`
+  and the like) is forbidden: the ledger + receipts commit are already the audit surface, the
+  digest is regenerable from the pending rows, and a digest on disk is a second source of
+  truth that degrades back into the reading assignment this mechanism exists to kill. (This
+  is the sanctioned exception to the global "long content → files" convention — which is
+  exactly why it must stay small.)
 - **Scale down, never pad.** An XS phase with two decisions sends two cards. The 3–5 / 2–3 counts
   are ceilings for a typical M card, not quotas.
 - **Approving the digest approves the phase doc.** The doc stays the durable, authoritative

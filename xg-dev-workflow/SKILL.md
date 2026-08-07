@@ -252,8 +252,9 @@ investigation 把契约摸出来再判；写得出是必要非充分。字段级
   no line numbers) or a doc/source. Uncertainty → dispatch an Explore subagent to investigate;
   capture reusable findings to the KB. `references/steps/evidence.md`.
 - **M2 Change management** — reopening an approved decision is **gated at entry** (human-initiated,
-  or Claude escalates the fork as a proposed ledger row and waits) → **修改列表 first** (human
-  confirms, zero writes before) → **scoped, mode-specific propagation (追加/变更/撤销)** — never a
+  or Claude escalates the fork as a proposed ledger row and waits) → **proposal substance lands as
+  proposed blocks, then a 修改列表 touch-list** (human confirms; no approved row flips and no phase
+  doc is touched before) → **scoped, mode-specific propagation (追加/变更/撤销)** — never a
   wholesale regenerate → re-approve over the new proposed rows. Detail-only changes ride baseline
   force; pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`.
   Full flow: `references/steps/change.md`.
@@ -356,7 +357,8 @@ vendored file to change behavior; the **contract never changes**, only the imple
   gate-adjacent criterion-conformance judge) + receipts; used by requirement, design-grill,
   review, and (lens 4 only) the 详设 baseline + execution-authorization gates.
 - `references/steps/gate-digest.md` — the decision-card gate ask (判断分工: 已验证(勿复核) /
-  待你判 + stakes); read before every decision-zone gate ask.
+  待你判 + stakes; one chat message ≤~70 lines, never a file); read before every
+  decision-zone gate ask.
 - `references/steps/review-deep.md` — the `review` verb's deep-tier continuation.
 - `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/provenance.md` — what each vendored step was forked from.

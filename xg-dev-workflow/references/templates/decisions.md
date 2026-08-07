@@ -12,11 +12,15 @@ Contract (design 010, ADR-0001):
   requirement | design | detail; state ∈ proposed | approved | superseded | retired (the ONLY
   state words — freeze/baseline force derives from level, never written as a state).
 - Single active block per id: at most one block per id is not superseded/retired.
-- New blocks append at the file end. Claude may write proposed/superseded (via a confirmed
-  M2 change list); approved is produced only by a human gate go (Claude transcribes).
-- In-place edits are whitelisted to: the header state word · the `approved:`/`superseded:`
-  annotation lines · a `- 澄清:` wording-clarification note (semantics unchanged; git keeps
-  the old text). Everything else: supersede into a new block.
+- New blocks append at the file end. Claude may write proposed freely (grill 逐条入账 and
+  M2 proposal substance — before the confirm); superseded only after a confirmed M2 修改列表;
+  approved is produced only by a human gate go (Claude transcribes).
+- A **proposed** block may be rewritten in place while under discussion (git keeps history).
+  Once **approved**, in-place edits are whitelisted to: the header state word · the
+  `approved:`/`superseded:` annotation lines · a `- 澄清:` wording-clarification note
+  (semantics unchanged; git keeps the old text). Everything else: supersede into a new block.
+- why stays ≤1 paragraph; argumentation beyond that lives in the doc §/ADR the block cites
+  (判断必需 → digest card · 论证 → doc §/ADR · 记录 → this ledger).
 - `approved:` must carry the gate receipts-commit short hash (the ledger state the human saw);
   the approve transcription commits immediately after — adjacent in git, auditable.
 - Docs are rewritable views over this ledger: synthesis prose cites the ledger id / `[F<n>]`

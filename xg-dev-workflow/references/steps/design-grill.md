@@ -210,7 +210,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    verifies the unconditional sections mechanically — run the **criterion-conformance
    judge** (adversarial-critic.md lens 4, against requirement 条目 + Effect) and confirm the
    panel receipts are in place (gate-digest.md precondition); the ask itself attaches the
-   `--trace` coverage matrix (gate-digest.md) — then run the **假设 closure sweep** — enumerate the doc's
+   `--trace` gap summary — gap rows + one-line 统计, not the full matrix
+   (gate-digest.md) — then run the **假设 closure sweep** — enumerate the doc's
    load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row

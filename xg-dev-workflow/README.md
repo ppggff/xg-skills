@@ -38,7 +38,8 @@ config xg-knowledge-lite uses, so project names line up.
   `decisions.md` holds every human-judgment decision's status (proposed/approved/superseded/
   retired); gates approve pending rows via the digest, docs become rewritable views that must
   not contradict approved decisions (`workflow-status.py --check` verifies the mechanical
-  subset), and M2 shrinks to reopening a row (修改列表 first). Pre-ledger cards keep the old
+  subset), and M2 shrinks to reopening a row (proposed blocks first, then a 修改列表
+  touch-list). Pre-ledger cards keep the old
   document-gate semantics.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);

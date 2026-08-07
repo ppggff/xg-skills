@@ -16,13 +16,27 @@ design are allowed to change, so the design stays stable while the plan flexes.
    itself persists as a **proposed `decisions.md` row** (fork + options folded into why/alt —
    the row IS the presented fork, resumable if the session breaks); appending that row is
    **not** "touching" the docs — phase docs and approved rows stay untouched until the call.
-0b. **修改列表 first (ledger cards).** On a card with a ledger, the reopen target is one or
-   more **approved rows**. Before operating: compute the affected closure — reverse
-   `depends-on` (who depends on the target) ∪ the trace ripple (design sections citing the id
-   → detail S rows → plan tasks → test rows) — and present it as a **修改列表** (one line per
-   item: id · doc · 条目 · action supersede/追加/撤销/re-verify). The human confirms the
-   list; zero writes before that confirm. Targeted re-grill scope = the closure's decisions.
-   (--check (c) guarantees the closure walk terminates.)
+0b. **Proposal substance first, then the 修改列表 (ledger cards).** On a card with a ledger,
+   the reopen target is one or more **approved rows**. Before operating:
+   - **Compute the affected closure** — reverse `depends-on` (who depends on the target) ∪
+     the trace ripple (design sections citing the id → detail S rows → plan tasks → test
+     rows). (--check (c) guarantees the closure walk terminates.)
+   - **Land the proposal substance as proposed blocks** in `decisions.md` — the new 陈述 +
+     why + alt live there, the generalization of step 0's escalation row (appending proposed
+     blocks is not "touching" the docs; approved rows and phase docs stay untouched). A
+     proposed block may be rewritten in place while under discussion (git keeps history —
+     the supersede-into-new-block rule binds approved blocks only, templates/decisions.md).
+     残留/open questions fold into the relevant block's why/alt or a `log.md` line — they
+     must survive a session break, not ride the chat.
+   - **Present the 修改列表 in chat as a touch-list**: one line per **write op** —
+     `id · doc · action (supersede/追加/撤销) · 一句话 what` — each pointing at its proposed
+     block; **re-verify items** (read-only re-checks, not write authorizations) collapse into
+     one grouped line (count + ids). The human judges substance in the proposed blocks; the
+     touch-list is **never persisted as a file** (an analysis note that *precedes* an M2 —
+     a reboundary proposal, a design probe — stays a legal note; the list itself is not one).
+   The human confirms the list; **no approved row flips and no phase doc is touched before
+   that confirm**. Rejected proposals: proposed → retired with a one-line reason. Targeted
+   re-grill scope = the closure's decisions.
 1. **Two entry points, same discipline:**
    - **Requirement-driven** — the requirement itself shifted: edit `requirement.md`; add a
      dated **Change log** entry stating, per affected 条目, the **change mode**: **追加**
@@ -43,7 +57,8 @@ design are allowed to change, so the design stays stable while the plan flexes.
    a wholesale re-evaluate/regenerate:
    The three modes anchor on **ledger blocks** where a ledger exists (追加 = new proposed
    block; 变更 = old block header → superseded + new proposed block appended; 撤销 = header →
-   retired) — re-approval is the 评审会 over the new proposed rows, not a doc re-read:
+   retired; the proposed blocks already landed at 0b — what executes here, on confirm, is the
+   header flips) — re-approval is the 评审会 over the new proposed rows, not a doc re-read:
    - **追加** — append: a new design entry (影响面 updated), detail item if structural, new
      plan task(s), new test rows. Existing content stays valid — **no acceptance resets**;
      design re-approval scopes to the addition.
