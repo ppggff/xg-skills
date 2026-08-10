@@ -856,6 +856,14 @@ class GovernanceMode(unittest.TestCase):
         self.assertIn("ledger-mode-no-ledger", ws.check_card("proj", confirmed))
         self.assertNotIn("ledger-mode-no-ledger", ws.check_card("proj", drafting))
 
+    def test_i3_sees_through_inline_status_annotation(self):
+        card = self.card("---\ngovernance: ledger\nstatus: confirmed # 2026-07-11 human confirm\n---")
+        self.assertIn("ledger-mode-no-ledger", ws.check_card("proj", card))
+
+    def test_i2_malformed_created_skips(self):
+        card = self.card("---\ncreated: 2026-8-9\n---")
+        self.assertNotIn("missing-governance-field", ws.check_card("proj", card))
+
     def test_i4_doc_gate_with_ledger(self):
         card = self.card("---\ngovernance: doc-gate\n---", with_ledger=True)
         self.assertIn("doc-gate-has-ledger", ws.check_card("proj", card))

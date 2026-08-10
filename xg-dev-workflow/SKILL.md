@@ -105,8 +105,10 @@ Gate approval's unit is the **decision, not the document**: each card's `decisio
   **derived-status rule**).
 - **Changing an approved decision = M2 reopen** (`change.md`).
 - **Governance mode (017)**: the ledger machinery above is the **`governance: ledger`** (M+)
-  mode. **`doc-gate`** (XS/S) cards run document-level gates instead — no ledger/facts/digest
-  transcription; gate = doc + confirm + commit, audit anchor = the doc's Change log gate line
+  mode. **`doc-gate`** (XS/S) cards run document-level gates instead — no ledger/facts files
+  and no transcription loop (the digest itself **scales down**, it doesn't vanish —
+  gate-digest.md「Doc-gate cards」); gate = doc + confirm + commit, audit anchor = the doc's
+  Change log gate line
   (`gate-digest.md`「Doc-gate cards」). Mode judged by the two-level cascade: frontmatter field
   first (pre-filled at `new`, human-ratified at the 需求 gate); **no field = legacy** — pre-017
   cards keep their original semantics (pre-010 document-gate, 010–016 ledger) end to end.

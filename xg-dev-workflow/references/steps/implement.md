@@ -164,8 +164,9 @@ neighbor yet).
   NOT executed (same rule as review).
 - **Dispositions — every finding leaves a trace:** fix now (a normal slice fix + its commit
   cited) **or** one `log.md` line saying why not. No third state.
-- **Artifact:** `notes/part-check-<part-slug>-<YYYY-MM-DD>.md` (slug = canonical part name,
-  markup stripped, whitespace→`-`, CJK kept — the name must not match the load-bearing
+- **Artifact:** `notes/part-check-<part-slug>-<YYYY-MM-DD>.md` (slug = the part's established
+  English slug when split-isolate detail sub-files already minted one, else the canonical part
+  name — markup stripped, whitespace→`-`, CJK kept; the name must not match the load-bearing
   `review-*` glob): header (part · diff base..tip · agents/models) → findings with
   dispositions → "no findings" line when clean → one-line 结论. The close-out review's
   context pack picks these up (`review.md` step 2).

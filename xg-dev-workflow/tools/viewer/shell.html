@@ -376,7 +376,7 @@
   .cd-ps { color: var(--muted); } .cd-ps.dim { opacity: .6; }
   .badge { font-size: 10px; line-height: 1; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px 2px; border-radius: var(--radius); background: var(--chip); color: var(--muted); }   /* tight line-height + top-heavy padding centers the caps (which sit high in the line box) */
   .badge.gov { background: transparent; border: 1px solid var(--muted); }   /* 017: governance mode (ledger/doc-gate); legacy renders no badge */
-  .badge.gov.warn { color: #b91c1c; border-color: #b91c1c; }   /* invalid field value — visible on sight */
+  .badge.gov.warn { color: var(--s-blocked); border-color: var(--s-blocked); }   /* invalid field value — visible on sight, theme-aware */
   .badge.state { color: var(--badge-fg); }   /* R5: dual-theme badge text (dark on bright / white on deep) */
   .badge.st-active { background: var(--s-active); } .badge.st-done { background: var(--s-done); }
   .badge.st-blocked { background: var(--s-blocked); } .badge.st-paused { background: var(--s-paused); }

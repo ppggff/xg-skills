@@ -72,7 +72,8 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
 6. **Open questions** — what stays deliberately unresolved, with the default taken.
 7. **The gate question + receipts** — the Stop-at-gate go ask, naming doc paths + the dev_root
    commit (SKILL.md「Ask with receipts」— unchanged, the digest sits on top of it); state that
-   **partial approve is legal** (the human names rows — Approve transcription below).
+   **partial approve is legal** (the human names rows — Approve transcription below; doc-gate
+   cards: all-or-nothing per doc instead,「Doc-gate cards」).
 
 ## Rules
 
@@ -107,7 +108,9 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
 - **Presentation over the ledger, not a new doc.** The digest cards themselves never land on
   disk; what lands is the **ledger row** (`decisions.md`) and the phase doc. A decision that
   exists only in the digest is an omission — enter it as a proposed row (and its home section)
-  first; M3/--check catch the reverse (a doc-cited id with no ledger row).
+  first; M3/--check catch the reverse (a doc-cited id with no ledger row). (Doc-gate cards:
+  the same rule with the doc as the carrier — enter it in the doc's matching section /
+  「提议变更」, never a decisions.md.)
 - **One chat message, never a file.** The digest exists to be read at the gate: target
   **≤~70 lines** (an L card; a typical M card lands ~50). Over the ceiling is a **routing
   signal, not a reason to land a file** — the overflow belongs in its home (ledger row ·
@@ -140,7 +143,8 @@ loop are exempt** — never the judgment surfaces:
   pre-filled `governance:` field).
 - **On go**: write the doc's frontmatter `status` directly and append a
   `- <date> — <状态>（gate <receipts-commit short hash>）` line to the doc's「Change log」
-  section (the audit anchor — same semantics as a ledger `approved:` note), then commit.
+  section (detail.md: its「Change notes (post-baseline)」section doubles as this container;
+  the audit anchor — same semantics as a ledger `approved:` note), then commit.
   **No partial approve** (all-or-nothing per doc); repeated go is idempotent.
 - Decisions/facts/proposals live in the doc itself (grill.md's doc-gate branches): decisions in
   the matching section, verified facts in a doc-local「事实清单」, pending proposals in a

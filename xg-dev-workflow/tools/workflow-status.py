@@ -836,10 +836,10 @@ def check_part_consistency(card_dir):
             if t["part"] and t["part"] not in parts]
 
 
-# (i) governance mode — 017 D1/S1/S2: two-level cascade (frontmatter field first; no
-# field → the decisions.md-existence axis, i.e. "legacy", pre-017 behavior untouched).
-# The field lives only in requirement.md frontmatter; invalid values behave as legacy
-# downstream and are flagged by (i1).
+# (i) governance mode — two-level cascade: frontmatter field first; no field → the
+# decisions.md-existence axis, i.e. "legacy", pre-existing behavior untouched. The field
+# lives only in requirement.md frontmatter; invalid values behave as legacy downstream
+# and are flagged by (i1).
 GOVERNANCE_CUTOFF = "2026-08-10"     # cards created on/after must declare the field
 GOVERNANCE_VALUES = ("ledger", "doc-gate")
 
@@ -861,9 +861,13 @@ def check_governance(card_dir):
     if mode == "invalid":
         findings.append("bad-governance-value: %r" % fm.get("governance"))
     created = str(fm.get("created", ""))
-    if mode == "legacy" and created and created >= GOVERNANCE_CUTOFF:
+    # bare string compare needs the canonical zero-padded form; a malformed date skips (i2)
+    if (mode == "legacy" and re.match(r"\d{4}-\d{2}-\d{2}", created)
+            and created >= GOVERNANCE_CUTOFF):
         findings.append("missing-governance-field")
-    if mode == "ledger" and fm.get("status") == "confirmed" and not has_ledger:
+    # real cards annotate status inline ("confirmed # 2026-07-11 human confirm") — strip it
+    status = fm.get("status", "").split("#")[0].strip()
+    if mode == "ledger" and status == "confirmed" and not has_ledger:
         findings.append("ledger-mode-no-ledger")
     if mode == "doc-gate" and has_ledger:
         findings.append("doc-gate-has-ledger")

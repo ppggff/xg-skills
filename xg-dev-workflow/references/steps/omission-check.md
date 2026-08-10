@@ -117,9 +117,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       review doc under `notes/review-*.md` **or** an explicit skip/grandfather note in `progress.md`
       (`XS/S — review skipped`, or `pre-gate done` for cards finished before the gate existed —
       both satisfy the gate and are honored by `workflow-status.py`). Size (XS/S vs M+) is a human judgment (see SKILL.md「Requirement sizing」); M3
-      checks only that **one of the two is present** — the close-out existence check carries its
-      own signal (the card's governance mode is judged separately, by the mode-field cascade —
-      ADR-0001), and an
+      checks only that **one of the two is present** — an existence check that needs no size
+      signal of its own (the governance mode is a separate axis, judged by the mode-field
+      cascade — 017 ADR-0001), and an
       M+ card that silently lacks both is the violation. (Mirrors the board `done` monotonic constraint.)
       **Shape check** (existence-level only): when a review doc exists and the design has a 验证策略
       table, the doc contains the per-row promised-scenarios 核对结果 (content verification itself

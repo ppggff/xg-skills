@@ -27,7 +27,9 @@ updated: YYYY-MM-DD
 > - **Link, don't restate.** Reusable findings live in the KB (`[[wiki/…]]`/`[[raw/…]]`),
 >   decisions in `design.md`/ADRs — reference them with one line, don't copy their content here.
 >   Pending/approved decision state lives in `decisions.md` (the ledger; doc-gate cards: the
->   phase docs' own sections +「提议变更」) — never mirror it here.
+>   phase docs' own sections +「提议变更」) — never mirror it here. A doc-gate card's open
+>   「提议变更」gets a **one-line pointer** in State at a glance (Now doing/Blockers) so resume
+>   reaches it; the content stays in the doc (a pointer is not a mirror).
 > - **Prune superseded detail.** Once an open question is resolved, keep the one-line verdict +
 >   a link; move the long evidence out (KB, or `notes/`). Delete rolled-back/obsolete notes.
 > - Long scratch / blow-by-blow → `notes/` (resume reads it only if needed), not here.
