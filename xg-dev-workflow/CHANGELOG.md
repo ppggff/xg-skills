@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-10 — 017 落地:治理双档(ledger/doc-gate)·约定 core 共享·check-sync·part-check
+
+- **治理双档**(SKILL.md「Ledger」Governance mode · gate-digest「Doc-gate cards」· grill/
+  change/park/resume/improve/omission-check/templates 全链分支):卡模式为两级 cascade——
+  requirement frontmatter `governance:` 字段优先(new 按 sizing 预填,需求 gate 人拍为第一
+  判定项),无字段 = legacy 回落 decisions.md 存在性轴,存量零迁移。XS/S 走 **doc-gate**:
+  缩放版 digest(仅免 §2 账本卡片与转录环,§1 自检/receipts 保留)、status 直写 + Change log
+  gate 行审计锚、决策/事实/提案的 doc 三载体;M+ ledger 全套不变;升级 doc-gate→ledger
+  一次性 M2 不回填。工具:`card_mode` + 四条无条件检查(i1–i4)+ viewer tile/drawer badge。
+  实证:018 演练卡全周期人侧动作 2≤3。起因:2026-08-07 复杂度评估——决策区 gate 固定附属
+  动作 ≥8 类且不随 sizing 缩放,是主膨胀轴。
+- **约定 core/supplement**:跨包共有写作规则装配为 `references/conventions-core.md`
+  (byte-identical 双副本,diagram-gotchas 同入同步集),doc-conventions.md 收缩为 workflow
+  supplement;wikilink 全集留 FORMAT.md(避免 $KB 悬空)。
+- **check-sync**(`tools/check-sync.py` + `sync-manifest.txt`):manifest 驱动的同步物确定性
+  检查(六组,含 $KB 两对),只报不改;wire 进 retro 周期项 + CLAUDE.md invariant 1;
+  FORMAT.md 140 行存量漂移人批清零,raw-archetypes.md 入 lite init 拷贝集。
+- **part-check**(implement.md 新 beat):part 完工点 1–2 个 fresh-context agent 攻该 part
+  diff,非人 gate、每 finding 留痕(修 or log)、实测项按项目 test mode 分流;产物
+  `notes/part-check-*`;首跑(017 自举)即抓 13 条含一条实测漏报。
+- 全程 receipts:dev_root xg-skills/017 卡(需求 e234858 · 设计 c237357 · baseline+授权
+  9530529;close-out review 6 findings 全修)。
+
 ## 2026-08-10 — check-code-refs 补上 card-internal id(T<n>/R<n>/S<n>),仅限注释行
 
 - **起因**:card 006 的 close-out review 挖出 13 处代码注释里写着卡内任务号(`(T42)` /
