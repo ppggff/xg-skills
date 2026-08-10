@@ -924,9 +924,10 @@ var SV = (function () {
   }
 
   // 010: card-drawer "Decisions" rows from the ledger (active blocks only; "" = no ledger).
+  function escd(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
   function decisionRows(decisions) {
     if (!decisions || !decisions.length) return "";
-    function escd(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
     var pend = decisions.filter(function (d) { return d.state !== "approved"; }).length;
     var head = '<div class="cd-row"><span class="cd-k">Decisions</span><span class="cd-v">' +
       decisions.length + (pend ? ' · <span class="trcell q">待评审 ' + pend + "</span>"
@@ -946,8 +947,7 @@ var SV = (function () {
   // (pre-017 cards stay unmarked); "invalid" renders warn so a typo'd field is visible on sight.
   function governanceBadge(g) {
     if (!g || g === "legacy") return "";
-    var e = String(g).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
-    return '<span class="badge gov' + (g === "invalid" ? " warn" : "") + '" title="governance mode">' + e + "</span>";
+    return '<span class="badge gov' + (g === "invalid" ? " warn" : "") + '" title="governance mode">' + escd(g) + "</span>";
   }
 
   // R4: which heading-section covers a 1-based full-file line? headings are 0-based over the
