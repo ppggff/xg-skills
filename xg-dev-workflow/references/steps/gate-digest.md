@@ -15,7 +15,9 @@ reading assignment.
 **Cards are generated from the ledger** (`decisions.md`, templates/decisions.md): each card
 restates a pending (proposed) row — 陈述 + why + its `alt:` lines + provenance —
 **never a bare pointer**; present in dependency order (`depends-on`), requirement-level rows
-before design-level. A card with no ledger (pre-010) falls back to the doc-cited form below.
+before design-level. A **doc-gate card** (017 D2 — `governance: doc-gate`, no ledger) uses the
+**scaled digest** in「Doc-gate cards」below; a legacy card with no ledger (pre-010) uses the
+same scaled form with doc-cited points in place of cards.
 
 **Layout: every section renders as a list** (the conventions-core structure-over-paragraphs
 rule applied to the chat digest); a card's 陈述 / why / alt / 锚点 each get **their own
@@ -124,7 +126,27 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
   surface is the coverage matrix + its gap rows (`test.md`); the close-out's is the review
   报告's 修复决策表. Cite those, don't restate them as cards.
 
-## Approve transcription (on the human's go)
+## Doc-gate cards (017 D2/S4 — the scaled digest, and status written directly)
+
+The full digest skeleton **scales down; only §2 (ledger cards) and the approve-transcription
+loop are exempt** — never the judgment surfaces:
+
+- **§1 self-check stays** (the receipts presentation: grill convergence verdict · the
+  single-agent panel receipt from the round-closing message · M3/`--check` line — ≤5 lines).
+- **§3/§4/§6 follow their own rules** (a small gate's rows are naturally empty or one line;
+  an empty section is omitted, which is scaling, not exemption).
+- **§5 待你判 stays** when there is anything to judge; **§7 go ask** names the doc path(s) +
+  the receipts commit. **Mode is the 需求 gate's first judgment item** (ratifying the
+  pre-filled `governance:` field).
+- **On go**: write the doc's frontmatter `status` directly and append a
+  `- <date> — <状态>（gate <receipts-commit short hash>）` line to the doc's「Change log」
+  section (the audit anchor — same semantics as a ledger `approved:` note), then commit.
+  **No partial approve** (all-or-nothing per doc); repeated go is idempotent.
+- Decisions/facts/proposals live in the doc itself (grill.md's doc-gate branches): decisions in
+  the matching section, verified facts in a doc-local「事实清单」, pending proposals in a
+  「提议变更」section + a `progress.md` pointer (resume-reachable; cleared on confirm).
+
+## Approve transcription (on the human's go — ledger cards)
 
 The go is the approval; Claude transcribes it into the ledger — never ahead of it:
 

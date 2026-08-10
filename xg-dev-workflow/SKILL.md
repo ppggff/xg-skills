@@ -65,7 +65,9 @@ authorization there are no per-phase stops (「Two zones」).
 - **Ask with receipts — write first, then ask.** An advance ask (and any reply that closes a verb
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
   dev_root commit — on a ledger card, also **the pending `decisions.md` rows being asked about**
-  (the approve transcription cites this receipts commit). No receipts, no ask (closes M3's trigger
+  (the approve transcription cites this receipts commit); on a doc-gate card, the doc itself is
+  the receipt and the go lands as its Change log gate line (`gate-digest.md`「Doc-gate cards」).
+  No receipts, no ask (closes M3's trigger
   blind spot: an omitted write produces no doc edit for M3 to catch).
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
   phase's doc; the authoritative gate is the human approving that doc.
@@ -86,7 +88,8 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
 - **The human re-enters at exactly three artifacts** — `log.md` (the audit trail; resume never
   reads it), the 评审 review report (its 修复决策表 is a human decision), and a **proposed
   `decisions.md` row** Claude escalates from any post-freeze phase (design fork or split
-  proposal → M2; blockers and
+  proposal → M2; on a doc-gate card the escalation carrier is the target doc's「提议变更」
+  section + a `progress.md` pointer instead; blockers and
   push requests stay chat-level; commits autonomous, push gated).
 
 ## Ledger (决策账本) — the gate currency
@@ -100,8 +103,14 @@ Gate approval's unit is the **decision, not the document**: each card's `decisio
 - **Gates approve rows**; Claude transcribes on go and **never self-approves**. Doc status is
   **derived** — `confirmed`/`frozen`/`baseline` ⇔ that level's rows all approved (the
   **derived-status rule**).
-- **Changing an approved decision = M2 reopen** (`change.md`). Cards without a ledger (pre-010)
-  keep the old document-gate semantics **end to end**.
+- **Changing an approved decision = M2 reopen** (`change.md`).
+- **Governance mode (017)**: the ledger machinery above is the **`governance: ledger`** (M+)
+  mode. **`doc-gate`** (XS/S) cards run document-level gates instead — no ledger/facts/digest
+  transcription; gate = doc + confirm + commit, audit anchor = the doc's Change log gate line
+  (`gate-digest.md`「Doc-gate cards」). Mode judged by the two-level cascade: frontmatter field
+  first (pre-filled at `new`, human-ratified at the 需求 gate); **no field = legacy** — pre-017
+  cards keep their original semantics (pre-010 document-gate, 010–016 ledger) end to end.
+  Upgrading doc-gate→ledger is a one-time explicit M2 action, past decisions not backfilled.
 
 ## Layout (requirement-centric)
 
@@ -172,8 +181,10 @@ Each phase is a **contract** — input, output doc, gate — independent of whic
 · L) at requirement level: **XS/S** = structure-light, ~one vertical slice, no new module/contract →
 may skip **详设** and the **评审** close-out (record the skip). **M+** = multi-slice, or
 introduces/changes a module/contract → does 详设 when structural, and **must** pass 评审 before `done`.
-Judged at design time, not a board column; M3's done-time signal: a review doc **or** an explicit
-`XS/S — review skipped` note.
+The 详设/评审 skips stay judged at design time, not a board column; M3's done-time signal: a review
+doc **or** an explicit `XS/S — review skipped` note. **The governance mode (017) moves one sizing
+consequence earlier**: `new` pre-fills `governance:` from the apparent sizing and the 需求 gate
+ratifies it — a card that outgrows its mode later upgrades via M2 (「Ledger」Governance mode).
 
 **Gate merging (sizing-scoped, human opt-in).** **XS**: 需求+设计 may run in one invocation with
 **one combined gate** (offered when the ask is plainly XS; docs stay separate files;
