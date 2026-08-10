@@ -298,7 +298,9 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 - `new <slug>` — resolve project + next `NNN` (zero-padded; scan the project dir, increment),
   scaffold from templates, add the `index.md` card row (初始整体状态 `todo`); a roadmap-sourced slug
   is marked graduated there; a tracker-born ask records `issue:` in `requirement.md` frontmatter
-  (the card↔issue anchor; `progress.md` carries the repo/branch/MR anchors). **Create files
+  (the card↔issue anchor; `progress.md` carries the repo/branch/MR anchors). **Pre-fill the
+  `governance:` field by sizing** (M+ → ledger, XS/S → doc-gate; the 需求 gate ratifies it —
+  templates/requirement.md 头注). **Create files
   lazily**: `requirement.md` now, each later doc when its phase starts, `adr/` on the first ADR.
 - `requirement` | `design` | `detail` | `plan` | `test` — advance **exactly one** phase, then stop
   at its gate (Stop-at-gate). Past the `plan` gate the zone flows autonomously (「Two zones」) — you
