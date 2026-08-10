@@ -420,6 +420,22 @@ t("decisionRows: header counts pending; rows escape text and tone by state", () 
   assert.match(html, /ADR-0001 D2<\/span>/);
   assert.match(html, /trcell q">● proposed/);
 });
+// --- governanceBadge (017 D1: mode badge on tile + drawer) ---------------------
+t("governanceBadge: legacy/empty render nothing", () => {
+  assert.equal(SV.governanceBadge("legacy"), "");
+  assert.equal(SV.governanceBadge(""), "");
+  assert.equal(SV.governanceBadge(undefined), "");
+});
+t("governanceBadge: ledger/doc-gate render a gov badge", () => {
+  assert.match(SV.governanceBadge("ledger"), /badge gov"/);
+  assert.match(SV.governanceBadge("doc-gate"), /doc-gate/);
+});
+t("governanceBadge: invalid renders warn and escapes", () => {
+  const html = SV.governanceBadge("invalid");
+  assert.match(html, /badge gov warn/);
+  assert.doesNotMatch(SV.governanceBadge('<x>"'), /<x>/);
+});
+
 t("decisionRows: conflict state renders neutral ⚠ without a winner state", () => {
   const html = SV.decisionRows([{ id: "R1", level: "requirement", state: "conflict", text: "" }]);
   assert.match(html, /trcell miss">⚠ 冲突\(dup-active\)/);
