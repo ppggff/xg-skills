@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-10 — retro:panel 结论的引用侧核对义务(Cite-side duty)
+
+- **adversarial-critic.md「Receipts」增一句**:后续 doc/相引用 panel finding 必须点名可定位
+  的收据,定位不到即按 M1 未验证断言处理。起因:017 详设曾以「panel-3」标号引用设计轮
+  panel 结论而收据不存在(标号错),其中一条(viewer drawer 泛化渲染「免费」)恰为错误结论,
+  借无收据引用传进 detail/design 两文档,直到合并 gate lens4 亲验才抓回——receipts 缺位
+  不止损审计,会直接掩护错误传播。同批:017 轮次数据补进讨论式议程提案 §6(升卡对照基线);
+  check-code-refs ledger-id 覆盖缺口入 roadmap 候选;design 相 usage 记录补 corrective
+  (5→4,panel 产出含一条被后续证伪)。
+
 ## 2026-08-10 — 017 落地:治理双档(ledger/doc-gate)·约定 core 共享·check-sync·part-check
 
 - **治理双档**(SKILL.md「Ledger」Governance mode · gate-digest「Doc-gate cards」· grill/
