@@ -68,7 +68,9 @@ SKILL.md「Requirement sizing」.
    domain context report designed semantics as bugs.
    - KB: query xg-knowledge-lite for the touched subsystems' concepts (invariants,
      known semantics, prior decisions).
-   - Requirement active → its `requirement.md` / frozen `design.md` / ADRs.
+   - Requirement active → its `requirement.md` / frozen `design.md` / ADRs — **plus any
+     `notes/part-check-*.md` artifacts** (017 R5: mid-implement findings + dispositions;
+     the close-out verifies their 处置留痕 and doesn't re-litigate what they already killed).
    - Repo conventions: relevant `CLAUDE.md` files; the human's recorded review
      lenses / feedback memories (e.g. safe-not-just-live, no blocking IO under
      locks, cross-XID-space rules — whatever the project's list is).

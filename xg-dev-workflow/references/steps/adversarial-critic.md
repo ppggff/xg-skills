@@ -153,3 +153,7 @@ notes, the better the starting points — invest there.
   design decisions/contracts the detail claims covered; plan: the R-id/design↔task trace the
   plan claims complete.
 - **review** — the three attack lenses are fixed members of the lens fan-out (see `review.md`).
+- **implement part-check (017 R5)** — not a grill checkpoint: `implement.md`'s part completion
+  check reuses the fresh-context dispatch *form* (attack a part's diff, 1–2 agents); its
+  receipts land in the `notes/part-check-*.md` artifact with 修/log dispositions instead of
+  grill-log lines, and nothing stops for a human.

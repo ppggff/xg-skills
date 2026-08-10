@@ -147,6 +147,31 @@ Self-review against the angles that catch real systems bugs — verify each agai
     it and add it back when the second caller needs it (YAGNI, P0).
 - **Causal chain** — don't claim "it deadlocks / works because X" without tracing the mechanism.
 
+## Part completion check — part-check (017 R5/D4; part-split cards only)
+
+When a card's plan is grouped by parts, **each part's completion** (its last plan task done and
+committed) triggers one part-check — a fresh-context pass over that part's accumulated diff.
+Un-split cards skip this entirely; seam 联调 stays in the 测试 phase (the first part has no
+neighbor yet).
+
+- **Dispatch:** 1–2 fresh-context subagents attack the part diff (its tasks' commits). Prompt
+  mirrors `review-deep.md`'s lens-agent shape (context pack + verify-against-files + structured
+  findings + word cap + "return empty if none"); model per `references/model-tiering.md`
+  (inference-heavy → session model capped at opus).
+- **Mandate:** static attack + a hands-on slice **gated by the project's test mode**
+  (`progress.md` State at a glance): test-running projects → execute the changed tools/flows
+  where read-only-safe; describe-don't-run projects → describe the verification steps, mark
+  NOT executed (same rule as review).
+- **Dispositions — every finding leaves a trace:** fix now (a normal slice fix + its commit
+  cited) **or** one `log.md` line saying why not. No third state.
+- **Artifact:** `notes/part-check-<part-slug>-<YYYY-MM-DD>.md` (slug = canonical part name,
+  markup stripped, whitespace→`-`, CJK kept — the name must not match the load-bearing
+  `review-*` glob): header (part · diff base..tip · agents/models) → findings with
+  dispositions → "no findings" line when clean → one-line 结论. The close-out review's
+  context pack picks these up (`review.md` step 2).
+- **Not a gate:** the flow never stops for a human; a failed/timed-out agent is skipped with a
+  `log.md` line (the check is an increment, close-out review remains the backstop).
+
 ## Simplify sweep (once, after the last slice — M+; XS/S may skip)
 All slices done and checks green → run one **behavior-preserving** simplification pass over the
 whole change — reuse, dead code, altitude/abstraction cleanups, a final comment pass — with the
