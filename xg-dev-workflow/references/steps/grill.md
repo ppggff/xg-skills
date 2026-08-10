@@ -79,6 +79,9 @@ priorities and tactics (see "Phase-specific layers").
   is created lazily on the first block, like `adr/`) — the gate digest is generated from these
   pending rows. Claude never writes `approved` (gate-digest.md「Approve transcription」). The
   round's checkpoint commit is what the eventual approve annotation will cite as receipts.
+  **Doc-gate cards (017 D2)**: no ledger — the resolved decision is written into the phase
+  doc's matching section right then (the doc's `drafting` status is what marks it pending);
+  the gate confirms the doc, and the audit anchor is its Change log gate line.
 - **Self-contained 陈述.** A ledger 陈述 whose decision object is a list/count follows
   gate-digest.md's self-containment rule at write time (same thresholds, same evidence-ref
   exemption) — a digest card *leads with* the row's 陈述 (why/alt compress to the card
@@ -91,6 +94,9 @@ priorities and tactics (see "Phase-specific layers").
   persistent layer — only facts that later phases/rewrites will lean on get an F block.
   User-stated environment facts (versions, scale, deployment shape) are not F-block material
   until verified — they land in the phase doc's Context with provenance marked (M1).
+  **Doc-gate cards**: no `facts.md` — verified load-bearing facts go to the doc-local
+  「事实清单」section instead (the standalone-doc container form, doc-conventions
+  「Provenance containers」).
 - **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
   requirement intake; design with live candidate approaches), the first round(s) may run
   **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction

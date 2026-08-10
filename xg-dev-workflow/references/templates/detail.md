@@ -22,6 +22,8 @@ updated: YYYY-MM-DD
 > decisions. **Ledger-worthy choices here get `S<n>` ids** — number the item in this doc and
 > append a proposed `decisions.md` block right then (grill.md「逐条入账」; level `detail`,
 > approved carries baseline force). Un-numbered spec lines are synthesis, not decisions.
+> (Doc-gate cards — rare here, XS/S normally skip 详设: the numbered items stay in this doc
+> and the baseline gate confirms the doc; gate line → Change notes, 017 D2/S4.)
 
 ## 数据结构 (data structures)
 
@@ -77,6 +79,8 @@ The concrete code `design.md` deferred — keep consistent with the design's con
 ## Change notes (post-baseline)
 
 Append a dated line per change after baseline; architecture-implicating changes → M2.
+Doc-gate cards: gate passages land here as `- <date> — <状态>（gate <receipts-commit short
+hash>）` (017 S4 — this section doubles as the doc's Change log).
 
 - YYYY-MM-DD: <what changed + why>
 

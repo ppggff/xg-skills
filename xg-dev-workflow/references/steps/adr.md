@@ -42,7 +42,9 @@ a one-line hand-wave doesn't clear it.
 1. **Create `adr/` lazily** — only when this first ADR is needed (don't pre-scaffold an empty dir).
    Number: scan `adr/` for the highest `NNNN`, increment (zero-padded to 4).
 2. Write Context / Decision / (optional Alternatives / Consequences). **The `Status:` line is
-   a display snapshot derived from the ledger** (`decisions.md` is the approval authority;
+   a display snapshot derived from the ledger** (`decisions.md` is the approval authority —
+   ledger cards; on a doc-gate card the Status mirrors the owning doc's gate state via its
+   Change log line;
    word map: proposed↔proposed · approved↔accepted · superseded↔superseded ·
    retired↔deprecated) — write it to match the ledger rows, never as an independent judgment;
    a mismatch is an M3/--check finding (the derived-status rule, SKILL.md「Ledger」). A **superseding or

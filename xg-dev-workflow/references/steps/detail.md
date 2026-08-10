@@ -74,7 +74,9 @@ algorithms whose correctness depends on the details.
    **Ledger-worthy detail decisions get `S<n>` ids** (id-schemes.md) and enter `decisions.md`
    as proposed rows (grill.md「逐条入账」) — number only the load-bearing choices a human
    should judge, not every spec line; their `approved` carries **baseline force** (a dated-note
-   refinement never reopens them; overturning the decision itself does).
+   refinement never reopens them; overturning the decision itself does). Doc-gate cards
+   normally skip 详设 (XS/S); if one runs it anyway, `S<n>` items stay numbered in the doc and
+   the baseline gate confirms the doc (grill.md's doc-gate branch).
 7. **Baseline gate:** run the **criterion-conformance judge** (adversarial-critic.md lens 4 —
    this phase runs no grill, so it is the only dispatch: against the design decisions/contracts
    the detail claims covered), then present `detail.md` via the gate digest (`gate-digest.md` —

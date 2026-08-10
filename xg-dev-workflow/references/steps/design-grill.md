@@ -216,7 +216,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row
    or a plan.md verify task) — no assumption rides into implementation untracked. Then present
-   via the gate digest (`gate-digest.md` — cards from the pending design-level ledger rows,
+   via the gate digest (`gate-digest.md` — cards from the pending design-level ledger rows;
+   doc-gate cards use the scaled digest,「Doc-gate cards」there,
    least-confident spots, open questions, then the go ask with receipts); on human approval run
    the approve transcription and set `status: frozen` — whose meaning is now derived: the
    design's referenced decisions are all approved (the derived-status rule, SKILL.md「Ledger」).

@@ -82,7 +82,9 @@ not transcribe the words.
    downstream doc reference the IDs, so a later change localises to one `R`. Mark each item's
    **provenance** (evidence-cited / 推断 / 假设) per M1. Don't renumber; retire an item with a note.
    **Each R item also enters the ledger** as a proposed `decisions.md` block (grill.md
-   「逐条入账」) — the confirm gate approves those rows, not the doc text.
+   「逐条入账」) — the confirm gate approves those rows, not the doc text. **Doc-gate cards**:
+   no ledger — the 需求条目 table itself is the decision carrier and the confirm gate approves
+   the doc (grill.md's doc-gate branch; mode is the gate's first judgment item).
 6. **Reframe Effect as testable criteria.** Turn each requirement item into checkable conditions
    ("at most one coordinator runs the launcher; observable via …"), not vague goals; **cite the
    `R-id`** each criterion verifies. An **enumeration criterion** ("every X passes …") declares

@@ -19,7 +19,8 @@ updated: YYYY-MM-DD
 > verdict + git/grill-log pointer.
 > **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
-> decisions.
+> decisions. (Doc-gate cards carry the same three classes in the doc — templates/requirement.md
+> 头注; gate passages land in「Change log」below, 017 S4.)
 
 ## 思路 (Approach in one paragraph)
 
@@ -256,3 +257,10 @@ a new card), never a silent default.
 ## Open questions
 
 - …
+
+## Change log
+
+- YYYY-MM-DD — created.
+<!-- Dated entries for M2-routed changes after freeze. Doc-gate cards: gate passages land here
+     as `- <date> — <状态>（gate <receipts-commit short hash>）` (017 S4); ledger cards may omit
+     this section until first needed. -->

@@ -67,3 +67,10 @@ One paragraph: what this plan builds, against which design.
 ## Open questions (optional — free list)
 
 - …
+
+## Change log (optional for ledger cards)
+
+- YYYY-MM-DD — created.
+<!-- Doc-gate cards: the execution-authorization gate line lands here as
+     `- <date> — <状态>（gate <receipts-commit short hash>）` (017 S4). Plan churn logging
+     stays in log.md (M2 case B) — this section is for gate passages and dated milestones. -->

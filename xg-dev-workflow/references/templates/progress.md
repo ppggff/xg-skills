@@ -26,7 +26,8 @@ updated: YYYY-MM-DD
 > **Keep it a current-state snapshot, roughly constant size:**
 > - **Link, don't restate.** Reusable findings live in the KB (`[[wiki/…]]`/`[[raw/…]]`),
 >   decisions in `design.md`/ADRs — reference them with one line, don't copy their content here.
->   Pending/approved decision state lives in `decisions.md` (the ledger) — never mirror it here.
+>   Pending/approved decision state lives in `decisions.md` (the ledger; doc-gate cards: the
+>   phase docs' own sections +「提议变更」) — never mirror it here.
 > - **Prune superseded detail.** Once an open question is resolved, keep the one-line verdict +
 >   a link; move the long evidence out (KB, or `notes/`). Delete rolled-back/obsolete notes.
 > - Long scratch / blow-by-blow → `notes/` (resume reads it only if needed), not here.

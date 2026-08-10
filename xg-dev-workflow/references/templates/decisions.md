@@ -2,6 +2,8 @@
 <card>/decisions.md — the card's decision ledger: the single source of approval status for
 every human-judgment decision (requirement 条目 · design D/ADR decisions · 详设 S items ·
 execution-zone escalations). Implementation-level decisions stay in log.md.
+LEDGER CARDS ONLY (017 D1): a `governance: doc-gate` card has no decisions.md — its decisions
+live in the phase docs (grill.md doc-gate branches); creating one there is an i4 finding.
 
 Reader = human at gates (via the gate digest, generated FROM pending blocks) + tools
 (workflow-status --check / card_status / --trace parse the headers and designated fields).

@@ -22,7 +22,8 @@ updated: YYYY-MM-DD
 > rationale, sharp boundaries. Claude also implements against it. (See SKILL.md「Two zones」.)
 > **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
-> decisions.
+> decisions. (Doc-gate cards carry the same three classes **in the doc**: decisions in their
+> own sections, facts in a doc-local「事实清单」, pending proposals in「提议变更」— 017 D2.)
 
 ## Context (背景)
 
@@ -89,4 +90,6 @@ What is deliberately deferred; extensibility expected later; what we are NOT sol
 - YYYY-MM-DD — created.
 <!-- On any requirement change, add a dated entry here and trigger the change-management flow
      (M2). State each affected 条目's mode — 追加 (new R-id) / 变更 (supersede) / 撤销 (retire,
-     keep the ID) — it drives the scoped downstream propagation. -->
+     keep the ID) — it drives the scoped downstream propagation. Doc-gate cards: gate passages
+     also land here as `- <date> — <状态>（gate <receipts-commit short hash>）` — the audit
+     anchor (017 S4). -->
