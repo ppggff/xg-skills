@@ -227,9 +227,11 @@ initialized** on the first commit (`git init` + a minimal `.gitignore`, announce
   is "wiki is recomputable from raw"; if a concept vanished, raw must still stand). Keep
   dependencies pointing source→… never derived→source.
 - Today's date for `updated` and log entries.
-- **Writing style: plain prose, technical terms intact** (不变量/契约/幂等 stay); short sentences.
-- **Short lines** — wrap around ~100 chars; a long list item splits into sub-bullets instead of
-  one long line (applies to KB articles and this skill's own files alike).
+- **Writing conventions: `references/conventions-core.md`** (shared core, byte-identical with
+  xg-dev-workflow's copy — style/structure, short lines, first-use gloss, provenance marking,
+  Mermaid preference; `references/diagram-gotchas.md` ships alongside). Applies to KB articles
+  and this skill's own files alike; KB-specific rules (fully-qualified wikilinks etc.) stay in
+  `$KB/FORMAT.md`.
 
 ## Usage logging (self-feedback)
 

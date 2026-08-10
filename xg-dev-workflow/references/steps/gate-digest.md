@@ -17,7 +17,7 @@ restates a pending (proposed) row — 陈述 + why + its `alt:` lines + provenan
 **never a bare pointer**; present in dependency order (`depends-on`), requirement-level rows
 before design-level. A card with no ledger (pre-010) falls back to the doc-cited form below.
 
-**Layout: every section renders as a list** (the doc-conventions structure-over-paragraphs
+**Layout: every section renders as a list** (the conventions-core structure-over-paragraphs
 rule applied to the chat digest); a card's 陈述 / why / alt / 锚点 each get **their own
 sub-bullet line**, never compressed into the header line. Section 1's self-check lines and
 section 5 (待你判) are a pair — without them the digest says *what* was decided but not

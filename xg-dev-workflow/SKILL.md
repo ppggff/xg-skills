@@ -25,9 +25,11 @@ sentences. Parallel/enumerable content goes in nested lists (one point per bulle
 are for reasoning that genuinely chains — a paragraph packing ≥3 parallel points gets
 restructured as a list.
 
-**Conventions (all docs)** — full rules in `references/doc-conventions.md` (gloss, links,
-provenance/`F<n>` containers, reasoning-shown, reader-aware, short lines): **read it before
-writing any workflow doc** (phase docs, investigation/review notes, KB 注记). Resident essentials:
+**Conventions (all docs)** — full rules split core + supplement: `references/conventions-core.md`
+(shared with xg-knowledge-lite, byte-identical: style/structure, gloss, provenance marking,
+diagrams, wikilink form) + `references/doc-conventions.md` (workflow supplement: links, `F<n>`
+containers, reasoning-shown, reader-aware). **Read both before writing any workflow doc**
+(phase docs, investigation/review notes, KB 注记). Resident essentials:
 - **Provenance** — load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设
   (assumption); `F<n>` fact blocks centralize them per container (card → `facts.md`).
 - **KB cross-references keep the `[[wiki/<project>/<slug>]]` wikilink** — load-bearing for the
@@ -344,7 +346,10 @@ vendored file to change behavior; the **contract never changes**, only the imple
 
 - `references/templates/` — the twelve doc templates.
 - `references/steps/` — per-step procedures + shared mechanisms referenced by multiple steps.
-- `references/doc-conventions.md` — the doc-writing rules (read before writing any workflow doc).
+- `references/conventions-core.md` — shared writing core (byte-identical copy in both skills;
+  synced, see `tools/sync-manifest.txt` once T2 lands).
+- `references/doc-conventions.md` — the workflow-supplement writing rules (layered on core;
+  read both before writing any workflow doc).
 - `references/steps/grill.md` — shared interactive elicitation: one-question-at-a-time + grill-log
   + rollback + convergence auto-verdict.
 - `references/steps/adversarial-critic.md` — fresh-context critic panel (three attack lenses +

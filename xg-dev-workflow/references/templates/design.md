@@ -42,7 +42,7 @@ The anchors a reader needs before the body (keep to one screenful; **regenerated
 evolves, never appended):
 
 - **术语表** — the doc's load-bearing coined terms, each defined fully enough to stand alone
-  (later table cells may then use them bare — `references/doc-conventions.md`「Reasoning shown」
+  (later table cells may then use them bare — `references/conventions-core.md`「Tables carry facts」
   table rule);
 - **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
   enablement tiers, …), one line stating how they map (`references/id-schemes.md`「Symbol budget」);
