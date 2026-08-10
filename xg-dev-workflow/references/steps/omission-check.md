@@ -16,7 +16,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   <project>/<card>`** (id-reference integrity · derived-status field mappings (SKILL.md「Ledger」) · depends-on
   acyclicity · approve-note format · single-active-block · **design.md unconditional-section
   existence** (思路/速览/How-it-meets/影响面; designs created before 2026-07-31 grandfathered;
-  conditional sections stay in the judgment subset); exit 1 = findings) — run it on any
+  conditional sections stay in the judgment subset) · the **(i) governance checks**
+  (`bad-governance-value` / `missing-governance-field` post-cutoff / `ledger-mode-no-ledger` /
+  `doc-gate-has-ledger` — unconditional, ledger or not); exit 1 = findings) — run it on any
   card after a doc edit (the section check needs no ledger); semantic contradiction with
   approved decisions stays in the judgment subset. The remaining items still lack a checker and run with the judgment subset
   (roadmap item, not a prerequisite).
