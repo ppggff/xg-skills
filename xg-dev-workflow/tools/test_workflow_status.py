@@ -815,5 +815,66 @@ class PartConsistency(unittest.TestCase):
         self.assertIn("R99", ws._referenced_ids(card))
 
 
+class GovernanceMode(unittest.TestCase):
+    """017 D1/S1/S2: two-level cascade mode reading + the four unconditional checks."""
+
+    def card(self, req_frontmatter=None, with_ledger=False):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "001-x")
+        os.makedirs(card)
+        if req_frontmatter is not None:
+            open(os.path.join(card, "requirement.md"), "w").write(
+                req_frontmatter + "\n# 需求 001\n")
+        if with_ledger:
+            open(os.path.join(card, "decisions.md"), "w").write(
+                "### R1 [requirement] proposed\n- 陈述: x\n- why: y\n")
+        return card
+
+    def test_cascade_four_states(self):
+        self.assertEqual(ws.card_mode(self.card("---\ngovernance: ledger\n---")), "ledger")
+        self.assertEqual(ws.card_mode(self.card("---\ngovernance: doc-gate\n---")), "doc-gate")
+        self.assertEqual(ws.card_mode(self.card("---\nid: 001\n---")), "legacy")
+        self.assertEqual(ws.card_mode(self.card("---\ngovernance: bogus\n---")), "invalid")
+        self.assertEqual(ws.card_mode(self.card(None)), "legacy")
+
+    def test_i1_bad_value_flagged(self):
+        card = self.card("---\ngovernance: bogus\n---")
+        self.assertTrue(any(f.startswith("bad-governance-value")
+                            for f in ws.check_card("proj", card)))
+
+    def test_i2_missing_field_only_post_cutoff(self):
+        new = self.card("---\ncreated: 2099-01-01\n---")
+        old = self.card("---\ncreated: 2026-01-01\n---")
+        none = self.card("---\nid: 001\n---")
+        self.assertIn("missing-governance-field", ws.check_card("proj", new))
+        self.assertNotIn("missing-governance-field", ws.check_card("proj", old))
+        self.assertNotIn("missing-governance-field", ws.check_card("proj", none))
+
+    def test_i3_ledger_mode_without_ledger_only_when_confirmed(self):
+        confirmed = self.card("---\ngovernance: ledger\nstatus: confirmed\n---")
+        drafting = self.card("---\ngovernance: ledger\nstatus: drafting\n---")
+        self.assertIn("ledger-mode-no-ledger", ws.check_card("proj", confirmed))
+        self.assertNotIn("ledger-mode-no-ledger", ws.check_card("proj", drafting))
+
+    def test_i4_doc_gate_with_ledger(self):
+        card = self.card("---\ngovernance: doc-gate\n---", with_ledger=True)
+        self.assertIn("doc-gate-has-ledger", ws.check_card("proj", card))
+
+    def test_legacy_cards_gain_no_governance_findings(self):
+        card = self.card("---\nid: 001\ncreated: 2026-01-01\n---", with_ledger=True)
+        gov = [f for f in ws.check_card("proj", card)
+               if "governance" in f or f in ("ledger-mode-no-ledger", "doc-gate-has-ledger")]
+        self.assertEqual(gov, [])
+
+    def test_iter_cards_pins_governance(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "001-x")
+        os.makedirs(card)
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 001 | 需求 | todo | — |\n")
+        open(os.path.join(card, "requirement.md"), "w").write("---\ngovernance: doc-gate\n---\n")
+        cards = list(ws.iter_cards(root, ["proj"]))
+        self.assertEqual(cards[0]["governance"], "doc-gate")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

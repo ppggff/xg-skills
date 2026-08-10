@@ -284,6 +284,8 @@ def iter_cards(root, want=None):
                 "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", ""),
                 # 010: active ledger rows for the drawer ([] = no ledger); rides /api/board as-is
                 "decisions": card_decisions(c),
+                # 017 D1: governance mode (two-level cascade); board tile + drawer render it
+                "governance": card_mode(c),
             }
 
 
@@ -834,13 +836,47 @@ def check_part_consistency(card_dir):
             if t["part"] and t["part"] not in parts]
 
 
+# (i) governance mode — 017 D1/S1/S2: two-level cascade (frontmatter field first; no
+# field → the decisions.md-existence axis, i.e. "legacy", pre-017 behavior untouched).
+# The field lives only in requirement.md frontmatter; invalid values behave as legacy
+# downstream and are flagged by (i1).
+GOVERNANCE_CUTOFF = "2026-08-10"     # cards created on/after must declare the field
+GOVERNANCE_VALUES = ("ledger", "doc-gate")
+
+
+def card_mode(card_dir):
+    """'ledger' | 'doc-gate' | 'legacy' (existence axis rules) | 'invalid'."""
+    gov = frontmatter(os.path.join(card_dir, "requirement.md")).get("governance", "")
+    if not gov:
+        return "legacy"
+    return gov if gov in GOVERNANCE_VALUES else "invalid"
+
+
+def check_governance(card_dir):
+    """The four unconditional governance checks (i1)–(i4); report-only."""
+    mode = card_mode(card_dir)
+    fm = frontmatter(os.path.join(card_dir, "requirement.md"))
+    has_ledger = os.path.exists(os.path.join(card_dir, "decisions.md"))
+    findings = []
+    if mode == "invalid":
+        findings.append("bad-governance-value: %r" % fm.get("governance"))
+    created = str(fm.get("created", ""))
+    if mode == "legacy" and created and created >= GOVERNANCE_CUTOFF:
+        findings.append("missing-governance-field")
+    if mode == "ledger" and fm.get("status") == "confirmed" and not has_ledger:
+        findings.append("ledger-mode-no-ledger")
+    if mode == "doc-gate" and has_ledger:
+        findings.append("doc-gate-has-ledger")
+    return findings
+
+
 def check_card(project, card_dir):
     """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g)
-    + part consistency (h); semantic contradiction stays M3 judgment. No decisions.md →
-    ledger checks skipped (old-card semantics, never flagged); (f)/(g)/(h) run
-    regardless of the ledger."""
+    + part consistency (h) + governance mode (i); semantic contradiction stays M3
+    judgment. No decisions.md → ledger checks skipped (old-card semantics, never
+    flagged); (f)/(g)/(h)/(i) run regardless of the ledger."""
     section_findings = (check_design_sections(card_dir) + check_fact_markers(card_dir)
-                        + check_part_consistency(card_dir))
+                        + check_part_consistency(card_dir) + check_governance(card_dir))
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
         return section_findings
     blocks, findings = parse_ledger(card_dir)
