@@ -35,7 +35,8 @@ ingestion.
 
 Create only what's missing; never overwrite: `$KB/raw/`, `$KB/raw/common/`, `$KB/wiki/`,
 `$KB/wiki/index.md` (`# Knowledge Index`), `$KB/wiki/log.md` (`# Knowledge Log`), and
-`$KB/FORMAT.md` (copy from `references/FORMAT.md`). On read (Query/Lint) with nothing there, tell
+`$KB/FORMAT.md` + `$KB/raw-archetypes.md` (copies from `references/` — the pair travels
+together, FORMAT.md §2 points at the archetypes). On read (Query/Lint) with nothing there, tell
 the user to Write first; don't auto-create.
 
 A **`$KB/wiki/<project>/CONTEXT-MAP.md`** (or `$KB/wiki/common/CONTEXT-MAP.md`) is created
@@ -252,7 +253,10 @@ instead; see Query). If you outgrow this, that's the full `xg-knowledge-wiki`.
 
 ## References
 
-- `references/FORMAT.md` — raw article format (copied to `$KB/FORMAT.md` on init).
+- `references/FORMAT.md` — raw article format (copied to `$KB/FORMAT.md` on init, **together
+  with `references/raw-archetypes.md` → `$KB/raw-archetypes.md`** — FORMAT.md §2 points at it,
+  so the pair travels together; both `$KB` copies are drift-checked by xg-dev-workflow's
+  `tools/check-sync.py`, report-only).
 - `references/lint.md` — the Lint checklist (§1–§8 + authority split + execution notes).
 - `references/concept-template.md` — wiki concept article format (canonical term / `_Avoid_` /
   `_Context_` / Sources / See Also).
