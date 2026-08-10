@@ -1,0 +1,12 @@
+# Sync manifest — the byte-identical sets checked by tools/check-sync.py (017 R8).
+# One set per non-comment line: whitespace-separated paths, all members must be equal.
+# Path forms: repo-relative | ~/... (home) | $KB/... (KB root from the shared config).
+# $KB/home members absent on this machine skip their set with a NOTICE.
+
+xg-dev-workflow/references/conventions-core.md xg-knowledge-lite/references/conventions-core.md
+xg-dev-workflow/references/diagram-gotchas.md xg-knowledge-lite/references/diagram-gotchas.md
+xg-dev-workflow/tools/resolve-project.py xg-knowledge-lite/tools/resolve-project.py
+xg-dev-workflow/tools/log-usage.py xg-knowledge-lite/tools/log-usage.py ~/.claude/scripts/log-usage.py
+# PENDING 017 T3 human approval (known 140-line drift; uncomment after the $KB refresh):
+# xg-knowledge-lite/references/FORMAT.md $KB/FORMAT.md
+xg-knowledge-lite/references/raw-archetypes.md $KB/raw-archetypes.md

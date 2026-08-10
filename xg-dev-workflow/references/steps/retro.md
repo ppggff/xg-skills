@@ -87,6 +87,8 @@ Deletions in SKILL.md/templates need the same human confirm as additions (step 3
 
 ## Periodic (cross-requirement) extras
 - Scan `index.md`s for stuck/abandoned requirements.
+- **Run `tools/check-sync.py`** (the declared byte-identical sets — conventions core, synced
+  tools, `$KB` copies); any DRIFT gets fixed or explicitly ticketed now, not noted-and-left.
 - **Triage the KB compile backlog** (`kb-backlog.py` output): each uncompiled raw gets compiled
   or an explicit deliberately-deferred note; a raw missing frontmatter gets it repaired (it was
   written outside the Write discipline). The session-start hook only *surfaces* the backlog —

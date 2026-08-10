@@ -31,11 +31,13 @@ The two are siblings: the workflow *orchestrates* code work and links out to the
 
 These are the things that break silently if you edit one file and forget the coupling:
 
-1. **Tool scripts are byte-identical copies that must be kept in sync.** Each script's header lists its sync targets. Verified copies:
+1. **Synced byte-identical copies are declared in `xg-dev-workflow/tools/sync-manifest.txt` and checked by `tools/check-sync.py`.** Each synced file's header also lists its targets (human-readable; the manifest is what the checker parses). Current sets:
    - `tools/resolve-project.py` — identical in **both** `xg-dev-workflow/tools/` and `xg-knowledge-lite/tools/`.
    - `tools/log-usage.py` — identical across `xg-dev-workflow/tools/`, `xg-knowledge-lite/tools/`, **and** `~/.claude/scripts/`.
-   - After editing one, `cp` it to the others (byte-identical). `register-project.py` and `kb-backlog.py` live only in `xg-knowledge-lite/tools/`; `commit-data-repos.py`, `check-code-refs.py`, `workflow-status.py` and `viewer.py` (+ its `viewer/` assets) live only in `xg-dev-workflow/tools/` (none of these is synced).
-   - Quick check: `diff xg-dev-workflow/tools/resolve-project.py xg-knowledge-lite/tools/resolve-project.py`.
+   - `references/conventions-core.md` and `references/diagram-gotchas.md` — identical in both skills' `references/`.
+   - `xg-knowledge-lite/references/FORMAT.md` and `raw-archetypes.md` — vs their `$KB` user-side copies (init-copied; checker reports only, never overwrites the user side).
+   - After editing one, `cp` it to the others (byte-identical). `register-project.py` and `kb-backlog.py` live only in `xg-knowledge-lite/tools/`; `commit-data-repos.py`, `check-code-refs.py`, `check-sync.py`, `workflow-status.py` and `viewer.py` (+ its `viewer/` assets) live only in `xg-dev-workflow/tools/` (none of these is synced).
+   - Quick check: `python3 xg-dev-workflow/tools/check-sync.py` (exit 1 on any drift; run after editing any synced file).
 
 2. **Both skills share one config: `~/.config/xg-knowledge-wiki/config.yaml`** (outside this repo). It holds `root:` (KB root, default `~/knowledge`), `dev_root:` (workflow docs root, default `~/dev-workflow`), and one `projects:` map (name → paths). The shared `projects:` map is what makes project names line up, so `[[<layer>/<project>/<slug>]]` wikilinks resolve consistently between workflow docs and the KB. Scripts **never auto-create** this config.
 
