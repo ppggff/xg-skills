@@ -16,6 +16,12 @@ design are allowed to change, so the design stays stable while the plan flexes.
    itself persists as a **proposed `decisions.md` row** (fork + options folded into why/alt —
    the row IS the presented fork, resumable if the session breaks); appending that row is
    **not** "touching" the docs — phase docs and approved rows stay untouched until the call.
+0a-bis. **Doc-gate cards (017 D2)**: no ledger — proposal substance lands in the target doc's
+   「提议变更」section (+ a `progress.md` pointer, resume-reachable); on the human's confirm,
+   apply the edits, clear the section, append the doc's Change log gate line, and re-confirm
+   the doc. **Upgrading doc-gate→ledger is itself an M2 action** (one-time; past decisions stay
+   anchored to their gate lines, not backfilled — D2 既往不追溯).
+
 0b. **Proposal substance first, then the 修改列表 (ledger cards).** On a card with a ledger,
    the reopen target is one or more **approved rows**. Before operating:
    - **Compute the affected closure** — reverse `depends-on` (who depends on the target) ∪

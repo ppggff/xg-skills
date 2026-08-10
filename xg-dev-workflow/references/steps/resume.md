@@ -10,7 +10,9 @@ un-persisted state into its containers and prints the `resume` line this step an
 2. Read `<dev_root>/<project>/index.md` → find the requirement (by slug/NNN, or the one
    the user named).
 3. Read, in order: `requirement.md` (what & why, success criteria) → **`decisions.md`** (the
-   ledger — approval authority: what is approved / still pending; absent on pre-ledger cards)
+   ledger — approval authority: what is approved / still pending; absent on pre-ledger cards
+   **and doc-gate cards** — there the docs carry the decisions: gate state = frontmatter
+   status + Change log gate lines, pending items =「提议变更」sections, 017 D2)
    → `design.md` + `adr/` (the contract **view** — its `frozen` means the referenced decisions
    are all approved) → `plan.md` (intended tasks) → **`progress.md`** (the live state:
    phase, now-doing, next-step, blockers, **Build/test:** — the exact build/test invocation to

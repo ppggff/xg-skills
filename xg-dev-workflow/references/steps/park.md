@@ -29,8 +29,10 @@ The four beats (numbering matches the frozen design's 四拍契约):
    each piece in its **existing** container — the scan list is "every write obligation the
    steps declare":
    - human-judgment decisions → `decisions.md` proposed blocks (grill.md「逐条入账」; park never
-     writes `approved`);
-   - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」);
+     writes `approved`); **doc-gate cards**: → the phase doc's matching section /「提议变更」
+     (grill.md's doc-gate branch);
+   - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」); **doc-gate cards**:
+     → the doc-local「事实清单」;
    - reusable module findings → the KB (xg-knowledge-lite Write, or note as deferred);
    - grill path → `notes/grill-<phase>.md` — a small grill's conversation-is-the-log exemption
      **expires at leave time**: persist the log (open + resolved rows) before the conversation
@@ -64,8 +66,9 @@ The four beats (numbering matches the frozen design's 四拍契约):
 ## Contract invariants
 
 - Product working tree **byte-identical** before/after park (park writes dev_root docs only).
-- Board `整体状态` and every ledger-derived doc `status:` (confirmed/frozen/baseline) untouched
-  — progress.md's own live frontmatter fields are normal beat-2 updates.
+- Board `整体状态` and every gate-passed doc `status:` (confirmed/frozen/baseline — whether
+  ledger-derived or doc-gate direct-written) untouched — progress.md's own live frontmatter
+  fields are normal beat-2 updates.
 - **Idempotent**: a re-run with nothing new to land degrades to confirmation + closing reply,
   never an empty commit.
 - On exit `progress.md` ≥ the resume floor.

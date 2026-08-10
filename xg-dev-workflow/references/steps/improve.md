@@ -35,8 +35,10 @@ the **only exit is roadmap Next-up** — improve never creates a card.
 - **Negative list** (read directly — no script dependency): every card's `adr/*.md` body
   (Status accepted/approved) + every `decisions.md` approved block (陈述 **and** `alt:` lines) +
   `roadmap.md`「Rejected / won't do」. Record per entry: card, id, one-line statement, source
-  file. Cards without a ledger contribute via `adr/` only (two-regime history is accepted, never
-  backfilled). No adr/ledger at all → empty list; the report header states the sources actually
+  file. Cards without a ledger contribute via `adr/` — plus, for post-017 doc-gate cards, the
+  phase docs'「Alternatives considered」sections (017 D6). The regimes are standing, none
+  backfilled (ADR-0002): ledger/doc-gate by card mode, legacy as the cascade fallback.
+  No sources at all → empty list; the report header states the sources actually
   covered.
 - **In-flight list**: `index.md` board rows with 整体状态 ∉ {done, dropped} + one Scope line from
   each card's `requirement.md`.

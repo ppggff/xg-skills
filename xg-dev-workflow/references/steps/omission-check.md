@@ -27,6 +27,13 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Right after an edit, inline is fine** — the docs are already in context, so a self-check
   costs little. Delegation pays off on a standalone `check`, after `resume`, or a full sweep
   of a large card.
+- **Mode conditioning (017 S6)** — the checklist is per-card-mode (`card_mode` cascade,
+  `--check` (i)): on a **doc-gate** card, ledger-id / derived-status / facts-marker checks
+  naturally skip (no files); the Panel-receipts item verifies the scaled digest §1 lines
+  instead; the three-class items read the doc-carried form (decisions in sections, facts in
+  「事实清单」,「提议变更」cleared after confirm). Everything else — links, indexes, phase
+  consistency, R-trace, enumeration criteria, terminology, sweeps, roadmap/KB/architecture,
+  scope — runs unchanged. Legacy (no field) cards keep their original behavior end to end.
 
 ## Checklist
 - [ ] **Links resolve** — every `[[wiki/<project>/<slug>]]` resolves (KB raw/concept); every
@@ -69,7 +76,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       adversarial-critic.md「Receipts」): decision-level checkpoints have attack-lens receipts
       (or an explicit XS/S tier-down note), and the gate has a criterion-conformance verdict
       list. A gate with zero receipts was approved on self-certified work — flag it. Gates
-      passed before 2026-07-30 are exempt (grandfathered).
+      passed before 2026-07-30 are exempt (grandfathered). Doc-gate cards: the receipt lives
+      in the round-closing chat message and is cited from the scaled digest §1
+      (gate-digest.md「Doc-gate cards」) — verify those lines, not a grill-log file.
 - [ ] **Provenance marked** — load-bearing claims in requirement/design/detail carry a provenance
       marker (evidence-cited / 推断 / 假设); an uncited non-trivial assertion is flagged `UNVERIFIED:`
       or `(assumption)`, not left bare (M1).
@@ -108,7 +117,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       review doc under `notes/review-*.md` **or** an explicit skip/grandfather note in `progress.md`
       (`XS/S — review skipped`, or `pre-gate done` for cards finished before the gate existed —
       both satisfy the gate and are honored by `workflow-status.py`). Size (XS/S vs M+) is a human judgment (see SKILL.md「Requirement sizing」); M3
-      checks only that **one of the two is present** — so it needs no size signal of its own, and an
+      checks only that **one of the two is present** — the close-out existence check carries its
+      own signal (the card's governance mode is judged separately, by the mode-field cascade —
+      ADR-0001), and an
       M+ card that silently lacks both is the violation. (Mirrors the board `done` monotonic constraint.)
       **Shape check** (existence-level only): when a review doc exists and the design has a 验证策略
       table, the doc contains the per-row promised-scenarios 核对结果 (content verification itself
