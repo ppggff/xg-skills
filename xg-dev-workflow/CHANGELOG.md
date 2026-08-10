@@ -4,6 +4,18 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-10 — check-code-refs 补上 card-internal id(T<n>/R<n>/S<n>),仅限注释行
+
+- **起因**:card 006 的 close-out review 挖出 13 处代码注释里写着卡内任务号(`(T42)` /
+  `T43e's` / `T42 measured`),而 `check-code-refs.py` 在这些行上**退出 0** —— 它的模式表
+  只覆盖 `.md` / wikilink / `ADR-NNNN` / `file:line`,没有 card id。规约本身早就禁止
+  (「代码里不放工作流/KB 引用」),缺的是检查手段。
+- **新增 `COMMENT_PATTERNS`,只在注释行生效**:`\b[TRS]\d{1,3}[a-z]?\b`。
+  **注释限定是这条能用的全部理由** —— 代码里的裸 `T1`/`T2` 是泛型类型参数与普通标识符,
+  全域匹配会把它们全报出来,而没有人会在散文里写「T42 measured」。
+- **实测**:同一个探针文件上,改前退出 0、改后退出 1 并逐条点名;
+  `func apply[T1 any]` 这行(非注释)不报。
+
 ## 2026-08-07 — 复杂度评估第一批:progress cap · XS KB 默认缓记 · gate 成本预算 · model-tiering 外移
 
 - **起因**:同日复杂度评估(dev_root `xg-skills/notes/2026-08-07-workflow-complexity-assessment.md`)

@@ -38,6 +38,15 @@ PATTERNS = [
     (re.compile(r"\bline\s+\d+\b", re.I), "line-number reference"),
 ]
 
+# Card-internal ids (plan tasks T<n>, requirement items R<n>, detail choices S<n>) resolve
+# only inside dev_root, so a comment citing one is the same leak as a *.md reference.
+# Comment-only, and that is what keeps it usable: bare T1/R2 in code are ordinary type
+# parameters and identifiers, while nothing legitimately writes "T42 measured" in prose.
+COMMENT_PATTERNS = [
+    (re.compile(r"\b[TRS]\d{1,3}[a-z]?\b"), "card task/item id"),
+]
+COMMENT_MARK = re.compile(r"(^\s*[*#]|//|/\*|<!--|^\s*--(?!\w))")
+
 
 def is_code_file(path):
     # Skip docs and vendored/minified blobs: a minified *.min.js is generated third-party code,
@@ -48,7 +57,10 @@ def is_code_file(path):
 
 
 def scan_line(path, lineno, text, hits):
-    for rx, label in PATTERNS:
+    patterns = PATTERNS
+    if COMMENT_MARK.search(text):
+        patterns = PATTERNS + COMMENT_PATTERNS
+    for rx, label in patterns:
         for m in rx.finditer(text):
             if label == ".md reference" and m.group(0).lower() in PUBLIC_DOCS:
                 continue  # allowlisted; keep looking for a real hit on this line
