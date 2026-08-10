@@ -92,6 +92,23 @@ class CheckSyncTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn(">=2 paths", out)
 
+    def test_optional_member_absent_does_not_mask_repo_drift(self):
+        """close-out review #1: the F1 leak scenario."""
+        self.write("a/x.py", "one\n")
+        self.write("b/x.py", "two\n")
+        code, out = self.run_main("a/x.py b/x.py $KB/x.py\n")
+        self.assertEqual(code, 1)
+        self.assertIn("DRIFT", out)
+        self.assertIn("NOTICE", out)
+
+    def test_kb_root_config_strips_inline_comment(self):
+        cfg = self.write("cfg.yaml", "root: %s  # KB root\n" % self.kb)
+        self.assertEqual(check_sync.kb_root_from_config(cfg), self.kb)
+
+    def test_kb_root_config_empty_value_is_none(self):
+        cfg = self.write("cfg2.yaml", 'root: ""\ndev_root: x\n')
+        self.assertIsNone(check_sync.kb_root_from_config(cfg))
+
     def test_missing_manifest_exits_2(self):
         out = io.StringIO()
         with redirect_stdout(out), redirect_stderr(out):

@@ -277,7 +277,9 @@ investigation 把契约摸出来再判；写得出是必要非充分。字段级
   requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
   matching its KB concept); run `workflow-status.py --check` (the deterministic subset — ledger
   id integrity, derived-status mappings, cycles, **facts.md marker integrity**, **part
-  consistency** (plan `Part:` ⊆ the new-format Parts table's names); exit 1 =
+  consistency** (plan `Part:` ⊆ the new-format Parts table's names), **governance mode**
+  (cascade 判据一致性: bad-value / missing-field-post-cutoff / ledger-no-ledger /
+  doc-gate-has-ledger); exit 1 =
   findings); reusable
   knowledge captured to the KB (xg-knowledge-lite Write + compile) or explicitly noted as
   deferred. `references/steps/omission-check.md`.
@@ -362,7 +364,7 @@ vendored file to change behavior; the **contract never changes**, only the imple
 - `references/templates/` — the twelve doc templates.
 - `references/steps/` — per-step procedures + shared mechanisms referenced by multiple steps.
 - `references/conventions-core.md` — shared writing core (byte-identical copy in both skills;
-  synced, see `tools/sync-manifest.txt` once T2 lands).
+  declared in `tools/sync-manifest.txt`, checked by `tools/check-sync.py`).
 - `references/doc-conventions.md` — the workflow-supplement writing rules (layered on core;
   read both before writing any workflow doc).
 - `references/steps/grill.md` — shared interactive elicitation: one-question-at-a-time + grill-log

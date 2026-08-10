@@ -864,6 +864,12 @@ class GovernanceMode(unittest.TestCase):
         card = self.card("---\ncreated: 2026-8-9\n---")
         self.assertNotIn("missing-governance-field", ws.check_card("proj", card))
 
+    def test_i2_cutoff_boundary(self):
+        on = self.card("---\ncreated: %s\n---" % ws.GOVERNANCE_CUTOFF)
+        before = self.card("---\ncreated: 2026-08-09\n---")
+        self.assertIn("missing-governance-field", ws.check_card("proj", on))
+        self.assertNotIn("missing-governance-field", ws.check_card("proj", before))
+
     def test_i4_doc_gate_with_ledger(self):
         card = self.card("---\ngovernance: doc-gate\n---", with_ledger=True)
         self.assertIn("doc-gate-has-ledger", ws.check_card("proj", card))

@@ -43,7 +43,9 @@ config xg-knowledge-lite uses, so project names line up.
   touch-list). **XS/S cards run `doc-gate` instead** (017): document-level gates — a scaled
   digest, no ledger/facts files, audit anchor = the doc's Change log gate line; the mode is a
   frontmatter field pre-filled at `new` and ratified at the 需求 gate (no field = legacy,
-  pre-017 cards keep their original semantics end to end).
+  pre-017 cards keep their original semantics end to end). Upgrading doc-gate→ledger is a
+  one-time explicit M2 action — past decisions stay anchored to their gate lines, never
+  backfilled; the reverse is forbidden.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);
   plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).

@@ -24,7 +24,8 @@ DEFAULT_KB_ROOT = "~/knowledge"
 
 
 def kb_root_from_config(config_path=CONFIG_PATH):
-    """Read `root:` from the shared config; None when the config is absent."""
+    """Read `root:` from the shared config; None when the config is absent or the value
+    is explicitly empty. Strips inline comments/quotes (parse_kb_root parity)."""
     if not os.path.exists(config_path):
         return None
     try:
@@ -32,7 +33,8 @@ def kb_root_from_config(config_path=CONFIG_PATH):
             for line in f:
                 m = re.match(r"^root:\s*(.+?)\s*$", line)
                 if m:
-                    return os.path.expanduser(m.group(1).strip("'\""))
+                    val = m.group(1).split("#", 1)[0].strip().strip("'\"")
+                    return os.path.expanduser(val) if val else None
     except OSError:
         return None
     return os.path.expanduser(DEFAULT_KB_ROOT)
@@ -64,27 +66,29 @@ def resolve(token, repo_root, kb_root):
 
 
 def check(manifest, repo_root, kb_root):
-    """Yield ('DRIFT'|'NOTICE', message) for every finding."""
+    """Yield ('DRIFT'|'NOTICE', message) for every finding.
+
+    A missing optional member ($KB/home) drops only ITSELF, never the whole set — the
+    remaining members are still compared (close-out review #1: a machine without the
+    home-side copy must still check the in-repo pair)."""
     for lineno, members in parse_manifest(manifest):
-        resolved, skip_reason = [], None
+        resolved, drift_missing = [], False
         for tok in members:
             path, notice = resolve(tok, repo_root, kb_root)
             if notice:
-                skip_reason = f"{tok}: {notice}"
-                break
-            optional = tok.startswith(("$KB/", "~"))
+                yield "NOTICE", f"set@{lineno}: {tok} skipped — {notice}"
+                continue
             if not os.path.exists(path):
-                if optional:
-                    skip_reason = f"{tok}: absent on this machine"
-                    break
+                if tok.startswith(("$KB/", "~")):
+                    yield "NOTICE", f"set@{lineno}: {tok} skipped — absent on this machine"
+                    continue
                 yield "DRIFT", f"set@{lineno}: {tok} missing (rename? update manifest)"
-                resolved = []
-                break
+                drift_missing = True
+                continue
             resolved.append((tok, path))
-        if skip_reason:
-            yield "NOTICE", f"set@{lineno} skipped — {skip_reason}"
-            continue
         if len(resolved) < 2:
+            if not drift_missing:
+                yield "NOTICE", f"set@{lineno}: fewer than two members present — skipped"
             continue
         base_tok, base_path = resolved[0]
         with open(base_path, "rb") as f:
