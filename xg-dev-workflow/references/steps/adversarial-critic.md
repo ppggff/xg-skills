@@ -74,8 +74,8 @@ synthesis step exists anyway; don't keep the panel merged for it.
    receipts commit), and decision-level items carrying the（落纸补充）marker = 0; reverse:
    every resolved decision row (`→ <id>` / `→ <doc §>` annotation, grill.md) has a doc home.
    夹带/漏记 report as `not satisfied` subtypes (the verdict vocabulary stays three-valued);
-   the verdict list + forward/reverse tables land in the receipts, the digest shows gap rows
-   only (its paste-the-table rule). Input gains {decisions.md resolved rows + the grill-log}.
+   the verdict list + forward/reverse tables land in the receipts; gap rows route to the
+   digest's §5 待你判. Input gains {decisions.md resolved rows + the grill-log}.
 
 **Receipts.** Every panel run leaves a receipt in the grill-log (or, for a **generic** grill
 whose conversation is the log, in the round's closing message — decision-zone discussion-first

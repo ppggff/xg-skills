@@ -14,7 +14,7 @@ priorities and tactics (see "Phase-specific layers").
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
 - **Batching admission (one rule, two grounds):** (a) a **panorama** topic (per its
-  topic-library attribute, `references/design-agenda.md`) presents its full spread in one
+  topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents its full spread in one
   round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
   **independent sibling** questions — no `depends-on` between them, none gating another's
   framing. Under either ground each item still carries its own recommendation + trade-off and
@@ -22,13 +22,14 @@ priorities and tactics (see "Phase-specific layers").
   any time; neither ground reorders the tree walk — anything dependent stays sequenced.
 - **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
   cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
-  and their siblings — a sibling batch stays inside its round). It closes when the walk leaves
+  and their siblings — a batched round stays one round). It closes when the walk leaves
   the cluster (the next question hangs off a different branch point) or the cluster is exhausted
   (all resolved / explicitly Open); an adversarial pass is its own round. In a discussion-first
   run (below) a beat or agenda topic IS one round — the topic is the cluster, its sub-decisions
   cluster members even when mutually independent. Backstop for deep or fuzzy-edged branches:
   force-close after ~6-8 **human touchpoints** (answers and corrections both count) — a
-  mid-topic force-close lands the flush + go ask only; the full panel waits for topic end. This one boundary drives three mechanisms — the panel's branch checkpoints, the
+  mid-topic force-close lands the flush + go ask with at most the mapping's lightweight
+  mid-topic check; the full panel waits for topic end. This one boundary drives three mechanisms — the panel's branch checkpoints, the
   per-round doc sync (write cadence below), and the go-ask pace — and is the unit the
   ~3-round rule counts in.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
@@ -104,7 +105,8 @@ priorities and tactics (see "Phase-specific layers").
   skeleton — frontmatter `drafting` + the template's section headers, **no prose in a section
   before its consensus** (prose in an unconsensused section is a violation). "Discuss first"
   is carried by this emptiness constraint + the transcription invariant (below), never by the
-  file's absence; per-round fold-in touches only consensus-reached sections.
+  file's absence; per-round fold-in touches only consensus-reached sections (a section's
+  *skeleton period* ends at its first consensus fold-in).
 
 ## Discussion-first flow (requirement / design phases)
 
@@ -127,7 +129,7 @@ doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards sc
   changed) → human confirmation; close per Round-end order, verdict per「Convergence」.
   Information gaps are listed up front; each ends **resolved or `deferred`**.
 - **Granularity guardrail — discussion material ≠ draft**: understanding ≤ ~one screen, no
-  section structure; a candidate = one-line 思路 + 3–5 responsibility blocks + most-different
+  section structure, diagrams, or contract text; a candidate = one-line 思路 + 3–5 responsibility blocks + most-different
   point (**no diagrams/contracts/interfaces**); a topic item ≤3 lines. Over-limit is a violation
   a fresh-context pass may flag.
 - **Transcription invariant.** Sections fill **only from consensus**. A gap found while
@@ -187,8 +189,8 @@ The record of the decision-tree walk: what was asked, recommended, chosen, and w
 the grill**, don't tax simple cases:
 - **Small** (a handful of questions, single session) → the conversation **is** the log; don't
   persist a file. **Generic grills only** — a discussion-first run persists the grill-log **from
-  round 1**, the skeleton period's only consensus carrier (017 R1: logging/receipts never scale
-  away with sizing).
+  round 1**, the skeleton period's doc-side consensus carrier (017 R1: logging/receipts never
+  scale away with sizing).
 - **Large / branchy / multi-session** → append-only `notes/grill-<phase>.md` (phase = `requirement`
   / `design`) so it survives resume and records rollbacks.
 
@@ -198,6 +200,9 @@ keeps it current; in chat, re-expand each codename on first use per session ("�
 驱动）"). A codename without a nearby definition is unreadable after resume.
 
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
+Status values: `resolved` / `open` / `superseded` / `deferred` (an information gap left
+consciously unclosed). An alignment-correction row maps: question = the understanding point,
+recommended = the original statement, chosen = the human's correction.
 **Ids run continuous across rounds** (`G<n>` keeps counting in round 3; round-scoped form
 `G<round>.<n>` if wanted) — never mint a new letter per round (a past grill's G→H→I escalation
 collided with other prefixes; see SKILL.md「Fixed ID prefixes」). A resolved row whose status

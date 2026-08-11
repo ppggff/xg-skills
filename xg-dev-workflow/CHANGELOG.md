@@ -11,7 +11,7 @@ Each entry says *what changed* and *why*, not the raw diff.
   agenda negotiation 独立 mini-round + 议题轮按 driving axis 排序;需求侧两拍(problem
   understanding · boundary spread)。多轮收敛循环(信息缺口逐项 resolved/deferred、增量重述、
   chosen 列实质)。起因:用户要「讨论出来的而不是模型直接写出的文档」(019 R1/R6)。
-- **骨架 doc 取代 pre-draft window**(ADR-0001):两档 phase start 建骨架、节内共识前零散文;
+- **骨架 doc 取代 pre-draft window**(019 ADR-0001):两档 phase start 建骨架、节内共识前零散文;
   「先讨论」由转录不变式承载而非文件不存在——消化 SKILL.md lazy-creation 既存漂移,解
   doc-gate 讨论期容器死结。grill-log 决策区讨论式下 round 1 起强制落盘(豁免仅 generic
   grill);溯源锚 = ledger 行 + receipts commit。

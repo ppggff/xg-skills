@@ -10,7 +10,7 @@ Output: `requirement.md` (template: `references/templates/requirement.md`).
 
 ## Principle
 
-The requirement is **elicited interactively, not written in one shot.** A vague ask is the
+The requirement is **elicited discussion-first, not written in one shot.** A vague ask is the
 input; the job is to converge — by questioning + reading code — on sharp boundaries and
 testable criteria. Do **not** fill ambiguity silently: surface it, ask, and let the human
 correct. You are extracting what the human actually wants, not what the ask literally says —
@@ -44,7 +44,8 @@ not transcribe the words.
 2. **Grill one question at a time** — the shared protocol + **grill-log** + **rollback** + **convergence auto-verdict** live in
    `grill.md`; here, walk the decision tree toward the sections
    (Context/**需求条目**/Scope/Constraints/Effect/Future/Open questions).
-   Priorities to nail early:
+   Priorities to nail early (the two opening beats already surfaced these — grill from
+   what they left open):
    - **Why now / motivation** — cost? a correctness bug? operability? (changes everything downstream)
    - **Semantics** — pin exact meaning of the ask's key words ("只在某个" = at-most-one? designated? auto-elected?).
    - **Boundaries** — what's in vs out; the no's are as load-bearing as the yes's.

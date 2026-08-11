@@ -9,7 +9,7 @@ types here without touching protocol files.
 ## Topic library (agenda topics)
 
 An index over three existing enumerations — design-grill's lens walk, the design template's
-conditional sections, and the freeze-gate checklist — not a fourth list. `attr`: **panorama**
+sections, and the freeze-gate checklist — not a fourth list. `attr`: **panorama**
 (full spread in one round) / **detail** (one question at a time). `fixed`: contract-fixed —
 the agenda negotiation may reorder but never drop it.
 
@@ -25,8 +25,8 @@ the agenda negotiation may reorder but never drop it.
 | Compat & migration | detail | — | template 影响面 (兼容/ABI 面) |
 | Ops / observability | detail | — | design-grill lenses: 可观测性 |
 | Performance & scale | detail | — | design-grill lenses: 性能 + 规模放大 |
-| 拆分审视 (requirement side) | detail | **fixed** | requirement step 8 (mandatory beat) |
-| Freeze-checklist review | detail | **fixed** | design-grill freeze gate (前置清单) |
+| 拆分审视 (requirement side) | detail | **fixed** | requirement step 8 (mandatory beat — enforced there; listed for completeness, not routed through the design agenda) |
+| Freeze-checklist review | detail | **fixed** | design-grill step 8 (freeze-gate checklist) |
 
 Topics outside the library are welcome — name them at the agenda negotiation; a recurring one
 earns a row here.
@@ -50,25 +50,22 @@ part" is the flow-facet special case of this axis — the two cross-reference, n
 
 ## Round-type check mapping (When-to-run hook)
 
-Consumed by `adversarial-critic.md`「When to run」's discussion-mode row. **Override relation:
-this table governs in-discussion dispatch cadence only — ADR-class new/changed-mechanism
-checkpoints and the pre-freeze pass still take the full attack-lens panel** (decision-level
-duties never narrow).
+Consumed by `adversarial-critic.md`「When to run」's discussion-mode row — the override
+relation and batching rules live **there** (data here, rules there).
 
 | Round type | Dispatched lenses | Inline rules / judgments |
 |---|---|---|
-| Understanding statement | lens 2 invariant replay (once the subsystem is known) | verify-the-assumption on load-bearing claims |
-| Candidate spread | lens 3 search-before-build (each candidate's "new" parts) | comparison-table provenance; recommendation pre-check |
+| Understanding statement | adversarial-critic lens 2 invariant replay (once the subsystem is known) | verify-the-assumption (standing rule) on load-bearing claims |
+| Candidate spread | adversarial-critic lens 3 search-before-build (each candidate's "new" parts) | comparison-table provenance; recommendation pre-check (grill.md Protocol) |
 | Agenda negotiation | — (lens 4 rechecks agenda completeness at the gate) | — |
-| Constraint-class topic | invariant replay, single agent | — |
-| Structure-class topic (module split / parts) | module-depth | A↔B 判定 |
-| Detail fork / rewrite-only / mid-topic force-close | lightweight text-consistency (When to run's Tiered form) | — |
-| Requirement beats | per the existing requirement row (lenses 1+3 + standing rules) | — |
+| Constraint-class topic | adversarial-critic lens 2, single agent | — |
+| Structure-class topic (module split / parts) | module-depth (design-grill lens) | A↔B 判定 (design-grill Part decomposition) |
+| Detail fork / rewrite-only / mid-topic force-close | lightweight text-consistency (When to run's Tiered form) | full panel waits for topic end |
+| Requirement beats | per When to run's requirement row (adversarial-critic lenses 1+3) | standing rules |
 | Pre-freeze | full attack-lens panel + lens 4 (unchanged) | — |
 
-Batch dispatch: same-class small topics may share one end-of-cluster dispatch — the receipt
-lands no later than the cluster's last round-end and names the rounds covered; ADR-class
-checkpoints are never batched. Per-topic dispatch is the default.
+Per-topic dispatch is the default; batching rules are adversarial-critic's (When to run,
+discussion-mode entry).
 
 ## XS/S items table (sizing scaling)
 
@@ -86,7 +83,7 @@ never scale away with sizing (017 R1).
 | 7 | Per-item G rows + recommendations | keep |
 | 8 | Round-type check dispatch | existing scaling: single-agent form |
 | 9 | Transcription-fidelity two-way check | existing scaling: the gate's lens 4 single agent covers it (doc-gate per-resolution writes make the forward check hold by construction) |
-| 10 | (落纸补充) marker + mini-round | keep (zero cost) |
+| 10 | （落纸补充）marker + mini-round | keep (zero cost) |
 | 11 | Requirement two beats | simplify: XS may merge into one spread; gate merging per SKILL.md rules |
 | 12 | Skeleton doc at phase start | keep (zero cost) |
 | 13 | Per-round convergence verdict | keep (existing duty) |

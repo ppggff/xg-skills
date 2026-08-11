@@ -74,7 +74,8 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       criterion's words against the table's key, not the doc's claim. Criteria on the
       pre-declaration template (created before 2026-07-30) are exempt until touched.
 - [ ] **Panel receipts present** — each gate this card passed traces to its adversarial-panel
-      receipts (grill-log / round-closing messages cited from the digest, per
+      receipts (grill-log — discussion-first cards persist it from round 1; generic-grill
+      round-closing messages otherwise — cited from the digest, per
       adversarial-critic.md「Receipts」): decision-level checkpoints have attack-lens receipts
       (or an explicit XS/S tier-down note), and the gate has a criterion-conformance verdict
       list. A gate with zero receipts was approved on self-certified work — flag it. Gates

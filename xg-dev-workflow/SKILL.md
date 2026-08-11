@@ -127,7 +127,7 @@ Gate approval's unit is the **decision, not the document**: each card's `decisio
     reviews/                        # standalone review reports
     notes/                         # project-level scratch — event artifacts dated, living docs date-free
     legacy/                        # pre-workflow archive (read-only; never linked as canonical)
-    NNN-requirement-slug/           # created lazily — each doc appears when first needed
+    NNN-requirement-slug/           # created lazily — each doc a skeleton at its phase start
       requirement.md               # 需求 (created by `new`)
       decisions.md                 # 决策账本 — approval-status single source (SKILL.md「Ledger」)
       facts.md                     # 卡级事实层 F<n> (lazily; cited as [F<n>] from phase docs)
@@ -209,9 +209,10 @@ Understand first (M5) and present the **understanding statement** for judgment; 
 consensus — **candidate spread** (weigh **multiple approaches by trade-off**: 方案优先, spanning
 hack / 补丁 / 推翻重来 — debt is a conscious, recorded choice), **agenda negotiation**, agenda
 topics (`grill.md` discussion-first; data in `references/design-agenda.md`) — and transcribe
-**at module altitude in abstraction layers**: prefer the **simplest reliable** design (简单可靠 >
-精致复杂); modules / responsibilities / boundaries / contracts, concrete code deferred to
-detail/plan, **required diagrams** (module-interaction + data-flow). Output: chosen approach + alternatives + how-it-meets **traced by
+the consensus into `design.md` **at module altitude in abstraction layers**: prefer the
+**simplest reliable** design (简单可靠 > 精致复杂); modules / responsibilities / boundaries /
+contracts, concrete code deferred to detail/plan, **required diagrams** (module-interaction +
+data-flow). Output: chosen approach + alternatives + how-it-meets **traced by
 `R-id`** + the **影响面 (impact surface)** analysis. **ADRs** for decisions that are
 hard-to-reverse, surprising, and a real trade-off. Stress-test via grilling. GATE: STOP; **on
 approval `design.md` is FROZEN** (its referenced ledger rows all approved,「Ledger」); those

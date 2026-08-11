@@ -73,7 +73,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
 
 ## Procedure
 
-1. **Understand before designing (M5) — lands in the template's「Understanding」section**
+1. **Create `design.md` as a skeleton at phase start** (grill.md「Skeleton docs」), then
+   **understand before designing (M5) — lands in the template's「Understanding」section**
    (evidence → mechanism → implication, not a fact list). Concept → layer. Query xg-knowledge-lite for what
    we already know — **Orient surfaces the project's `architecture` overview + `*-invariants`
    ledgers first** (the map + the rules); use Plan Mode / Explore subagent to investigate existing
@@ -95,10 +96,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    the **agenda negotiation** mini-round (topics + order + rationale from
    `references/design-agenda.md`'s topic library, ordered by the driving axis; contract-fixed
    entries cannot be dropped) → the **agenda topics**, one round each, checks dispatched per
-   the round-type mapping. The lens texts in step 4 are the topics' duty texts — walked per
-   topic, not saved for a post-draft pass.
-3. **Transcribe the chosen approach** into `design.md` **at module altitude** (see Altitude —
-   sections fill only from consensus, gaps per grill.md's transcription invariant): modules
+   the round-type mapping. The lens texts in step 4 and step 3's Part decomposition segment
+   are the topics' duty texts — walked per topic, not saved for a post-draft pass.
+3. **Transcribe consensus into `design.md`** — a per-round fold-in action running alongside
+   step 2 (each round's consensus lands in its section at round end, grill.md write cadence),
+   not a stage after all topics close — **at module altitude** (see Altitude — sections fill
+   only from consensus, gaps per grill.md's transcription invariant): modules
    + responsibilities, boundaries, contracts, invariants. **Required elements**: a
    **思路** up top — the single core strategy in **≤2 plain sentences** (name the one
    method + its punchline; **no** mechanism/perf/alternatives detail — see template's good/bad
