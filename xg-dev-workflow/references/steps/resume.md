@@ -18,8 +18,9 @@ un-persisted state into its containers and prints the `resume` line this step an
    phase, now-doing, next-step, blockers, **Build/test:** — the exact build/test invocation to
    rebuild and re-verify with — **Close-out:** status, task table, changed files).
    **Mid-grill?** If `progress.md`「Now doing」names an open `G<n>`, also read
-   `notes/grill-<phase>.md` (if persisted) and continue from the `open` row (`grill.md` Resume
-   mid-grill).
+   `notes/grill-<phase>.md` (discussion-first runs always persist it; skeleton-period doc
+   sections are legitimately empty — the log is the consensus source) and continue from the
+   `open` row (`grill.md` Resume mid-grill).
    **Do NOT read `log.md`** — it's append-only audit/history (can be large), never needed to
    resume. `progress.md` is built to be self-sufficient; if you find you *need* the log to
    resume, that's a sign `progress.md` is too thin — fix the snapshot, don't lean on the log.

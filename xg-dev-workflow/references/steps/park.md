@@ -34,7 +34,8 @@ The four beats (numbering matches the frozen design's 四拍契约):
    - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」); **doc-gate cards**:
      → the doc-local「事实清单」;
    - reusable module findings → the KB (xg-knowledge-lite Write, or note as deferred);
-   - grill path → `notes/grill-<phase>.md` — a small grill's conversation-is-the-log exemption
+   - grill path → `notes/grill-<phase>.md` — decision-zone discussion-first runs are already
+     persisted from round 1 (grill.md); a **generic** grill's conversation-is-the-log exemption
      **expires at leave time**: persist the log (open + resolved rows) before the conversation
      is lost;
    - pending log-worthy events → `log.md` — implement-discipline audit lines (a task

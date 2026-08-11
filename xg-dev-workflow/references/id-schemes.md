@@ -26,6 +26,9 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   doc-local「事实清单」section. Never both containers for one doc.
 - Review findings: `#<n>` within a report's 修复决策表, severity spelled out
   (High/Med/Low — no H/M/L shorthand).
+- Discussion-first stages are **word-named** (understanding statement / candidate spread /
+  agenda negotiation …, `references/design-agenda.md`) — stages are not ledger rows, no letter
+  prefix exists or should be minted for them.
 - `governance:` — not an id scheme but a **registered frontmatter field** (requirement.md only,
   017 D1): literals `ledger`/`doc-gate`, key word-only (the flat frontmatter parser drops
   hyphenated keys), no inline comments (values are taken verbatim); omitted = legacy cascade.

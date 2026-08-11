@@ -81,6 +81,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       passed before 2026-07-30 are exempt (grandfathered). Doc-gate cards: the receipt lives
       in the round-closing chat message and is cited from the scaled digest §1
       (gate-digest.md「Doc-gate cards」) — verify those lines, not a grill-log file.
+- [ ] **Transcription additions bounded** — （落纸补充）markers (grill.md Discussion-first
+      flow) appear only below decision level, and none survives a passed gate (approve clears
+      them; a decision-level item carrying one is a finding).
 - [ ] **Provenance marked** — load-bearing claims in requirement/design/detail carry a provenance
       marker (evidence-cited / 推断 / 假设); an uncited non-trivial assertion is flagged `UNVERIFIED:`
       or `(assumption)`, not left bare (M1).

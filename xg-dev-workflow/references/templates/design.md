@@ -47,7 +47,9 @@ evolves, never appended):
   table rule);
 - **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
   enablement tiers, …), one line stating how they map (`references/id-schemes.md`「Symbol budget」);
-- **待拍 gates** — the open `G<n>` decisions blocking freeze, one-line asks each.
+- **待拍 gates / agenda** — the open `G<n>` decisions blocking freeze, one-line asks each; in a
+  discussion-first run this section renders the live agenda (all open topics in order, grouped
+  past one screenful with an overflow link — grill.md Discussion-first flow).
 
 ## Understanding (concept → layer)
 
@@ -219,8 +221,9 @@ Ground each entry in evidence (`func()` in `file.c` / `[[wiki/…]]`); mark 推�
 
 **方案优先** — alternatives + their trade-offs are a primary grill target, not an afterthought;
 the chosen approach wins on trade-off. Say which flow drives the design — the **normal flow** or a
-**dominant anomaly flow** — **per 层/模块 when positions differ**, plus **what the pick costs the
-other flow** (an anomaly-driven design still owes the normal path a sentence, and vice versa).
+**dominant anomaly flow** (the flow-facet special case of the **driving axis**,
+`references/design-agenda.md`) — **per 层/模块 when positions differ**, plus **what the pick costs
+the other flow** (an anomaly-driven design still owes the normal path a sentence, and vice versa).
 
 **Span the solution-class spectrum + name each cost.** Don't compare only same-class variants —
 weigh the three classes explicitly and choose deliberately:

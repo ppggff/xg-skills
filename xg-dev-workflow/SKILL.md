@@ -195,20 +195,23 @@ authorization (one go covers both). Default = one gate per phase; a merged run t
 sizing splits back — stop at the earlier gate as usual.
 
 ### 1. 需求 Requirement → `requirement.md`
-Input: a raw ask. **Elicited interactively, not written in one shot** — the grill loop (`grill.md`)
-interleaved with code understanding (M5/M1): surface assumptions, let the human correct them,
-solve the real problem behind the wording. Core output: **需求条目** — atomic items with stable
+Input: a raw ask. **Elicited discussion-first, not written in one shot** (`grill.md`): a
+problem-understanding beat + a boundary spread judged by the human, then the grill loop
+interleaved with code understanding (M5/M1) — surface assumptions, let the human correct them,
+solve the real problem behind the wording; the skeleton doc transcribes consensus per round. Core output: **需求条目** — atomic items with stable
 **`R-id`**s, the **traceability spine** every later doc references — plus Scope / Constraints /
 **Effect** (testable criteria citing their `R-id`) per the template.
 GATE: STOP for explicit confirm — the confirm approves the requirement-level ledger rows
 (「Ledger」). Step: `references/steps/requirement.md`.
 
 ### 2. 设计 Design → `design.md` + `adr/` (the emphasis)
-Understand first (M5), then design **at module altitude in abstraction layers**: weigh **multiple
-approaches by trade-off** (方案优先, spanning hack / 补丁 / 推翻重来 — debt is a conscious, recorded
-choice), prefer the **simplest reliable** design (简单可靠 > 精致复杂); modules / responsibilities /
-boundaries / contracts, concrete code deferred to detail/plan, **required diagrams**
-(module-interaction + data-flow). Output: chosen approach + alternatives + how-it-meets **traced by
+Understand first (M5) and present the **understanding statement** for judgment; then discuss to
+consensus — **candidate spread** (weigh **multiple approaches by trade-off**: 方案优先, spanning
+hack / 补丁 / 推翻重来 — debt is a conscious, recorded choice), **agenda negotiation**, agenda
+topics (`grill.md` discussion-first; data in `references/design-agenda.md`) — and transcribe
+**at module altitude in abstraction layers**: prefer the **simplest reliable** design (简单可靠 >
+精致复杂); modules / responsibilities / boundaries / contracts, concrete code deferred to
+detail/plan, **required diagrams** (module-interaction + data-flow). Output: chosen approach + alternatives + how-it-meets **traced by
 `R-id`** + the **影响面 (impact surface)** analysis. **ADRs** for decisions that are
 hard-to-reverse, surprising, and a real trade-off. Stress-test via grilling. GATE: STOP; **on
 approval `design.md` is FROZEN** (its referenced ledger rows all approved,「Ledger」); those
