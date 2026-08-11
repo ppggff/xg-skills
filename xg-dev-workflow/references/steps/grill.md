@@ -14,8 +14,8 @@ priorities and tactics (see "Phase-specific layers").
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
 - **Batching admission (one rule, two grounds):** (a) a **panorama** topic (per its
-  topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents its full spread in one
-  round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
+  topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents
+  its full spread in one round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
   **independent sibling** questions — no `depends-on` between them, none gating another's
   framing. Under either ground each item still carries its own recommendation + trade-off and
   gets its own grill-log row; the human sets the pace and may drop back to single-question at
@@ -129,8 +129,9 @@ doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards sc
   changed) → human confirmation; close per Round-end order, verdict per「Convergence」.
   Information gaps are listed up front; each ends **resolved or `deferred`**.
 - **Granularity guardrail — discussion material ≠ draft**: understanding ≤ ~one screen, no
-  section structure, diagrams, or contract text; a candidate = one-line 思路 + 3–5 responsibility blocks + most-different
-  point (**no diagrams/contracts/interfaces**); a topic item ≤3 lines. Over-limit is a violation
+  section structure, diagrams, or contract text; a candidate's shape sketch = one-line 思路 +
+  3–5 responsibility blocks + most-different point (**no diagrams/contracts/interfaces**); a
+  topic item ≤3 lines. Over-limit is a violation
   a fresh-context pass may flag.
 - **Transcription invariant.** Sections fill **only from consensus**. A gap found while
   writing: decision-level → open a regular round (a mini-round IS a round); below that → write
