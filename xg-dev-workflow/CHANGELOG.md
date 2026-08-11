@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-11 — 019 落地:决策区讨论式议程(discussion-first)
+
+- **决策区节奏倒转**(grill.md 新增「Discussion-first flow」节):需求/设计先讨论达成共识、
+  文档只做共识转录——设计侧固定前段两拍(understanding statement · candidate spread)+
+  agenda negotiation 独立 mini-round + 议题轮按 driving axis 排序;需求侧两拍(problem
+  understanding · boundary spread)。多轮收敛循环(信息缺口逐项 resolved/deferred、增量重述、
+  chosen 列实质)。起因:用户要「讨论出来的而不是模型直接写出的文档」(019 R1/R6)。
+- **骨架 doc 取代 pre-draft window**(ADR-0001):两档 phase start 建骨架、节内共识前零散文;
+  「先讨论」由转录不变式承载而非文件不存在——消化 SKILL.md lazy-creation 既存漂移,解
+  doc-gate 讨论期容器死结。grill-log 决策区讨论式下 round 1 起强制落盘(豁免仅 generic
+  grill);溯源锚 = ledger 行 + receipts commit。
+- **转录保真**:lens 4 在 confirm/freeze ask 加双向核(不夹带/不漏记,not-satisfied 子型);
+  (落纸补充)为 grill.md 自有讨论流标记(不入 provenance 三类),gate sweep 逐条列出、
+  approve 清除。
+- **检查轮型化**:When to run 加 discussion 行引 design-agenda.md 轮型映射(override:ADR 级
+  与 freeze 前仍全 panel);receipts 记轮型/重派/依据;批组至迟簇末轮落盘。放行规则合并为
+  一条双依据(panorama/siblings);round 扩义(一议题/一拍 = 一轮,backstop 计人侧触点);
+  dry-check 基底拓宽为卡级 diff(过程行不计)。
+- **新数据文件 `references/design-agenda.md`**:议题库(索引既有三处枚举,契约固定项标注)·
+  driving axis(开放类 + 无主导轴缺省)· 轮型映射 · XS/S 条目表(14 行——小卡留讨论实质、
+  省议程机器)。回填:park/resume/omission-check/id-schemes/templates-design/SKILL 措辞。
+  设计全程以本流程 dogfood(019 卡自身,9 轮讨论 + 3 次 panel)。
+
 ## 2026-08-10 — retro:panel 结论的引用侧核对义务(Cite-side duty)
 
 - **adversarial-critic.md「Receipts」增一句**:后续 doc/相引用 panel finding 必须点名可定位
