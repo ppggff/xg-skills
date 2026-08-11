@@ -13,19 +13,22 @@ priorities and tactics (see "Phase-specific layers").
 ## Protocol (one question at a time)
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
-- **Sibling batch (opt-in):** 2–3 questions may go out in one round **only when mutually
-  independent** — no `depends-on` between them, none gating another's framing; each still
-  carries its own recommendation + trade-off and gets its own grill-log row. Offer it when a
-  round surfaces several independent siblings; the human sets the pace and can drop back to
-  single-question any time. Anything dependent stays sequenced — batching never reorders the
-  tree walk.
+- **Batching admission (one rule, two grounds):** (a) a **panorama** topic (per its
+  topic-library attribute, `references/design-agenda.md`) presents its full spread in one
+  round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
+  **independent sibling** questions — no `depends-on` between them, none gating another's
+  framing. Under either ground each item still carries its own recommendation + trade-off and
+  gets its own grill-log row; the human sets the pace and may drop back to single-question at
+  any time; neither ground reorders the tree walk — anything dependent stays sequenced.
 - **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
   cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
   and their siblings — a sibling batch stays inside its round). It closes when the walk leaves
   the cluster (the next question hangs off a different branch point) or the cluster is exhausted
-  (all resolved / explicitly Open); an adversarial pass is its own round. Backstop for deep or
-  fuzzy-edged branches: force-close after ~6-8 resolved questions so unflushed state stays
-  bounded. This one boundary drives three mechanisms — the panel's branch checkpoints, the
+  (all resolved / explicitly Open); an adversarial pass is its own round. In a discussion-first
+  run (below) a beat or agenda topic IS one round — the topic is the cluster, its sub-decisions
+  cluster members even when mutually independent. Backstop for deep or fuzzy-edged branches:
+  force-close after ~6-8 **human touchpoints** (answers and corrections both count) — a
+  mid-topic force-close lands the flush + go ask only; the full panel waits for topic end. This one boundary drives three mechanisms — the panel's branch checkpoints, the
   per-round doc sync (write cadence below), and the go-ask pace — and is the unit the
   ~3-round rule counts in.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
@@ -97,12 +100,42 @@ priorities and tactics (see "Phase-specific layers").
   **Doc-gate cards**: no `facts.md` — verified load-bearing facts go to the doc-local
   「事实清单」section instead (the standalone-doc container form, doc-conventions
   「Provenance containers」).
-- **试行 — pre-draft discussion window.** For a fresh phase whose shape is still open (typical:
-  requirement intake; design with live candidate approaches), the first round(s) may run
-  **doc-free**: discuss in chat + grill-log only, and write the phase doc once the direction
-  stabilizes — a doc drafted mid-discussion anchors the very text the grill is trying to move,
-  and every subsequent round then pays a patch cost (Fold-in). The doc must exist before any
-  gate ask (Stop-at-gate「Ask with receipts」); once it exists, the write cadence above applies.
+- **Skeleton docs (phase-start creation).** The phase doc is created at phase start as a
+  skeleton — frontmatter `drafting` + the template's section headers, **no prose in a section
+  before its consensus** (prose in an unconsensused section is a violation). "Discuss first"
+  is carried by this emptiness constraint + the transcription invariant (below), never by the
+  file's absence; per-round fold-in touches only consensus-reached sections.
+
+## Discussion-first flow (requirement / design phases)
+
+Decision-zone phases run **discussion-first**: consensus forms in discussion rounds; the phase
+doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards scale per
+`references/design-agenda.md`'s **XS/S items table**.
+
+- **Fixed opening beats** (each = one round). Design: an **understanding statement** (evidence
+  → mechanism → implication + uncertainties + **information gaps**), judged by the human; then
+  a **candidate spread** (≥2 side by side — the 方案优先 table, mandatory, pre-draft).
+  Requirement: **problem understanding** + **boundary spread** (step 1; XS may merge the two).
+- **Agenda negotiation** — its own mini-round right after the candidate spread, own round-end
+  go ask (XS/S skip it, default order applies): Claude proposes topics + order + rationale from
+  the **topic library**, ordered by the **driving axis** (initial call at understanding close,
+  rechecked here). The human reorders/adds freely; **contract-fixed** entries (拆分审视,
+  freeze-checklist review, part-topic A↔B/seam duties) cannot be dropped. Live agenda = the
+  ordered open `G<n>` rows (the design 速览 renders it; reordering appends an annotation row).
+- **Convergence loop, per beat/topic**: statement → human judgment → gap-filling (「Interleave
+  code understanding」/ spike; facts per 载重事实入账) → **incremental restatement** (only what
+  changed) → human confirmation; close per Round-end order, verdict per「Convergence」.
+  Information gaps are listed up front; each ends **resolved or `deferred`**.
+- **Granularity guardrail — discussion material ≠ draft**: understanding ≤ ~one screen, no
+  section structure; a candidate = one-line 思路 + 3–5 responsibility blocks + most-different
+  point (**no diagrams/contracts/interfaces**); a topic item ≤3 lines. Over-limit is a violation
+  a fresh-context pass may flag.
+- **Transcription invariant.** Sections fill **only from consensus**. A gap found while
+  writing: decision-level → open a regular round (a mini-round IS a round); below that → write
+  it marked **（落纸补充）** (transcription addition — a discussion-flow marker owned by this
+  section, NOT a provenance class). The gate ask's 假设 closure sweep enumerates markers one by
+  one (never folded into the digest's emphasis cap); approve transcription clears them — git
+  keeps the record. Decision-level items carrying the marker = 0 at any gate.
 
 ## Shared elicitation tactics (lenses)
 
@@ -153,7 +186,9 @@ reference it rather than restating the round count.
 The record of the decision-tree walk: what was asked, recommended, chosen, and why. **Size it to
 the grill**, don't tax simple cases:
 - **Small** (a handful of questions, single session) → the conversation **is** the log; don't
-  persist a file.
+  persist a file. **Generic grills only** — a discussion-first run persists the grill-log **from
+  round 1**, the skeleton period's only consensus carrier (017 R1: logging/receipts never scale
+  away with sizing).
 - **Large / branchy / multi-session** → append-only `notes/grill-<phase>.md` (phase = `requirement`
   / `design`) so it survives resume and records rollbacks.
 
@@ -165,7 +200,10 @@ keeps it current; in chat, re-expand each codename on first use per session ("�
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
 **Ids run continuous across rounds** (`G<n>` keeps counting in round 3; round-scoped form
 `G<round>.<n>` if wanted) — never mint a new letter per round (a past grill's G→H→I escalation
-collided with other prefixes; see SKILL.md「Fixed ID prefixes」).
+collided with other prefixes; see SKILL.md「Fixed ID prefixes」). A resolved row whose status
+carries `→ <decision id>` (`→ <doc §>` on doc-gate cards) is a **decision row** — the
+reverse-fidelity enumeration key; plain alignment rows don't count. A bare human `go` lands in
+`chosen` as 「照案」+ the recommended option's reference, never a bare ack.
 
 | id | question | recommended | chosen | why | depends-on | status |
 |----|----------|-------------|--------|-----|------------|--------|
@@ -174,7 +212,9 @@ collided with other prefixes; see SKILL.md「Fixed ID prefixes」).
 
 **Lifecycle:** the grill-log is `notes/` **scratch — the *path*, not the durable output**. Once the
 phase doc converges (requirement `confirmed` / design `frozen`), it may be pruned or archived (like
-investigation notes); the phase doc + ADRs are what persist.
+investigation notes); the phase doc + ADRs are what persist. Traceability anchors are **ledger
+rows + receipts commits — never grill-log lines**; a disagreement's durable anchor is the
+checkpoint-commit history (git), so pruning breaks nothing.
 
 ## Convergence — auto-verdict at the end of every round
 
@@ -196,12 +236,16 @@ both run this shared step.
 
 1. **Slot state** (elicitation grill): every template slot / 需求条目 sits in one of three states
    — **evidence-backed · human-confirmed · explicitly Open**. Any slot in none → recommend
-   **continue**, naming those slots. (Structurally bounded: slots are finite.)
+   **continue**, naming those slots. (Structurally bounded: slots are finite. Skeleton period:
+   the slots are the beat objects — understanding confirmed / candidates chosen / agenda set;
+   template slots apply from the first fold-in.)
 2. **Decision-level dry check** (repeat / adversarial passes): did **this** round change the doc
    at decision level — a 需求条目 added/changed, a 方案 choice flipped, a seam/contract edited, an
    ADR(-worthy) decision made? Zero such changes = a **dry** round (wording/format fixes don't
-   count) → recommend **stop**. Verify against the doc's actual `git diff` **since the last grill
-   checkpoint** — after stating each verdict, commit a checkpoint to dev_root
+   count) → recommend **stop**. Verify against the **card's** git diff (phase docs +
+   `decisions.md` + grill-log — one checkpoint commit covers them) **since the last grill
+   checkpoint**; process rows never count as decision-level (verdict lines, panel receipts,
+   agenda-order annotations, prunes) — after stating each verdict, commit a checkpoint to dev_root
    (`<project>/NNN-slug: grill <phase> round N — <verdict>`), which is what gives the next
    round's dry check its baseline (phase-gate commits alone are too coarse: all rounds of one
    phase would share one baseline). A mid-grill checkpoint may create `progress.md` early
@@ -219,9 +263,9 @@ Verdict format (one line in chat, after the doc is updated):
 `Grill 收敛判定: 建议收敛 — 本轮 0 决定级变更; 槽位全三态; Open 已记录 (G4, G11)`.
 **Round-end order (write first, then ask):** verdict row **and any panel receipts**
 (adversarial-critic.md「Receipts」) appended to the grill-log — when one
-is persisted; a small grill's conversation-is-the-log case has no file to append (Grill-log
-proportionality above), its panel receipts land in the round's closing message and its ask
-receipts are the phase doc + the commit → phase doc synced with the
+is persisted; only a **generic** grill's conversation-is-the-log case has no file to append
+(decision-zone runs always persist), its panel receipts land in the round's closing message
+and its ask receipts are the phase doc + the commit → phase doc synced with the
 round's answers → checkpoint commit → **then** the go ask, **with receipts** — the ask names
 the doc paths (grill-log included when persisted) + the commit (SKILL.md Stop-at-gate「Ask with
 receipts」— those doc/commit receipts are distinct from panel receipts).
@@ -284,8 +328,8 @@ don't delete history:
    path, dead branches included).
 
 **Fallbacks (the common cases):**
-- **Small, un-persisted grill** — the conversation *is* the log; just **re-ask the question in
-  place** and re-walk anything downstream. No rows to mark (nothing was persisted).
+- **Small, un-persisted grill** (generic only — discussion-first runs always persist) — the
+  conversation *is* the log; **re-ask in place** and re-walk downstream. No rows to mark.
 - **Persisted log without `depends-on` tracked** — be **conservative**: mark `Gk` **and all later
   rows** `superseded` and re-walk from `Gk`. Over-invalidate rather than miss a hidden dependency
   (precise subtree invalidation needs the `depends-on` column).
@@ -297,8 +341,9 @@ a change goes through change-management (M2), not a grill rollback.
 ## Resume mid-grill (M4)
 If a grill is interrupted, `progress.md`「Now doing」names the open question (e.g. "grilling design,
 at G7"); resume reads `notes/grill-<phase>.md` (if persisted) and continues from the `open` row — no
-chat history needed. A small, un-persisted in-conversation grill just restarts the open question
-from the phase doc's current state. A mid-grill **leave** is landed by the `park` verb (`park.md`):
+chat history needed. A small, un-persisted in-conversation grill (generic only) restarts from
+the phase doc's current state; a discussion-first run resumes from the persisted grill-log —
+skeleton-period doc sections are legitimately empty. A mid-grill **leave** is landed by the `park` verb (`park.md`):
 the conversation-is-the-log exemption expires at leave time — park persists the grill-log and
 names the open row before the session ends.
 
