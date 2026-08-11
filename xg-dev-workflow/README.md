@@ -30,6 +30,11 @@ config xg-knowledge-lite uses, so project names line up.
 
 ## Key rules
 
+- **Decision-zone phases run discussion-first.** Requirement/design consensus forms in
+  discussion rounds (understanding statement → candidate spread → agenda negotiation → agenda
+  topics, ordered by a driving axis); the phase doc starts as a skeleton and only *transcribes*
+  consensus (`references/steps/grill.md`「Discussion-first flow」; data — topic library,
+  driving axis, round-type checks, XS/S scaling — in `references/design-agenda.md`).
 - **Design freezes on approval.** Changing it requires the change-management flow; the
   implementation plan, by contrast, is freely mutable (but dropping a task is logged). An M+
   design also fixes its **验证策略** (per-R E2E scenario + observation point) — verifiability is

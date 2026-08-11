@@ -367,8 +367,10 @@ vendored file to change behavior; the **contract never changes**, only the imple
   declared in `tools/sync-manifest.txt`, checked by `tools/check-sync.py`).
 - `references/doc-conventions.md` — the workflow-supplement writing rules (layered on core;
   read both before writing any workflow doc).
-- `references/steps/grill.md` — shared interactive elicitation: one-question-at-a-time + grill-log
-  + rollback + convergence auto-verdict.
+- `references/steps/grill.md` — shared interactive elicitation: discussion-first flow +
+  one-question-at-a-time + grill-log + rollback + convergence auto-verdict.
+- `references/design-agenda.md` — discussion-first data: topic library, driving axis,
+  round-type check mapping, XS/S items table.
 - `references/steps/adversarial-critic.md` — fresh-context critic panel (three attack lenses +
   gate-adjacent criterion-conformance judge) + receipts; used by requirement, design-grill,
   review, and (lens 4 only) the 详设 baseline + execution-authorization gates.
