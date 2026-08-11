@@ -68,10 +68,21 @@ synthesis step exists anyway; don't keep the panel merged for it.
    criterion closed with a DDL-keyed probe table and self-ticked "已完成 N 条" — the key swap
    then survived every in-context pass). → catches self-reported satisfaction and silent key
    narrowing.
+   **Transcription fidelity (discussion-first cards).** At the 需求 confirm / 设计 freeze ask
+   the judge additionally audits both directions — forward: every decision-level doc item
+   traces to its anchor (ledger row + receipts commit; doc-gate cards: doc § + checkpoint/
+   receipts commit), and decision-level items carrying the（落纸补充）marker = 0; reverse:
+   every resolved decision row (`→ <id>` / `→ <doc §>` annotation, grill.md) has a doc home.
+   夹带/漏记 report as `not satisfied` subtypes (the verdict vocabulary stays three-valued);
+   the verdict list + forward/reverse tables land in the receipts, the digest shows gap rows
+   only (its paste-the-table rule). Input gains {decisions.md resolved rows + the grill-log}.
 
-**Receipts.** Every panel run leaves a receipt in the grill-log (or, when the conversation is
-the log, in the round's closing message): a header line — the grill row (`G<n>`) or round it
-served + lenses dispatched — then **one line per finding with its disposition**:
+**Receipts.** Every panel run leaves a receipt in the grill-log (or, for a **generic** grill
+whose conversation is the log, in the round's closing message — decision-zone discussion-first
+runs always persist): a header line — the grill row (`G<n>`) or round it served + **round
+type** + lenses dispatched + **re-dispatch yes/no with grounds** (the verified-facts pack /
+dead-findings line that justifies the scope) — then **one line per finding with its
+disposition**:
 `adopted → G<n>/D<n>` (became a question or ledger row) · `refuted — <one-sentence why>` ·
 `open → G<n>`. The refuted-with-why lines are the content a verdict-only receipt loses:
 they are what stops a dead concern from being re-found every pass, and the only audit trail
@@ -151,6 +162,12 @@ notes, the better the starting points — invest there.
   effort — SKILL.md「Subagent model assignment」), mandate =
   hunt surviving old-semantics text and doc↔doc contradictions (no kernel re-verification);
   escalate a finding to code-verification only when it implicates code truth.
+- **discussion-first rounds (requirement/design)** — dispatch per the **round-type mapping**
+  in `references/design-agenda.md`. Override relation: the mapping governs in-discussion
+  cadence only — ADR-class new/changed-mechanism checkpoints and the pre-freeze pass keep the
+  full attack-lens panel (decision-level duties never narrow). Same-class small topics may
+  share one end-of-cluster dispatch: the receipt lands no later than the cluster's last
+  round-end and names the rounds covered; ADR-class checkpoints never batch.
 - **详设 baseline · execution authorization** — no attack-lens panel of their own (these phases
   run no grill); lens 4 only, before the gate ask, against that gate's criteria — 详设: the
   design decisions/contracts the detail claims covered; plan: the R-id/design↔task trace the

@@ -62,7 +62,8 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
    (steps/requirement.md beat 8 — one line, 拆/不拆 + 理由); enumeration-criterion tables
    follow the paste-the-table rule below; other phases attach what their step prescribes.
 4. **假设 closure sweep** — when the phase step requires it (e.g. design freeze): the doc's
-   load-bearing 假设/推断 markers, each discharged or carried-with-a-home.
+   load-bearing 假设/推断 markers — plus any（落纸补充）transcription additions, listed one by
+   one, cleared on approve (grill.md Discussion-first flow) — each discharged or carried-with-a-home.
 5. **待你判** — the owner trade-offs an agent can't make, numbered, **≤3 lines each: the
    question + its stake** (what gets deleted / what tax is added / what bet is taken);
    background by reference to a card or doc §, not restated. Sources: pending rows' `alt:`
