@@ -84,7 +84,21 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    evaluation note that already reached design (even LLD) depth, this phase *consumes* that
    note — ADR-ize the decisions, build the trace/影响面, link the note as source — rather than
    re-deriving; the grill then targets what the note left open, not settled ground.
-2. **Draft the chosen approach** in `design.md` **at module altitude** (see Altitude): modules
+   **Close this step as the understanding statement beat** (grill.md「Discussion-first flow」):
+   present evidence → mechanism → implication + uncertainties + information gaps for human
+   judgment; the **driving axis** gets its initial call as the beat closes
+   (`references/design-agenda.md`).
+2. **Discuss to consensus** (grill.md「Discussion-first flow」) — before any drafting:
+   the **candidate spread** (≥2 candidates side by side — the 方案优先 comparison form below,
+   now mandatory and pre-draft: per candidate one-line 思路 · class · key trade-off · cost ·
+   provenance, plus a rough shape of 3–5 responsibility blocks + its most-different point) →
+   the **agenda negotiation** mini-round (topics + order + rationale from
+   `references/design-agenda.md`'s topic library, ordered by the driving axis; contract-fixed
+   entries cannot be dropped) → the **agenda topics**, one round each, checks dispatched per
+   the round-type mapping. The lens texts in step 4 are the topics' duty texts — walked per
+   topic, not saved for a post-draft pass.
+3. **Transcribe the chosen approach** into `design.md` **at module altitude** (see Altitude —
+   sections fill only from consensus, gaps per grill.md's transcription invariant): modules
    + responsibilities, boundaries, contracts, invariants. **Required elements**: a
    **思路** up top — the single core strategy in **≤2 plain sentences** (name the one
    method + its punchline; **no** mechanism/perf/alternatives detail — see template's good/bad
@@ -107,10 +121,11 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      carries — it doubles as the new-format marker tools parse; one R may span several parts).
      A seam disproved later at 联调 → M2 (`seam-contract-disproved`), never a
      silent plan edit. Omit the table for an un-split design.
-3. **Grill it relentlessly** — the shared protocol + **grill-log** + **rollback** + **convergence
-   auto-verdict** live in `grill.md` (a drafting-phase rollback re-walks superseded branches; once
-   frozen, changes go through M2). Walk each branch of the design tree with the design-specific
-   lenses below.
+4. **Lens duty texts + repeat passes** — the shared protocol + **grill-log** + **rollback** +
+   **convergence auto-verdict** live in `grill.md` (a drafting-phase rollback re-walks superseded
+   branches; once frozen, changes go through M2). These lenses are walked inside step 2's agenda
+   topics (hooks per `design-agenda.md`); a post-transcription repeat/adversarial pass reuses
+   them against the transcribed doc.
    - **Shared elicitation tactics** (sharpen-language, stress-test scenarios, grep-before-accepting)
      live in `grill.md`「Shared elicitation tactics」; apply them with the **design slant**:
      sharpen-language records each canonical term in the **KB concept (`[[wiki/<project>/<slug>]]`)
@@ -156,10 +171,11 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      反过度设计); a hack/patch must be a **conscious, recorded debt decision**, not a default. Pick
      the spectrum point the trade-off justifies and say why. Any comparison/evaluation table
      produced here carries the provenance column from the first draft (Core values 方案优先).
-     **试行:** present the candidates **side by side in the round's chat message** — a compact
-     table (per candidate: one-line 思路 · class · key trade-off · cost · provenance), not
-     sequential prose — so the human compares schemes, not narrations; the comparison then
-     lands in design.md「Alternatives considered」as the archive.
+     Candidates are presented **side by side in the round's chat message** — a compact table
+     (per candidate: one-line 思路 · class · key trade-off · cost · provenance), not sequential
+     prose — this IS the candidate spread (step 2); the comparison then lands in design.md
+    「Alternatives considered」as the archive. The "which flow is the hard part" question is
+     the flow-facet special case of the **driving axis** (`references/design-agenda.md`).
      **Two axes of alternatives:** this **solution-class** axis (hack/补丁/重做) and — when the
      design introduces a **non-trivial module** — an **interface-shape** axis: optionally run
      `codebase-design`'s **Design-It-Twice** (parallel agents each design a radically different
@@ -187,22 +203,22 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      right then; don't batch edits to the end. The doc tracks convergence in real time.
      After each round's fold-in, **regenerate the 速览 section** (术语表 / staging vocabularies /
      待拍 gates — it is regenerated, never appended) so the fixed first stop stays current.
-4. **Map to the requirement by R-id** — fill "How it meets the requirement": each
+5. **Map to the requirement by R-id** — fill "How it meets the requirement": each
    `requirement.md`「需求条目」`R-id` → the module/contract that satisfies it (plus scope/
    constraints/effect/future). An R-id with no design home is a gap → back to 需求 or change-management.
    **Then fill the 验证策略 table (M+; XS/S may omit)** — per R-id/Effect item: the shortest E2E
    scenario that would prove it + the observation point the design provides. Grill each row: an
    item with no cheap E2E path becomes an **explicit decision** (unit-level proxy accepted with a
    why, or the design changes for observability) — never a blank silently deferred to 测试.
-5. **Analyse the 影响面 (impact surface)** — fill the design's 影响面 section: changed/added
+6. **Analyse the 影响面 (impact surface)** — fill the design's 影响面 section: changed/added
    modules, existing callers & downstream consumers, compat/ABI surface, cross-card/cross-project
    ripples (cf. `index.md` Deps), and behaviors to re-verify. Grep for callers rather than
    guessing; mark 推断/假设. This scopes risk and seeds `test.md` regression + the close-out
    review; **record the risks it surfaces in the template's「Risks」table** (impact +
    mitigation, one row each).
-6. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
+7. **Record ADRs** for decisions that are hard-to-reverse + surprising + a real trade-off
    (see `adr.md`).
-7. **Freeze gate:** before the ask, check the template's conditional/required sections are
+8. **Freeze gate:** before the ask, check the template's conditional/required sections are
    filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
    存储足迹 (when the design touches storage) · 验证策略 (M+) · **Parts 表复核** (split
    designs: the per-part A↔B verdicts are recorded and the `R` column is filled — "定稿" is
@@ -212,7 +228,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    panel receipts are in place (gate-digest.md precondition); the ask itself attaches the
    `--trace` gap summary — gap rows + one-line 统计, not the full matrix
    (gate-digest.md) — then run the **假设 closure sweep** — enumerate the doc's
-   load-bearing 假设/推断 markers (SKILL.md Provenance); each is either **discharged now**
+   load-bearing 假设/推断 markers (SKILL.md Provenance) **and any（落纸补充）transcription
+   additions (grill.md Discussion-first flow — listed one by one, cleared on approve)**; each
+   假设/推断 is either **discharged now**
    (spike / investigate — grill.md prefers a probe over parking 待验) or **explicitly carried**:
    named in the digest's least-confident spots *and* given a verification home (a 验证策略 row
    or a plan.md verify task) — no assumption rides into implementation untracked. Then present

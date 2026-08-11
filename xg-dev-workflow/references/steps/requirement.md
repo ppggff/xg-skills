@@ -20,9 +20,13 @@ not transcribe the words.
 
 ## Procedure (interleaved loop)
 
-1. **Restate + surface assumptions.** Echo the raw ask in your words, then list the
-   assumptions you'd otherwise bake in (性质/动机/语义/范围/约束). Ask the human to
-   correct them **before** drafting.
+1. **Two opening beats (grill.md「Discussion-first flow」).** First the **problem
+   understanding** beat: echo the raw ask in your words, state the **real problem** you think
+   it hides + why now, then list the assumptions you'd otherwise bake in
+   (性质/动机/语义/范围/约束) — presented as one statement for the human to judge (no candidate
+   spread here: the human judges understanding, not options). Then the **boundary spread**
+   beat: in / out laid side by side with the deliberate no's, judged as one panorama round.
+   XS may merge the two beats into one spread (`references/design-agenda.md` XS/S table).
    Two checks before drafting anything (from `triage`): **(a) redundancy** — search the
    codebase for an existing implementation of the asked-for behavior **by domain concept,
    not the ask's wording**, and report where you looked (already implemented → no card;
@@ -73,9 +77,10 @@ not transcribe the words.
    of asking or guessing**: query xg-knowledge-lite first, then a read-only Plan Mode /
    Explore subagent. Bring the evidence back (`func()` in `file.c` / `[[wiki/<project>/<slug>]]`).
    Capture genuinely reusable findings to the KB, not buried in `requirement.md`.
-4. **Update the doc inline.** As each answer/finding lands, write it into the matching
-   `requirement.md` section (grill-with-docs style). Keep `status: drafting`. The doc is the
-   running record of convergence, not a final report dumped at the end.
+4. **Fold consensus into the doc, per round.** `requirement.md` starts as a skeleton
+   (grill.md「Skeleton docs」— sections stay empty before their consensus); as each round's
+   consensus lands, fold it into the matching section. Keep `status: drafting`. The doc is the
+   transcription of convergence, not a mid-discussion draft nor a final report dumped at the end.
 5. **Itemize into 需求条目 (the traceability spine).** As intent converges, distil it into
    **atomic, individually-tracked requirement items** with **stable IDs** (`R1`, `R2`, …) — one
    statement each (a "X and Y" item is two). This is the canonical list; Scope/Effect and every
