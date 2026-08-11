@@ -91,7 +91,7 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
 2. **Discuss to consensus** (grill.md「Discussion-first flow」) — before any drafting:
    the **candidate spread** (≥2 candidates side by side — the 方案优先 comparison form below,
    now mandatory and pre-draft: per candidate one-line 思路 · class · key trade-off · cost ·
-   provenance, plus a rough shape of 3–5 responsibility blocks + its most-different point) →
+   provenance, plus a rough shape per the granularity guardrail, grill.md) →
    the **agenda negotiation** mini-round (topics + order + rationale from
    `references/design-agenda.md`'s topic library, ordered by the driving axis; contract-fixed
    entries cannot be dropped) → the **agenda topics**, one round each, checks dispatched per
