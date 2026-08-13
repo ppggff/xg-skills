@@ -85,6 +85,9 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    evaluation note that already reached design (even LLD) depth, this phase *consumes* that
    note — ADR-ize the decisions, build the trace/影响面, link the note as source — rather than
    re-deriving; the grill then targets what the note left open, not settled ground.
+   (A **learn report never qualifies as pre-design** — it is non-binding input evidence by
+   contract (`learn.md` §1 declarations); its §6/§7 may enter as input evidence marked
+   推断/非约束, and the grill treats them as claims to test, not settled ground.)
    **Close this step as the understanding statement beat** (grill.md「Discussion-first flow」):
    present evidence → mechanism → implication + uncertainties + information gaps for human
    judgment; the **driving axis** gets its initial call as the beat closes

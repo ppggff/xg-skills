@@ -12,6 +12,11 @@ to superseded; a refinement that narrows (not invalidates) an earlier fact is a 
 saying so. Reusable cross-card module knowledge still graduates to the KB (xg-knowledge-lite);
 this file holds only card-local facts.
 
+Cross-card narrow flip (learn consumption — steps/learn.md + steps/requirement.md beat 1):
+when a NEW card's re-verification refutes a fact it reused from this file, the consumer flips
+this block's marker to SUPERSEDED + one pointer line in the same batch — marker + pointer
+only, never body edits (the named exception to learn's input-card read-only).
+
 Marker integrity: the marker and 来源 must agree — a block whose 来源 says it was inferred or
 untested cannot be [VERIFIED] (`workflow-status.py --check` (g) enforces this). A feasibility
 claim about an external tool/runtime reaches VERIFIED only by running it (evidence.md).

@@ -67,6 +67,10 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       those docs exist; each Effect criterion cites its `R-id`; IDs are stable (no renumber — retired
       items carry a note). A requirement still on the old prose-only template (no「需求条目」) is exempt
       until it's voluntarily migrated — don't flag its absence.
+- [ ] **learn 报告形态** (only when the edit batch touches an `investigations/learn-*.md`
+  report) — the ten sections present in order (`learn.md` §1–§10); §8 coverage numbers
+  self-consistent (per input card `a+b=n`, skip reasons from the closed code list, no silent
+  caps); the metadata `adopted:` state matches reality (present ⇔ the post-go backfill ran).
 - [ ] **Enumeration criteria well-formed** — every "every X …" Effect criterion declares its
       枚举键 + 必填列 (template Effect note); a `[x]` one has its table with **key matching the
       declaration and all rows complete**; partial-completion phrasing ("已完成 N 条") or a

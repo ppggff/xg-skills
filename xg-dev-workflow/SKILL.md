@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); or scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选')."
+description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选'); or distills redo-input from existing cards ('learn 001 002' / '从旧卡提炼重做输入' / '提炼这组卡的经验')."
 ---
 
 # xg-dev-workflow
@@ -333,6 +333,10 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 - `improve <project> [<region>…]` — read-only deepening scan over a bounded region: friction
   probes + deletion test, negative-list-checked candidates land in a dev_root report; gate stops
   for the human pick → roadmap Next-up. Step: `references/steps/improve.md`.
+- `learn <card>…` — distill **redo-input** from 1..N same-project existing cards (any 整体状态):
+  read-only on input-card docs and product code, fixed ten-section report →
+  `investigations/learn-*.md`, chat-stop 采纳门 (the human's go = approved-note identity),
+  backfill + KB graduation post-go only. Step: `references/steps/learn.md`.
 - `change` — drive the M2 flow.
 - `resume [<slug>]` — rebuild state from `progress.md` + the phase docs (M4).
 - `park [<slug>]` — the write side of `resume` (M4): land un-persisted session content into its

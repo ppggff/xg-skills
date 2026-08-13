@@ -41,6 +41,19 @@ not transcribe the words.
    note — seed the sections from it and grill only what it left open; when the note's scope got
    an explicit go this session, assumption-surfacing may fold into the confirm-gate digest
    instead of a standalone grill round.
+   **learn report as the note** (`learn.md`): legitimacy is judged by its metadata
+   **`adopted:` line** — the learn chat stop's go is the only path to approved-note identity;
+   a report without it is input evidence only and does **not** unlock the grill relief above.
+   Axis→section mapping: 事实类 (§5) → Context / `facts.md` citations · 执行区暴露点 (§7) →
+   Effect candidates · 教训/起手规则 (§3/§4) → **candidate** Constraints, adopted/rejected one
+   by one at the confirm gate · 非事实类 (§6) → never into 需求条目; design-phase input
+   evidence marked 推断/假设. Re-verify discipline (consumption side): a reused fact enters
+   the new card's `facts.md` at 最高 `[推断]` (来源 = 源卡 F-id + 原实测日期 + 未重核),
+   upgrades on re-verify; a refuted one flips the **source** card's facts.md marker in the
+   same batch (narrow flip — templates/facts.md 头注; only when the source card has a
+   facts.md). §6 dead-end pointers join the prior-rejection scan; requirement-level
+   rejections land in roadmap Rejected (write side above). A redo/reframe ask with **no**
+   learn report → ask once whether to run `learn` first; declining is recorded as a known gap.
 2. **Grill one question at a time** — the shared protocol + **grill-log** + **rollback** + **convergence auto-verdict** live in
    `grill.md`; here, walk the decision tree toward the sections
    (Context/**需求条目**/Scope/Constraints/Effect/Future/Open questions).

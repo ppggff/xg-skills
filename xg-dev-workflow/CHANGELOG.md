@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-13 — 020 落地:learn verb(从既有 card 提炼重做输入)
+
+- 新增 `learn <card>…` verb(`references/steps/learn.md`):对同项目 1..N 张既有卡只读挖掘
+  全生命周期文档,产出固定十节重做输入报告(事实类带时效标注、非事实类一律非约束标注+证伪
+  依据、执行区暴露点 canonical 指路),落 `investigations/learn-*.md`;chat stop 采纳门——
+  人 go 是 approved-note 身份唯一来源,回填(roadmap 无条件指针、看板参考对象注记、KB
+  graduation、`adopted:` 行)只在 go 后。Why:2026-08-07 longrun_test 001/002 手工提炼证明
+  该工作有效但无固定流程、落点分散、时效核验靠人工补。
+- `workflow-status.py --json` 新增 `carriers` 字段(应有载体×存在性,四档判档)——learn 覆盖表
+  的机械骨架;闭列映射只活在工具内一处(SKILL.md Layout 的机器可读镜像)。
+- 消费通道:steps/requirement.md beat 1 增 learn 报告消费纪律(点名合法以 `adopted:` 行为判 +
+  轴→节区映射 + 采纳门 + 重核纪律);steps/design-grill.md 明确 learn 报告不适用 pre-design
+  消费;templates/facts.md 头注登记跨卡窄翻例外;KNOWN_ACTIONS 增 `learn`。
+
 ## 2026-08-11 — 019 落地:决策区讨论式议程(discussion-first)
 
 - **决策区节奏倒转**(grill.md 新增「Discussion-first flow」节):需求/设计先讨论达成共识、

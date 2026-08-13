@@ -108,7 +108,11 @@ feedback-loop-first: a tight red-capable repro loop before any theory, ranked fa
 hypotheses, the fix landing via Prove-It. `improve <project> [<region>…]` is the read-only
 deepening scan — friction probes + deletion test over a bounded region, candidates checked
 against the project's approved decisions (negative list) and independently refuted, landing in
-a dev_root report; picked candidates graduate via the roadmap. `resume <slug>` to pick up in a
+a dev_root report; picked candidates graduate via the roadmap. `learn <card>…` distills
+redo-input from existing cards — read-only over the input cards' full lifecycle docs, a fixed
+ten-section report (facts with staleness marks, non-binding references, execution-zone
+exposure pointers), a chat-stop adoption gate, and post-go backfill (roadmap pointer, board
+note, KB graduation). `resume <slug>` to pick up in a
 new session (`park <slug>` before leaving lands the session's state — containers + progress.md
 + scoped commit — and prints that resume line), `change` to
 revise a requirement/design, `check` to lint, `status` for the card view (every card's pipeline

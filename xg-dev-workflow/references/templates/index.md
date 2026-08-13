@@ -55,5 +55,10 @@ Backward compat: existing rows stay valid. Migrating an old per-phase `Status` c
 is a ONE-TIME, HUMAN-REVIEWED pass (the axes differ): suggested drafting→todo, active→active,
 done→done, superseded→dropped — confirmed row by row, not auto-mapped.
 
+Optional section below the table:「参考对象注记」— one pointer line per card group that became
+a reference object after a redo-triggered learn adoption (canonical carrier = the learn report;
+steps/learn.md backfill). Written by the learn post-go backfill only, on redo triggers only;
+board() does not parse it.
+
 Add a row on `new` (初始 整体状态 = todo); update Phase / 整体状态 / Deps on every transition.
 -->
