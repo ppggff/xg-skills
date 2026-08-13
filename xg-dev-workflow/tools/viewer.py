@@ -205,7 +205,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "kb": scan_tree(self.kb_root, with_mtime=True)})
 
     def _serve_board(self):
-        # schema = iter_cards' pinned fields (incl. 017 `governance`); tile + drawer render it
+        # schema = iter_cards' pinned fields (incl. 017 `governance`, 020 `carriers` —
+        # additive; the carrier closed-list mapping lives only in workflow-status.py)
         grouped = {}
         for c in _ws.iter_cards(str(self.dev_root)):
             grouped.setdefault(c["project"], []).append(c)

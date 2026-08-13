@@ -890,5 +890,98 @@ class GovernanceMode(unittest.TestCase):
         self.assertEqual(cards[0]["governance"], "doc-gate")
 
 
+class CarrierSkeleton(unittest.TestCase):
+    """020 D6: card_carriers() — 应有载体×存在性, four governance modes."""
+
+    def _card(self, gov=None, files=(), dirs=()):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "030-c")
+        os.makedirs(card)
+        fm = "---\nid: 030\n" + (f"governance: {gov}\n" if gov else "") + "---\n"
+        open(os.path.join(card, "requirement.md"), "w").write(fm)
+        for d in dirs:
+            os.makedirs(os.path.join(card, d), exist_ok=True)
+        for f in files:
+            path = os.path.join(card, f)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").write("x\n")
+        return card
+
+    def _by_name(self, card):
+        return {e["name"]: e for e in ws.card_carriers(card)}
+
+    def test_ledger_closed_list_expected_and_exists(self):
+        card = self._card(gov="ledger", files=("decisions.md", "design.md"))
+        by = self._by_name(card)
+        self.assertTrue(by["decisions.md"]["expected"] and by["decisions.md"]["exists"])
+        self.assertTrue(by["facts.md"]["expected"] and not by["facts.md"]["exists"])
+        self.assertTrue(by["log.md"]["expected"] and not by["log.md"]["exists"])
+        # closed-list mode: a stray notes file is NOT enumerated
+        card2 = self._card(gov="ledger", files=("notes/scratch.md",))
+        self.assertNotIn("notes/scratch.md", self._by_name(card2))
+
+    def test_doc_gate_excludes_ledger_only_carriers(self):
+        by = self._by_name(self._card(gov="doc-gate", files=("design.md",)))
+        self.assertNotIn("decisions.md", by)
+        self.assertNotIn("facts.md", by)
+        self.assertTrue(by["design.md"]["exists"])
+
+    def test_legacy_with_decisions_infers_ledger_and_enumerates(self):
+        card = self._card(files=("decisions.md", "notes/grill-design.md"))
+        by = self._by_name(card)
+        self.assertTrue(by["decisions.md"]["expected"])          # inferred ledger list
+        extra = by["notes/grill-design.md"]
+        self.assertFalse(extra["expected"])                       # two markers
+        self.assertTrue(extra["exists"])
+
+    def test_legacy_without_decisions_infers_doc_gate_union(self):
+        card = self._card(files=("facts.md",))                   # stray ledger file
+        by = self._by_name(card)
+        self.assertNotIn("decisions.md", by)                     # doc-gate inferred list
+        self.assertFalse(by["facts.md"]["expected"])             # enumerated, not expected
+        self.assertTrue(by["facts.md"]["exists"])
+
+    def test_invalid_full_enumeration_only(self):
+        card = self._card(gov="bogus", files=("design.md", "notes/x.md"))
+        entries = ws.card_carriers(card)
+        self.assertTrue(entries)
+        self.assertFalse(any(e["expected"] for e in entries))    # no expected set
+        names = {e["name"] for e in entries}
+        self.assertIn("design.md", names)
+        self.assertIn("notes/x.md", names)
+        self.assertNotIn("detail.md", names)                     # absent file not invented
+
+    def test_glob_families_and_adr_dir(self):
+        card = self._card(gov="ledger", files=("notes/review-r1.md",), dirs=("adr",))
+        by = self._by_name(card)
+        self.assertTrue(by["adr/"]["exists"])
+        self.assertTrue(by["notes/review-*.md"]["exists"])
+        self.assertFalse(by["notes/part-check-*.md"]["exists"])
+
+    def test_nonmd_dir_row_with_pointer(self):
+        card = self._card(gov="doc-gate", files=("notes/probe/run.log",))
+        by = self._by_name(card)
+        row = by["notes/probe/"]
+        self.assertEqual(row["kind"], "nonmd-dir")
+        self.assertTrue(row["exists"] and row["expected"])
+
+    def test_stable_order_layout_first(self):
+        card = self._card(gov="ledger", files=("decisions.md",))
+        names = [e["name"] for e in ws.card_carriers(card)]
+        self.assertEqual(names[:4], ["requirement.md", "decisions.md", "facts.md",
+                                     "design.md"])
+
+    def test_iter_cards_carries_carriers_additively(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "001-x")
+        os.makedirs(card)
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 001 | 需求 | todo | — |\n")
+        open(os.path.join(card, "requirement.md"), "w").write("---\ngovernance: ledger\n---\n")
+        cards = list(ws.iter_cards(root, ["proj"]))
+        self.assertIn("carriers", cards[0])
+        self.assertTrue(any(e["name"] == "requirement.md" and e["exists"]
+                            for e in cards[0]["carriers"]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

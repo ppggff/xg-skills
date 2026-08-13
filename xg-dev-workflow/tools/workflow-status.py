@@ -286,6 +286,8 @@ def iter_cards(root, want=None):
                 "decisions": card_decisions(c),
                 # 017 D1: governance mode (two-level cascade); board tile + drawer render it
                 "governance": card_mode(c),
+                # 020 D6: 应有载体×存在性 — the learn coverage-table skeleton; additive
+                "carriers": card_carriers(c),
             }
 
 
@@ -850,6 +852,103 @@ def card_mode(card_dir):
     if not gov:
         return "legacy"
     return gov if gov in GOVERNANCE_VALUES else "invalid"
+
+
+# 020 D6: machine-readable mirror of SKILL.md「Layout」's card-dir listing, in Layout order.
+# The closed carrier-list mapping lives ONLY here — a Layout change edits this tuple in the
+# same batch (invariant 6(a)); step files and templates never copy it.
+CARD_CARRIERS = (                     # (name, kind, ledger_only)
+    ("requirement.md", "file", False),
+    ("decisions.md", "file", True),
+    ("facts.md", "file", True),
+    ("design.md", "file", False),
+    ("adr/", "dir", False),
+    ("detail.md", "file", False),
+    ("plan.md", "file", False),
+    ("progress.md", "file", False),
+    ("log.md", "file", False),
+    ("test.md", "file", False),
+    ("notes/review-*.md", "glob", False),
+    ("notes/part-check-*.md", "glob", False),
+)
+
+
+def _carrier_exists(card_dir, name, kind):
+    path = os.path.join(card_dir, name)
+    if kind == "dir":
+        return os.path.isdir(path)
+    if kind == "glob":
+        return bool(glob.glob(path))
+    return os.path.isfile(path)
+
+
+def _enumerate_actual(card_dir):
+    """Full enumeration for legacy/invalid modes: every actual .md carrier (adr/
+    contents ride the dir row; the two notes globs keep family granularity).
+    Callers drop names their mode already lists."""
+    extras = []
+    for dirpath, dirnames, filenames in os.walk(card_dir):
+        rel_dir = os.path.relpath(dirpath, card_dir)
+        if rel_dir == "adr" or rel_dir.startswith("adr" + os.sep):
+            continue
+        for f in sorted(filenames):
+            if not f.endswith(".md"):
+                continue
+            rel = f if rel_dir == "." else os.path.join(rel_dir, f).replace(os.sep, "/")
+            if fnmatch.fnmatch(rel, "notes/review-*.md") or \
+               fnmatch.fnmatch(rel, "notes/part-check-*.md"):
+                continue
+            extras.append((rel, "file"))
+    return sorted(extras)
+
+
+def _nonmd_dir_rows(card_dir):
+    """notes/ non-.md artifacts, one row per directory (存在性 + 指针 = the dir path)."""
+    rows = []
+    notes = os.path.join(card_dir, "notes")
+    for dirpath, dirnames, filenames in os.walk(notes):
+        if any(not f.endswith(".md") for f in filenames):
+            rel = os.path.relpath(dirpath, card_dir).replace(os.sep, "/")
+            rows.append((rel + "/", "nonmd-dir"))
+    return sorted(rows)
+
+
+def card_carriers(card_dir):
+    """020 D6: 应有载体 × 存在性 — the `learn` coverage-table skeleton.
+    ledger/doc-gate → that mode's closed list; legacy → existence-axis inferred list
+    (decisions.md present → ledger list, absent → doc-gate list) ∪ full enumeration,
+    both markers kept; invalid → full enumeration only (governance="invalid" is the
+    warning signal downstream — never treated as "no marker"). Purely additive
+    --json field; stable order = Layout order, then extras sorted."""
+    mode = card_mode(card_dir)
+    if mode in GOVERNANCE_VALUES:
+        want_ledger = (mode == "ledger")
+    elif mode == "legacy":
+        want_ledger = os.path.exists(os.path.join(card_dir, "decisions.md"))
+    else:                                          # invalid: no expected set
+        want_ledger = None
+    entries = []
+    if want_ledger is not None:
+        for name, kind, ledger_only in CARD_CARRIERS:
+            if ledger_only and not want_ledger:
+                continue
+            entries.append({"name": name, "kind": kind, "expected": True,
+                            "exists": _carrier_exists(card_dir, name, kind)})
+    if mode in ("legacy", "invalid"):
+        listed = {e["name"] for e in entries}
+        for name, kind in _enumerate_actual(card_dir):
+            if name not in listed:
+                entries.append({"name": name, "kind": kind,
+                                "expected": False, "exists": True})
+        if mode == "invalid":
+            for name, kind, _ in CARD_CARRIERS:
+                if _carrier_exists(card_dir, name, kind) and \
+                   name not in {e["name"] for e in entries}:
+                    entries.append({"name": name, "kind": kind,
+                                    "expected": False, "exists": True})
+    for name, kind in _nonmd_dir_rows(card_dir):
+        entries.append({"name": name, "kind": kind, "expected": True, "exists": True})
+    return entries
 
 
 def check_governance(card_dir):
