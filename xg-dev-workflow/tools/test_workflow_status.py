@@ -375,6 +375,21 @@ class LedgerCheck(unittest.TestCase):
         root, _ = self._card(ledger=sup, req_ids=("R1",))
         self.assertIn("superseded-ref: R1", self._findings(root))
 
+    def test_retired_accounting_row_not_a_reference(self):
+        # the ~~struck~~ retired requirement row and the design trace `retired` row are
+        # the M2 撤销 accounting form — no superseded-ref; a live plan ref still fires
+        ret = "### R1 [requirement] retired\n- 陈述: old\n"
+        root, card = self._card(ledger=ret, req_ids=())
+        with open(os.path.join(card, "requirement.md"), "a") as f:
+            f.write("| R1 | ~~old stmt~~ retired (2026-08-12: folded) | — | — |\n")
+        open(os.path.join(card, "design.md"), "w").write(
+            "---\nid: 011\nstatus: drafting\n---\n\n## How it meets\n\n| R-id | 归属 |\n"
+            "|---|---|\n| R1 | retired——folded into R2 |\n")
+        self.assertNotIn("superseded-ref: R1", self._findings(root))
+        open(os.path.join(card, "plan.md"), "w").write(
+            "## Tasks\n\n### T1: x\n- **Implements:** R1\n")
+        self.assertIn("superseded-ref: R1", self._findings(root))
+
     def test_status_mismatch_confirmed_with_pending(self):
         root, _ = self._card(ledger=self.GOOD_LEDGER, req_status="confirmed")
         self.assertTrue(any(f.startswith("status-mismatch: requirement.md")

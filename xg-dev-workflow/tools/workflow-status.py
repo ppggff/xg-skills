@@ -723,12 +723,20 @@ def card_decisions(card_dir):
             for i, rs in by_id.items()]
 
 
-def _id_cells(text, title_pat, cell_picks):
+# A row whose text carries the retire marker (`~~…~~ retired …` in a requirement
+# statement, or a trace cell opening with `retired`) is the M2 撤销 accounting form
+# itself — its id cell is not a live reference (the trace matrix still sees the row).
+_RETIRE_ROW = re.compile(r"(?:^|\|\s*|~~\s*)retired\b")
+
+
+def _id_cells(text, title_pat, cell_picks, skip_retired=False):
     """Ledger ids from a table section, taken ONLY from the id-bearing cells (a prose
     mention in any other column is never a reference)."""
     refs = set()
     for line in _section(text, title_pat).splitlines():
         if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
+            continue
+        if skip_retired and _RETIRE_ROW.search(line):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         for pick in cell_picks:
@@ -741,12 +749,14 @@ def _id_cells(text, title_pat, cell_picks):
 def _referenced_ids(card_dir):
     """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
     id cells + Parts-table R cells, detail 可追溯 详设项+R-id cells, plan Implements:,
-    ledger depends-on lines."""
-    refs = set(trace_requirement(card_dir))
+    ledger depends-on lines. Retirement-accounting rows are skipped (_RETIRE_ROW)."""
+    refs = {rid for rid, stmt in trace_requirement(card_dir).items()
+            if not _RETIRE_ROW.search(stmt)}
     refs |= _id_cells(_read(os.path.join(card_dir, "design.md")),
-                      r"How it meets|如何满足", (0,))
+                      r"How it meets|如何满足", (0,), skip_retired=True)
     refs |= set(trace_parts(card_dir)[1])
-    refs |= _id_cells(_read(os.path.join(card_dir, "detail.md")), r"可追溯", (0, -1))
+    refs |= _id_cells(_read(os.path.join(card_dir, "detail.md")), r"可追溯", (0, -1),
+                      skip_retired=True)
     for t in trace_plan(card_dir).values():
         refs |= set(t["rids"])
     for b in parse_ledger(card_dir)[0]:

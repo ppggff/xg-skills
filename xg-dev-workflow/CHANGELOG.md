@@ -4,6 +4,14 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-13 — workflow-status --check:retire 记账行不再误报 superseded-ref
+
+- `_referenced_ids` 跳过 retire 记账行(需求 R 表 `~~…~~ retired` 行、design trace
+  「retired——」行):它们是 M2 撤销语义要求的形态(留 id、不重编号),不是对已 retire 决策的
+  活引用;plan `Implements:`/ledger `depends-on` 的活引用照旧报。Why:020 close-out 实测
+  R9 划线引用被误报,exit 1 阻塞「--check ok = exit 0」验收;trace matrix 不受影响
+  (retired 行仍可见)。
+
 ## 2026-08-13 — learn 报告用词规则(用户 convention)
 
 - `steps/learn.md` Render 节增用词规则:中文行文里该操作一律称「学习」(与 verb 名 learn
