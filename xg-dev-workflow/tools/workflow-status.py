@@ -951,9 +951,9 @@ def card_carriers(card_dir):
                 entries.append({"name": name, "kind": kind,
                                 "expected": False, "exists": True})
         if mode == "invalid":
+            listed = {e["name"] for e in entries}
             for name, kind, _ in CARD_CARRIERS:
-                if _carrier_exists(card_dir, name, kind) and \
-                   name not in {e["name"] for e in entries}:
+                if name not in listed and _carrier_exists(card_dir, name, kind):
                     entries.append({"name": name, "kind": kind,
                                     "expected": False, "exists": True})
     for name, kind in _nonmd_dir_rows(card_dir):
