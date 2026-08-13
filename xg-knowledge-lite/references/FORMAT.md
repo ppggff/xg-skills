@@ -99,6 +99,7 @@ links, and renderer-dependent markdown are all handled in §3:
 - **Play-by-play narration** — "then I found… then I tried…" belongs in problem/progress; a raw article keeps stable conclusions only.
 - **Transient references** — PR numbers, issue numbers, git branches — they rot.
 - **Reverse coupling** — an article linking to workflow docs (dev_root requirement dirs, or legacy `plan/` / `problem/` / `progress/`); references are one-way (workflow → KB), Lint flags the reverse.
+  **Named exception — a project whose documented subject *is* the workflow itself** (currently `xg-skills`): its cards are that project's own development record, not an external private store, so card-scoped provenance tags (`(017 D2)`, `(013 ADR-0001、R3)`) may stay inline. The exception covers **provenance tags only** — still no dev_root file paths, and `dev_root` appearing as a domain term (or a skill-repo source path like `xg-dev-workflow/tools/viewer.py`) was never a violation to begin with. Any other project claiming this exception has to be added here first.
 - **Copying plan/problem content** — an article cites only "stable facts"; investigation-scene observations stay in problem.
 - **Placeholder empty sections** — a heading with no body / `TODO` — delete it; add when needed.
 - **Conflating same-named concepts** — terms that share a name across projects but mean different things get their own files (distinguished by `<project>/<slug>`), not crammed into one.
