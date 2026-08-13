@@ -59,7 +59,9 @@ directories via their pointer rows — and classify content **by nature** into t
 ### 3. Render — the fixed report shape
 Landing: `<project>/investigations/learn-<slug>-<YYYY-MM-DD>.md` (slug names the input-card
 group; same-day rerun appends `-2`, `-3`, …). Chinese prose, English domain terms; Mermaid
-only. Fixed order of the **ten sections** (§ numbers are load-bearing — downstream docs cite
+only. In Chinese prose the operation is called **学习** (matching the verb name `learn`) —
+never 蒸馏 (user convention, 2026-08-13). Fixed order of the **ten sections** (§ numbers are
+load-bearing — downstream docs cite
 them); a missing section fails Done-when (and the omission-check judgment item):
 
 - **§1 Header block** — three fixed pieces:

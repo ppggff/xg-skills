@@ -4,6 +4,12 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-13 — learn 报告用词规则(用户 convention)
+
+- `steps/learn.md` Render 节增用词规则:中文行文里该操作一律称「学习」(与 verb 名 learn
+  对应),不用「蒸馏」。Why:2026-08-13 用户对金样报告用词的直接反馈;既有金样报告标题与
+  longrun_test 看板注记已同步修正。
+
 ## 2026-08-13 — 020 落地:learn verb(从既有 card 提炼重做输入)
 
 - 新增 `learn <card>…` verb(`references/steps/learn.md`):对同项目 1..N 张既有卡只读挖掘
