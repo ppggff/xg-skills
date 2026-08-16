@@ -128,6 +128,12 @@ doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards sc
   code understanding」/ spike; facts per 载重事实入账) → **incremental restatement** (only what
   changed) → human confirmation; close per Round-end order, verdict per「Convergence」.
   Information gaps are listed up front; each ends **resolved or `deferred`**.
+- **Human-judgment items surface as questions.** A topic's presentation splits two ways —
+  evidence-settled items (labeled, not re-asked) vs **human-judgment items** (real trade-offs
+  with no objective answer): each of the latter is asked as its own question with
+  recommendation + trade-off (the per-question protocol), never folded silently into a
+  whole-topic 照案 go; a topic with zero human-judgment items says so (「本轮无人判点」+ the
+  evidence list). This is the gate digest's 判断分工 split applied per round.
 - **Granularity guardrail — discussion material ≠ draft**: understanding ≤ ~one screen, no
   section structure, diagrams, or contract text; a candidate's shape sketch = one-line 思路 +
   3–5 responsibility blocks + most-different point (**no diagrams/contracts/interfaces**); a
@@ -199,6 +205,10 @@ the grill**, don't tax simple cases:
 grill-log carries a one-line legend at the top (`T = 瘦身版 QD 驱动 · S = floor 方案现状`) and
 keeps it current; in chat, re-expand each codename on first use per session ("方案 T（瘦身版 QD
 驱动）"). A codename without a nearby definition is unreadable after resume.
+
+**Density**: the round verdict may fold into the round heading (`## Round N — T3 …（收敛判定:
+继续——…）`) instead of a standalone line; decision rows never drop columns, and receipts
+blocks stay whole.
 
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
 Status values: `resolved` / `open` / `superseded` / `deferred` (an information gap left

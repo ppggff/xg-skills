@@ -4,6 +4,33 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-16 — M6 retro (020 close-out batch): discussion-first sharpening + baseline recalibration
+
+- `grill.md` discussion-first: a topic round's presentation now splits evidence-settled items
+  from **human-judgment items — each asked as its own question** (recommendation + trade-off);
+  zero-judgment topics say so explicitly. Why: 019's own rehearsal (card 020) showed nine
+  design rounds with zero human-facing questions outside the gate — all spread + 照案 go,
+  panels had replaced interactive grilling (user five-point feedback #1/#4, 2026-08-13).
+- `grill.md` grill-log density: the round verdict may fold into the round heading; decision
+  rows keep full columns. Why: feedback #2 — 020's design log ran 245 lines with verdict/
+  boilerplate lines dominating.
+- `steps/plan.md`: label a task 人驱动 only when its acceptance keys need a human to produce.
+  Why: 020 T6 was mislabeled human-driven and wholesale deferred (M2 R13); T6-lite later
+  proved its keys machine-checkable in one autonomous run (2026-08-16).
+- `steps/learn.md` truncation order: decision/negotiation prose first, R tables and F
+  containers never truncated. Why: golden run T4's first cut dropped 001's R items under
+  超规模截断 and needed two human corrections — the main driver of learn's 3.40 usage average.
+- `doc-conventions.md`: enumeration counts cite their owner, never restated (single-source
+  counts). Why: 020's R10 九→十→十二项 left three stale-count residues each round, caught
+  only by lens 4 / supersede sweeps.
+- **E8 baseline recalibration (no process change)**: discussion-first M-card design-phase
+  human touchpoints ~8–10 (old doc-first baseline 5 no longer applies) — the overage bought
+  2 panel adjudication rounds + agenda beat + M2 re-tickets, yielding 49 high-adoption
+  findings and 4 approved-wording corrections; judged necessary cost. Data: 020 drill note.
+- Deferred to roadmap: lens-4 deterministic half-steps → script (020's lens 4 made a grep
+  error the orchestrator had to arbitrate); learn 报告「流程观察」节 (touches approved D3,
+  next real learn need opens an XS card).
+
 ## 2026-08-16 — 020 close-out review fixes (carriers edges + retire predicate)
 
 - `workflow-status.py` carriers: closed-list modes (ledger/doc-gate) now also surface actual

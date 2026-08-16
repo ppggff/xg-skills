@@ -26,6 +26,9 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    files likely touched, scope (XS–L; L → split). A task title containing "and" is usually two
    tasks. Cross-check: every `R-id` is implemented by ≥1 task, and every 假设 the design froze
    as *carried* (design-grill 假设 closure sweep) has a verify task or 验证策略 row.
+   **Label a task 人驱动 only when its acceptance keys need a human to produce** (口径/采纳/
+   实操); a validation task whose keys are machine-checkable stays in the autonomous zone even
+   when it shares a batch with human-driven siblings.
    **Part-split design (new-format Parts table) — group and schedule by part**: order the task
    list by the Parts table's part order (part order IS the scheduling spine — e.g. an observe
    part builds and lands before an advance part), one `### Part: <name>` divider per group;

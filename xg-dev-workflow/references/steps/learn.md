@@ -43,6 +43,8 @@ directories via their pointer rows — and classify content **by nature** into t
   everything 被新口径否掉的一律 drop. The drop side of each axis renders as **one aggregate
   line** (count + reason, naming its sources) — never itemized. Compression is the actual
   work: a report that transcribes is a failed run.
+  **Truncation order (超规模截断)**: decision/negotiation prose goes first; the requirement-item
+  face (R tables) and F containers are the design-agnostic layer — never truncated.
 - **Facts axis (R3)**: per item = source pointer (existing cross-card form `NNN 的 [F<n>]`
   + link; a doc-gate input card's doc-scoped containers use the doc axis `NNN/<doc> 的
   [F<n>]`) + one-sentence restatement + **时效标注** (原实测/验证日期 + 失效风险/依赖面) —

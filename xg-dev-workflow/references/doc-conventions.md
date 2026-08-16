@@ -14,6 +14,9 @@ any workflow doc (phase docs, investigation/review notes, KB 注记).
 - **An ID cited from another file is a markdown link to its home** — `[R1](./requirement.md)`,
   `[ADR-0006 D5](./adr/0006-<slug>.md)`, `[T3](./plan.md)`. Designated mapping fields and a
   doc's first mention always link; repeat prose mentions and same-file citations stay bare.
+- **Enumeration counts cite their owner, never restate the number** (single-source counts):
+  「R10 的闭列（见其陈述）」not 「R10 的十二项」— a restated count silently rots on the next
+  M2 and needs a supersede sweep to catch.
 
 ## Provenance containers (F<n>)
 
