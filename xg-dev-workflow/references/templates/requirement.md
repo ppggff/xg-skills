@@ -39,7 +39,10 @@ doc/`[[wiki/<project>/<slug>]]`; **mark each load-bearing claim's provenance** �
 
 The atomic, individually-trackable statements of what is required — **the traceability spine**.
 One row = **one** requirement (a title with "and" is two). Each gets a **stable ID** (`R1`, `R2`,
-…): never renumber; to drop one, mark it `retired (YYYY-MM-DD: why)` rather than reusing the number.
+…): never renumber; to drop one, mark it `retired (YYYY-MM-DD: why)` rather than reusing the
+number — tool-recognized forms (workflow-status.py RETIRE_ID/RETIRE_MARK): strike the id
+(`~~R9~~`) or put `retired` in the id cell, **or** begin the statement cell with the mark
+(`~~旧陈述~~ retired (…)`); a mid-sentence "retired" elsewhere doesn't count.
 Scope / Effect below **and** downstream docs (`design.md`「影响面」&「How it meets」, `detail.md`
 可追溯, `plan.md` tasks, `test.md` coverage) **reference these IDs** instead of restating the text.
 

@@ -57,8 +57,9 @@ done→done, superseded→dropped — confirmed row by row, not auto-mapped.
 
 Optional section below the table:「参考对象注记」— one pointer line per card group that became
 a reference object after a redo-triggered learn adoption (canonical carrier = the learn report;
-steps/learn.md backfill). Written by the learn post-go backfill only, on redo triggers only;
-board() does not parse it.
+steps/learn.md backfill). Written by the learn post-go backfill only, on redo triggers only.
+**List lines only — never a `| NNN |` table row**: board() scans the whole file for
+`| NNN |`-shaped rows, and a later row silently overwrites that card's kanban entry.
 
 Add a row on `new` (初始 整体状态 = todo); update Phase / 整体状态 / Deps on every transition.
 -->
