@@ -4,6 +4,25 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-16 — 020 close-out review fixes (carriers edges + retire predicate)
+
+- `workflow-status.py` carriers: closed-list modes (ledger/doc-gate) now also surface actual
+  top-level `notes/*.md` as `expected=False` discovery rows (grill logs are real mining
+  carriers — Layout's `notes/` line was silently narrowed to two globs); family-glob
+  exclusion made single-level so nested `notes/review-X/*.md` enumerate; non-md dir rows
+  are discovery (`expected=False`) in every mode. Why: close-out review H1/H2/M2 — the
+  golden sample (legacy) never exercised the closed-list branches.
+- Retire-accounting detection unified into `RETIRE_ID`/`RETIRE_MARK` (cell-scoped,
+  case-insensitive, separator-tolerant), shared by `--check` superseded-ref and the trace
+  gap-flag suppression; recognized forms pinned in templates/requirement.md. Why: review M1
+  — three detectors had split, each missing forms the templates/practice produce (017's R7
+  false ⚠ now clean); live rows merely mentioning "retired" still flag.
+- `steps/learn.md`: §9 carries a 「无」 line when no input card is in flight (ten-section
+  shape invariant); empty-口径 declaration pinned to the §1 metadata field; the 非真相源
+  declaration's dangling template citation replaced with its actual terms.
+- `templates/index.md`「参考对象注记」: list lines only — a `| NNN |`-shaped row would be
+  parsed by board() and silently overwrite that card's kanban entry.
+
 ## 2026-08-13 — workflow-status --check:retire 记账行不再误报 superseded-ref
 
 - `_referenced_ids` 跳过 retire 记账行(需求 R 表 `~~…~~ retired` 行、design trace

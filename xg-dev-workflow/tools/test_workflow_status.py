@@ -190,6 +190,16 @@ class TraceRetiredRows(unittest.TestCase):
         row = next(r for r in d["rows"] if r["rid"] == "R9")
         self.assertEqual(row["flags"], [])
 
+    def test_retired_statement_form_has_no_gap_flags(self):
+        # 020-practice form: struck statement + trailing `retired (...)`
+        card = make_card(self.root, "p", "095-retired")
+        req = Path(card) / "requirement.md"
+        req.write_text(req.read_text() +
+                       "| R9 | ~~老陈述~~ retired (2026-08-12: folded) | — | — |\n")
+        d = ws.trace_data("p", card)
+        row = next(r for r in d["rows"] if r["rid"] == "R9")
+        self.assertEqual(row["flags"], [])
+
 
 class ParseTasks(unittest.TestCase):
     def _parse(self, body):
@@ -388,6 +398,27 @@ class LedgerCheck(unittest.TestCase):
         self.assertNotIn("superseded-ref: R1", self._findings(root))
         open(os.path.join(card, "plan.md"), "w").write(
             "## Tasks\n\n### T1: x\n- **Implements:** R1\n")
+        self.assertIn("superseded-ref: R1", self._findings(root))
+
+    def test_retire_accounting_forms_exempt(self):
+        # the three template/practice forms: struck id · id-cell literal · capitalized
+        ret = "### R1 [requirement] retired\n- 陈述: old\n"
+        for row in ("| ~~R1~~ | 老陈述 | — | — |",
+                    "| R1 retired (2026-08-12: why) | 老陈述 | — | — |",
+                    "| R1 | ~~老陈述~~ Retired (2026-08-12) | — | — |",
+                    "| [R1](./decisions.md) | ~~老陈述~~ — **retired**（2026-08-10 G6）| — | — |"):
+            root, card = self._card(ledger=ret, req_ids=())
+            with open(os.path.join(card, "requirement.md"), "a") as f:
+                f.write(row + "\n")
+            self.assertNotIn("superseded-ref: R1", self._findings(root), msg=row)
+
+    def test_live_row_mentioning_retired_still_flagged(self):
+        # cell-scoped predicate: prose mention of "retired" mid-cell is not accounting
+        sup = "### R1 [requirement] superseded\n- 陈述: old\n"
+        root, card = self._card(ledger=sup, req_ids=())
+        open(os.path.join(card, "design.md"), "w").write(
+            "---\nid: 011\nstatus: drafting\n---\n\n## How it meets\n\n| R-id | 归属 |\n"
+            "|---|---|\n| R1 | 承接 retired 方案的替代实现 |\n")
         self.assertIn("superseded-ref: R1", self._findings(root))
 
     def test_status_mismatch_confirmed_with_pending(self):
@@ -931,9 +962,11 @@ class CarrierSkeleton(unittest.TestCase):
         self.assertTrue(by["decisions.md"]["expected"] and by["decisions.md"]["exists"])
         self.assertTrue(by["facts.md"]["expected"] and not by["facts.md"]["exists"])
         self.assertTrue(by["log.md"]["expected"] and not by["log.md"]["exists"])
-        # closed-list mode: a stray notes file is NOT enumerated
+        # closed-list mode still surfaces actual notes/*.md as discovery (review fix #1)
         card2 = self._card(gov="ledger", files=("notes/scratch.md",))
-        self.assertNotIn("notes/scratch.md", self._by_name(card2))
+        by2 = self._by_name(card2)
+        self.assertIn("notes/scratch.md", by2)
+        self.assertFalse(by2["notes/scratch.md"]["expected"])
 
     def test_doc_gate_excludes_ledger_only_carriers(self):
         by = self._by_name(self._card(gov="doc-gate", files=("design.md",)))
@@ -974,11 +1007,35 @@ class CarrierSkeleton(unittest.TestCase):
         self.assertFalse(by["notes/part-check-*.md"]["exists"])
 
     def test_nonmd_dir_row_with_pointer(self):
+        # discovery row: exists but never expected (存在性+指针, review fix #4)
         card = self._card(gov="doc-gate", files=("notes/probe/run.log",))
         by = self._by_name(card)
         row = by["notes/probe/"]
         self.assertEqual(row["kind"], "nonmd-dir")
-        self.assertTrue(row["exists"] and row["expected"])
+        self.assertTrue(row["exists"])
+        self.assertFalse(row["expected"])
+
+    def test_closed_list_discovers_notes_md(self):
+        card = self._card(gov="ledger", files=("decisions.md", "notes/grill-design.md",
+                                               "notes/review-2026-08-01-x.md"))
+        by = self._by_name(card)
+        self.assertIn("notes/grill-design.md", by)
+        self.assertFalse(by["notes/grill-design.md"]["expected"])
+        self.assertNotIn("notes/review-2026-08-01-x.md", by)   # family row owns it
+        self.assertTrue(by["notes/review-*.md"]["exists"])
+
+    def test_nested_review_dir_md_enumerated(self):
+        # fnmatch crossing "/" must not eat nested files the family glob can't see
+        card = self._card(files=("notes/review-2026-08-13/lens1.md",))
+        by = self._by_name(card)
+        self.assertIn("notes/review-2026-08-13/lens1.md", by)
+        self.assertFalse(by["notes/review-*.md"]["exists"])
+
+    def test_invalid_nonmd_dir_not_expected(self):
+        card = self._card(gov="bogus", files=("notes/probe/run.log",))
+        by = self._by_name(card)
+        self.assertIn("notes/probe/", by)
+        self.assertFalse(any(e["expected"] for e in by.values()))
 
     def test_stable_order_layout_first(self):
         card = self._card(gov="ledger", files=("decisions.md",))

@@ -330,7 +330,15 @@ def _strip_xcard(text):
     return XCARD_REF.sub("⟨xcard⟩", text)
 
 
-RETIRED_ITEM = re.compile(r"\s*~*\s*retired\b", re.I)
+# Retirement accounting (M2 撤销 keeps the id and marks the row; templates/requirement.md
+# pins the recognized forms): the id cell struck (`~~R9~~`) or itself carrying `retired`,
+# or the first content cell beginning `retired …` / `~~…~~ retired …`. Deliberately
+# cell-scoped — a live row merely mentioning "retired" mid-prose stays a reference, so
+# superseded-ref/dangling-id still fire on live rows citing dead ids.
+RETIRE_ID = re.compile(r"~~|retired\b", re.I)
+# struck span(s) + optional separator punctuation (— · : …), then `retired`; callers
+# strip `**` first. Must anchor at cell start — mid-prose "retired" is not accounting.
+RETIRE_MARK = re.compile(r"^\s*(?:~~[^~]*~~[^\w~]*)*retired\b", re.I)
 
 
 def _read(path):
@@ -367,6 +375,18 @@ def trace_requirement(card):
                          _read(os.path.join(card, "requirement.md")), re.M):
         items.setdefault(m.group(1), re.sub(r"\*\*", "", m.group(2)).strip())
     return items
+
+
+def _retired_req_ids(card_dir):
+    """R-ids whose 需求条目 row is retirement accounting (RETIRE_ID / RETIRE_MARK)."""
+    out = set()
+    for m in re.finditer(r"^\|([^|\n]*)\|([^|\n]*)\|",
+                         _read(os.path.join(card_dir, "requirement.md")), re.M):
+        idc, stmt = m.group(1), m.group(2)
+        rid = re.search(r"R\d+", _strip_xcard(idc))
+        if rid and (RETIRE_ID.search(idc) or RETIRE_MARK.match(stmt.replace("**", ""))):
+            out.add(rid.group(0))
+    return out
 
 
 def _rows_by_rid(sect):
@@ -579,6 +599,7 @@ def trace_data(project, card_dir):
 
     dstates = {b["id"]: b["state"] for b in parse_ledger(card_dir)[0]
                if b["state"] in ACTIVE_STATES}   # 010: per-R ledger state on trace rows
+    retired = _retired_req_ids(card_dir)
     rows = []
     for r in all_r:
         tids = by_r.get(r, [])
@@ -588,7 +609,7 @@ def trace_data(project, card_dir):
                         "loose" if "loose" in states else "none")
         # A retired item has no design home / task / test by construction — flagging it
         # as a gap points the gate reader at rows that are already resolved.
-        flags = [] if RETIRED_ITEM.match(reqs.get(r, "")) else \
+        flags = [] if r in retired else \
                 [w for cond, w in ((r not in reqs, "not-in-需求条目"),
                                   (r not in home, "no-design-home"),
                                   (r not in by_r, "no-task"),
@@ -723,22 +744,18 @@ def card_decisions(card_dir):
             for i, rs in by_id.items()]
 
 
-# A row whose text carries the retire marker (`~~…~~ retired …` in a requirement
-# statement, or a trace cell opening with `retired`) is the M2 撤销 accounting form
-# itself — its id cell is not a live reference (the trace matrix still sees the row).
-_RETIRE_ROW = re.compile(r"(?:^|\|\s*|~~\s*)retired\b")
-
-
 def _id_cells(text, title_pat, cell_picks, skip_retired=False):
     """Ledger ids from a table section, taken ONLY from the id-bearing cells (a prose
-    mention in any other column is never a reference)."""
+    mention in any other column is never a reference). skip_retired drops
+    retirement-accounting rows (RETIRE_ID on the id cell / RETIRE_MARK on the next)."""
     refs = set()
     for line in _section(text, title_pat).splitlines():
         if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
             continue
-        if skip_retired and _RETIRE_ROW.search(line):
-            continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if skip_retired and cells and (RETIRE_ID.search(cells[0]) or
+                (len(cells) > 1 and RETIRE_MARK.match(cells[1].replace("**", "")))):
+            continue
         for pick in cell_picks:
             if -len(cells) <= pick < len(cells):
                 refs |= {m.group(1)
@@ -749,9 +766,9 @@ def _id_cells(text, title_pat, cell_picks, skip_retired=False):
 def _referenced_ids(card_dir):
     """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
     id cells + Parts-table R cells, detail 可追溯 详设项+R-id cells, plan Implements:,
-    ledger depends-on lines. Retirement-accounting rows are skipped (_RETIRE_ROW)."""
-    refs = {rid for rid, stmt in trace_requirement(card_dir).items()
-            if not _RETIRE_ROW.search(stmt)}
+    ledger depends-on lines. Retirement-accounting rows are skipped (_retired_req_ids /
+    _id_cells skip_retired)."""
+    refs = set(trace_requirement(card_dir)) - _retired_req_ids(card_dir)
     refs |= _id_cells(_read(os.path.join(card_dir, "design.md")),
                       r"How it meets|如何满足", (0,), skip_retired=True)
     refs |= set(trace_parts(card_dir)[1])
@@ -897,26 +914,29 @@ def _enumerate_actual(card_dir):
     contents ride the dir row; the two notes globs keep family granularity).
     Callers drop names their mode already lists."""
     extras = []
-    for dirpath, dirnames, filenames in os.walk(card_dir):
+    for dirpath, _dirnames, filenames in os.walk(card_dir):
         rel_dir = os.path.relpath(dirpath, card_dir)
         if rel_dir == "adr" or rel_dir.startswith("adr" + os.sep):
             continue
         for f in sorted(filenames):
             if not f.endswith(".md"):
                 continue
-            rel = f if rel_dir == "." else os.path.join(rel_dir, f).replace(os.sep, "/")
-            if fnmatch.fnmatch(rel, "notes/review-*.md") or \
-               fnmatch.fnmatch(rel, "notes/part-check-*.md"):
+            # family-glob exclusion is single-level only — glob.glob on the family row
+            # doesn't cross "/", so a nested notes/review-X/y.md must enumerate here
+            if rel_dir == "notes" and (fnmatch.fnmatch(f, "review-*.md") or
+                                       fnmatch.fnmatch(f, "part-check-*.md")):
                 continue
+            rel = f if rel_dir == "." else os.path.join(rel_dir, f).replace(os.sep, "/")
             extras.append((rel, "file"))
     return sorted(extras)
 
 
 def _nonmd_dir_rows(card_dir):
-    """notes/ non-.md artifacts, one row per directory (存在性 + 指针 = the dir path)."""
+    """notes/ non-.md artifacts, one row per directory (存在性 + 指针 = the dir path);
+    discovery rows — never part of an expected set."""
     rows = []
     notes = os.path.join(card_dir, "notes")
-    for dirpath, dirnames, filenames in os.walk(notes):
+    for dirpath, _dirnames, filenames in os.walk(notes):
         if any(not f.endswith(".md") for f in filenames):
             rel = os.path.relpath(dirpath, card_dir).replace(os.sep, "/")
             rows.append((rel + "/", "nonmd-dir"))
@@ -925,11 +945,13 @@ def _nonmd_dir_rows(card_dir):
 
 def card_carriers(card_dir):
     """020 D6: 应有载体 × 存在性 — the `learn` coverage-table skeleton.
-    ledger/doc-gate → that mode's closed list; legacy → existence-axis inferred list
-    (decisions.md present → ledger list, absent → doc-gate list) ∪ full enumeration,
-    both markers kept; invalid → full enumeration only (governance="invalid" is the
-    warning signal downstream — never treated as "no marker"). Purely additive
-    --json field; stable order = Layout order, then extras sorted."""
+    ledger/doc-gate → that mode's closed list + notes/*.md discovery (Layout's notes/
+    line; expected=False); legacy → existence-axis inferred list (decisions.md present
+    → ledger list, absent → doc-gate list) ∪ full enumeration, both markers kept;
+    invalid → full enumeration only (governance="invalid" is the warning signal
+    downstream — never treated as "no marker"). Purely additive --json field; stable
+    order = expected rows in Layout order (when a set exists), discovery extras sorted
+    after them, non-md dir rows last."""
     mode = card_mode(card_dir)
     if mode in GOVERNANCE_VALUES:
         want_ledger = (mode == "ledger")
@@ -944,6 +966,18 @@ def card_carriers(card_dir):
                 continue
             entries.append({"name": name, "kind": kind, "expected": True,
                             "exists": _carrier_exists(card_dir, name, kind)})
+    if mode in GOVERNANCE_VALUES:
+        # closed-list modes still surface actual notes/*.md (top level) as discovery —
+        # grill logs etc. are real carriers the learn mining face must see (Layout notes/)
+        listed = {e["name"] for e in entries}
+        for f in sorted(glob.glob(os.path.join(card_dir, "notes", "*.md"))):
+            base = os.path.basename(f)
+            if fnmatch.fnmatch(base, "review-*.md") or \
+               fnmatch.fnmatch(base, "part-check-*.md"):
+                continue
+            if "notes/" + base not in listed:
+                entries.append({"name": "notes/" + base, "kind": "file",
+                                "expected": False, "exists": True})
     if mode in ("legacy", "invalid"):
         listed = {e["name"] for e in entries}
         for name, kind in _enumerate_actual(card_dir):
@@ -957,7 +991,7 @@ def card_carriers(card_dir):
                     entries.append({"name": name, "kind": kind,
                                     "expected": False, "exists": True})
     for name, kind in _nonmd_dir_rows(card_dir):
-        entries.append({"name": name, "kind": kind, "expected": True, "exists": True})
+        entries.append({"name": name, "kind": kind, "expected": False, "exists": True})
     return entries
 
 
