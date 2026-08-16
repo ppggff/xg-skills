@@ -34,7 +34,9 @@ from elsewhere in the skill — keep them stable.
 8. **Reverse coupling** — no raw/wiki article content links or paths into `dev_root` workflow
    docs (a `dev-workflow`/dev_root path, a card `NNN-slug` doc reference). Workflow docs → KB
    is one-way (FORMAT.md「Reverse coupling」promises "Lint flags the reverse" — this is that
-   check); a hit → move the content or drop the link.
+   check); a hit → move the content or drop the link. Named exception (FORMAT.md): in a
+   **workflow-self-documenting** project's articles, a bare provenance tag (e.g. `(017 D2)`)
+   is allowed — dev_root paths/links stay banned even there.
 
 Authority (two levels): **deterministic findings are auto-fixed** —
 §2 index rows, §3 link paths, §4 frontmatter fields, §1's mechanical `compiled_to:`
