@@ -21,7 +21,8 @@ named below).
    a miss stops the run with the actual card dirs listed (improve region-check 同款).
 2. **The one mandatory 口径 question (R11), asked before mining**: 重做触发 (走偏/失败 ·
    换框架 · 新条件) + 新口径/stakes + 判定标准的变化. Record the answer **verbatim**, marked
-   人拍 + date; no answer → the slot stays empty and the report header declares 缺重做口径.
+   人拍 + date; no answer → the slot stays empty and the declaration is carried by the §1
+   metadata line's 口径槽状态 field (`未问`/`空`) — never a fourth blockquote line.
    It precedes mining because the keep/drop criteria depend on it (被新口径否掉的一律 drop).
 3. In-flight marking: input card 整体状态 ∉ {done, dropped} → the report carries the
    输入卡在途警示 section (§9).
@@ -68,7 +69,8 @@ them); a missing section fails Done-when (and the omission-check judgment item):
   (a) **metadata dotted line** (improve form): 输入卡组 · per-card governance/整体状态 ·
   date · `Supersedes: <旧文件名>` (rerun only) · `adopted:` (absent until backfill) ·
   口径槽状态 (人拍/未问) · 输入集外被引用卡 id;
-  (b) **blockquote — three declarations**: 非真相源 (cite templates/log.md's original
+  (b) **blockquote — three declarations**: 非真相源 (the cards' authority stays in their own
+  decisions.md/facts.md — state it in those terms; no template carries a canonical
   wording) · 非状态源、非承载容器 (never on any card's resume path) · 无 `adopted:` 行时仅
   input evidence (conditional sentence; the `adopted: <date>` line is written only by the
   post-go backfill step);
@@ -90,8 +92,9 @@ them); a missing section fails Done-when (and the omission-check judgment item):
   **a+b=n** (mechanical self-consistency; 「存在」and「已覆盖」stay separate columns).
   理由码闭列: 不存在 · 空文件 · 无本轴内容 · 超规模截断(须点名). No expected set (invalid) →
   its warning row; legacy → the two markers shown as probed.
-- **§9 输入卡在途警示** (conditional; distinct name from improve's 在途卡提示节 — different
-  semantics) — per in-flight input card: its facts may still move; consumers re-verify.
+- **§9 输入卡在途警示** (distinct name from improve's 在途卡提示节 — different semantics) —
+  per in-flight input card: its facts may still move; consumers re-verify. No in-flight
+  input card → the section carries a single 「无」 line (the ten-section shape is invariant).
 - **§10 规模自检行** — line count vs the caps.
 
 **Size discipline (D4)**: soft cap **50 lines × N input cards**, hard cap **200**; N>3 →
