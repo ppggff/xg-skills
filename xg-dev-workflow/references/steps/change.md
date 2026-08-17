@@ -84,8 +84,13 @@ design are allowed to change, so the design stays stable while the plan flexes.
    claim surviving in an untraced Scope bullet; a renamed module surviving a full rewrite AND
    a consistency agent, because a *name* asserts nothing false). After propagating:
    - Build the retired-phrasing list from the superseding ADR's **被取代表述** section
-     (`adr.md`), extending with old names/terms noticed while editing.
-   - Run `tools/check-superseded-phrases.py <card-dir> --terms …` (or equivalent grep) across
+     (`adr.md`; machine form — list lines, term = the line's first backtick span), extending
+     with old names/terms noticed while editing. **A mode-变更 with no ADR records the same
+     list as an indented sub-list under its Change-log entry** (title line contains
+     被取代表述, same line form) — these two anchors are what
+     `check-superseded-phrases.py --from-card` and the resident `--check` (n) read (021).
+   - Run `tools/check-superseded-phrases.py <card-dir> --from-card` (add `--terms …` for
+     names noticed while editing) across
      requirement/design/detail/plan/test + adr; **every hit resolves one of three ways**:
      rewrite · annotate as 历史表述 (change-log entries and grill/notes history qualify) ·
      record why it stays. No silent hits.

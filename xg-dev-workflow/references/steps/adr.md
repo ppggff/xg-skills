@@ -49,8 +49,12 @@ a one-line hand-wave doesn't clear it.
    retired↔deprecated) — write it to match the ledger rows, never as an independent judgment;
    a mismatch is an M3/--check finding (the derived-status rule, SKILL.md「Ledger」). A **superseding or
    semantics-changing** ADR also lists **被取代表述** — the phrases, module names, and terms
-   this decision retires (one line each) — feeding `change.md`'s supersede sweep; without it
-   the sweep has no word list and old restatements survive outside the traced items.
+   this decision retires (one line each; **machine form pinned by 021**: list lines only,
+   the retired term is the line's first backtick span — `--check` (n) and
+   `check-superseded-phrases.py --from-card` parse exactly this, and a superseding ADR
+   missing the section is an `adr-retired-missing` finding) — feeding `change.md`'s supersede
+   sweep; without it the sweep has no word list and old restatements survive outside the
+   traced items.
 3. Link it from `design.md`'s ADRs list.
 4. **Never delete** an ADR, and **never append a `## Amendment` block** — an ADR is the
    *current active decision*, not a changelog (amendment blocks let it grow into a 500-line
