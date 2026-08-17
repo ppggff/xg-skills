@@ -36,7 +36,9 @@ unit (scoped homonym — not drift). "Split a requirement" = spawn multiple card
 again) — see SKILL.md「拆分与隔离」.
 
 Columns:
-- Phase    = furthest phase reached, a CARD-LEVEL summary: 需求/设计/实现/测试.
+- Phase    = furthest phase reached, a CARD-LEVEL summary: 需求/设计/详设/实现/测试/评审
+  (mirror of PHASE_CANON in workflow-status.py — prefix-matched, a suffix annotation like
+  「测试 (XS/S)」 is free text; edit both in one batch).
 - 整体状态 = the card's OVERALL scheduling state — a human-set axis, SEPARATE from the internal
    per-phase status VALUES (design:frozen / plan:active / progress:blocked …), which stay in the
    phase docs and do NOT appear on the board:

@@ -11,7 +11,6 @@ branch: <optional product branch — the card↔code anchor; the viewer's gitweb
 mr: <optional — MR/PR URL once one exists; the card↔review-thread anchor>
 merged: <optional — the merged commit / range once landed (resolve via git, never hand-compose a SHA)>
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # Progress NNN: <title>

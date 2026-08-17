@@ -46,7 +46,8 @@ def terms_from_card(card_dir):
     terms, findings = [], []
     for f in sorted(glob.glob(os.path.join(card_dir, 'adr', '*.md'))):
         base = 'adr/' + os.path.basename(f)
-        text = pathlib.Path(f).read_text(errors='replace')
+        text = re.sub(r'<!--.*?-->', '', pathlib.Path(f).read_text(errors='replace'),
+                      flags=re.S)   # template guidance rides in comments — never terms
         sect = _section(text, r'被取代表述')
         if not sect.strip():
             if re.search(r'ADR-\d{4}', _section(text, r'Supersedes')):

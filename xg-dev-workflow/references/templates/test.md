@@ -3,9 +3,10 @@ id: NNN
 title: <test plan & results for NNN>
 project: <project>
 plan: ./plan.md
-status: planned | passing | failing
+status: planned | passing | failing | described  <mirror of TEST_STATUS_CANON in
+  workflow-status.py — described = the describe-don't-run close-out (021 G6); edit both
+  in one batch>
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # 测试 NNN: <title>

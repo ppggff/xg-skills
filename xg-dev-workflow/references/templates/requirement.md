@@ -12,7 +12,6 @@ governance: ledger | doc-gate  <the card's governance mode (017 D1). `new` pre-f
 issue: <optional — originating tracker issue(s)/ticket(s): id or URL, comma-separated. The
   card↔issue anchor; also the outward ref code comments may cite. Omit when there is none.>
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # 需求 NNN: <requirement title>

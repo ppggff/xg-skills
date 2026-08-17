@@ -40,8 +40,11 @@ What we decided.
 
 ## 被取代表述 (required when superseding)
 
-The exact phrases/terms the superseded decision used that must NOT survive elsewhere —
-the word list that `change.md`'s supersede sweep and M3 grep against:
+<!-- The exact phrases/terms the superseded decision used that must NOT survive
+elsewhere — the word list change.md's supersede sweep and M3 grep against. List lines
+only (021 G4 machine form): the retired term is each line's first backtick span; the
+tools (check-superseded-phrases.py --from-card, --check (n)) parse exactly this shape
+and flag anything else in the section as adr-retired-format. -->
 
 - `<old phrase>` → `<replacement>`
 

@@ -5,7 +5,6 @@ project: <project>
 requirement: ./requirement.md
 status: drafting | frozen | superseded
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # 设计 NNN: <design title>

@@ -5,7 +5,6 @@ project: <project>
 design: ./design.md
 status: draft | active | done | superseded
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # 实现 NNN: <plan title>

@@ -5,7 +5,6 @@ project: <project>
 design: ./design.md
 status: draft | baseline | superseded
 created: YYYY-MM-DD
-updated: YYYY-MM-DD
 ---
 
 # 详设 NNN: <detail title>
