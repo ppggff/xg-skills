@@ -441,6 +441,212 @@ def check_supersede_residue(project, card_dir, ws):
     return findings, []
 
 
+# ---- (o)-(t): card-scoped B/C checks (021 T5) ----
+PHASE_DOC_NAMES = ("requirement.md", "design.md", "detail.md",
+                   "plan.md", "test.md", "progress.md")
+# link-domain placeholder exclusion — its own vocabulary, NOT the shared PLACEHOLDERS
+# (that set has four other consumers with set-membership semantics)
+LINK_PLACEHOLDER = re.compile(r"[…<>*]|\.\.\.|NNN|<slug>|<project>")
+WIKILINK = re.compile(r"\[\[([^\]|#]+)")
+MDLINK = re.compile(r"\]\(([^)#\s]+)")
+FREF = re.compile(r"\[F(\d+)\]")
+XFREF = re.compile(r"\[(\d{3}):F(\d+)\]")   # cross-card form [NNN:F<n>] (021 D4)
+PROGRESS_CAP = 180        # template's ≈150-line cap + 20% buffer
+ADR_BODY_CAP = 240        # omission-check's ~200-line lean body + 20% buffer
+
+
+def _strip_code(text):
+    """Fenced blocks + inline code spans removed — a backticked mention is not a use."""
+    return re.sub(r"`[^`]*`", "", re.sub(r"```.*?```", "", text, flags=re.S))
+
+
+def _kb_root():
+    cfg = os.path.expanduser("~/.config/xg-knowledge-wiki/config.yaml")
+    try:
+        for line in open(cfg, encoding="utf-8"):
+            m = re.match(r"root:\s*(\S+)", line)
+            if m:
+                return os.path.expanduser(m.group(1).strip().strip("\"'"))
+    except OSError:
+        pass
+    return os.path.expanduser("~/knowledge")
+
+
+def _kb_resolves(kb, target):
+    """kb/<layer>/<project>/<slug>(.md) exists, or an aliases: frontmatter names the slug."""
+    if os.path.exists(os.path.join(kb, target + ".md")) or \
+       os.path.exists(os.path.join(kb, target)):
+        return True
+    parent, slug = os.path.split(target.rstrip("/"))
+    for f in glob.glob(os.path.join(kb, parent, "*.md")):
+        aliases = ""
+        try:
+            for line in open(f, encoding="utf-8"):
+                m = re.match(r"aliases:\s*(.+)", line)
+                if m:
+                    aliases = m.group(1)
+                    break
+        except OSError:
+            continue
+        if slug in [a.strip().strip("\"'") for a in aliases.strip("[]").split(",")]:
+            return True
+    return False
+
+
+def _doc_links(card_dir, ws):
+    """Per doc: (wikilink targets, relative link paths), code-stripped and
+    placeholder-excluded."""
+    for name in PHASE_DOC_NAMES:
+        text = ws._read(os.path.join(card_dir, name))
+        if not text:
+            continue
+        stripped = _strip_code(text)
+        wikis = [t.strip() for t in WIKILINK.findall(stripped)
+                 if not LINK_PLACEHOLDER.search(t)]
+        rels = [p for p in MDLINK.findall(stripped)
+                if not LINK_PLACEHOLDER.search(p)
+                and not re.match(r"[a-z]+://|mailto:|~|/", p)]
+        yield name, wikis, rels
+
+
+def check_links(project, card_dir, ws):
+    """(o) B1 card half — every [[wikilink]] resolves in the KB (aliases honored),
+    every relative link resolves on disk. KB root unreachable ⇒ the whole check
+    skips (never a partial finding+skip mix)."""
+    kb = _kb_root()
+    if not os.path.isdir(kb):
+        return [], ["links: no-kb-root"]
+    findings = []
+    for name, wikis, rels in _doc_links(card_dir, ws):
+        for t in wikis:
+            if not _kb_resolves(kb, t):
+                findings.append("broken-wikilink: %s [[%s]]" % (name, t))
+        for p in rels:
+            if not os.path.exists(os.path.normpath(os.path.join(card_dir, p))):
+                findings.append("broken-link: %s %s" % (name, p))
+    return findings, []
+
+
+def check_status_field(project, card_dir, ws):
+    """(p) B2′ — every existing phase doc declares frontmatter `status` (the one
+    machine-read field left after `updated:` was dropped, 021 R4)."""
+    findings = []
+    for name in PHASE_DOC_NAMES:
+        path = os.path.join(card_dir, name)
+        if os.path.exists(path) and not ws.frontmatter(path).get("status"):
+            findings.append("missing-status: " + name)
+    return findings, []
+
+
+def check_r_trace(project, card_dir, ws):
+    """(q) B6 — R-trace existence, four dimensions with per-dimension predicates:
+    not-in-需求条目 always (the XCARD_REF-class detection); design home once design.md
+    is frozen/approved (mid-draft gaps are the freeze gate's business); ≥1 plan task /
+    ≥1 test row once those docs exist. Prose-only requirements (no 需求条目 table) and
+    retired R-ids are exempt."""
+    reqs = ws.trace_requirement(card_dir)
+    if not reqs:
+        return [], []
+    retired = ws._retired_req_ids(card_dir)
+    home, _verify = ws.trace_design(card_dir)
+    tasks = ws.trace_plan(card_dir)
+    by_r = set()
+    for t in tasks.values():
+        by_r |= set(t["rids"])
+    cov = ws.trace_test(card_dir)
+    findings = []
+    for r in sorted(set(reqs) | set(home) | by_r | set(cov), key=lambda x: int(x[1:])):
+        if r in retired:
+            continue
+        if r not in reqs:
+            findings.append("trace: %s not-in-需求条目" % r)
+            continue
+        if _doc_status(os.path.join(card_dir, "design.md"), ws) in ("frozen", "approved") \
+                and r not in home:
+            findings.append("trace: %s no-design-home" % r)
+        if os.path.exists(os.path.join(card_dir, "plan.md")) and r not in by_r:
+            findings.append("trace: %s no-task" % r)
+        if os.path.exists(os.path.join(card_dir, "test.md")) and r not in cov:
+            findings.append("trace: %s no-test-coverage" % r)
+    return findings, []
+
+
+def _fact_ids(card_dir, ws):
+    """Active facts.md block ids ∪ doc-local「事实清单」ids, as ints."""
+    ids = set()
+    text = ws._read(os.path.join(card_dir, "facts.md"))
+    for m in FACT_HEAD.finditer(text):
+        if not re.search(r"superseded|retired", m.group(2), re.I):
+            ids.add(int(m.group(1)[1:]))
+    for name in PHASE_DOC_NAMES:
+        sect = ws._section(ws._read(os.path.join(card_dir, name)), r"事实清单")
+        ids |= {int(n) for n in re.findall(r"\bF(\d+)\b", sect)}
+    return ids
+
+
+def check_fact_refs(project, card_dir, ws):
+    """(r) B7 — [F<n>] citations resolve: bare form against THIS card's active facts
+    (facts.md ∪ doc-local 事实清单); cross-card [NNN:F<n>] (021 D4) against the target
+    card's fact carriers. A citation with no carrier anywhere is a finding — the
+    non-silent form R9 assigns this check."""
+    own = None   # lazy — most docs have no refs
+    findings = []
+    for name in PHASE_DOC_NAMES:
+        text = ws._read(os.path.join(card_dir, name))
+        if not text:
+            continue
+        stripped = _strip_code(text)
+        stripped_x = XFREF.sub("", stripped)
+        for n in {int(x) for x in FREF.findall(stripped_x)}:
+            if own is None:
+                own = _fact_ids(card_dir, ws)
+            if n not in own:
+                findings.append("dangling-fref: [F%d] (%s)" % (n, name))
+        for nnn, n in {(a, int(b)) for a, b in XFREF.findall(stripped)}:
+            hits = glob.glob(os.path.join(os.path.dirname(card_dir), nnn + "-*"))
+            if not hits or n not in _fact_ids(hits[0], ws):
+                findings.append("dangling-fref: [%s:F%d] (%s)" % (nnn, n, name))
+    return findings, []
+
+
+def check_progress_cap(project, card_dir, ws):
+    """(s) B8 — progress.md stays a snapshot: over-cap flags on live cards only
+    (done/dropped cards' prune duty ended with the card, 021 D5)."""
+    path = os.path.join(card_dir, "progress.md")
+    if not os.path.exists(path):
+        return [], []
+    state = ws.board(os.path.dirname(card_dir)).get(
+        os.path.basename(card_dir)[:3], {}).get("state", "").strip("*").strip()
+    if state in ("done", "dropped"):
+        return [], []
+    n = ws._read(path).count("\n") + 1
+    if n > PROGRESS_CAP:
+        return ["progress-over-cap: %d lines (cap %d)" % (n, PROGRESS_CAP)], []
+    return [], []
+
+
+def check_adr_hygiene(project, card_dir, ws):
+    """(t) C4 — ADR hygiene: no `## Amendment` block (changes are superseding ADRs);
+    body ≤ ADR_BODY_CAP lines; a superseded ADR keeps ≤2 lines referencing its
+    superseder (the forward pointer, not a running commentary)."""
+    findings = []
+    for f in sorted(glob.glob(os.path.join(card_dir, "adr", "*.md"))):
+        base = "adr/" + os.path.basename(f)
+        text = ws._read(f)
+        if re.search(r"^##\s*Amendment", text, re.M):
+            findings.append("adr-amendment: " + base)
+        n = text.count("\n") + 1
+        if n > ADR_BODY_CAP:
+            findings.append("adr-over-cap: %s %d lines (cap %d)" % (base, n, ADR_BODY_CAP))
+        m = re.search(r"^Status:\s*superseded\s*(?:by\s*(ADR-\d{4}))?", text, re.M | re.I)
+        if m and m.group(1):
+            refs = sum(1 for ln in text.splitlines() if m.group(1) in ln)
+            if refs > 2:
+                findings.append("adr-forward-ref: %s %d lines cite %s"
+                                % (base, refs, m.group(1)))
+    return findings, []
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -459,6 +665,12 @@ CARD_CHECKS = (
     ("panel-receipts", check_panel_receipts),                   # (l) A3
     ("docgate-gateline", check_docgate_gateline),               # (m) A5
     ("supersede-residue", check_supersede_residue),             # (n) A4′
+    ("links", check_links),                                     # (o) B1 card half
+    ("status-field", check_status_field),                       # (p) B2′
+    ("r-trace", check_r_trace),                                 # (q) B6
+    ("fact-refs", check_fact_refs),                             # (r) B7
+    ("progress-cap", check_progress_cap),                       # (s) B8
+    ("adr-hygiene", check_adr_hygiene),                         # (t) C4
 )
 
 PROJECT_CHECKS = ()

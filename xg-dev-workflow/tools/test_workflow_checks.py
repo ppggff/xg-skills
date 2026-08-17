@@ -284,5 +284,132 @@ class SupersedeResidue(unittest.TestCase):
                          csp.scan(self.card, ["旧词A"]))   # E3 对拍：--from-card ≡ 手工词表
 
 
+class CardScopedBC(unittest.TestCase):
+    """021 T5: B1 links / B2′ status / B6 r-trace / B7 fact-refs / B8 cap / C4 ADR."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-08-17"))
+        self.kb = os.path.join(self.tmp.name, "kb")
+        os.makedirs(self.kb, exist_ok=True)
+        orig = wc._kb_root
+        wc._kb_root = lambda: self.kb
+        self.addCleanup(lambda: setattr(wc, "_kb_root", orig))
+
+    # -- B1
+    def test_b1_wikilink_resolution_and_alias(self):
+        _write(self.kb, "wiki/proj/real.md", "x")
+        _write(self.kb, "wiki/proj/other.md", "---\naliases: [nick]\n---\nx")
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n[[wiki/proj/real]] [[wiki/proj/nick]] "
+               "[[wiki/proj/gone]] `[[wiki/proj/mention]]` [[wiki/<project>/<slug>]]\n")
+        f, s = wc.check_links("proj", self.card, ws._L1)
+        self.assertEqual(f, ["broken-wikilink: design.md [[wiki/proj/gone]]"])
+
+    def test_b1_relative_links(self):
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n[a](./requirement.md) [b](./notes/gone.md)\n")
+        f, _ = wc.check_links("proj", self.card, ws._L1)
+        self.assertEqual(f, ["broken-link: design.md ./notes/gone.md"])
+
+    def test_b1_no_kb_root_skips_whole_check(self):
+        wc_orig = wc._kb_root
+        wc._kb_root = lambda: os.path.join(self.tmp.name, "nope")
+        try:
+            f, s = wc.check_links("proj", self.card, ws._L1)
+        finally:
+            wc._kb_root = wc_orig
+        self.assertEqual((f, s), ([], ["links: no-kb-root"]))
+
+    # -- B2′
+    def test_b2_missing_status_flags(self):
+        _write(self.tmp.name, "proj/001-a/design.md", "no frontmatter\n")
+        f, _ = wc.check_status_field("proj", self.card, ws._L1)
+        self.assertEqual(f, ["missing-status: design.md"])
+
+    # -- B6
+    def _req_with_items(self, extra_docs=()):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-08-17") +
+               "## 需求条目\n| ID | 需求条目 | 类型 | prov |\n|--|--|--|--|\n"
+               "| R1 | one | 功能 | e |\n| R2 | two | 功能 | e |\n")
+        for rel, text in extra_docs:
+            _write(self.tmp.name, "proj/001-a/" + rel, text)
+
+    def test_b6_frozen_design_missing_home_flags(self):
+        self._req_with_items(extra_docs=[("design.md",
+            "---\nstatus: frozen\n---\n## How it meets the requirement\n"
+            "| R | home |\n|--|--|\n| R1 | m |\n")])
+        f, _ = wc.check_r_trace("proj", self.card, ws._L1)
+        self.assertIn("trace: R2 no-design-home", f)
+        self.assertNotIn("trace: R1 no-design-home", f)
+
+    def test_b6_drafting_design_not_gated(self):
+        self._req_with_items(extra_docs=[("design.md", "---\nstatus: drafting\n---\n")])
+        f, _ = wc.check_r_trace("proj", self.card, ws._L1)
+        self.assertEqual([x for x in f if "no-design-home" in x], [])
+
+    def test_b6_not_in_items_always_fires(self):
+        self._req_with_items(extra_docs=[("design.md",
+            "---\nstatus: drafting\n---\n## How it meets the requirement\n"
+            "| R | home |\n|--|--|\n| R9 | ghost |\n")])
+        f, _ = wc.check_r_trace("proj", self.card, ws._L1)
+        self.assertIn("trace: R9 not-in-需求条目", f)
+
+    def test_b6_prose_only_requirement_exempt(self):
+        f, _ = wc.check_r_trace("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
+    # -- B7
+    def test_b7_bare_ref_resolution(self):
+        _write(self.tmp.name, "proj/001-a/facts.md",
+               "### F1 [VERIFIED]\n- 来源: 实测 `x`\n### F2 [VERIFIED superseded]\n- 来源: y\n")
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n用 [F1] 与 [F2] 与 [F9]，`[F7]` 只是提及。\n")
+        f, _ = wc.check_fact_refs("proj", self.card, ws._L1)
+        self.assertIn("dangling-fref: [F2] (design.md)", f)   # superseded ≠ active
+        self.assertIn("dangling-fref: [F9] (design.md)", f)
+        self.assertNotIn("dangling-fref: [F1] (design.md)", f)
+        self.assertEqual([x for x in f if "F7" in x], [])
+
+    def test_b7_doc_local_fact_list_and_cross_card(self):
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n## 事实清单\n- F3: 实测。\n\n正文引 [F3] 和 "
+               "[002:F1] 和 [003:F1]。\n")
+        _write(self.tmp.name, "proj/002-b/facts.md", "### F1 [VERIFIED]\n- 来源: `x`\n")
+        f, _ = wc.check_fact_refs("proj", self.card, ws._L1)
+        self.assertEqual([x for x in f if "[F3]" in x], [])
+        self.assertEqual([x for x in f if "002:F1" in x], [])
+        self.assertIn("dangling-fref: [003:F1] (design.md)", f)
+
+    # -- B8
+    def test_b8_cap_and_done_exemption(self):
+        big = "---\nstatus: in-progress\n---\n" + "x\n" * 200
+        _write(self.tmp.name, "proj/001-a/progress.md", big)
+        _write(self.tmp.name, "proj/index.md",
+               "| Card | Phase | 整体状态 | Deps |\n|--|--|--|--|\n| 001 | 实现 | active | — |\n")
+        f, _ = wc.check_progress_cap("proj", self.card, ws._L1)
+        self.assertTrue(f and f[0].startswith("progress-over-cap:"))
+        _write(self.tmp.name, "proj/index.md",
+               "| Card | Phase | 整体状态 | Deps |\n|--|--|--|--|\n| 001 | 测试 | done | — |\n")
+        self.assertEqual(wc.check_progress_cap("proj", self.card, ws._L1), ([], []))
+
+    # -- C4
+    def test_c4_amendment_overcap_forwardref(self):
+        _write(self.tmp.name, "proj/001-a/adr/0001-x.md",
+               "Status: accepted\n## Amendment\nbad\n" + "l\n" * 300)
+        _write(self.tmp.name, "proj/001-a/adr/0002-y.md",
+               "Status: superseded by ADR-0003\nptr ADR-0003\nagain ADR-0003\nthird ADR-0003\n")
+        _write(self.tmp.name, "proj/001-a/adr/0003-z.md", "Status: accepted\nfine\n")
+        f, _ = wc.check_adr_hygiene("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("adr-amendment: adr/0001-x.md") for x in f))
+        self.assertTrue(any(x.startswith("adr-over-cap: adr/0001-x.md") for x in f))
+        self.assertTrue(any(x.startswith("adr-forward-ref: adr/0002-y.md") for x in f))
+        self.assertEqual([x for x in f if "0003-z" in x], [])
+
+
 if __name__ == "__main__":
     unittest.main()
