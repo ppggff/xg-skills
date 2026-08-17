@@ -75,11 +75,19 @@ synthesis step exists anyway; don't keep the panel merged for it.
    every resolved decision row (`→ <id>` / `→ <doc §>` annotation, grill.md) has a doc home.
    夹带/漏记 report as `not satisfied` subtypes (the verdict vocabulary stays three-valued);
    the verdict list + forward/reverse tables land in the receipts; gap rows route to the
-   digest's §5 待你判. Input gains {decisions.md resolved rows + the grill-log}.
+   digest's §5 待你判. Input gains {the grill-log's resolved decision rows (`resolved → <id>`
+   status cells — grill.md's canonical table) + decisions.md}. **Mechanical half-steps are
+   scripted, not re-judged** (021): `workflow-status.py --check` covers the marker count
+   ((j) stray-marker), the reverse id-existence half ((k) resolved-no-home), receipt presence
+   ((l) no-receipts) and the doc-gate audit line ((m)); the judge runs the check and audits
+   the semantic fidelity on top — never hand-greps those four.
 
 **Receipts.** Every panel run leaves a receipt in the grill-log (or, for a **generic** grill
 whose conversation is the log, in the round's closing message — decision-zone discussion-first
-runs always persist): a header line — the grill row (`G<n>`) or round it served + **round
+runs always persist). **A persisted receipt block opens with a structural anchor** — a line
+starting `### Panel receipt` (any heading level ≥ ##) or `**Panel receipt**` — pinned (021)
+so the presence check can find it: `--check` (l) flags a gated card whose grill-log holds
+zero anchored blocks (`no-receipts`). Then the block body: a header line — the grill row (`G<n>`) or round it served + **round
 type** + lenses dispatched + **re-dispatch yes/no with grounds** (the verified-facts pack /
 dead-findings line that justifies the scope) — then **one line per finding with its
 disposition**:
