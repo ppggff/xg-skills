@@ -259,6 +259,135 @@ def check_ledger(card_dir, ws):
     return findings
 
 
+# ---- (j)-(m): gate-adjacent checks (021 T3) ----
+GATED_DOCS = (("requirement.md", ("confirmed",)),
+              ("design.md", ("frozen", "approved")),
+              ("detail.md", ("baseline",)))
+# Exact full-width literal; self-documenting variants (「落纸补充」,（落纸补充标记）) don't
+# match, and backtick-quoted mentions are stripped before counting (mention ≠ use).
+TRANSCRIPTION_MARKER = "（落纸补充）"
+DISCUSSION_FIRST_CUTOFF = "2026-08-11"   # 019: grill-log mandatory-persist start
+RECEIPT_STRUCT_CUTOFF = "2026-08-17"     # 021 landing: structural anchor required from here
+RECEIPT_ANCHOR = re.compile(r"^(?:#{2,4}\s+Panel receipt|\*\*Panel receipt)", re.M | re.I)
+RECEIPT_LOOSE = re.compile(r"receipt", re.I)
+GATE_LINE = re.compile(r"（gate[^）\n]{1,60}）")
+GRILL_RESOLVED_ID = re.compile(r"→\s*((?:ADR-\d{4}(?:\s+D\d+)?)|[RVSD]\d+)")
+
+
+def _doc_status(path, ws):
+    # real cards annotate status inline ("confirmed # …") — strip it
+    return ws.frontmatter(path).get("status", "").split("#")[0].strip()
+
+
+def _gated_docs(card_dir, ws):
+    for name, gated in GATED_DOCS:
+        path = os.path.join(card_dir, name)
+        if os.path.exists(path) and _doc_status(path, ws) in gated:
+            yield name, path
+
+
+def _card_created(card_dir, ws):
+    return str(ws.frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
+
+
+def _grill_logs(card_dir):
+    return sorted(glob.glob(os.path.join(card_dir, "notes", "grill-*.md")))
+
+
+def check_transcription_markers(project, card_dir, ws):
+    """(j) A1 — gate form only: a doc whose status passed its gate carries zero exact
+    （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment)."""
+    findings = []
+    for name, path in _gated_docs(card_dir, ws):
+        n = re.sub(r"`[^`]*`", "", ws._read(path)).count(TRANSCRIPTION_MARKER)
+        if n:
+            findings.append("stray-marker: %s %d×%s past gate"
+                            % (name, n, TRANSCRIPTION_MARKER))
+    return findings, []
+
+
+def _grill_resolved_ids(text):
+    """(canonical?, ids): canonical grill-log table = header row with both `id` and
+    `status` columns (grill.md's seven-column form); ids = ledger-id targets of
+    `resolved → <id>` status cells. Non-id targets (doc-§ form) stay judgment."""
+    canonical, ids, lines, i = False, set(), text.splitlines(), 0
+    while i < len(lines):
+        ln = lines[i].strip()
+        if ln.startswith("|"):
+            header = [c.strip().lower() for c in ln.strip("|").split("|")]
+            if "id" in header and "status" in header:
+                canonical = True
+                st = header.index("status")
+                i += 1
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                    if len(cells) > st and "resolved" in cells[st]:
+                        ids |= {m.group(1)
+                                for m in GRILL_RESOLVED_ID.finditer(cells[st])}
+                    i += 1
+                continue
+        i += 1
+    return canonical, ids
+
+
+def check_grill_reverse(project, card_dir, ws):
+    """(k) A2 — transcription reverse fidelity, canonical-table form only: every
+    grill-log `resolved → <ledger-id>` row has a decisions.md block (any state —
+    existence, not approval). Other table shapes skip (021 freeze panel: three
+    incompatible shapes in the wild; the format contract is deferred)."""
+    created = _card_created(card_dir, ws)
+    if not created or created < DISCUSSION_FIRST_CUTOFF:
+        return [], ["grill-reverse: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
+    logs = _grill_logs(card_dir)
+    if not logs:
+        return [], ["grill-reverse: no-grill-log"]
+    canonical, ids = False, set()
+    for f in logs:
+        c, s = _grill_resolved_ids(ws._read(f))
+        canonical |= c
+        ids |= s
+    if not canonical:
+        return [], ["grill-reverse: non-canonical-grill-log"]
+    blocks = {b["id"] for b in ws.parse_ledger(card_dir)[0]}
+    return ["resolved-no-home: " + i for i in sorted(ids - blocks)], []
+
+
+def check_panel_receipts(project, card_dir, ws):
+    """(l) A3 — receipt presence: a card that passed any gate and keeps a grill-log
+    must hold ≥1 receipt block; zero blocks = self-certified gate, the primary
+    failure. Structural anchor from RECEIPT_STRUCT_CUTOFF on; earlier cards judged
+    by the loose word anchor (their receipts predate the pinned form)."""
+    created = _card_created(card_dir, ws)
+    if not created or created < DISCUSSION_FIRST_CUTOFF:
+        return [], ["panel-receipts: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
+    if not any(True for _ in _gated_docs(card_dir, ws)):
+        return [], []
+    logs = _grill_logs(card_dir)
+    if not logs:
+        return [], ["panel-receipts: no-grill-log"]
+    anchor = RECEIPT_ANCHOR if created >= RECEIPT_STRUCT_CUTOFF else RECEIPT_LOOSE
+    if any(anchor.search(ws._read(f)) for f in logs):
+        return [], []
+    return ["no-receipts: gated card, grill-log without receipt block"], []
+
+
+def check_docgate_gateline(project, card_dir, ws):
+    """(m) A5 — doc-gate audit anchor: each gated doc carries a `（gate <hash>）`
+    Change-log line (017 S4); detail.md's container is its Change-notes section so
+    only the pattern is required there."""
+    if ws.card_mode(card_dir) != "doc-gate":
+        return [], []
+    findings = []
+    for name, path in _gated_docs(card_dir, ws):
+        text = ws._read(path)
+        if name != "detail.md" and not ws._section(text, r"Change log"):
+            findings.append("no-changelog-section: " + name)
+            continue
+        if not GATE_LINE.search(text):
+            findings.append("no-gate-line: " + name)
+    return findings, []
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -272,6 +401,10 @@ CARD_CHECKS = (
     ("part-consistency", lambda p, c, ws: (check_part_consistency(c, ws), [])),
     ("governance", lambda p, c, ws: (check_governance(c, ws), [])),
     ("ledger", lambda p, c, ws: (check_ledger(c, ws), [])),
+    ("transcription-marker", check_transcription_markers),      # (j) A1
+    ("grill-reverse", check_grill_reverse),                     # (k) A2
+    ("panel-receipts", check_panel_receipts),                   # (l) A3
+    ("docgate-gateline", check_docgate_gateline),               # (m) A5
 )
 
 PROJECT_CHECKS = ()

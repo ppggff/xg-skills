@@ -99,7 +99,7 @@ class SkipAndIsolation(unittest.TestCase):
         code, out = _run(self.root, "proj/001")
         self.assertEqual(code, 0)
         self.assertIn("skip: fake(no-carrier)", out)
-        self.assertIn("check: ok (1 skipped)", out)
+        self.assertRegex(out, r"check: ok \(\d+ skipped\)")
 
     def test_per_check_exception_isolated(self):
         boom = lambda p, c, ws: (_ for _ in ()).throw(RuntimeError("boom"))
@@ -114,6 +114,113 @@ class SkipAndIsolation(unittest.TestCase):
         card = os.path.join(self.root, "proj/001-a")
         self.assertEqual(wc.check_card_all("proj", card, ws._L1),
                          wc.check_card_all("proj", card, ws._L1))
+
+
+REQ_FM = "---\nstatus: %s\ngovernance: %s\ncreated: %s\n---\n"
+CANON_LOG = ("| id | question | recommended | chosen | why | depends-on | status |\n"
+             "|---|---|---|---|---|---|---|\n"
+             "| G1 | q | r | c | w | — | resolved → D1 |\n")
+THREE_COL_LOG = "| 轮 | 议题 | 结果 |\n|---|---|---|\n| 1 | x | resolved → D1 |\n"
+
+
+class GateAdjacent(unittest.TestCase):
+    """021 T3: A1 stray-marker / A2 grill-reverse / A3 panel-receipts / A5 gate line."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+
+    def _req(self, status="confirmed", gov="doc-gate", created="2026-08-17", body=""):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % (status, gov, created) + body)
+
+    # -- A1
+    def test_a1_marker_on_gated_doc_flags(self):
+        self._req(body="正文（落纸补充）残留\n")
+        f, s = wc.check_transcription_markers("proj", self.card, ws._L1)
+        self.assertTrue(any("stray-marker: requirement.md" in x for x in f))
+
+    def test_a1_backtick_mention_and_variants_clean(self):
+        self._req(body="讲规则：`（落纸补充）` 与（落纸补充标记）与「落纸补充」都不算\n")
+        self.assertEqual(wc.check_transcription_markers("proj", self.card, ws._L1), ([], []))
+
+    def test_a1_drafting_doc_not_checked(self):
+        self._req(status="drafting", body="（落纸补充）中途状态合法\n")
+        self.assertEqual(wc.check_transcription_markers("proj", self.card, ws._L1), ([], []))
+
+    # -- A2
+    def test_a2_pre_cutoff_skips(self):
+        self._req(created="2026-08-01")
+        f, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertTrue(s and "pre-" in s[0])
+
+    def test_a2_no_log_skips(self):
+        self._req()
+        _, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertIn("grill-reverse: no-grill-log", s)
+
+    def test_a2_non_canonical_shape_skips(self):
+        self._req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", THREE_COL_LOG)
+        _, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertIn("grill-reverse: non-canonical-grill-log", s)
+
+    def test_a2_resolved_row_needs_ledger_home(self):
+        self._req(gov="ledger")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", CANON_LOG)
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertIn("resolved-no-home: D1", f)
+        _write(self.tmp.name, "proj/001-a/decisions.md",
+               "### D1 [design] approved\n- 陈述: x\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
+    # -- A3
+    def test_a3_ungated_card_owes_nothing(self):
+        self._req(status="drafting")
+        self.assertEqual(wc.check_panel_receipts("proj", self.card, ws._L1), ([], []))
+
+    def test_a3_gated_no_log_skips(self):
+        self._req()
+        _, s = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertIn("panel-receipts: no-grill-log", s)
+
+    def test_a3_zero_receipt_block_flags(self):
+        self._req(created="2026-08-17")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", "| 轮 | 议题 | 结果 |\n")
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertTrue(any("no-receipts" in x for x in f))
+
+    def test_a3_structural_anchor_passes(self):
+        self._req(created="2026-08-17")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", "### Panel receipt — r1\n- ok\n")
+        self.assertEqual(wc.check_panel_receipts("proj", self.card, ws._L1), ([], []))
+
+    def test_a3_loose_era_word_anchor_passes(self):
+        self._req(created="2026-08-12")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", "…本轮 receipts 落于此…\n")
+        self.assertEqual(wc.check_panel_receipts("proj", self.card, ws._L1), ([], []))
+
+    # -- A5
+    def test_a5_gate_line_present_clean(self):
+        self._req(body="## Change log\n- 2026-08-17 — confirmed（gate `abc1234`）。\n")
+        self.assertEqual(wc.check_docgate_gateline("proj", self.card, ws._L1), ([], []))
+
+    def test_a5_missing_gate_line_flags(self):
+        self._req(body="## Change log\n- created.\n")
+        f, _ = wc.check_docgate_gateline("proj", self.card, ws._L1)
+        self.assertIn("no-gate-line: requirement.md", f)
+
+    def test_a5_missing_changelog_section_flags(self):
+        self._req(body="## Context\nx\n")
+        f, _ = wc.check_docgate_gateline("proj", self.card, ws._L1)
+        self.assertIn("no-changelog-section: requirement.md", f)
+
+    def test_a5_ledger_card_not_checked(self):
+        self._req(gov="ledger", body="## Context\nx\n")
+        self.assertEqual(wc.check_docgate_gateline("proj", self.card, ws._L1), ([], []))
 
 
 if __name__ == "__main__":
