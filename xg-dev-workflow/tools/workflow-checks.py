@@ -802,10 +802,13 @@ def check_board_monotonic(project, project_dir, ws):
         skip_note = "review skipped" in ptext or "pre-gate done" in ptext
         if not reviews and not skip_note:
             findings.append("board-done: %s done without close-out review/skip note" % nnn)
-        tstatus = _doc_status(os.path.join(card, "test.md"), ws)
-        if tstatus not in ("passing", "described"):
-            findings.append("board-done: %s test.md status '%s' not in (passing, described)"
-                            % (nnn, tstatus))
+        # existence-qualified (018 precedent: an XS drill card may carry no test.md at
+        # all — the review/skip-note constraint above owns close-out discipline)
+        if os.path.exists(os.path.join(card, "test.md")):
+            tstatus = _doc_status(os.path.join(card, "test.md"), ws)
+            if tstatus not in ("passing", "described"):
+                findings.append("board-done: %s test.md status '%s' not in (passing, described)"
+                                % (nnn, tstatus))
     return findings, []
 
 
