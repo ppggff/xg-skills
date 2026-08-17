@@ -167,6 +167,26 @@ def _referenced_ids(card_dir, ws):
     return refs
 
 
+def _dep_cycles(graph):
+    """Cycle paths in a {node: [dep, …]} graph (white/grey/black DFS); shared by the
+    ledger (c) check and the board (w) check."""
+    cycles, color = [], {}
+
+    def dfs(n, stack):
+        color[n] = 1
+        for d in graph.get(n, []):
+            if color.get(d) == 1:
+                cycles.append(stack + [d])
+            elif color.get(d) is None and d in graph:
+                dfs(d, stack + [d])
+        color[n] = 2
+
+    for n in graph:
+        if color.get(n) is None:
+            dfs(n, [n])
+    return cycles
+
+
 APPROVE_NOTE = re.compile(r"^-\s*approved:\s*\d{4}-\d{2}-\d{2}\s+gate\s+\S+", re.M)
 ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
                   "superseded": "superseded", "deprecated": "retired"}
@@ -239,20 +259,7 @@ def check_ledger(card_dir, ws):
             findings.append(f"status-mismatch: {os.path.basename(f)} {m.group(1)} vs active rows")
 
     graph = {i: (active[i]["deps"] if active[i] else []) for i in by_id}     # (c)
-    color = {}
-
-    def dfs(n, stack):
-        color[n] = 1
-        for d in graph.get(n, []):
-            if color.get(d) == 1:
-                findings.append("dep-cycle: " + " → ".join(stack + [d]))
-            elif color.get(d) is None and d in graph:
-                dfs(d, stack + [d])
-        color[n] = 2
-
-    for n in graph:
-        if color.get(n) is None:
-            dfs(n, [n])
+    findings += ["dep-cycle: " + " → ".join(p) for p in _dep_cycles(graph)]
 
     for b in blocks:                                                          # (d)
         if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
@@ -300,7 +307,7 @@ def check_transcription_markers(project, card_dir, ws):
     （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment)."""
     findings = []
     for name, path in _gated_docs(card_dir, ws):
-        n = re.sub(r"`[^`]*`", "", ws._read(path)).count(TRANSCRIPTION_MARKER)
+        n = _strip_code(ws._read(path)).count(TRANSCRIPTION_MARKER)
         if n:
             findings.append("stray-marker: %s %d×%s past gate"
                             % (name, n, TRANSCRIPTION_MARKER))
@@ -770,22 +777,8 @@ def check_board_monotonic(project, project_dir, ws):
     if not text or not new_format:
         return [], []
     rows = ws.board(project_dir)
-    findings = []
     graph = {nnn: _deps_tokens(row.get("deps", "")) for nnn, row in rows.items()}
-    color = {}
-
-    def dfs(n, stack):
-        color[n] = 1
-        for d in graph.get(n, []):
-            if color.get(d) == 1:
-                findings.append("board-dep-cycle: " + " → ".join(stack + [d]))
-            elif color.get(d) is None and d in graph:
-                dfs(d, stack + [d])
-        color[n] = 2
-
-    for n in graph:
-        if color.get(n) is None:
-            dfs(n, [n])
+    findings = ["board-dep-cycle: " + " → ".join(p) for p in _dep_cycles(graph)]
 
     dirs = {os.path.basename(d)[:3]: d
             for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
