@@ -647,6 +647,123 @@ def check_adr_hygiene(project, card_dir, ws):
     return findings, []
 
 
+# ---- (u)-(w) + B1 project half: project-scoped checks (021 T6) ----
+
+def _new_board_format(project_dir, ws):
+    """Discriminator (021 L2-4 显式化): the index header carries an 整体状态 column;
+    old-format boards are exempt from board-shape checks."""
+    text = ws._read(os.path.join(project_dir, "index.md"))
+    return text, any(ln.lstrip().startswith("|") and "整体状态" in ln
+                     for ln in text.splitlines())
+
+
+def check_project_links(project, project_dir, ws):
+    """(o) B1 project half — index.md/roadmap.md wikilinks + relative links."""
+    kb = _kb_root()
+    if not os.path.isdir(kb):
+        return [], ["links: no-kb-root"]
+    findings = []
+    for name in ("index.md", "roadmap.md"):
+        text = ws._read(os.path.join(project_dir, name))
+        if not text:
+            continue
+        stripped = _strip_code(text)
+        for t in WIKILINK.findall(stripped):
+            t = t.strip()
+            if not LINK_PLACEHOLDER.search(t) and not _kb_resolves(kb, t):
+                findings.append("broken-wikilink: %s [[%s]]" % (name, t))
+        for p in MDLINK.findall(stripped):
+            if LINK_PLACEHOLDER.search(p) or re.match(r"[a-z]+://|mailto:|~|/", p):
+                continue
+            if not os.path.exists(os.path.normpath(os.path.join(project_dir, p))):
+                findings.append("broken-link: %s %s" % (name, p))
+    return findings, []
+
+
+def check_board_rows(project, project_dir, ws):
+    """(u) B3 — card dir ↔ board row, both directions (the missing-row degradation
+    iter_cards already computes, promoted to findings). Old-format boards exempt."""
+    text, new_format = _new_board_format(project_dir, ws)
+    if not text:
+        return ["no-index: index.md missing"], []
+    if not new_format:
+        return [], []
+    rows = ws.board(project_dir)
+    dirs = {os.path.basename(d)[:3]: os.path.basename(d)
+            for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
+            if os.path.isdir(d)}
+    findings = ["board-missing-row: " + name
+                for nnn, name in dirs.items() if nnn not in rows]
+    findings += ["board-orphan-row: " + nnn
+                 for nnn in rows if nnn not in dirs]
+    return findings, []
+
+
+def check_root_strays(project, project_dir, ws):
+    """(v) B4 — the project root holds only the Layout set (whitelist mirror:
+    PROJECT_ROOT_FILES/DIRS in workflow-status.py); a stray gets flagged with the
+    Layout homes to pick from."""
+    findings = []
+    for entry in sorted(os.listdir(project_dir)):
+        if entry.startswith("."):
+            continue
+        path = os.path.join(project_dir, entry)
+        if os.path.isdir(path):
+            if entry in ws.PROJECT_ROOT_DIRS or re.match(r"\d{3}-", entry):
+                continue
+        elif entry in ws.PROJECT_ROOT_FILES:
+            continue
+        findings.append("root-stray: %s (homes: notes/ · investigations/ · legacy/)" % entry)
+    return findings, []
+
+
+def check_board_monotonic(project, project_dir, ws):
+    """(w) B5 — the machine-decidable board subset (021 D6): Deps acyclic ·
+    整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
+    · done ⇒ test.md status ∈ TEST_STATUS_CANON's passing set. Old-format exempt."""
+    text, new_format = _new_board_format(project_dir, ws)
+    if not text or not new_format:
+        return [], []
+    rows = ws.board(project_dir)
+    findings = []
+    graph = {nnn: re.findall(r"\d{3}", row.get("deps", "")) for nnn, row in rows.items()}
+    color = {}
+
+    def dfs(n, stack):
+        color[n] = 1
+        for d in graph.get(n, []):
+            if color.get(d) == 1:
+                findings.append("board-dep-cycle: " + " → ".join(stack + [d]))
+            elif color.get(d) is None and d in graph:
+                dfs(d, stack + [d])
+        color[n] = 2
+
+    for n in graph:
+        if color.get(n) is None:
+            dfs(n, [n])
+
+    dirs = {os.path.basename(d)[:3]: d
+            for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
+            if os.path.isdir(d)}
+    for nnn, row in sorted(rows.items()):
+        state = row.get("state", "")
+        if state and state != "?" and state not in ws.CANON_STATES:
+            findings.append("board-state: %s '%s' non-canonical" % (nnn, state))
+        if state != "done" or nnn not in dirs:
+            continue
+        card = dirs[nnn]
+        reviews = glob.glob(os.path.join(card, "notes", "review-*.md"))
+        ptext = ws._read(os.path.join(card, "progress.md"))
+        skip_note = "review skipped" in ptext or "pre-gate done" in ptext
+        if not reviews and not skip_note:
+            findings.append("board-done: %s done without close-out review/skip note" % nnn)
+        tstatus = _doc_status(os.path.join(card, "test.md"), ws)
+        if tstatus not in ("passing", "described"):
+            findings.append("board-done: %s test.md status '%s' not in (passing, described)"
+                            % (nnn, tstatus))
+    return findings, []
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -673,7 +790,12 @@ CARD_CHECKS = (
     ("adr-hygiene", check_adr_hygiene),                         # (t) C4
 )
 
-PROJECT_CHECKS = ()
+PROJECT_CHECKS = (
+    ("links", check_project_links),                             # (o) B1 project half
+    ("board-rows", check_board_rows),                           # (u) B3
+    ("root-strays", check_root_strays),                         # (v) B4
+    ("board-monotonic", check_board_monotonic),                 # (w) B5
+)
 
 
 def _run_entries(entries, args, ws):

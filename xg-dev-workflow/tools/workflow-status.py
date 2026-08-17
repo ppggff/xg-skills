@@ -150,7 +150,10 @@ def board(project_dir):
     except OSError:
         return rows
     for m in re.finditer(r"^\|\s*(\d{3})\s*\|([^|]*)\|([^|]*)\|([^|]*)\|", text, re.M):
-        rows[m.group(1)] = {"phase": m.group(2).strip(), "state": m.group(3).strip(),
+        # markup-tolerant state parse (021 G6, norm_part's rule): **paused** reads as
+        # paused everywhere downstream (canonical match, effective_next, viewer)
+        rows[m.group(1)] = {"phase": m.group(2).strip(),
+                            "state": re.sub(r"[*`]", "", m.group(3)).strip(),
                             "deps": m.group(4).strip()}
     return rows
 
@@ -230,6 +233,13 @@ PLACEHOLDERS = {"…", "...", "—", "-", "无", "TBD", "待定"}
 # The board's 整体状态 vocabulary (split-isolate.md B). "?" is the missing-row degradation,
 # not a state; anything else off-vocabulary gets flagged instead of passing through silently.
 CANON_STATES = {"backlog", "todo", "active", "blocked", "paused", "done", "dropped"}
+
+# Closed vocabularies whose template comments are grep-checked mirrors (021 G6 — the
+# closed list lives ONLY here; templates/index.md and templates/test.md restate them,
+# edited in the same batch as any change here):
+# Phase column: prefix-matched — a suffix annotation (`测试 (XS/S)`) is free text.
+PHASE_CANON = ("需求", "设计", "详设", "实现", "测试", "评审")
+TEST_STATUS_CANON = ("planned", "passing", "failing", "described")
 
 
 def effective_next(board_state, g, derived):
@@ -751,6 +761,12 @@ def card_mode(card_dir):
         return "legacy"
     return gov if gov in GOVERNANCE_VALUES else "invalid"
 
+
+# 021 G7/L2-2: SKILL.md「Layout」's project-root half, same single-mirror-home discipline
+# as CARD_CARRIERS below (a Layout change edits both tuples in one batch). Dotfiles are
+# OS artifacts, not workflow strays. Consumed by the (v) root-strays check.
+PROJECT_ROOT_FILES = ("index.md", "roadmap.md")
+PROJECT_ROOT_DIRS = ("investigations", "reviews", "notes", "legacy")
 
 # 020 D6: machine-readable mirror of SKILL.md「Layout」's card-dir listing, in Layout order.
 # The closed carrier-list mapping lives ONLY here — a Layout change edits this tuple in the

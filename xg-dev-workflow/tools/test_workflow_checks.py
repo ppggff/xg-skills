@@ -411,5 +411,85 @@ class CardScopedBC(unittest.TestCase):
         self.assertEqual([x for x in f if "0003-z" in x], [])
 
 
+NEW_BOARD_HEAD = "| Card | Phase | 整体状态 | Deps | Dir |\n|--|--|--|--|--|\n"
+
+
+class ProjectScoped(unittest.TestCase):
+    """021 T6: B3 board-rows / B4 root-strays / B5 board-monotonic / B1 project half
+    + G6 markup-tolerant state parse."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.proj = os.path.join(self.tmp.name, "proj")
+
+    def _board(self, rows):
+        _write(self.tmp.name, "proj/index.md", NEW_BOARD_HEAD + rows)
+
+    def test_state_markup_stripped_at_parse(self):
+        self._board("| 001 | 实现 | **paused** | — | [x](./001-a/) |\n")
+        self.assertEqual(ws.board(self.proj)["001"]["state"], "paused")
+
+    def test_b3_both_directions(self):
+        self._board("| 001 | 实现 | active | — | [x](./001-a/) |\n"
+                    "| 009 | 需求 | todo | — | ghost |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "---\nstatus: drafting\n---\n")
+        _write(self.tmp.name, "proj/002-b/requirement.md", "---\nstatus: drafting\n---\n")
+        f, _ = wc.check_board_rows("proj", self.proj, ws._L1)
+        self.assertIn("board-missing-row: 002-b", f)
+        self.assertIn("board-orphan-row: 009", f)
+
+    def test_b3_old_format_exempt_and_missing_index_flags(self):
+        _write(self.tmp.name, "proj/index.md", "| 001 | Title | Phase | Status |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        self.assertEqual(wc.check_board_rows("proj", self.proj, ws._L1), ([], []))
+        os.remove(os.path.join(self.proj, "index.md"))
+        f, _ = wc.check_board_rows("proj", self.proj, ws._L1)
+        self.assertEqual(f, ["no-index: index.md missing"])
+
+    def test_b4_root_whitelist(self):
+        self._board("")
+        _write(self.tmp.name, "proj/roadmap.md", "x")
+        _write(self.tmp.name, "proj/notes/a.md", "x")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/stray.md", "x")
+        os.makedirs(os.path.join(self.proj, "junkdir"))
+        f, _ = wc.check_root_strays("proj", self.proj, ws._L1)
+        self.assertTrue(any(x.startswith("root-stray: junkdir") for x in f))
+        self.assertTrue(any(x.startswith("root-stray: stray.md") for x in f))
+        self.assertEqual(len(f), 2)
+
+    def test_b5_cycle_state_and_done_constraints(self):
+        self._board("| 001 | 测试 | done | 002 | [x](./001-a/) |\n"
+                    "| 002 | 实现 | weird | 001 | [y](./002-b/) |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/001-a/test.md", "---\nstatus: planned\n---\n")
+        _write(self.tmp.name, "proj/002-b/requirement.md", "x")
+        f, _ = wc.check_board_monotonic("proj", self.proj, ws._L1)
+        self.assertTrue(any("board-dep-cycle" in x for x in f))
+        self.assertTrue(any("board-state: 002 'weird'" in x for x in f))
+        self.assertTrue(any("done without close-out review" in x for x in f))
+        self.assertTrue(any("test.md status 'planned'" in x for x in f))
+
+    def test_b5_done_with_skip_note_and_passing_clean(self):
+        self._board("| 001 | 测试 | done | — | [x](./001-a/) |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/001-a/progress.md", "XS/S — review skipped\n")
+        _write(self.tmp.name, "proj/001-a/test.md", "---\nstatus: passing\n---\n")
+        self.assertEqual(wc.check_board_monotonic("proj", self.proj, ws._L1), ([], []))
+
+    def test_b1_project_half_scans_root_docs(self):
+        kb = os.path.join(self.tmp.name, "kb")
+        os.makedirs(kb)
+        orig = wc._kb_root
+        wc._kb_root = lambda: kb
+        self.addCleanup(lambda: setattr(wc, "_kb_root", orig))
+        self._board("")
+        _write(self.tmp.name, "proj/roadmap.md", "[gone](./notes/none.md) [[wiki/proj/x]]\n")
+        f, _ = wc.check_project_links("proj", self.proj, ws._L1)
+        self.assertIn("broken-link: roadmap.md ./notes/none.md", f)
+        self.assertIn("broken-wikilink: roadmap.md [[wiki/proj/x]]", f)
+
+
 if __name__ == "__main__":
     unittest.main()
