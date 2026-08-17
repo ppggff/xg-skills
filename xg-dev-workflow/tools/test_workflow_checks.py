@@ -223,5 +223,66 @@ class GateAdjacent(unittest.TestCase):
         self.assertEqual(wc.check_docgate_gateline("proj", self.card, ws._L1), ([], []))
 
 
+SUP_ADR = ("---\nStatus: accepted\n---\n# ADR-0002 x\n\n## Supersedes (optional)\n\n"
+           "ADR-0001 — replaces it.\n\n## 被取代表述 (required when superseding)\n\n"
+           "- `旧词A` → `新词`\n")
+
+
+class SupersedeResidue(unittest.TestCase):
+    """021 T4: A4′ machine anchors + resident conditional sweep + --from-card."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-08-17"))
+
+    def test_no_anchor_predicate_off(self):
+        self.assertEqual(wc.check_supersede_residue("proj", self.card, ws._L1), ([], []))
+
+    def test_adr_terms_flag_body_residue(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
+        _write(self.tmp.name, "proj/001-a/design.md", "---\nstatus: frozen\n---\n正文还在说旧词A。\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertTrue(any("superseded-phrase: design.md" in x for x in f))
+
+    def test_history_sections_masked(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: frozen\n---\n## Change log\n- 旧词A 已被取代（历史）。\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertEqual([x for x in f if "superseded-phrase" in x], [])
+
+    def test_superseding_adr_without_section_flags(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md",
+               "---\nStatus: accepted\n---\n## Supersedes (optional)\n\nADR-0001 — y.\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertIn("adr-retired-missing: adr/0002-x.md", f)
+
+    def test_malformed_list_line_flags(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md",
+               SUP_ADR.replace("- `旧词A` → `新词`", "- 旧词A 没有反引号"))
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("adr-retired-format:") for x in f))
+
+    def test_changelog_sublist_anchor(self):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-08-17") +
+               "## Change log\n- 2026-08-17 — M2 变更，被取代表述：\n  - `旧词B` → `新词`\n")
+        _write(self.tmp.name, "proj/001-a/design.md", "---\nstatus: frozen\n---\n旧词B 残留。\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertTrue(any("[旧词B]" in x for x in f))
+
+    def test_from_card_parity_with_manual_terms(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
+        _write(self.tmp.name, "proj/001-a/design.md", "---\n---\n旧词A here.\n")
+        csp = wc._csp()
+        terms, findings = csp.terms_from_card(self.card)
+        self.assertEqual((terms, findings), (["旧词A"], []))
+        self.assertEqual(csp.scan(self.card, terms),
+                         csp.scan(self.card, ["旧词A"]))   # E3 对拍：--from-card ≡ 手工词表
+
+
 if __name__ == "__main__":
     unittest.main()

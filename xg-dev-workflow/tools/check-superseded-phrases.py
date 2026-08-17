@@ -4,14 +4,105 @@
 Usage:
   check-superseded-phrases.py <card-dir> --terms "旧词A,旧词B"
   check-superseded-phrases.py <card-dir> --terms-file retired.txt [--exclude notes]
+  check-superseded-phrases.py <card-dir> --from-card    # terms from the card's machine
+                                                        # anchors (ADR 被取代表述 list lines
+                                                        # + Change-log 被取代表述 sub-lists)
 
 Scans *.md under the card dir. Prints file:line: [term] excerpt. Exit 1 if hits, 0 if clean.
 Adjudication is the caller's job: change-log/grill/notes history may legitimately keep old
 phrasing (annotate as 历史表述); every other hit is rewritten or its retention justified.
 """
 import argparse
+import glob
+import os
 import pathlib
+import re
 import sys
+
+TERM = re.compile(r'`([^`]+)`')
+PHASE_DOCS = ('requirement.md', 'design.md', 'detail.md')
+
+
+def _section(text, title_pat, level=2):
+    """Body of the first level-2 heading matching title_pat, else ''."""
+    for m in re.finditer(r'^%s\s+(.+)$' % ('#' * level), text, re.M):
+        if re.search(title_pat, m.group(1)):
+            start = m.end()
+            nxt = re.search(r'^#{2,%d}\s' % level, text[start:], re.M)
+            return text[start:start + nxt.start()] if nxt else text[start:]
+    return ''
+
+
+def terms_from_card(card_dir):
+    """(terms, findings) from the card's machine anchors (021 G4).
+
+    ADR「被取代表述」sections: a list line's first backtick span is the term; a list
+    line without one — or a non-list line that carries a backtick span — is an
+    `adr-retired-format` finding (a malformed term is flagged, never guessed at);
+    bare prose lines are annotation. A superseding ADR (its Supersedes section names
+    an ADR) with no 被取代表述 section is `adr-retired-missing`. Phase-doc Change-log
+    entries contribute via an indented sub-list under a 被取代表述-titled list line.
+    """
+    terms, findings = [], []
+    for f in sorted(glob.glob(os.path.join(card_dir, 'adr', '*.md'))):
+        base = 'adr/' + os.path.basename(f)
+        text = pathlib.Path(f).read_text(errors='replace')
+        sect = _section(text, r'被取代表述')
+        if not sect.strip():
+            if re.search(r'ADR-\d{4}', _section(text, r'Supersedes')):
+                findings.append('adr-retired-missing: ' + base)
+            continue
+        for line in sect.splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            if s.startswith('-'):
+                m = TERM.search(s)
+                if m:
+                    terms.append(m.group(1))
+                else:
+                    findings.append('adr-retired-format: %s %r' % (base, s[:40]))
+            elif TERM.search(s):
+                findings.append('adr-retired-format: %s %r' % (base, s[:40]))
+    for name in PHASE_DOCS:
+        p = os.path.join(card_dir, name)
+        if not os.path.exists(p):
+            continue
+        clog = _section(pathlib.Path(p).read_text(errors='replace'),
+                        r'Change log|Change notes')
+        in_anchor, anchor_indent = False, 0
+        for line in clog.splitlines():
+            if not line.strip():
+                continue
+            indent = len(line) - len(line.lstrip())
+            s = line.strip()
+            if s.startswith('-') and '被取代表述' in s:
+                in_anchor, anchor_indent = True, indent
+                continue
+            if in_anchor:
+                if s.startswith('-') and indent > anchor_indent:
+                    m = TERM.search(s)
+                    if m:
+                        terms.append(m.group(1))
+                    else:
+                        findings.append('adr-retired-format: %s %r' % (name, s[:40]))
+                else:
+                    in_anchor = False
+    return terms, findings
+
+
+def scan(root, terms, exclude=()):
+    """[(relpath, lineno, term, stripped line)] for every term occurrence."""
+    hits = []
+    for md in sorted(pathlib.Path(root).rglob('*.md')):
+        rel = md.relative_to(root)
+        if any(part in exclude for part in rel.parts[:-1]):
+            continue
+        for i, line in enumerate(md.read_text(errors='replace').splitlines(), 1):
+            for t in terms:
+                if t in line:
+                    hits.append((str(rel), i, t, line.strip()))
+    return hits
 
 
 def main():
@@ -19,9 +110,15 @@ def main():
     ap.add_argument('card', help='requirement/card directory (or any docs dir)')
     ap.add_argument('--terms', default='', help='comma-separated retired phrasings')
     ap.add_argument('--terms-file', help='file with one phrasing per line (# comments ok)')
+    ap.add_argument('--from-card', action='store_true',
+                    help='read terms from the card\'s machine anchors (021 G4)')
     ap.add_argument('--exclude', action='append', default=[],
                     help='subdir name to skip (repeatable, e.g. --exclude notes)')
     args = ap.parse_args()
+
+    root = pathlib.Path(args.card)
+    if not root.is_dir():
+        sys.exit(f'not a directory: {root}')
 
     terms = [t.strip() for t in args.terms.split(',') if t.strip()]
     if args.terms_file:
@@ -29,28 +126,25 @@ def main():
             line = line.strip()
             if line and not line.startswith('#'):
                 terms.append(line)
+    anchor_findings = []
+    if args.from_card:
+        got, anchor_findings = terms_from_card(str(root))
+        terms += got
+        for f in anchor_findings:
+            print('⚠ ' + f)
     if not terms:
-        sys.exit('no terms given (--terms / --terms-file)')
+        if anchor_findings:
+            sys.exit(1)
+        sys.exit('no terms given (--terms / --terms-file / --from-card)')
 
-    root = pathlib.Path(args.card)
-    if not root.is_dir():
-        sys.exit(f'not a directory: {root}')
-
-    hits = 0
-    for md in sorted(root.rglob('*.md')):
-        rel = md.relative_to(root)
-        if any(part in args.exclude for part in rel.parts[:-1]):
-            continue
-        for i, line in enumerate(md.read_text(errors='replace').splitlines(), 1):
-            for t in terms:
-                if t in line:
-                    print(f'{rel}:{i}: [{t}] {line.strip()[:110]}')
-                    hits += 1
+    hits = scan(root, terms, exclude=args.exclude)
+    for rel, i, t, line in hits:
+        print(f'{rel}:{i}: [{t}] {line[:110]}')
     if hits:
-        print(f'-- {hits} hit(s): rewrite / annotate-as-历史表述 / justify each --')
+        print(f'-- {len(hits)} hit(s): rewrite / annotate-as-历史表述 / justify each --')
     else:
         print('-- clean --')
-    sys.exit(1 if hits else 0)
+    sys.exit(1 if hits or anchor_findings else 0)
 
 
 if __name__ == '__main__':

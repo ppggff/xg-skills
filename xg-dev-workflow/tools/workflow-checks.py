@@ -388,6 +388,59 @@ def check_docgate_gateline(project, card_dir, ws):
     return findings, []
 
 
+# ---- (n): resident supersede-residue sweep (021 T4, A4′) ----
+_CSP = None
+
+
+def _csp():
+    """Lazy-load check-superseded-phrases.py (same dir) — the sweep tool owns term
+    extraction (terms_from_card) and scanning; this check is its resident face."""
+    global _CSP
+    if _CSP is None:
+        import importlib.util
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "check-superseded-phrases.py")
+        spec = importlib.util.spec_from_file_location("check_superseded_phrases", path)
+        _CSP = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_CSP)
+    return _CSP
+
+
+SWEEP_DOCS = ("requirement.md", "design.md", "detail.md", "plan.md",
+              "test.md", "progress.md")
+
+
+def _mask_history(text, ws):
+    """Blank the Change log / Change notes bodies preserving line numbers —
+    history quotes of old phrasing are exempt (omission-check的 supersede 项)."""
+    for pat in (r"Change log", r"Change notes"):
+        sect = ws._section(text, pat)
+        if sect:
+            text = text.replace(sect, "\n" * sect.count("\n"))
+    return text
+
+
+def check_supersede_residue(project, card_dir, ws):
+    """(n) A4′ — resident conditional sweep: with machine-readable retired-phrasing
+    anchors present, scan the phase docs for surviving old phrasing. History
+    containers are masked; notes/, adr/ and ledger/facts files stay out of scope —
+    the M2-time full sweep remains `check-superseded-phrases.py`. No anchors →
+    predicate off; a superseding ADR missing its 被取代表述 section surfaces here
+    as the extractor's finding."""
+    terms, findings = _csp().terms_from_card(card_dir)
+    if not terms:
+        return findings, []
+    for name in SWEEP_DOCS:
+        text = ws._read(os.path.join(card_dir, name))
+        if not text:
+            continue
+        for i, line in enumerate(_mask_history(text, ws).splitlines(), 1):
+            for t in terms:
+                if t in line:
+                    findings.append("superseded-phrase: %s:%d [%s]" % (name, i, t))
+    return findings, []
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -405,6 +458,7 @@ CARD_CHECKS = (
     ("grill-reverse", check_grill_reverse),                     # (k) A2
     ("panel-receipts", check_panel_receipts),                   # (l) A3
     ("docgate-gateline", check_docgate_gateline),               # (m) A5
+    ("supersede-residue", check_supersede_residue),             # (n) A4′
 )
 
 PROJECT_CHECKS = ()
