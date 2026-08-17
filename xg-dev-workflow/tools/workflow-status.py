@@ -678,9 +678,7 @@ LEDGER_HEAD = re.compile(
     r"^###\s+(R\d+|V\d+|S\d+|D\d+|ADR-\d{4}(?:\s+D\d+)?)\s+"
     r"\[(requirement|design|detail)\]\s+"
     r"(proposed|approved|superseded|retired)\s*$", re.M)
-APPROVE_NOTE = re.compile(r"^-\s*approved:\s*\d{4}-\d{2}-\d{2}\s+gate\s+\S+", re.M)
 ACTIVE_STATES = ("proposed", "approved")
-LEDGER_ID = re.compile(r"\b(ADR-\d{4}\s+D\d+|ADR-\d{4}|R\d+|V\d+|S\d+|D\d+)\b")
 
 
 def parse_ledger(card_dir):
@@ -722,11 +720,6 @@ def ledger_status(blocks):
     return out
 
 
-def _id_level(i):
-    return ("requirement" if i.startswith("R") or i.startswith("V") else
-            "detail" if i.startswith("S") else "design")
-
-
 def card_decisions(card_dir):
     """Active ledger rows for display: [{id, level, state, text(陈述)}]. A dup-active id
     collapses to ONE `conflict` row — the display never picks a winner (ADR-0001 D3
@@ -744,132 +737,10 @@ def card_decisions(card_dir):
             for i, rs in by_id.items()]
 
 
-def _id_cells(text, title_pat, cell_picks, skip_retired=False):
-    """Ledger ids from a table section, taken ONLY from the id-bearing cells (a prose
-    mention in any other column is never a reference). skip_retired drops
-    retirement-accounting rows (RETIRE_ID on the id cell / RETIRE_MARK on the next)."""
-    refs = set()
-    for line in _section(text, title_pat).splitlines():
-        if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if skip_retired and cells and (RETIRE_ID.search(cells[0]) or
-                (len(cells) > 1 and RETIRE_MARK.match(cells[1].replace("**", "")))):
-            continue
-        for pick in cell_picks:
-            if -len(cells) <= pick < len(cells):
-                refs |= {m.group(1)
-                         for m in LEDGER_ID.finditer(_strip_xcard(cells[pick]))}
-    return refs
-
-
-def _referenced_ids(card_dir):
-    """Designated-field references only: requirement 需求条目 id cells, design How-it-meets
-    id cells + Parts-table R cells, detail 可追溯 详设项+R-id cells, plan Implements:,
-    ledger depends-on lines. Retirement-accounting rows are skipped (_retired_req_ids /
-    _id_cells skip_retired)."""
-    refs = set(trace_requirement(card_dir)) - _retired_req_ids(card_dir)
-    refs |= _id_cells(_read(os.path.join(card_dir, "design.md")),
-                      r"How it meets|如何满足", (0,), skip_retired=True)
-    refs |= set(trace_parts(card_dir)[1])
-    refs |= _id_cells(_read(os.path.join(card_dir, "detail.md")), r"可追溯", (0, -1),
-                      skip_retired=True)
-    for t in trace_plan(card_dir).values():
-        refs |= set(t["rids"])
-    for b in parse_ledger(card_dir)[0]:
-        refs |= set(b["deps"])
-    return refs
-
-
-ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
-                  "superseded": "superseded", "deprecated": "retired"}
-
-# (f) design.md required-section existence — the scripted slice of M3's Design-completeness.
-# Only the unconditional template sections; conditional ones (验证策略 is M+-only, 存储足迹 is
-# storage-only, diagrams allow an ASCII fallback) stay in the M3 judgment subset.
-DESIGN_SECTIONS_CUTOFF = "2026-07-31"   # grandfather: earlier designs were written pre-rule
-DESIGN_REQUIRED_SECTIONS = (
-    ("思路", r"思路"),
-    ("速览", r"速览"),
-    ("How it meets the requirement", r"How it meets|如何满足"),
-    ("影响面", r"影响面|impact surface"),
-)
-
-
-def check_design_sections(card_dir):
-    """Missing-section findings for design.md; [] when absent or grandfathered."""
-    path = os.path.join(card_dir, "design.md")
-    if not os.path.exists(path):
-        return []
-    created = str(frontmatter(path).get("created", ""))
-    if not created or created < DESIGN_SECTIONS_CUTOFF:
-        return []
-    heads = " | ".join(m.group(1) for m in
-                       re.finditer(r"^##+\s+(.+)$", _read(path), re.M))
-    return ["missing-section: design.md " + name
-            for name, pat in DESIGN_REQUIRED_SECTIONS
-            if not re.search(pat, heads, re.I)]
-
-
-FACT_HEAD = re.compile(r"^###\s+(F\d+)\s+\[([^\]]+)\]\s*$", re.M)
-# Scoped to the 来源 field: only how THIS fact was obtained can contradict its marker.
-FACT_SOURCE = re.compile(r"^-\s*(?:来源|source)\s*[:：](.*?)(?=^-\s|\Z)", re.M | re.S)
-# Self-attributed inference — flags regardless of any citation alongside it.
-FACT_SELF_INFER = re.compile(r"由.{0,40}?推断|推断而来|据此推断|仍未实测|未实测|未做实测|untested")
-# Weaker hedges: only a smell when the 来源 offers no positive evidence token.
-FACT_HEDGE = re.compile(r"推断|未验证|未经验证|猜测|inferred|assumed")
-FACT_POSITIVE = re.compile(r"实测|实读|已核|复核|verified|measured|`[^`]+`|\[\[[^\]]+\]\]")
-
-
-def check_fact_markers(card_dir):
-    """(g) facts.md marker↔来源 integrity: a VERIFIED block whose own 来源 says the fact was
-    inferred rather than checked — the mislabel that lets a citer trust an unverified premise.
-
-    Scoped to 来源 and tolerant of the common correcting idiom (a VERIFIED block that says
-    it supersedes an earlier 推断): a weak hedge is flagged only when 来源 carries no positive
-    evidence token; self-attributed inference ("由 … 推断", "仍未实测") always flags.
-    Superseded/retired blocks are exempt — their body documents the disproof.
-    """
-    text = _read(os.path.join(card_dir, "facts.md"))
-    if not text:
-        return []
-    findings, heads = [], list(FACT_HEAD.finditer(text))
-    for i, m in enumerate(heads):
-        marker = m.group(2)
-        if "VERIFIED" not in marker.upper() or re.search(r"superseded|retired", marker, re.I):
-            continue
-        body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
-        src = FACT_SOURCE.search(body)
-        if not src:
-            continue
-        src = src.group(1)
-        hit = FACT_SELF_INFER.search(src)
-        if not hit and not FACT_POSITIVE.search(src):
-            hit = FACT_HEDGE.search(src)
-        if hit:
-            findings.append("fact-marker: %s marked [%s] but 来源 says '%s'"
-                            % (m.group(1), marker, hit.group(0).strip()))
-    return findings
-
-
-def check_part_consistency(card_dir):
-    """(h) part consistency: with a new-format Parts table (R column present), every
-    non-empty plan `Part:` value must name a canonical part; legacy tables (no R
-    column) and un-split cards skip — 006-style plan-only Part grouping stays legal."""
-    parts, _ = trace_parts(card_dir)
-    if not parts:
-        return []
-    return ["part-mismatch: T%s Part '%s' not in design Parts (%s)"
-            % (tid, t["part"], ", ".join(parts))
-            for tid, t in sorted(trace_plan(card_dir).items(), key=lambda kv: int(kv[0]))
-            if t["part"] and t["part"] not in parts]
-
-
 # (i) governance mode — two-level cascade: frontmatter field first; no field → the
 # decisions.md-existence axis, i.e. "legacy", pre-existing behavior untouched. The field
 # lives only in requirement.md frontmatter; invalid values behave as legacy downstream
-# and are flagged by (i1).
-GOVERNANCE_CUTOFF = "2026-08-10"     # cards created on/after must declare the field
+# and are flagged by check_governance (workflow-checks.py).
 GOVERNANCE_VALUES = ("ledger", "doc-gate")
 
 
@@ -995,108 +866,54 @@ def card_carriers(card_dir):
     return entries
 
 
+# ---- deterministic checks: bodies live in workflow-checks.py (L2 of the split);
+# these thin delegators keep the module surface (tests, run_check, monkeypatching)
+# stable and inject the live L1 view so L2 never importlib-loads a second instance ----
+_CHECKS = None
+
+
+class _L1View:
+    """Live attribute view over this module's globals — works whether or not the
+    module was registered in sys.modules (tests/viewer load it via importlib)."""
+    def __getattr__(self, name):
+        return globals()[name]
+
+
+_L1 = _L1View()
+
+
+def _checks():
+    """Lazy-load workflow-checks.py (same dir) — the check domain."""
+    global _CHECKS
+    if _CHECKS is None:
+        import importlib.util
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "workflow-checks.py")
+        spec = importlib.util.spec_from_file_location("workflow_checks", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _CHECKS = mod
+    return _CHECKS
+
+
+def check_design_sections(card_dir):
+    return _checks().check_design_sections(card_dir, _L1)
+
+
+def check_fact_markers(card_dir):
+    return _checks().check_fact_markers(card_dir, _L1)
+
+
+def check_part_consistency(card_dir):
+    return _checks().check_part_consistency(card_dir, _L1)
+
+
 def check_governance(card_dir):
-    """The four unconditional governance checks (i1)–(i4); report-only."""
-    mode = card_mode(card_dir)
-    fm = frontmatter(os.path.join(card_dir, "requirement.md"))
-    has_ledger = os.path.exists(os.path.join(card_dir, "decisions.md"))
-    findings = []
-    if mode == "invalid":
-        findings.append("bad-governance-value: %r" % fm.get("governance"))
-    created = str(fm.get("created", ""))
-    # bare string compare needs the canonical zero-padded form; a malformed date skips (i2)
-    if (mode == "legacy" and re.match(r"\d{4}-\d{2}-\d{2}", created)
-            and created >= GOVERNANCE_CUTOFF):
-        findings.append("missing-governance-field")
-    # real cards annotate status inline ("confirmed # 2026-07-11 human confirm") — strip it
-    status = fm.get("status", "").split("#")[0].strip()
-    if mode == "ledger" and status == "confirmed" and not has_ledger:
-        findings.append("ledger-mode-no-ledger")
-    if mode == "doc-gate" and has_ledger:
-        findings.append("doc-gate-has-ledger")
-    return findings
+    return _checks().check_governance(card_dir, _L1)
 
 
 def check_card(project, card_dir):
-    """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g)
-    + part consistency (h) + governance mode (i); semantic contradiction stays M3
-    judgment. No decisions.md → ledger checks skipped (old-card semantics, never
-    flagged); (f)/(g)/(h)/(i) run regardless of the ledger."""
-    section_findings = (check_design_sections(card_dir) + check_fact_markers(card_dir)
-                        + check_part_consistency(card_dir) + check_governance(card_dir))
-    if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        return section_findings
-    blocks, findings = parse_ledger(card_dir)
-    findings = section_findings + findings
-    by_id = {}
-    for b in blocks:
-        by_id.setdefault(b["id"], []).append(b)
-    active = {}
-    for i, bs in by_id.items():
-        act = [b for b in bs if b["state"] in ACTIVE_STATES]
-        if len(act) > 1:
-            findings.append("dup-active: " + i)                              # (e)
-        active[i] = act[-1] if act else None
-    levels_present = {b["level"] for b in blocks}
-
-    for ref in sorted(_referenced_ids(card_dir)):                            # (a)
-        if _id_level(ref) not in levels_present:
-            continue  # level not ledger-managed yet (degradation axis 2)
-        if ref not in by_id:
-            findings.append("dangling-id: " + ref)
-        elif active[ref] is None:
-            findings.append("superseded-ref: " + ref)
-
-    def all_approved(level):
-        act = [b for b in blocks if b["level"] == level and b["state"] in ACTIVE_STATES]
-        return bool(act) and all(b["state"] == "approved" for b in act)
-
-    for level, doc, done_words in (("requirement", "requirement.md", ("confirmed",)),
-                                   # "approved" kept for pre-011 cards; template enum is drafting|frozen|superseded
-                                   ("design", "design.md", ("frozen", "approved")),
-                                   ("detail", "detail.md", ("baseline",))):    # (b)
-        path = os.path.join(card_dir, doc)
-        if level not in levels_present or not os.path.exists(path):
-            continue
-        status = frontmatter(path).get("status", "")
-        if (status in done_words) != all_approved(level):
-            findings.append(f"status-mismatch: {doc} '{status}' vs ledger {level}")
-
-    for f in sorted(glob.glob(os.path.join(card_dir, "adr", "*.md"))):       # (b) ADR 行
-        m = re.search(r"^Status:\s*(\w+)", _read(f), re.M)
-        adr_id = "ADR-" + os.path.basename(f)[:4]
-        act = [b for b in blocks if (b["id"] == adr_id or b["id"].startswith(adr_id + " "))
-               and b["state"] in ACTIVE_STATES]
-        if not m or not act:
-            continue
-        word = ADR_STATUS_MAP.get(m.group(1).lower())
-        if word == "approved" and any(b["state"] == "proposed" for b in act):
-            findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
-        elif word == "proposed" and all(b["state"] == "approved" for b in act):
-            findings.append(f"status-mismatch: {os.path.basename(f)} proposed vs approved rows")
-        elif word in ("superseded", "retired"):   # file claims dead, rows still active
-            findings.append(f"status-mismatch: {os.path.basename(f)} {m.group(1)} vs active rows")
-
-    graph = {i: (active[i]["deps"] if active[i] else []) for i in by_id}     # (c)
-    color = {}
-
-    def dfs(n, stack):
-        color[n] = 1
-        for d in graph.get(n, []):
-            if color.get(d) == 1:
-                findings.append("dep-cycle: " + " → ".join(stack + [d]))
-            elif color.get(d) is None and d in graph:
-                dfs(d, stack + [d])
-        color[n] = 2
-
-    for n in graph:
-        if color.get(n) is None:
-            dfs(n, [n])
-
-    for b in blocks:                                                          # (d)
-        if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
-            findings.append("bad-approve-note: " + b["id"])
-    return findings
+    return _checks().check_card(project, card_dir, _L1)
 
 
 def run_check(root, arg):

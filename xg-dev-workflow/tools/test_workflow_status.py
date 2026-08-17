@@ -17,6 +17,7 @@ TOOLS = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("workflow_status", str(TOOLS / "workflow-status.py"))
 ws = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ws)
+wc = ws._checks()   # the check domain (workflow-checks.py); ws._L1 is its injected L1 view
 
 
 class CardInMessage(unittest.TestCase):
@@ -858,7 +859,7 @@ class PartConsistency(unittest.TestCase):
     def test_parts_R_column_feeds_referenced_ids(self):
         design = NEW_PARTS_DESIGN.replace("R1, R3", "R1, R99")
         card = self._card(design, "### T1: one\n- **Part:** 观测\n  - [x] ok\n")
-        self.assertIn("R99", ws._referenced_ids(card))
+        self.assertIn("R99", wc._referenced_ids(card, ws._L1))
 
 
 class GovernanceMode(unittest.TestCase):
@@ -911,7 +912,7 @@ class GovernanceMode(unittest.TestCase):
         self.assertNotIn("missing-governance-field", ws.check_card("proj", card))
 
     def test_i2_cutoff_boundary(self):
-        on = self.card("---\ncreated: %s\n---" % ws.GOVERNANCE_CUTOFF)
+        on = self.card("---\ncreated: %s\n---" % wc.GOVERNANCE_CUTOFF)
         before = self.card("---\ncreated: 2026-08-09\n---")
         self.assertIn("missing-governance-field", ws.check_card("proj", on))
         self.assertNotIn("missing-governance-field", ws.check_card("proj", before))
