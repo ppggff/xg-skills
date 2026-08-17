@@ -8,20 +8,22 @@ requirement dir.
 
 Split the checklist by nature (SKILL.md「Subagent model assignment」):
 
-- **Deterministic subset → script, zero tokens**: link/wikilink resolution, frontmatter
-  status/updated presence, index-row existence, 项目根散件, board monotonic constraints,
-  R-id trace *existence*, `[F<n>]` citations resolving to an active block in the card's
-  `facts.md` (doc-local 事实清单 for standalone docs; not yet scripted — runs with the
-  judgment subset until a checker exists). **The ledger checks ship as `workflow-status.py --check
-  <project>/<card>`** (id-reference integrity · derived-status field mappings (SKILL.md「Ledger」) · depends-on
-  acyclicity · approve-note format · single-active-block · **design.md unconditional-section
-  existence** (思路/速览/How-it-meets/影响面; designs created before 2026-07-31 grandfathered;
-  conditional sections stay in the judgment subset) · the **(i) governance checks**
-  (`bad-governance-value` / `missing-governance-field` post-cutoff / `ledger-mode-no-ledger` /
-  `doc-gate-has-ledger` — unconditional, ledger or not); exit 1 = findings) — run it on any
-  card after a doc edit (the section check needs no ledger); semantic contradiction with
-  approved decisions stays in the judgment subset. The remaining items still lack a checker and run with the judgment subset
-  (roadmap item, not a prerequisite).
+- **Deterministic subset → script, zero tokens — `workflow-status.py --check` covers it
+  end to end (021)**: card scope `--check <project>/<card>` (run after any doc edit);
+  project scope `--check <project>` (project-level checks + every card — the full sweep).
+  Checks (a)–(w): ledger (a)–(e) (id-reference integrity · derived-status mappings
+  (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
+  design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
+  integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
+  gate (j) · grill-log resolved→ledger reverse existence (k, canonical-table form) ·
+  panel-receipt presence (l, structural anchor) · doc-gate `（gate <hash>）` line (m) ·
+  retired-phrasing resident sweep (n) · link/wikilink resolution incl. KB aliases (o) ·
+  frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
+  citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
+  ways (u) · project-root strays (v) · board monotonic machine subset (w). Exit 1 =
+  findings; carrier-missing paths print `skip(<原因>)` and never gate — **skip ≠ pass**,
+  an unexpected skip is worth a look. Semantic contradiction with approved decisions
+  stays in the judgment subset.
 - **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
   reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this
   checklist, take back only the violation list; the orchestrator fixes what's flagged, which
@@ -40,22 +42,30 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 ## Checklist
 - [ ] **Links resolve** — every `[[wiki/<project>/<slug>]]` resolves (KB raw/concept); every
       relative link (`./design.md`, `./adr/NNNN-*.md`) points to an existing file.
+      (Scripted — `--check` (o); the judgment half is whether a *resolving* link points at
+      the right doc.)
 - [ ] **ADRs wired + hygienic** — each `adr/NNNN-*.md` is linked from `design.md`; superseded
       ADRs carry the right status; **no `## Amendment` block** (decision changes are new
       superseding ADRs, not appended); a superseded ADR's forward cross-ref is **≤2 lines**;
-      body stays lean (≤ ~200 lines).
+      body stays lean (≤ ~200 lines). (Hygiene half scripted — `--check` (t): Amendment /
+      body cap / forward-ref; the design.md link stays judgment.)
 - [ ] **Indexes current** — the requirement has a row in `<project>/index.md` with the
-      right Phase + 整体状态; the project appears in `<dev_root>/index.md`.
+      right Phase + 整体状态; the project appears in `<dev_root>/index.md`. (Row existence
+      scripted both ways — `--check` (u); Phase/整体状态 correctness stays judgment.)
 - [ ] **项目根无散件** — the project root holds only `index.md` / `roadmap.md` and the spec'd
       dirs (`NNN-*/`, `investigations/`, `reviews/`, `notes/`, `legacy/`); a stray file at the
       project (or dev_root) root gets flagged with its suggested home (notes/ scratch ·
       investigations/ findings · legacy/ pre-workflow) — don't silently leave it.
+      (Project-root half scripted — `--check` (v); the dev_root root stays judgment.)
 - [ ] **Board (kanban) consistency** — **仅对已迁移到看板格式（含 `整体状态`/`Deps` 列）的 per-project
       `index.md` 生效**；旧格式（`NNN|Title|Phase|Status`）的项目索引**免检**，直到自愿迁移（迁移是 per-project
       opt-in，见 index 模板向后兼容注）。对已迁移的：card 依赖图（Deps 的 NNN）**无环**；`整体状态` 满足单调约束
       —— `done` ⇒ test 通过 且 `Phase=测试` 且各 gate 已过 且 close-out review doc 或 `XS/S — review
       skipped` 注已存在（即下方 Close-out review 项）; `backlog` ⇒ 没有超出 requirement 脚手架的阶段文档;
       `paused/blocked` ⇒ 至少一个阶段已起步. `整体状态` 是调度轴，**不**强映射内部阶段 status 值（那些不上看板）。
+      （机器可判子集 scripted — `--check` (w)：Deps 无环 · state canonical（markup-strip 后）·
+      done⇒review doc/skip 注 · done⇒test.md status ∈ passing/described；backlog/paused 类
+      约束与语义判断留人。）
 - [ ] **Phase consistency** — requirement↔design↔detail↔plan↔test don't contradict each
       other (e.g. a success criterion with no test; a plan task with no design basis; a
       `detail.md` structure/mechanism with no design home or no upward trace to a requirement
@@ -66,7 +76,10 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       (`design.md`「How it meets」), ≥1 `plan.md` task (`Implements:`), and ≥1 `test.md` row, once
       those docs exist; each Effect criterion cites its `R-id`; IDs are stable (no renumber — retired
       items carry a note). A requirement still on the old prose-only template (no「需求条目」) is exempt
-      until it's voluntarily migrated — don't flag its absence.
+      until it's voluntarily migrated — don't flag its absence. (Existence dimensions
+      scripted — `--check` (q), per-dimension predicates; Effect-cites-R-id and stable-ids
+      semantics stay judgment. `[F<n>]` citation resolution incl. cross-card `[NNN:F<n>]`
+      is scripted too — `--check` (r).)
 - [ ] **learn 报告形态** (only when the edit batch touches an `investigations/learn-*.md`
   report) — the ten sections present in order (`learn.md` §1–§10); §8 coverage numbers
   self-consistent (per input card `a+b=n`, skip reasons from the closed code list, no silent
@@ -86,9 +99,13 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       passed before 2026-07-30 are exempt (grandfathered). Doc-gate cards: the receipt lives
       in the round-closing chat message and is cited from the scaled digest §1
       (gate-digest.md「Doc-gate cards」) — verify those lines, not a grill-log file.
+      (Presence scripted — `--check` (l), structural anchor `### Panel receipt` /
+      `**Panel receipt**`; per-gate mapping and receipt quality stay judgment.)
 - [ ] **Transcription additions bounded** — （落纸补充）markers (grill.md Discussion-first
       flow) appear only below decision level, and none survives a passed gate (approve clears
-      them; a decision-level item carrying one is a finding).
+      them; a decision-level item carrying one is a finding). (Gate form scripted —
+      `--check` (j), exact-literal count on gated docs; mid-flight decision-level placement
+      stays judgment.)
 - [ ] **Provenance marked** — load-bearing claims in requirement/design/detail carry a provenance
       marker (evidence-cited / 推断 / 假设); an uncited non-trivial assertion is flagged `UNVERIFIED:`
       or `(assumption)`, not left bare (M1).
@@ -112,7 +129,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       The deterministic half is `--check` (h): `Part:` values ⊆ the new-format table's canonical
       names (legacy tables without an `R` column are skipped) — this item keeps only the judgment
       half (test 分节 coverage, seam 联调级 tests).
-- [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it. Deterministic half: the template's **≈150-line cap** — an over-cap file is flagged for pruning, not grandfathered.
+- [ ] **progress.md is a snapshot, not a log** — current-state only; reusable findings/decisions are **linked** (KB / `design.md`), not restated; superseded detail pruned or moved to `notes/`. If it has bloated with copied KB/design content, slim it. Deterministic half scripted — `--check` (s): the template's **≈150-line cap** (checker fires at 180 = cap+缓冲), live cards only — a done/dropped card's prune duty ended with the card.
 - [ ] **Design completeness** — `design.md` has its required elements: a **思路** one-paragraph
       TL;DR, a current **速览** (regenerated, not appended), the **diagrams** (module-interaction
       + data-flow **walking one named flow end-to-end** — a static relationship map no flow
@@ -134,8 +151,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       **Shape check** (existence-level only): when a review doc exists and the design has a 验证策略
       table, the doc contains the per-row promised-scenarios 核对结果 (content verification itself
       is review.md's job).
-- [ ] **Status/dates** — frontmatter `status` and `updated` reflect reality; design is
-      `frozen` only if approved.
+- [ ] **Status** — frontmatter `status` reflects reality (presence scripted — `--check` (p));
+      design is `frozen` only if approved. (`updated:` dropped from the templates, 021 R4 —
+      modification time's source of truth is dev_root git, `git log -1 -- <file>`.)
 - [ ] **Terminology consistent** — each domain term in the doc has a **single canonical
       form** within its bounded context (no same-concept-many-names; no same-word-two-meanings
       *inside one context*). Terms match the canonical term of their KB concept
@@ -154,7 +172,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       lazily at their next M3), and append a `log.md` entry when inside a card.
 - [ ] **Superseded phrasing swept（换语义类 change 后）** — if the round included an M2
       mode-变更/撤销（or an ADR that retires phrasings）, the supersede sweep ran
-      (`tools/check-superseded-phrases.py`, terms from the ADR's 被取代表述 section) and every
+      (`tools/check-superseded-phrases.py --from-card` — terms auto-read from the ADR
+      被取代表述 section / Change-log sub-list; the resident `--check` (n) keeps watching
+      the phase docs afterwards) and every
       hit was rewritten / annotated as 历史表述 / justified; module & term names re-checked
       against their new responsibilities (a name asserts nothing false, so plain consistency
       reads miss its drift). Change-log entries quoting old semantics are exempt (history).

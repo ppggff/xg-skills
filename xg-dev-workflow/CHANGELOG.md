@@ -4,6 +4,31 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-17 — 021 deterministic-check expansion: --check grows to (a)–(w), lens 4's mechanical half-steps scripted
+
+- **Why**: deterministic verifications were running inside agents (lens 4 grep misfired on
+  020 — XCARD_REF false positive needed orchestrator arbitration) while「Deterministic checks
+  are scripted, not delegated」was already the stated principle; and M3's script-eligible
+  list had never gotten its checker.
+- `--check` gains a project scope (`--check <project>` = project-level checks + every card,
+  the legacy-baseline full sweep) and a skip contract: carrier-missing paths print
+  `skip(<原因>)`, never silently pass, never gate; per-check exceptions isolate as
+  `check-error:<id>`. Check bodies move to a new `tools/workflow-checks.py` (one-way
+  dependency checks→parsing; CLI and letters unchanged for (a)–(i)).
+- New checks (j)–(w): gated-doc（落纸补充）clear · grill-log resolved→ledger existence
+  (canonical-table form) · panel-receipt presence (structural anchor `### Panel receipt` /
+  `**Panel receipt**`, pinned in adversarial-critic.md) · doc-gate `（gate <hash>）` line ·
+  retired-phrasing resident sweep (machine anchors: ADR 被取代表述 list lines + Change-log
+  sub-lists; `check-superseded-phrases.py --from-card`) · link/wikilink resolution (KB
+  aliases honored) · status-field presence · R-trace/F-ref existence (`[NNN:F<n>]`
+  cross-card form) · progress cap (live cards) · ADR hygiene · board rows/strays/monotonic
+  machine subset (new-format boards only; `**state**` markup now tolerated at parse).
+- Templates: `updated:` dropped from all six doc templates (no machine reader; dev_root git
+  is the modification-time source); test.md status enum gains `described`; index.md Phase
+  comment and test.md enum are grep-checked mirrors of PHASE_CANON/TEST_STATUS_CANON.
+- lens 4 / omission-check / change.md / adr.md updated to delegate the scripted halves and
+  keep only judgment.
+
 ## 2026-08-16 — M6 retro (020 close-out batch): discussion-first sharpening + baseline recalibration
 
 - `grill.md` discussion-first: a topic round's presentation now splits evidence-settled items

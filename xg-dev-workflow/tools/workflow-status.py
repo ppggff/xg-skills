@@ -16,10 +16,10 @@ Usage:
   workflow-status.py --json            # machine-readable board ({project: [card…]}); backs the viewer
   workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
                                        # (<card> = NNN or a slug fragment; a card-dir path works too)
-  workflow-status.py --check <project>/<card>   # deterministic checks: ledger (a)-(e) +
-                                                #   design.md required sections (f) +
-                                                #   facts.md marker integrity (g);
-                                       # exit 1 on findings (M3 deterministic subset)
+  workflow-status.py --check <project>/<card>   # deterministic checks (a)-(t), card scope
+  workflow-status.py --check <project>          # project scope: (o)(u)(v)(w) + every card
+                                       # exit 1 on findings; skips print but never gate
+                                       # (M3 deterministic subset; bodies in workflow-checks.py)
 """
 import fnmatch
 import glob

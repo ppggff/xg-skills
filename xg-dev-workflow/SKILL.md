@@ -277,16 +277,16 @@ investigation 把契约摸出来再判；写得出是必要非充分。字段级
   wholesale regenerate → re-approve over the new proposed rows. Detail-only changes ride baseline
   force; pure implementation reality → edit `plan.md` freely. Every change + why → `log.md`.
   Full flow: `references/steps/change.md`.
-- **M3 Omission check** — after **any** doc edit: links resolve; `index.md` rows current;
-  requirement↔design↔detail↔plan↔test consistent; terminology canonical (one term per concept,
-  matching its KB concept); run `workflow-status.py --check` (the deterministic subset — ledger
-  id integrity, derived-status mappings, cycles, **facts.md marker integrity**, **part
-  consistency** (plan `Part:` ⊆ the new-format Parts table's names), **governance mode**
-  (cascade 判据一致性: bad-value / missing-field-post-cutoff / ledger-no-ledger /
-  doc-gate-has-ledger); exit 1 =
-  findings); reusable
+- **M3 Omission check** — after **any** doc edit: requirement↔design↔detail↔plan↔test
+  consistent; terminology canonical (one term per concept, matching its KB concept); run
+  `workflow-status.py --check <project>/<card>` — the deterministic subset, checks (a)–(w)
+  (021): ledger integrity · design sections · facts markers · part consistency · governance
+  mode · gate-adjacent transcription/receipt/gate-line · retired-phrasing residue · links ·
+  status field · R-trace/F-ref existence · progress cap · ADR hygiene; `--check <project>`
+  adds board rows/strays/monotonic + the per-card full sweep. Exit 1 = findings; skips are
+  visible, never pass (full listing: `references/steps/omission-check.md`). Reusable
   knowledge captured to the KB (xg-knowledge-lite Write + compile) or explicitly noted as
-  deferred. `references/steps/omission-check.md`.
+  deferred.
 - **M4 Session continuity** — `progress.md` = pruned current-state snapshot, **self-sufficient for
   resume**; `log.md` = append-only why-history, **never on the resume path**. Never rebuild from
   chat history. Keep a decision-zone grill in one unbroken window (don't compact mid-grill); in the
