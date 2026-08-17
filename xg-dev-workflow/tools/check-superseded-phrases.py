@@ -48,6 +48,9 @@ def terms_from_card(card_dir):
         base = 'adr/' + os.path.basename(f)
         text = re.sub(r'<!--.*?-->', '', pathlib.Path(f).read_text(errors='replace'),
                       flags=re.S)   # template guidance rides in comments — never terms
+        st = re.search(r'^Status:\s*(\w+)', text, re.M)
+        if st and st.group(1).lower() in ('superseded', 'deprecated', 'withdrawn'):
+            continue   # a dead decision's retired-terms are no longer authoritative
         sect = _section(text, r'被取代表述')
         if not sect.strip():
             if re.search(r'ADR-\d{4}', _section(text, r'Supersedes')):
@@ -59,9 +62,10 @@ def terms_from_card(card_dir):
                 continue
             if s.startswith('-'):
                 m = TERM.search(s)
-                if m:
+                if m and len(m.group(1)) >= 2:
                     terms.append(m.group(1))
                 else:
+                    # no backtick span, or a 1-char "term" (e.g. `/`) that can only flood
                     findings.append('adr-retired-format: %s %r' % (base, s[:40]))
             elif TERM.search(s):
                 findings.append('adr-retired-format: %s %r' % (base, s[:40]))

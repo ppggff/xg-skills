@@ -274,6 +274,22 @@ class SupersedeResidue(unittest.TestCase):
         f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
         self.assertTrue(any("[旧词B]" in x for x in f))
 
+    def test_dead_adr_and_short_terms_excluded(self):
+        # a superseded ADR's terms are no longer authoritative; a 1-char term is format (T9)
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md",
+               SUP_ADR.replace("Status: accepted", "Status: superseded by ADR-0003"))
+        _write(self.tmp.name, "proj/001-a/adr/0003-z.md",
+               SUP_ADR.replace("- `旧词A` → `新词`", "- `/` → `空格`"))
+        terms, findings = wc._csp().terms_from_card(self.card)
+        self.assertEqual(terms, [])
+        self.assertTrue(any("adr-retired-format" in x for x in findings))
+
+    def test_sweep_scope_excludes_execution_docs(self):
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
+        _write(self.tmp.name, "proj/001-a/progress.md", "历史叙述提到旧词A。\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        self.assertEqual([x for x in f if "superseded-phrase" in x], [])
+
     def test_from_card_parity_with_manual_terms(self):
         _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
         _write(self.tmp.name, "proj/001-a/design.md", "---\n---\n旧词A here.\n")
@@ -364,6 +380,21 @@ class CardScopedBC(unittest.TestCase):
         self.assertEqual(f, [])
 
     # -- B7
+    def test_b7_head_trailing_annotation_tolerated(self):
+        _write(self.tmp.name, "proj/001-a/facts.md",
+               "### F24 [VERIFIED] —— 待实测注记\n- 来源: `x`\n")
+        _write(self.tmp.name, "proj/001-a/design.md", "---\nstatus: drafting\n---\n引 [F24]。\n")
+        self.assertEqual(wc.check_fact_refs("proj", self.card, ws._L1), ([], []))
+
+    def test_b6_pre_cutoff_card_downstream_dims_off(self):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-07-10") +
+               "## 需求条目\n| ID | 需求条目 | 类型 | prov |\n|--|--|--|--|\n| R1 | one | 功能 | e |\n")
+        _write(self.tmp.name, "proj/001-a/design.md", "---\nstatus: frozen\n---\n")
+        _write(self.tmp.name, "proj/001-a/plan.md", "---\nstatus: active\n---\n")
+        f, _ = wc.check_r_trace("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
     def test_b7_bare_ref_resolution(self):
         _write(self.tmp.name, "proj/001-a/facts.md",
                "### F1 [VERIFIED]\n- 来源: 实测 `x`\n### F2 [VERIFIED superseded]\n- 来源: y\n")
@@ -477,6 +508,15 @@ class ProjectScoped(unittest.TestCase):
         _write(self.tmp.name, "proj/001-a/progress.md", "XS/S — review skipped\n")
         _write(self.tmp.name, "proj/001-a/test.md", "---\nstatus: passing\n---\n")
         self.assertEqual(wc.check_board_monotonic("proj", self.proj, ws._L1), ([], []))
+
+    def test_b5_freetext_deps_cell_yields_no_edges(self):
+        # `是 005 的前置` is prose, not the Deps grammar — no edge, no false cycle (T9)
+        self._board("| 005 | 实现 | active | 006(载体) | [x](./005-a/) |\n"
+                    "| 006 | 实现 | active | 是 005 的前置 | [y](./006-b/) |\n")
+        _write(self.tmp.name, "proj/005-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/006-b/requirement.md", "x")
+        f, _ = wc.check_board_monotonic("proj", self.proj, ws._L1)
+        self.assertEqual([x for x in f if "dep-cycle" in x], [])
 
     def test_b1_project_half_scans_root_docs(self):
         kb = os.path.join(self.tmp.name, "kb")

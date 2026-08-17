@@ -41,7 +41,8 @@ def check_design_sections(card_dir, ws):
             if not re.search(pat, heads, re.I)]
 
 
-FACT_HEAD = re.compile(r"^###\s+(F\d+)\s+\[([^\]]+)\]\s*$", re.M)
+# trailing annotation after ] is legal (longrun_test 002 idiom: `### F24 [VERIFIED] —— note`)
+FACT_HEAD = re.compile(r"^###\s+(F\d+)\s+\[([^\]]+)\]", re.M)
 # Scoped to the 来源 field: only how THIS fact was obtained can contradict its marker.
 FACT_SOURCE = re.compile(r"^-\s*(?:来源|source)\s*[:：](.*?)(?=^-\s|\Z)", re.M | re.S)
 # Self-attributed inference — flags regardless of any citation alongside it.
@@ -406,8 +407,10 @@ def _csp():
     return _CSP
 
 
-SWEEP_DOCS = ("requirement.md", "design.md", "detail.md", "plan.md",
-              "test.md", "progress.md")
+# Decision-zone docs only: the retired-semantics contract lives there; plan/test/progress
+# narrate implementation history and legitimately mention old identifiers (T9 baseline:
+# sweeping them produced hundreds of adjudicated-history hits).
+SWEEP_DOCS = ("requirement.md", "design.md", "detail.md")
 
 
 def _mask_history(text, ws):
@@ -422,11 +425,19 @@ def _mask_history(text, ws):
 
 def check_supersede_residue(project, card_dir, ws):
     """(n) A4′ — resident conditional sweep: with machine-readable retired-phrasing
-    anchors present, scan the phase docs for surviving old phrasing. History
+    anchors present, scan the decision-zone docs for surviving old phrasing. History
     containers are masked; notes/, adr/ and ledger/facts files stay out of scope —
-    the M2-time full sweep remains `check-superseded-phrases.py`. No anchors →
-    predicate off; a superseding ADR missing its 被取代表述 section surfaces here
-    as the extractor's finding."""
+    the M2-time full sweep remains `check-superseded-phrases.py`. Pre-021 cards skip
+    entirely: their anchors fed one-shot human-adjudicated sweeps, and re-raising
+    adjudicated mentions forever is noise (T9 baseline: 151 such hits); from 021 on a
+    retained mention is backticked (mention ≠ use) or reworded. No anchors → predicate
+    off; a superseding ADR missing its 被取代表述 section surfaces as the extractor's
+    finding."""
+    created = _card_created(card_dir, ws)
+    if not created or created < RECEIPT_STRUCT_CUTOFF:
+        if _csp().terms_from_card(card_dir) != ([], []):
+            return [], ["supersede-residue: pre-021 anchors (one-shot swept at their M2)"]
+        return [], []
     terms, findings = _csp().terms_from_card(card_dir)
     if not terms:
         return findings, []
@@ -493,20 +504,30 @@ def _kb_resolves(kb, target):
     return False
 
 
+def _wiki_targets(stripped):
+    """Canonical-form wikilinks only (layer/project/slug — must contain '/'): bare-slug
+    legacy links and prose [[…]] emphasis are not the machine contract (T9 baseline)."""
+    return [t.strip() for t in WIKILINK.findall(stripped)
+            if "/" in t and not LINK_PLACEHOLDER.search(t)]
+
+
+def _rel_targets(stripped):
+    """Path-shaped relative links only: `](x)` in prose (footnotes, commit hashes,
+    Chinese brackets) is not a link claim — require ./ ../ , a slash, or .md."""
+    return [p for p in MDLINK.findall(stripped)
+            if not LINK_PLACEHOLDER.search(p)
+            and not re.match(r"[a-z]+://|mailto:|~|/", p)
+            and (p.startswith(("./", "../")) or "/" in p or p.endswith(".md"))]
+
+
 def _doc_links(card_dir, ws):
-    """Per doc: (wikilink targets, relative link paths), code-stripped and
-    placeholder-excluded."""
+    """Per doc: (wikilink targets, relative link paths), code-stripped."""
     for name in PHASE_DOC_NAMES:
         text = ws._read(os.path.join(card_dir, name))
         if not text:
             continue
         stripped = _strip_code(text)
-        wikis = [t.strip() for t in WIKILINK.findall(stripped)
-                 if not LINK_PLACEHOLDER.search(t)]
-        rels = [p for p in MDLINK.findall(stripped)
-                if not LINK_PLACEHOLDER.search(p)
-                and not re.match(r"[a-z]+://|mailto:|~|/", p)]
-        yield name, wikis, rels
+        yield name, _wiki_targets(stripped), _rel_targets(stripped)
 
 
 def check_links(project, card_dir, ws):
@@ -538,15 +559,20 @@ def check_status_field(project, card_dir, ws):
     return findings, []
 
 
+TRACE_CUTOFF = "2026-07-28"   # 011 template-explicitness: the R-id spine became mandatory
+                              # in design/plan/test then; earlier docs carry it sparsely
+
+
 def check_r_trace(project, card_dir, ws):
     """(q) B6 — R-trace existence, four dimensions with per-dimension predicates:
     not-in-需求条目 always (the XCARD_REF-class detection); design home once design.md
     is frozen/approved (mid-draft gaps are the freeze gate's business); ≥1 plan task /
-    ≥1 test row once those docs exist. Prose-only requirements (no 需求条目 table) and
-    retired R-ids are exempt."""
+    ≥1 test row once those docs exist — these three only for cards created on/after
+    TRACE_CUTOFF. Prose-only requirements (no 需求条目 table) and retired R-ids exempt."""
     reqs = ws.trace_requirement(card_dir)
     if not reqs:
         return [], []
+    downstream = _card_created(card_dir, ws) >= TRACE_CUTOFF
     retired = ws._retired_req_ids(card_dir)
     home, _verify = ws.trace_design(card_dir)
     tasks = ws.trace_plan(card_dir)
@@ -561,6 +587,8 @@ def check_r_trace(project, card_dir, ws):
         if r not in reqs:
             findings.append("trace: %s not-in-需求条目" % r)
             continue
+        if not downstream:
+            continue
         if _doc_status(os.path.join(card_dir, "design.md"), ws) in ("frozen", "approved") \
                 and r not in home:
             findings.append("trace: %s no-design-home" % r)
@@ -571,13 +599,18 @@ def check_r_trace(project, card_dir, ws):
     return findings, []
 
 
+# existence harvest is marker-agnostic (012-era heads carry no [marker]); a head naming
+# superseded/retired is excluded either way — marker INTEGRITY stays (g)'s job
+FACT_HEAD_ANY = re.compile(r"^###\s+F(\d+)\b(.*)$", re.M)
+
+
 def _fact_ids(card_dir, ws):
     """Active facts.md block ids ∪ doc-local「事实清单」ids, as ints."""
     ids = set()
     text = ws._read(os.path.join(card_dir, "facts.md"))
-    for m in FACT_HEAD.finditer(text):
+    for m in FACT_HEAD_ANY.finditer(text):
         if not re.search(r"superseded|retired", m.group(2), re.I):
-            ids.add(int(m.group(1)[1:]))
+            ids.add(int(m.group(1)))
     for name in PHASE_DOC_NAMES:
         sect = ws._section(ws._read(os.path.join(card_dir, name)), r"事实清单")
         ids |= {int(n) for n in re.findall(r"\bF(\d+)\b", sect)}
@@ -668,13 +701,10 @@ def check_project_links(project, project_dir, ws):
         if not text:
             continue
         stripped = _strip_code(text)
-        for t in WIKILINK.findall(stripped):
-            t = t.strip()
-            if not LINK_PLACEHOLDER.search(t) and not _kb_resolves(kb, t):
+        for t in _wiki_targets(stripped):
+            if not _kb_resolves(kb, t):
                 findings.append("broken-wikilink: %s [[%s]]" % (name, t))
-        for p in MDLINK.findall(stripped):
-            if LINK_PLACEHOLDER.search(p) or re.match(r"[a-z]+://|mailto:|~|/", p):
-                continue
+        for p in _rel_targets(stripped):
             if not os.path.exists(os.path.normpath(os.path.join(project_dir, p))):
                 findings.append("broken-link: %s %s" % (name, p))
     return findings, []
@@ -717,6 +747,21 @@ def check_root_strays(project, project_dir, ws):
     return findings, []
 
 
+def _deps_tokens(cell):
+    """NNN edges only when the whole cell follows the Deps grammar (`NNN` tokens,
+    optional parenthetical note); a free-text cell (`是 005 的前置`) yields no edges —
+    digits inside prose are not dependency claims."""
+    toks = [t for t in re.split(r"[,\s，、;；]+", cell.strip())
+            if t and t not in ("—", "-")]
+    out = []
+    for t in toks:
+        m = re.fullmatch(r"(\d{3})(?:\([^)]*\)|（[^）]*）)?", t)
+        if not m:
+            return []
+        out.append(m.group(1))
+    return out
+
+
 def check_board_monotonic(project, project_dir, ws):
     """(w) B5 — the machine-decidable board subset (021 D6): Deps acyclic ·
     整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
@@ -726,7 +771,7 @@ def check_board_monotonic(project, project_dir, ws):
         return [], []
     rows = ws.board(project_dir)
     findings = []
-    graph = {nnn: re.findall(r"\d{3}", row.get("deps", "")) for nnn, row in rows.items()}
+    graph = {nnn: _deps_tokens(row.get("deps", "")) for nnn, row in rows.items()}
     color = {}
 
     def dfs(n, stack):
