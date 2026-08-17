@@ -917,21 +917,33 @@ def check_card(project, card_dir):
 
 
 def run_check(root, arg):
-    """--check CLI: print findings, exit 1 when any. Catches its own exceptions —
-    the top-level never-crash wrapper clamps exceptions (only) to exit 0, so an
-    unhandled error here would silently pass the check."""
+    """--check CLI, three-tier dispatch (021 design): an arg containing "/" → card
+    scope via resolve_card; a bare name that is a project dir under root → project
+    scope (project-level checks + every card — the full-sweep form), taking priority
+    over resolve_card's card-dir/single-card branches; anything else → resolve_card
+    legacy behavior. Prints findings (⚠) then skips (skip:); exit 1 iff findings —
+    a skip is visible but never gates. Catches its own exceptions — the top-level
+    never-crash wrapper clamps exceptions (only) to exit 0, so an unhandled error
+    here would silently pass the check."""
     try:
-        project, card_dir = resolve_card(root, arg)
-        findings = check_card(project, card_dir)
+        if "/" not in arg.rstrip("/") and \
+                os.path.isdir(os.path.join(root, arg.rstrip("/"))):
+            name = arg.rstrip("/")
+            findings, skips = _checks().check_project(name, os.path.join(root, name), _L1)
+        else:
+            project, card_dir = resolve_card(root, arg)
+            findings, skips = _checks().check_card_all(project, card_dir, _L1)
     except SystemExit:
         raise
     except Exception as e:
-        findings = ["check-error: %s" % e]
+        findings, skips = ["check-error: %s" % e], []
     for f in findings:
         print("⚠ " + f)
+    for s in skips:
+        print("skip: " + s)
     if findings:
         return 1
-    print("check: ok")
+    print("check: ok" + (" (%d skipped)" % len(skips) if skips else ""))
     return 0
 
 

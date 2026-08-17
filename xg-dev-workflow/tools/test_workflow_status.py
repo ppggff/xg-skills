@@ -465,12 +465,12 @@ class LedgerCheck(unittest.TestCase):
         root2, _ = self._card(ledger="### R1 [requirement] approved\n- 陈述: a\n",
                               req_ids=("R1",))
         self.assertEqual(ws.run_check(root2, "proj/011"), 1)
-        orig = ws.check_card
-        ws.check_card = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
+        orig = wc.check_card_all
+        wc.check_card_all = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
         try:
             self.assertEqual(ws.run_check(root, "proj/011"), 1)  # check-error → nonzero
         finally:
-            ws.check_card = orig
+            wc.check_card_all = orig
 
     def test_card_status_pending_overlay_and_board_decisions(self):
         root, card = self._card(ledger=self.GOOD_LEDGER)

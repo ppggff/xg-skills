@@ -172,16 +172,22 @@ ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
 
 
 def check_card(project, card_dir, ws):
-    """The deterministic checks: ledger (a)–(e) + design sections (f) + fact markers (g)
-    + part consistency (h) + governance mode (i); semantic contradiction stays M3
-    judgment. No decisions.md → ledger checks skipped (old-card semantics, never
-    flagged); (f)/(g)/(h)/(i) run regardless of the ledger."""
-    section_findings = (check_design_sections(card_dir, ws) + check_fact_markers(card_dir, ws)
-                        + check_part_consistency(card_dir, ws) + check_governance(card_dir, ws))
+    """Compatibility aggregate — the original --check <project>/<card> finding list:
+    design sections (f) + fact markers (g) + part consistency (h) + governance (i)
+    + ledger (a)–(e), in the pre-split order. New code goes through check_card_all
+    (per-check isolation + skips); this stays the findings-only surface tests and
+    docs cite."""
+    return (check_design_sections(card_dir, ws) + check_fact_markers(card_dir, ws)
+            + check_part_consistency(card_dir, ws) + check_governance(card_dir, ws)
+            + check_ledger(card_dir, ws))
+
+
+def check_ledger(card_dir, ws):
+    """The ledger checks (a)–(e); semantic contradiction stays M3 judgment.
+    No decisions.md → [] (old-card semantics, never flagged)."""
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        return section_findings
+        return []
     blocks, findings = ws.parse_ledger(card_dir)
-    findings = section_findings + findings
     by_id = {}
     for b in blocks:
         by_id.setdefault(b["id"], []).append(b)
@@ -251,3 +257,54 @@ def check_card(project, card_dir, ws):
         if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
             findings.append("bad-approve-note: " + b["id"])
     return findings
+
+
+# ---- check registry & runners (the L3 entry surface) ----
+# Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
+# reason and never affects the exit code; a check whose carrier predicate doesn't fire
+# returns ([], []). Contract invariants (design 021): per-check exception isolation —
+# a raising check contributes `check-error:<id>` to findings and the rest still run;
+# a check never emits both a finding and a skip for the same condition.
+
+CARD_CHECKS = (
+    ("design-sections", lambda p, c, ws: (check_design_sections(c, ws), [])),
+    ("fact-markers", lambda p, c, ws: (check_fact_markers(c, ws), [])),
+    ("part-consistency", lambda p, c, ws: (check_part_consistency(c, ws), [])),
+    ("governance", lambda p, c, ws: (check_governance(c, ws), [])),
+    ("ledger", lambda p, c, ws: (check_ledger(c, ws), [])),
+)
+
+PROJECT_CHECKS = ()
+
+
+def _run_entries(entries, args, ws):
+    findings, skips = [], []
+    for cid, fn in entries:
+        try:
+            f, s = fn(*args, ws)
+        except Exception as e:
+            findings.append("check-error:%s: %s" % (cid, e))
+            continue
+        findings += f
+        skips += s
+    return findings, skips
+
+
+def check_card_all(project, card_dir, ws):
+    """All card-scoped checks, per-check isolated. Returns (findings, skips)."""
+    return _run_entries(CARD_CHECKS, (project, card_dir), ws)
+
+
+def check_project(project, project_dir, ws):
+    """Project scope: project-level checks + every card's card-scoped set (the
+    full-sweep form R8's 存量全量跑 runs on). Card rows are prefixed with their
+    dir name so a sweep finding stays attributable."""
+    findings, skips = _run_entries(PROJECT_CHECKS, (project, project_dir), ws)
+    for card_dir in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*"))):
+        if not os.path.isdir(card_dir):
+            continue
+        base = os.path.basename(card_dir)
+        f, s = check_card_all(project, card_dir, ws)
+        findings += ["%s: %s" % (base, x) for x in f]
+        skips += ["%s: %s" % (base, x) for x in s]
+    return findings, skips
