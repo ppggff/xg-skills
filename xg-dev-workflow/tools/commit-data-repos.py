@@ -244,7 +244,7 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--message", default=None)
+    ap.add_argument("--message", "-m", default=None)
     ap.add_argument("--reason", default=None)
     ap.add_argument("--only", choices=["kb", "docs"], default=None)
     ap.add_argument("--project", default=None,

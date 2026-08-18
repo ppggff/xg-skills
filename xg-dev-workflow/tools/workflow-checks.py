@@ -979,7 +979,8 @@ def check_board_monotonic(project, project_dir, ws):
             continue
         card = dirs[nnn]
         reviews = glob.glob(os.path.join(card, "notes", "review-*.md"))
-        ptext = ws._read(os.path.join(card, "progress.md"))
+        # whitespace-normalized: the skip-note phrase may wrap across lines
+        ptext = " ".join(ws._read(os.path.join(card, "progress.md")).split())
         skip_note = "review skipped" in ptext or "pre-gate done" in ptext
         if not reviews and not skip_note:
             findings.append("board-done: %s done without close-out review/skip note" % nnn)

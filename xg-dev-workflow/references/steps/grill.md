@@ -140,9 +140,11 @@ doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards sc
   topic item ≤3 lines. Over-limit is a violation
   a fresh-context pass may flag.
 - **Transcription invariant.** Sections fill **only from consensus**. A gap found while
-  writing: decision-level → open a regular round (a mini-round IS a round); below that → write
-  it marked **（落纸补充）** (transcription addition — a discussion-flow marker owned by this
-  section, NOT a provenance class). The gate ask's 假设 closure sweep enumerates markers one by
+  writing — **including any decision-level item the fold-in itself mints** (a constant named,
+  a skip/omission declared, a backfill scoped; feeling "derived" exempts nothing — it still
+  needs its G row): decision-level → open a regular round (a mini-round IS a round); below
+  that → write it marked **（落纸补充）** (transcription addition — a discussion-flow marker
+  owned by this section, NOT a provenance class). The gate ask's 假设 closure sweep enumerates markers one by
   one (never folded into the digest's emphasis cap); approve transcription clears them — git
   keeps the record. Decision-level items carrying the marker = 0 at any gate.
 

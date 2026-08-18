@@ -732,6 +732,16 @@ class ProjectScoped(unittest.TestCase):
         _write(self.tmp.name, "proj/001-a/test.md", "---\nstatus: passing\n---\n")
         self.assertEqual(wc.check_board_monotonic("proj", self.proj, ws._L1), ([], []))
 
+    def test_b5_skip_note_wrapped_across_lines_still_counts(self):
+        # the Close-out bullet may wrap mid-phrase (022 retro: a bolded
+        # "review\n  skipped" false-positived the substring match)
+        self._board("| 001 | 测试 | done | — | [x](./001-a/) |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/001-a/progress.md",
+               "- **Close-out:** sweep run · **XS/S — review\n  skipped**（理由）\n")
+        _write(self.tmp.name, "proj/001-a/test.md", "---\nstatus: passing\n---\n")
+        self.assertEqual(wc.check_board_monotonic("proj", self.proj, ws._L1), ([], []))
+
     def test_b5_freetext_deps_cell_yields_no_edges(self):
         # `是 005 的前置` is prose, not the Deps grammar — no edge, no false cycle (T9)
         self._board("| 005 | 实现 | active | 006(载体) | [x](./005-a/) |\n"

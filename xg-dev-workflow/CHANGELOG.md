@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-18 — M6 retro (022 close-out): fold-in minted decisions, XS/S never-batch, porting detail
+
+- **grill.md (Transcription invariant)** — a fold-in that itself *mints* a decision-level item
+  (a constant named, a skip declared, a backfill scoped) now explicitly opens a mini-round for
+  its G row; "derived-feeling" transcription exempts nothing. Incident: 022 hit the same shape
+  in both phases — requirement R6/R7 without G rows (panel C10/C11 → G6 correction row) and
+  design's cutoff rule + 验证策略-omission in round-4 prose (panel T-9 → G14); lens-4
+  transcription-fidelity was the backstop both times, but the rule should fire at write time.
+- **design-agenda.md (XS/S items table #8)** — dispatch scaling now states the timing half:
+  an ADR-class checkpoint still dispatches at its own round end even on XS/S (never batch);
+  sizing scales the form, not the timing. Incident: 022 requirement G3 (表形选型, self-labeled
+  ADR 级) got no round-2 dispatch; the panel arrived merged at the gate and the receipt
+  carries the self-noted violation.
+- **detail.md (+ adversarial-critic.md When-to-run pointer)** — porting/comparison exception:
+  a detail ported from another tree cannot be validated by lens 4 alone (conformance-to-copy
+  is trivially satisfied); add a fresh-context comparison dispatch, and settle tree-equivalence
+  claims by reading function bodies, not signature + call-site matching. Incidents: hashdata
+  005 detail sessions logged three user-corrected misses (usage log 2026-08-18: detail 4→3→2,
+  change 2 — "只跑 lens 4 对移植型 detail 天然失效"; "比对两棵树只看签名+调用点被三次纠正").
+- **workflow-checks.py (board-done)** — the review-skip note match is now
+  whitespace-normalized: the Close-out bullet may wrap mid-phrase (022: a bolded
+  "review\n  skipped" false-positived board-done once) + regression test.
+- **commit-data-repos.py** — `-m` accepted as alias for `--message` (022: one failed
+  invocation on git muscle memory).
+- **KB (xg-skills invariants)** — recorded the installed-side hardlink fact (edits propagate;
+  git file-replacing ops silently break the link; check-sync doesn't cover it) — corrects
+  022 W-2's "manual copy" model.
+
 ## 2026-08-18 — M6 retro (021 close-out batch): three sharpenings from the card's own misses
 
 - **implement.md** — the M2 escalate clause now names the disguise that slipped four times in

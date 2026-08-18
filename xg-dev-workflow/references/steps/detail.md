@@ -78,8 +78,14 @@ algorithms whose correctness depends on the details.
    normally skip 详设 (XS/S); if one runs it anyway, `S<n>` items stay numbered in the doc and
    the baseline gate confirms the doc (grill.md's doc-gate branch).
 7. **Baseline gate:** run the **criterion-conformance judge** (adversarial-critic.md lens 4 —
-   this phase runs no grill, so it is the only dispatch: against the design decisions/contracts
-   the detail claims covered), then present `detail.md` via the gate digest (`gate-digest.md` —
+   this phase runs no grill, so it is normally the only dispatch: against the design
+   decisions/contracts the detail claims covered).
+   **Porting/comparison exception:** when the detail's substance is ported or adapted from
+   another tree (a fork, an upstream version), lens 4 alone cannot validate it —
+   conformance-to-the-copy is trivially satisfied while the copy itself may be wrong. Add a
+   fresh-context **comparison dispatch** over the two trees; and settle any equivalence claim
+   between trees by **reading the function bodies** — signature + call-site matching is not
+   equivalence. Then present `detail.md` via the gate digest (`gate-digest.md` —
    cards from the pending detail-level rows) and STOP for
    human review. On approval run the approve transcription; `baseline` means the detail-level
    rows are all approved (the derived-status rule, SKILL.md「Ledger」). On approval set

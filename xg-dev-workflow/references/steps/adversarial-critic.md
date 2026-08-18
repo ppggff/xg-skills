@@ -188,8 +188,9 @@ notes, the better the starting points — invest there.
   round-end and names the rounds covered; ADR-class checkpoints never batch.
 - **详设 baseline · execution authorization** — no attack-lens panel of their own (these phases
   run no grill); lens 4 only, before the gate ask, against that gate's criteria — 详设: the
-  design decisions/contracts the detail claims covered; plan: the R-id/design↔task trace the
-  plan claims complete.
+  design decisions/contracts the detail claims covered (porting-type detail adds a
+  comparison dispatch — steps/detail.md's porting exception); plan: the R-id/design↔task
+  trace the plan claims complete.
 - **review** — the three attack lenses are fixed members of the lens fan-out (see `review.md`).
 - **implement part-check (017 R5)** — not a grill checkpoint: `implement.md`'s part completion
   check reuses the fresh-context dispatch *form* (attack a part's diff, 1–2 agents); its

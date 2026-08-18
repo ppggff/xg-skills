@@ -81,7 +81,7 @@ never scale away with sizing (017 R1).
 | 5 | Driving-axis call | skip — default order |
 | 6 | grill-log persisted from round 1 | **keep** (017 R1) |
 | 7 | Per-item G rows + recommendations | keep |
-| 8 | Round-type check dispatch | existing scaling: single-agent form |
+| 8 | Round-type check dispatch | existing scaling: single-agent form — but an ADR-class checkpoint still dispatches at its own round end (never batch, adversarial-critic.md「When to run」; sizing scales the *form*, not the timing) |
 | 9 | Transcription-fidelity two-way check | existing scaling: the gate's lens 4 single agent covers it (doc-gate per-resolution writes make the forward check hold by construction) |
 | 10 | （落纸补充）marker + mini-round | keep (zero cost) |
 | 11 | Requirement two beats | simplify: XS may merge into one spread; gate merging per SKILL.md rules |
