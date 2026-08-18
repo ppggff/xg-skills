@@ -37,7 +37,10 @@ decorrelate blind spots; parallel dispatch keeps wall-clock and token cost rough
 paired with the verified-facts pack below (it removes the only overlap, shared background
 reads). Cross-lens composites
 (a finding needing two lenses' evidence) are the **orchestrator's** job at adjudication — that
-synthesis step exists anyway; don't keep the panel merged for it.
+synthesis step exists anyway; don't keep the panel merged for it. **At adjudication, re-measure
+a finding's numeric/enumerative factual claims before adopting them** (counts, "all N are X",
+corpus-wide absences) — panels sample and misstate totals; the claim's *direction* is usually
+right, the *number* often isn't.
 
 1. **Causal-coverage lens.** Enumerate the *minimal complete* set of causal paths to the
    goal/failure. Demand a **bijection** between what's being built/logged and those causes:

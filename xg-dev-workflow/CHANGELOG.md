@@ -4,6 +4,28 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-18 — M6 retro (021 close-out batch): three sharpenings from the card's own misses
+
+- **implement.md** — the M2 escalate clause now names the disguise that slipped four times in
+  021: semantics tuning that narrows a frozen contract-table row (TRACE_CUTOFF, A4′ pre-021
+  skip + scope cut, B6 status predicate, A3 anchor level) read as plan-level reality and landed
+  as code; the close-out spec lens caught all four un-M2'd, backfilled via M2 补批 `aa975fb`.
+- **review.md** — new zero-activation replay rule: 021's (n) check had zero activations on the
+  whole 8-project baseline, so six rounds of zero-false-positive tuning never touched it; the
+  correctness lens' counterfactual replay (feeding pre-021 anchors back in) instantly exposed
+  three latent defects (CJK-quote term shapes, missing mention escape hatch, no CLI
+  grandfather). A green baseline over a never-fired path proves nothing.
+- **adversarial-critic.md** — adjudication now re-measures panels' numeric/enumerative claims:
+  both 021 panels made one false factual assertion each (freeze panel: "all 19 test.md ∈
+  {planned, passing}" — a 43-file re-count found 10 wild values; requirement panel: "19
+  reference sites" — actual 22). Direction right, numbers wrong, twice.
+- Calibration noted, no body rule (watch for recurrence): D7-style "报备" that narrows a
+  confirmed Effect must be a question (grill.md already says so — one violation, panel caught
+  it); "零误报" -class acceptance criteria over legacy corpora should be priced as
+  classify-and-disposition from the start (021 R8 went 零→三分类 only after a 940-finding
+  baseline). grill-log canonical-shape unification promoted to roadmap Next-up (the skip-noise
+  driver).
+
 ## 2026-08-17 — 021 deterministic-check expansion: --check grows to (a)–(w), lens 4's mechanical half-steps scripted
 
 - **Why**: deterministic verifications were running inside agents (lens 4 grep misfired on

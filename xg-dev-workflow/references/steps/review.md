@@ -110,6 +110,13 @@ SKILL.md「Requirement sizing」.
      the diff plainly indicates; the remaining lenses join a later pass only if 5b judges the
      space under-sampled — max fan-out upfront buys redundancy, not recall.
 
+   **Zero-activation replay (any tier, when the change adds a check/guard/handler):** for each
+   new mechanism, ask what its activation count was on the real corpus/baseline the change was
+   validated against; a mechanism that **never actually fired** has an untested behavior surface
+   no baseline run can vouch for — replay real historical inputs through it (or construct
+   samples from the real corpus' shapes) before trusting it. A green baseline over a
+   zero-activation path is absence of evidence.
+
    **Tier calibration (M6):** like model downgrades, tier choices sit under retro calibration —
    a target class repeatedly reviewed at light/standard whose misses surface later (a deep pass,
    a shipped bug, a retro) gets its default tier bumped. SKILL.md「Subagent model assignment」

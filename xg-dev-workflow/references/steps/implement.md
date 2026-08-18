@@ -67,7 +67,10 @@ how to satisfy a `detail.md` contract): just make the call, ground it in evidenc
 it. Only **pause and escalate** when:
 - a **design- or requirement-level fork** appears (the design looks wrong, or an `R-id` is
   ambiguous/contradicted) → stop and run change-management (M2); never fix it by quietly bending
-  `design.md`;
+  `design.md`. **This includes semantics tuning that narrows a frozen contract-table row** —
+  adding a cutoff/predicate/scope restriction to a mechanism the design pinned in a matrix or
+  contract table feels like plan-level reality ("it false-positives on legacy data") but changes
+  the frozen row: propose the row change (M2 / doc-gate 提议变更), don't just fix the code;
 - a slice's findings say **the work outgrows this card** (a「装不下本卡 / 需独立核证」-shaped
   conclusion — an enabling dependency growing into its own deliverable): run the **A↔B 判定**
   (SKILL.md「拆分与隔离」) and escalate an 升 B verdict through M2 as a proposed row
