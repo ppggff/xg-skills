@@ -348,18 +348,28 @@ def _grill_shape_era(card_dir, ws):
             and any(True for _ in _gated_docs(card_dir, ws)))
 
 
+GRILL_MISPLACED = re.compile(r"resolved\s*→")
+_INLINE_CODE_SPAN = re.compile(r"`[^`]*`")
+
+
 def _grill_shape_findings(name, text):
-    """(022 R1/R4) per-file shape core: the file must hold a canonical table
-    (header with `id`+`status`), and every canonical table carries all seven
-    columns. Per-file verdict — a mixed card's deviant file is not masked by a
-    conforming sibling (the #15 discipline, now at finding severity)."""
+    """(022 R1/R4/R10) per-file shape core: the file must hold a canonical
+    table (header with `id`+`status`), every canonical table carries all seven
+    columns, and `resolved →` outside a canonical table is a misplaced decision
+    row. Per-file verdict — a mixed card's deviant file is not masked by a
+    conforming sibling (the #15 discipline, now at finding severity). Line-wise
+    span strip (fences toggled, inline code spans masked per line) keeps line
+    numbers — mention in backticks is not use."""
     findings, lines = [], text.splitlines()
-    has_canonical, fence, i = False, False, 0
+    canonical_rows, has_canonical = set(), False
+    fence, i = False, 0
     while i < len(lines):
         ln = lines[i].strip()
         if ln.startswith("```"):
             fence = not fence
-        elif not fence and ln.startswith("|"):
+            i += 1
+            continue
+        if not fence and ln.startswith("|"):
             header = [c.strip().lower() for c in ln.strip("|").split("|")]
             if "id" in header and "status" in header:
                 has_canonical = True
@@ -367,9 +377,25 @@ def _grill_shape_findings(name, text):
                 if missing:
                     findings.append("column-drop: %s missing %s"
                                     % (name, ",".join(missing)))
+                canonical_rows.add(i)
+                i += 1
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    canonical_rows.add(i)
+                    i += 1
+                continue
         i += 1
     if not has_canonical:
         findings.insert(0, "non-canonical-grill-log: %s (shape contract)" % name)
+    fence = False
+    for idx, raw in enumerate(lines):
+        s = raw.strip()
+        if s.startswith("```"):
+            fence = not fence
+            continue
+        if fence or idx in canonical_rows:
+            continue
+        if GRILL_MISPLACED.search(_INLINE_CODE_SPAN.sub("", raw)):
+            findings.append("misplaced-decision-row: %s line %d" % (name, idx + 1))
     return findings
 
 

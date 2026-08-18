@@ -223,6 +223,31 @@ class GateAdjacent(unittest.TestCase):
         f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
         self.assertTrue(any(x.startswith("column-drop: grill-x.md") for x in f))
 
+    def test_a2_misplaced_decision_row_in_nav_table(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + "\n| 轮 | 议题 | 结果 |\n|---|---|---|\n"
+               "| 1 | x | resolved → D9 |\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("misplaced-decision-row: grill-x.md") for x in f))
+
+    def test_a2_pure_nav_and_mentions_clean(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG
+               + "\n轮次摘要：本轮讨论了 `resolved → D1` 的写法（反引号 mention）。\n"
+               + "| verdict | note |\n|---|---|\n| ok | adopted → G3 收进 |\n"
+               + "```\nresolved → D2 在 fence 内也是 mention\n```\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertFalse(any("misplaced" in x for x in f))
+
+    def test_a2_misplaced_in_prose_flagged_with_line(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + "\n某轮散文写了 resolved → D7 却没进表。\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any("misplaced-decision-row: grill-x.md line 5" in x for x in f))
+
     # -- A3
     def test_a3_ungated_card_owes_nothing(self):
         self._req(status="drafting")
