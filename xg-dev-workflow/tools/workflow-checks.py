@@ -616,7 +616,7 @@ def check_supersede_residue(project, card_dir, ws):
                 continue
             if in_fence:
                 continue
-            scan = re.sub(r"`[^`]*`", "", line)
+            scan = _INLINE_CODE_SPAN.sub("", line)
             for t in terms:
                 if t in scan:
                     findings.append("superseded-phrase: %s:%d [%s]" % (name, i, t))
