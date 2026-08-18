@@ -241,6 +241,44 @@ class GateAdjacent(unittest.TestCase):
         f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
         self.assertFalse(any("misplaced" in x for x in f))
 
+    def test_a2_notation_docgate_ledger_id_is_mismatch(self):
+        self._req(created="2026-08-18")   # doc-gate card
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", CANON_LOG)
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("notation-mismatch: grill-x.md")
+                            and "doc-gate" in x for x in f))
+
+    def test_a2_notation_docgate_doc_section_ok(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "| id | question | recommended | chosen | why | depends-on | status |\n"
+               "|---|---|---|---|---|---|---|\n"
+               "| G1 | q | r | c | w | — | resolved → requirement.md §需求条目（R1–R4） |\n"
+               "| G2 | q | r | c | w | G1 | resolved |\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertFalse(any("notation-mismatch" in x for x in f))
+
+    def test_a2_notation_ledger_doc_section_is_mismatch(self):
+        self._req(gov="ledger", created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "| id | question | recommended | chosen | why | depends-on | status |\n"
+               "|---|---|---|---|---|---|---|\n"
+               "| G1 | q | r | c | w | — | resolved → design.md §思路 |\n")
+        _write(self.tmp.name, "proj/001-a/decisions.md",
+               "### D1 [design] approved\n- 陈述: x\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any("notation-mismatch" in x and "ledger" in x for x in f))
+
+    def test_a2_alignment_rows_exempt(self):
+        self._req(gov="ledger", created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "| id | question | recommended | chosen | why | depends-on | status |\n"
+               "|---|---|---|---|---|---|---|\n"
+               "| G1 | q | r | c | w | — | resolved |\n"
+               "| G2 | q | r | c | w | G1 | open（gate 待裁） |\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertFalse(any("notation-mismatch" in x for x in f))
+
     def test_a2_misplaced_in_prose_flagged_with_line(self):
         self._req(created="2026-08-18")
         _write(self.tmp.name, "proj/001-a/notes/grill-x.md",

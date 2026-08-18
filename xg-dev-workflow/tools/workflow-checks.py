@@ -349,17 +349,22 @@ def _grill_shape_era(card_dir, ws):
 
 
 GRILL_MISPLACED = re.compile(r"resolved\s*→")
+GRILL_DOCSEC_REF = re.compile(r"→\s*\S+\.md\s*§\S")
 _INLINE_CODE_SPAN = re.compile(r"`[^`]*`")
 
 
-def _grill_shape_findings(name, text):
-    """(022 R1/R4/R10) per-file shape core: the file must hold a canonical
-    table (header with `id`+`status`), every canonical table carries all seven
-    columns, and `resolved →` outside a canonical table is a misplaced decision
-    row. Per-file verdict — a mixed card's deviant file is not masked by a
-    conforming sibling (the #15 discipline, now at finding severity). Line-wise
-    span strip (fences toggled, inline code spans masked per line) keeps line
-    numbers — mention in backticks is not use."""
+def _grill_shape_findings(name, text, gov=""):
+    """(022 R1/R3/R4/R8/R10) per-file shape core: the file must hold a
+    canonical table (header with `id`+`status`), every canonical table carries
+    all seven columns, `resolved →` outside a canonical table is a misplaced
+    decision row, and an arrow-bearing status cell must match the card's
+    governance notation (ledger → ledger-id form; doc-gate → `<file>.md §…`
+    form, notation only — R8). Bare `resolved`/`open`/`deferred` cells are
+    alignment rows, exempt (grill.md). Per-file verdict — a mixed card's
+    deviant file is not masked by a conforming sibling (the #15 discipline,
+    now at finding severity). Line-wise span strip (fences toggled, inline
+    code spans masked per line) keeps line numbers — mention in backticks is
+    not use."""
     findings, lines = [], text.splitlines()
     canonical_rows, has_canonical = set(), False
     fence, i = False, 0
@@ -377,10 +382,22 @@ def _grill_shape_findings(name, text):
                 if missing:
                     findings.append("column-drop: %s missing %s"
                                     % (name, ",".join(missing)))
+                st = header.index("status")
                 canonical_rows.add(i)
                 i += 1
                 while i < len(lines) and lines[i].strip().startswith("|"):
                     canonical_rows.add(i)
+                    cells = [c.strip() for c in
+                             lines[i].strip().strip("|").split("|")]
+                    if len(cells) > st and "→" in cells[st]:
+                        ok = (GRILL_RESOLVED_ID.search(cells[st])
+                              if gov == "ledger" else
+                              GRILL_DOCSEC_REF.search(cells[st])
+                              if gov == "doc-gate" else True)
+                        if not ok:
+                            findings.append(
+                                "notation-mismatch: %s line %d (%s card)"
+                                % (name, i + 1, gov))
                     i += 1
                 continue
         i += 1
@@ -413,6 +430,8 @@ def check_grill_reverse(project, card_dir, ws):
     if not logs:
         return [], ["grill-reverse: no-grill-log"]
     shape_era = _grill_shape_era(card_dir, ws)
+    gov = str(ws.frontmatter(os.path.join(card_dir, "requirement.md"))
+              .get("governance", "")).split("#")[0].strip()
     findings, ids, skips = [], set(), []
     for f in logs:
         text = ws._read(f)
@@ -423,7 +442,7 @@ def check_grill_reverse(project, card_dir, ws):
             skips.append("grill-reverse: non-canonical-grill-log (%s)"
                          % os.path.basename(f))
         if shape_era:
-            findings += _grill_shape_findings(os.path.basename(f), text)
+            findings += _grill_shape_findings(os.path.basename(f), text, gov)
     if not shape_era and len(skips) == len(logs):
         return [], skips
     if ids and not os.path.exists(os.path.join(card_dir, "decisions.md")):
