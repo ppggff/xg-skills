@@ -15,8 +15,10 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
-  gate (j) · grill-log resolved→ledger reverse existence (k, canonical-table form) ·
-  panel-receipt presence (l, structural anchor) · doc-gate `（gate <hash>）` line (m) ·
+  gate (j) · grill-log resolved→ledger reverse existence + canonical-shape/notation
+  findings from the 022 shape cutoff (k) ·
+  panel-receipt presence + per-block structure core from the 022 shape cutoff (l) ·
+  doc-gate `（gate <hash>）` line (m) ·
   retired-phrasing resident sweep (n) · link/wikilink resolution incl. KB aliases (o) ·
   frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
@@ -97,11 +99,12 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       adversarial-critic.md「Receipts」): decision-level checkpoints have attack-lens receipts
       (or an explicit XS/S tier-down note), and the gate has a criterion-conformance verdict
       list. A gate with zero receipts was approved on self-certified work — flag it. Gates
-      passed before 2026-07-30 are exempt (grandfathered). Doc-gate cards: the receipt lives
-      in the round-closing chat message and is cited from the scaled digest §1
-      (gate-digest.md「Doc-gate cards」) — verify those lines, not a grill-log file.
-      (Presence scripted — `--check` (l), structural anchor `### Panel receipt` /
-      `**Panel receipt**`; per-gate mapping and receipt quality stay judgment.)
+      passed before 2026-07-30 are exempt (grandfathered). Receipt location splits by **run
+      shape, not governance** (the parenthetical above — any governance mode; 022 removed an
+      older doc-gate-keyed sentence here that contradicted 019 D2 / gate-digest.md).
+      (Presence + per-block structure scripted — `--check` (l), structural anchor
+      `### Panel receipt` / `**Panel receipt**`, four header keys + disposition grammar
+      from the 022 shape cutoff; per-gate mapping and receipt quality stay judgment.)
 - [ ] **Transcription additions bounded** — （落纸补充）markers (grill.md Discussion-first
       flow) appear only below decision level, and none survives a passed gate (approve clears
       them; a decision-level item carrying one is a finding). (Gate form scripted —
