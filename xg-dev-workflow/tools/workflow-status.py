@@ -236,10 +236,13 @@ CANON_STATES = {"backlog", "todo", "active", "blocked", "paused", "done", "dropp
 
 # Closed vocabularies whose template comments are grep-checked mirrors (021 G6 — the
 # closed list lives ONLY here; templates/index.md and templates/test.md restate them,
-# edited in the same batch as any change here):
+# edited in the same batch as any change here). PHASE_CANON's consumer is that mirror
+# grep itself (no runtime check keys on Phase yet); TEST_STATUS_DONE_OK is the (w)
+# done-gate subset of TEST_STATUS_CANON.
 # Phase column: prefix-matched — a suffix annotation (`测试 (XS/S)`) is free text.
 PHASE_CANON = ("需求", "设计", "详设", "实现", "测试", "评审")
 TEST_STATUS_CANON = ("planned", "passing", "failing", "described")
+TEST_STATUS_DONE_OK = ("passing", "described")
 
 
 def effective_next(board_state, g, derived):
@@ -332,8 +335,10 @@ RID = re.compile(r"\bR(\d+)\b")
 
 # `001 的 R34` names another card's item; harvesting it as a local R-id made the trace
 # matrix invent rows (R31–R36 on a card whose own items stop at R22) and flag them
-# `not-in-需求条目`. Strip cross-card references before any local-id harvest.
-XCARD_REF = re.compile(r"\d{3}\s*的\s*[*`~]{0,2}R\d+")
+# `not-in-需求条目`. Same for the shorthand `其 R36` (antecedent card named earlier in
+# the sentence) and `M5 R8` (another mechanism's item) — 021 review #3 caught both
+# firing as real findings. Strip cross-context references before any local-id harvest.
+XCARD_REF = re.compile(r"\d{3}\s*的\s*[*`~]{0,2}R\d+|其\s*[*`~]{0,2}R\d+|\bM\d+\s+R\d+")
 
 
 def _strip_xcard(text):
@@ -892,7 +897,10 @@ class _L1View:
     """Live attribute view over this module's globals — works whether or not the
     module was registered in sys.modules (tests/viewer load it via importlib)."""
     def __getattr__(self, name):
-        return globals()[name]
+        try:
+            return globals()[name]
+        except KeyError:
+            raise AttributeError(name) from None
 
 
 _L1 = _L1View()

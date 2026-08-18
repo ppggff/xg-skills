@@ -20,7 +20,27 @@ import re
 import sys
 
 TERM = re.compile(r'`([^`]+)`')
+QUOTE = re.compile(r'[「『]([^」』]+)[」』]')
 PHASE_DOCS = ('requirement.md', 'design.md', 'detail.md')
+
+
+def _term_from_line(s):
+    """(term|None, malformed?) for one list line. A CJK-quoted phrase wins (the
+    legacy-and-natural way to retire a *phrase*); a backtick span is the fallback
+    (the template form). A quote with a backtick inside is ambiguous — flagged,
+    never guessed (021 review #1). `<…>` spans are template placeholders."""
+    q = QUOTE.search(s)
+    if q:
+        if '`' in q.group(1):
+            return None, True
+        term = re.sub(r'\*\*', '', q.group(1)).strip()
+        return (term, False) if len(term) >= 2 else (None, True)
+    m = TERM.search(s)
+    if m:
+        if re.fullmatch(r'<[^>]+>', m.group(1)):
+            return None, False          # placeholder line, not a term claim
+        return (m.group(1), False) if len(m.group(1)) >= 2 else (None, True)
+    return None, True
 
 
 def _section(text, title_pat, level=2):
@@ -61,13 +81,12 @@ def terms_from_card(card_dir):
             if not s:
                 continue
             if s.startswith('-'):
-                m = TERM.search(s)
-                if m and len(m.group(1)) >= 2:
-                    terms.append(m.group(1))
-                else:
-                    # no backtick span, or a 1-char "term" (e.g. `/`) that can only flood
+                term, bad = _term_from_line(s)
+                if term:
+                    terms.append(term)
+                elif bad:
                     findings.append('adr-retired-format: %s %r' % (base, s[:40]))
-            elif TERM.search(s):
+            elif TERM.search(s) or QUOTE.search(s):
                 findings.append('adr-retired-format: %s %r' % (base, s[:40]))
     for name in PHASE_DOCS:
         p = os.path.join(card_dir, name)
@@ -86,10 +105,10 @@ def terms_from_card(card_dir):
                 continue
             if in_anchor:
                 if s.startswith('-') and indent > anchor_indent:
-                    m = TERM.search(s)
-                    if m:
-                        terms.append(m.group(1))
-                    else:
+                    term, bad = _term_from_line(s)
+                    if term:
+                        terms.append(term)
+                    elif bad:
                         findings.append('adr-retired-format: %s %r' % (name, s[:40]))
                 else:
                     in_anchor = False
@@ -135,11 +154,15 @@ def main():
     if args.from_card:
         got, anchor_findings = terms_from_card(str(root))
         terms += got
+        # informational: legacy anchor shapes are data debt, not sweep hits — the
+        # exit code belongs to term hits alone (021 review #6; change.md runs this
+        # on old cards too)
         for f in anchor_findings:
             print('⚠ ' + f)
     if not terms:
-        if anchor_findings:
-            sys.exit(1)
+        if args.from_card:
+            print('-- no machine anchors --')
+            sys.exit(0)
         sys.exit('no terms given (--terms / --terms-file / --from-card)')
 
     hits = scan(root, terms, exclude=args.exclude)
@@ -149,7 +172,7 @@ def main():
         print(f'-- {len(hits)} hit(s): rewrite / annotate-as-历史表述 / justify each --')
     else:
         print('-- clean --')
-    sys.exit(1 if hits or anchor_findings else 0)
+    sys.exit(1 if hits else 0)
 
 
 if __name__ == '__main__':

@@ -307,7 +307,7 @@ def check_transcription_markers(project, card_dir, ws):
     （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment)."""
     findings = []
     for name, path in _gated_docs(card_dir, ws):
-        n = _strip_code(ws._read(path)).count(TRANSCRIPTION_MARKER)
+        n = _strip_code(_strip_comments(ws._read(path))).count(TRANSCRIPTION_MARKER)
         if n:
             findings.append("stray-marker: %s %d×%s past gate"
                             % (name, n, TRANSCRIPTION_MARKER))
@@ -349,15 +349,21 @@ def check_grill_reverse(project, card_dir, ws):
     logs = _grill_logs(card_dir)
     if not logs:
         return [], ["grill-reverse: no-grill-log"]
-    canonical, ids = False, set()
+    ids, skips = set(), []
     for f in logs:
         c, s = _grill_resolved_ids(ws._read(f))
-        canonical |= c
-        ids |= s
-    if not canonical:
-        return [], ["grill-reverse: non-canonical-grill-log"]
+        if c:
+            ids |= s
+        else:   # per-file verdict — a mixed set must not read as fully checked (#15)
+            skips.append("grill-reverse: non-canonical-grill-log (%s)"
+                         % os.path.basename(f))
+    if len(skips) == len(logs):
+        return [], skips
+    if ids and not os.path.exists(os.path.join(card_dir, "decisions.md")):
+        # canonical table on a ledger-less card: no home to check against (#13)
+        return [], skips + ["grill-reverse: no-ledger for resolved ids"]
     blocks = {b["id"] for b in ws.parse_ledger(card_dir)[0]}
-    return ["resolved-no-home: " + i for i in sorted(ids - blocks)], []
+    return ["resolved-no-home: " + i for i in sorted(ids - blocks)], skips
 
 
 def check_panel_receipts(project, card_dir, ws):
@@ -387,11 +393,15 @@ def check_docgate_gateline(project, card_dir, ws):
         return [], []
     findings = []
     for name, path in _gated_docs(card_dir, ws):
-        text = ws._read(path)
-        if name != "detail.md" and not ws._section(text, r"Change log"):
-            findings.append("no-changelog-section: " + name)
-            continue
-        if not GATE_LINE.search(text):
+        text = _strip_comments(ws._read(path))
+        if name == "detail.md":
+            target = ws._section(text, r"Change notes|Change log") or text
+        else:
+            target = ws._section(text, r"Change log")
+            if not target:
+                findings.append("no-changelog-section: " + name)
+                continue
+        if not GATE_LINE.search(target):
             findings.append("no-gate-line: " + name)
     return findings, []
 
@@ -422,11 +432,18 @@ SWEEP_DOCS = ("requirement.md", "design.md", "detail.md")
 
 def _mask_history(text, ws):
     """Blank the Change log / Change notes bodies preserving line numbers —
-    history quotes of old phrasing are exempt (omission-check的 supersede 项)."""
+    history quotes of old phrasing are exempt (omission-check的 supersede 项).
+    Span-sliced, not content-replaced — a body re-appearing verbatim elsewhere
+    must not get masked with it (021 review #12)."""
     for pat in (r"Change log", r"Change notes"):
-        sect = ws._section(text, pat)
-        if sect:
-            text = text.replace(sect, "\n" * sect.count("\n"))
+        for m in re.finditer(r"^##\s+(.+)$", text, re.M):
+            if re.search(pat, m.group(1)):
+                start = m.end()
+                nxt = re.search(r"^##\s", text[start:], re.M)
+                end = start + nxt.start() if nxt else len(text)
+                body = text[start:end]
+                text = text[:start] + "\n" * body.count("\n") + text[end:]
+                break
     return text
 
 
@@ -452,9 +469,18 @@ def check_supersede_residue(project, card_dir, ws):
         text = ws._read(os.path.join(card_dir, name))
         if not text:
             continue
+        in_fence = False
         for i, line in enumerate(_mask_history(text, ws).splitlines(), 1):
+            # per-line mention stripping (021 review #2): the promised backtick
+            # escape hatch — fenced blocks and inline spans are mentions, not uses
+            if line.lstrip().startswith("```"):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+            scan = re.sub(r"`[^`]*`", "", line)
             for t in terms:
-                if t in line:
+                if t in scan:
                     findings.append("superseded-phrase: %s:%d [%s]" % (name, i, t))
     return findings, []
 
@@ -478,16 +504,49 @@ def _strip_code(text):
     return re.sub(r"`[^`]*`", "", re.sub(r"```.*?```", "", text, flags=re.S))
 
 
+def _strip_comments(text):
+    """HTML comments removed — template guidance riding in <!-- --> is never doc
+    content (021 review #4: a comment's literal（gate …）satisfied the audit-anchor
+    check)."""
+    return re.sub(r"<!--.*?-->", "", text, flags=re.S)
+
+
 def _kb_root():
     cfg = os.path.expanduser("~/.config/xg-knowledge-wiki/config.yaml")
     try:
-        for line in open(cfg, encoding="utf-8"):
-            m = re.match(r"root:\s*(\S+)", line)
-            if m:
-                return os.path.expanduser(m.group(1).strip().strip("\"'"))
+        with open(cfg, encoding="utf-8") as fh:
+            for line in fh:
+                m = re.match(r"root:\s*(\S+)", line)
+                if m:
+                    return os.path.expanduser(m.group(1).strip().strip("\"'"))
     except OSError:
         pass
     return os.path.expanduser("~/knowledge")
+
+
+def _aliases(path):
+    """frontmatter aliases values — flow form (`aliases: [a, b]`) and block form
+    (`aliases:` + `- a` lines; 021 review #7)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.read(1500).splitlines()
+    except OSError:
+        return []
+    for i, line in enumerate(lines):
+        m = re.match(r"aliases:\s*(.*)", line)
+        if not m:
+            continue
+        tail = m.group(1).strip()
+        if tail:
+            return [a.strip().strip("\"'") for a in tail.strip("[]").split(",")]
+        vals = []
+        for nxt in lines[i + 1:]:
+            mm = re.match(r"\s+-\s+(.+)", nxt)
+            if not mm:
+                break
+            vals.append(mm.group(1).strip().strip("\"'"))
+        return vals
+    return []
 
 
 def _kb_resolves(kb, target):
@@ -496,19 +555,8 @@ def _kb_resolves(kb, target):
        os.path.exists(os.path.join(kb, target)):
         return True
     parent, slug = os.path.split(target.rstrip("/"))
-    for f in glob.glob(os.path.join(kb, parent, "*.md")):
-        aliases = ""
-        try:
-            for line in open(f, encoding="utf-8"):
-                m = re.match(r"aliases:\s*(.+)", line)
-                if m:
-                    aliases = m.group(1)
-                    break
-        except OSError:
-            continue
-        if slug in [a.strip().strip("\"'") for a in aliases.strip("[]").split(",")]:
-            return True
-    return False
+    return any(slug in _aliases(f)
+               for f in glob.glob(os.path.join(kb, parent, "*.md")))
 
 
 def _wiki_targets(stripped):
@@ -619,7 +667,8 @@ def _fact_ids(card_dir, ws):
         if not re.search(r"superseded|retired", m.group(2), re.I):
             ids.add(int(m.group(1)))
     for name in PHASE_DOC_NAMES:
-        sect = ws._section(ws._read(os.path.join(card_dir, name)), r"事实清单")
+        text = ws._read(os.path.join(card_dir, name))
+        sect = ws._section(text, r"事实清单") or ws._section(text, r"事实清单", level=3)
         ids |= {int(n) for n in re.findall(r"\bF(\d+)\b", sect)}
     return ids
 
@@ -758,7 +807,7 @@ def _deps_tokens(cell):
     """NNN edges only when the whole cell follows the Deps grammar (`NNN` tokens,
     optional parenthetical note); a free-text cell (`是 005 的前置`) yields no edges —
     digits inside prose are not dependency claims."""
-    toks = [t for t in re.split(r"[,\s，、;；]+", cell.strip())
+    toks = [t for t in re.split(r"[,\s，、;；·]+", cell.strip())
             if t and t not in ("—", "-")]
     out = []
     for t in toks:
@@ -779,6 +828,7 @@ def check_board_monotonic(project, project_dir, ws):
     rows = ws.board(project_dir)
     graph = {nnn: _deps_tokens(row.get("deps", "")) for nnn, row in rows.items()}
     findings = ["board-dep-cycle: " + " → ".join(p) for p in _dep_cycles(graph)]
+    skips = []
 
     dirs = {os.path.basename(d)[:3]: d
             for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
@@ -795,14 +845,16 @@ def check_board_monotonic(project, project_dir, ws):
         skip_note = "review skipped" in ptext or "pre-gate done" in ptext
         if not reviews and not skip_note:
             findings.append("board-done: %s done without close-out review/skip note" % nnn)
-        # existence-qualified (018 precedent: an XS drill card may carry no test.md at
-        # all — the review/skip-note constraint above owns close-out discipline)
+        # carrier-missing is a visible skip, not a silent pass (R9; 018 precedent:
+        # an XS drill card may carry no test.md — review/skip-note owns close-out)
         if os.path.exists(os.path.join(card, "test.md")):
             tstatus = _doc_status(os.path.join(card, "test.md"), ws)
-            if tstatus not in ("passing", "described"):
-                findings.append("board-done: %s test.md status '%s' not in (passing, described)"
-                                % (nnn, tstatus))
-    return findings, []
+            if tstatus not in ws.TEST_STATUS_DONE_OK:
+                findings.append("board-done: %s test.md status '%s' not in %s"
+                                % (nnn, tstatus, "/".join(ws.TEST_STATUS_DONE_OK)))
+        else:
+            skips.append("board-monotonic: %s done without test.md" % nnn)
+    return findings, skips
 
 
 # ---- check registry & runners (the L3 entry surface) ----

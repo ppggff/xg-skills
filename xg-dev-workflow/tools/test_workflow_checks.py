@@ -161,15 +161,22 @@ class GateAdjacent(unittest.TestCase):
         _, s = wc.check_grill_reverse("proj", self.card, ws._L1)
         self.assertIn("grill-reverse: no-grill-log", s)
 
-    def test_a2_non_canonical_shape_skips(self):
+    def test_a2_non_canonical_shape_skips_per_file(self):
         self._req()
         _write(self.tmp.name, "proj/001-a/notes/grill-x.md", THREE_COL_LOG)
         _, s = wc.check_grill_reverse("proj", self.card, ws._L1)
-        self.assertIn("grill-reverse: non-canonical-grill-log", s)
+        self.assertTrue(any(x.startswith("grill-reverse: non-canonical-grill-log")
+                            and "grill-x.md" in x for x in s))
 
     def test_a2_resolved_row_needs_ledger_home(self):
         self._req(gov="ledger")
         _write(self.tmp.name, "proj/001-a/notes/grill-x.md", CANON_LOG)
+        # canonical table but no decisions.md at all → visible skip, not a finding (#13)
+        f, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertTrue(any("no-ledger" in x for x in s))
+        _write(self.tmp.name, "proj/001-a/decisions.md",
+               "### D2 [design] approved\n- 陈述: other\n")
         f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
         self.assertIn("resolved-no-home: D1", f)
         _write(self.tmp.name, "proj/001-a/decisions.md",
@@ -290,6 +297,38 @@ class SupersedeResidue(unittest.TestCase):
         f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
         self.assertEqual([x for x in f if "superseded-phrase" in x], [])
 
+    def test_replay_cjk_quote_forms(self):
+        # 021 review #1 — replay of the pre-021 corpus shapes: a pure-quote line
+        # yields the phrase; a quote wrapping inline code is ambiguous → format
+        adr = SUP_ADR.replace(
+            "- `旧词A` → `新词`",
+            "- 「旧短语整句」 → 新说法\n- 「`in-progress` **允许直接继续**」 —— 未限定动作\n"
+            "- `<old phrase>` → `<replacement>`")
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", adr)
+        terms, findings = wc._csp().terms_from_card(self.card)
+        self.assertEqual(terms, ["旧短语整句"])
+        self.assertTrue(any("adr-retired-format" in x for x in findings))  # mixed form
+        self.assertEqual([x for x in findings if "old phrase" in x], [])   # placeholder silent
+
+    def test_backticked_mention_exempt_in_resident_sweep(self):
+        # 021 review #2 — the docstring's escape hatch actually works now
+        _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: frozen\n---\n历史上叫 `旧词A`，现已改名。\n```\n旧词A in fence\n```\n还在用旧词A的这行要报。\n")
+        f, _ = wc.check_supersede_residue("proj", self.card, ws._L1)
+        hits = [x for x in f if "superseded-phrase" in x]
+        self.assertEqual(len(hits), 1)
+        self.assertIn(":8 ", hits[0] + " ")   # only the bare-use line survives
+
+    def test_gate_line_in_template_comment_not_counted(self):
+        # 021 review #4 — the audit anchor can't be satisfied by template guidance
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "doc-gate", "2026-08-17") +
+               "## Change log\n- created.\n"
+               "<!-- gate passages land here as `- <date> — <状态>（gate abc123）` -->\n")
+        f, _ = wc.check_docgate_gateline("proj", self.card, ws._L1)
+        self.assertIn("no-gate-line: requirement.md", f)
+
     def test_from_card_parity_with_manual_terms(self):
         _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
         _write(self.tmp.name, "proj/001-a/design.md", "---\n---\n旧词A here.\n")
@@ -316,6 +355,17 @@ class CardScopedBC(unittest.TestCase):
         self.addCleanup(lambda: setattr(wc, "_kb_root", orig))
 
     # -- B1
+    def test_b1_block_form_aliases(self):
+        _write(self.kb, "wiki/proj/other.md", "---\naliases:\n  - blocky\n---\nx")
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n[[wiki/proj/blocky]]\n")
+        self.assertEqual(wc.check_links("proj", self.card, ws._L1), ([], []))
+
+    def test_b7_h3_fact_list_section(self):
+        _write(self.tmp.name, "proj/001-a/design.md",
+               "---\nstatus: drafting\n---\n### 事实清单\n- F9: 实测。\n\n引 [F9]。\n")
+        self.assertEqual(wc.check_fact_refs("proj", self.card, ws._L1), ([], []))
+
     def test_b1_wikilink_resolution_and_alias(self):
         _write(self.kb, "wiki/proj/real.md", "x")
         _write(self.kb, "wiki/proj/other.md", "---\naliases: [nick]\n---\nx")
@@ -501,6 +551,19 @@ class ProjectScoped(unittest.TestCase):
         self.assertTrue(any("board-state: 002 'weird'" in x for x in f))
         self.assertTrue(any("done without close-out review" in x for x in f))
         self.assertTrue(any("test.md status 'planned'" in x for x in f))
+
+    def test_b5_done_without_testmd_skips(self):
+        self._board("| 001 | 测试 | done | — | [x](./001-a/) |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "x")
+        _write(self.tmp.name, "proj/001-a/progress.md", "XS/S — review skipped\n")
+        f, s = wc.check_board_monotonic("proj", self.proj, ws._L1)
+        self.assertEqual(f, [])
+        self.assertIn("board-monotonic: 001 done without test.md", s)
+
+    def test_b5_interpunct_deps_and_freetext(self):
+        self._board("| 001 | 实现 | active | 002 · 003 | [x](./001-a/) |\n")
+        self.assertEqual(wc._deps_tokens("002 · 003"), ["002", "003"])
+        self.assertEqual(wc._deps_tokens("是 005 的前置"), [])
 
     def test_b5_done_with_skip_note_and_passing_clean(self):
         self._board("| 001 | 测试 | done | — | [x](./001-a/) |\n")
