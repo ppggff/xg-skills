@@ -226,6 +226,18 @@ reverse-fidelity enumeration key; plain alignment rows don't count. A bare human
 | G1 | …        | …           | …      | …   | —          | resolved |
 | G2 | …        | …           | …      | …   | G1         | open / superseded |
 
+**Canonical shape (the machine contract, 022).** The seven-column table above is the **only
+normative table shape**: a decision row exists *only* as a row of a canonical table — one whose
+header carries `id` and `status` and whose column set is the full seven. Everything else in the
+log — round summaries, receipt-internal verdict/fidelity tables, prose — is the **navigation
+layer (导航层)**: legal, but checks don't parse it, and a `resolved →` appearing outside a
+canonical table is a **misplaced decision row**. Decision-row notation is a closed set —
+`resolved → <ledger-id>` on ledger cards, `resolved → <file>.md §<…>` on doc-gate cards; a
+notation↔governance mismatch is a defect. Machine-checked by `--check` (k) for cards created
+on/after its shape cutoff and gated (earlier cards keep their old skip behavior); the Density
+rule above stands unchanged — verdicts may fold into round headings, decision rows never drop
+columns.
+
 **Lifecycle:** the grill-log is `notes/` **scratch — the *path*, not the durable output**. Once the
 phase doc converges (requirement `confirmed` / design `frozen`), it may be pruned or archived (like
 investigation notes); the phase doc + ADRs are what persist. Traceability anchors are **ledger

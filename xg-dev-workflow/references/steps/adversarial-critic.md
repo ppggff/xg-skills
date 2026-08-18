@@ -95,7 +95,14 @@ type** + lenses dispatched + **re-dispatch yes/no with grounds** (the verified-f
 dead-findings line that justifies the scope) — then **one line per finding with its
 disposition**:
 `adopted → G<n>/D<n>` (became a question or ledger row) · `refuted — <one-sentence why>` ·
-`open → G<n>`. The refuted-with-why lines are the content a verdict-only receipt loses:
+`open → G<n>`.
+**Pinned lexicon (machine-checked from the 022 shape cutoff on):** the header carries the four
+key substrings `round =` · `round type` · `lenses =` · `re-dispatch =` (order and separators
+free); each finding's disposition is a `- `-led list line whose lead word is followed **on the
+same line** by its mark — `adopted … →` / `refuted … —` / `open … →` (a parenthetical qualifier
+between word and mark is fine: `adopted（轻）→`); a clean run carries the literal `no findings`.
+`--check` (l) verifies each anchored block structurally; wording quality stays human/M6.
+The refuted-with-why lines are the content a verdict-only receipt loses:
 they are what stops a dead concern from being re-found every pass, and the only audit trail
 M6 has of panel quality. A clean run stays one line ("no findings").
 The gate digest's lead「Grill / 自检状态」section's
