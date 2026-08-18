@@ -184,6 +184,45 @@ class GateAdjacent(unittest.TestCase):
         f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
         self.assertEqual(f, [])
 
+    # -- A2 shape era (022)
+    def test_a2_shape_era_no_canonical_is_finding(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", THREE_COL_LOG)
+        f, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("non-canonical-grill-log: grill-x.md") for x in f))
+        self.assertFalse(any("non-canonical" in x for x in s))   # finding replaced the skip
+
+    def test_a2_shape_era_needs_gate(self):
+        self._req(status="drafting", created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", THREE_COL_LOG)
+        f, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual(f, [])   # drafting card: era inactive, old skip preserved
+        self.assertTrue(any("non-canonical" in x for x in s))
+
+    def test_a2_pre_shape_cutoff_behavior_unchanged(self):
+        self._req(created="2026-08-17")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", THREE_COL_LOG)
+        f, s = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertTrue(any("non-canonical" in x for x in s))
+
+    def test_a2_mixed_card_deviant_file_not_masked(self):
+        self._req(gov="ledger", created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-a.md", CANON_LOG)
+        _write(self.tmp.name, "proj/001-a/notes/grill-b.md", THREE_COL_LOG)
+        _write(self.tmp.name, "proj/001-a/decisions.md",
+               "### D1 [design] approved\n- 陈述: x\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any("non-canonical-grill-log: grill-b.md" in x for x in f))
+        self.assertFalse(any("grill-a.md" in x for x in f))
+
+    def test_a2_column_drop_flagged(self):
+        self._req(created="2026-08-18")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "| id | status |\n|---|---|\n| G1 | resolved |\n")
+        f, _ = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("column-drop: grill-x.md") for x in f))
+
     # -- A3
     def test_a3_ungated_card_owes_nothing(self):
         self._req(status="drafting")

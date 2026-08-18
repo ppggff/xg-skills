@@ -276,6 +276,8 @@ GATED_DOCS = (("requirement.md", ("confirmed",)),
 TRANSCRIPTION_MARKER = "（落纸补充）"
 DISCUSSION_FIRST_CUTOFF = "2026-08-11"   # 019: grill-log mandatory-persist start
 RECEIPT_STRUCT_CUTOFF = "2026-08-17"     # 021 landing: structural anchor required from here
+GRILL_SHAPE_CUTOFF = "2026-08-18"        # 022 landing: canonical-shape finding era (gated cards)
+GRILL_CANON_COLS = ("id", "question", "recommended", "chosen", "why", "depends-on", "status")
 RECEIPT_ANCHOR = re.compile(r"^(?:#{2,4}\s+Panel receipt|\*\*Panel receipt)", re.M | re.I)
 RECEIPT_LOOSE = re.compile(r"receipt", re.I)
 GATE_LINE = re.compile(r"（gate[^）\n]{1,60}）")
@@ -338,32 +340,71 @@ def _grill_resolved_ids(text):
     return canonical, ids
 
 
+def _grill_shape_era(card_dir, ws):
+    """(022) the shape contract binds a card created on/after GRILL_SHAPE_CUTOFF
+    that has passed any gate (aligned with A3's activation predicate)."""
+    created = _card_created(card_dir, ws)
+    return (created >= GRILL_SHAPE_CUTOFF
+            and any(True for _ in _gated_docs(card_dir, ws)))
+
+
+def _grill_shape_findings(name, text):
+    """(022 R1/R4) per-file shape core: the file must hold a canonical table
+    (header with `id`+`status`), and every canonical table carries all seven
+    columns. Per-file verdict — a mixed card's deviant file is not masked by a
+    conforming sibling (the #15 discipline, now at finding severity)."""
+    findings, lines = [], text.splitlines()
+    has_canonical, fence, i = False, False, 0
+    while i < len(lines):
+        ln = lines[i].strip()
+        if ln.startswith("```"):
+            fence = not fence
+        elif not fence and ln.startswith("|"):
+            header = [c.strip().lower() for c in ln.strip("|").split("|")]
+            if "id" in header and "status" in header:
+                has_canonical = True
+                missing = [c for c in GRILL_CANON_COLS if c not in header]
+                if missing:
+                    findings.append("column-drop: %s missing %s"
+                                    % (name, ",".join(missing)))
+        i += 1
+    if not has_canonical:
+        findings.insert(0, "non-canonical-grill-log: %s (shape contract)" % name)
+    return findings
+
+
 def check_grill_reverse(project, card_dir, ws):
     """(k) A2 — transcription reverse fidelity, canonical-table form only: every
     grill-log `resolved → <ledger-id>` row has a decisions.md block (any state —
-    existence, not approval). Other table shapes skip (021 freeze panel: three
-    incompatible shapes in the wild; the format contract is deferred)."""
+    existence, not approval). Pre-GRILL_SHAPE_CUTOFF (or ungated) cards: other
+    table shapes skip per file. From the shape era on (022): a file without a
+    canonical table is a finding, and canonical tables must carry all seven
+    columns — the skip branches stay untouched outside the era (skip ≠ pass)."""
     created = _card_created(card_dir, ws)
     if not created or created < DISCUSSION_FIRST_CUTOFF:
         return [], ["grill-reverse: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
     logs = _grill_logs(card_dir)
     if not logs:
         return [], ["grill-reverse: no-grill-log"]
-    ids, skips = set(), []
+    shape_era = _grill_shape_era(card_dir, ws)
+    findings, ids, skips = [], set(), []
     for f in logs:
-        c, s = _grill_resolved_ids(ws._read(f))
+        text = ws._read(f)
+        c, s = _grill_resolved_ids(text)
         if c:
             ids |= s
-        else:   # per-file verdict — a mixed set must not read as fully checked (#15)
+        elif not shape_era:   # per-file verdict — a mixed set must not read as fully checked (#15)
             skips.append("grill-reverse: non-canonical-grill-log (%s)"
                          % os.path.basename(f))
-    if len(skips) == len(logs):
+        if shape_era:
+            findings += _grill_shape_findings(os.path.basename(f), text)
+    if not shape_era and len(skips) == len(logs):
         return [], skips
     if ids and not os.path.exists(os.path.join(card_dir, "decisions.md")):
         # canonical table on a ledger-less card: no home to check against (#13)
-        return [], skips + ["grill-reverse: no-ledger for resolved ids"]
+        return findings, skips + ["grill-reverse: no-ledger for resolved ids"]
     blocks = {b["id"] for b in ws.parse_ledger(card_dir)[0]}
-    return ["resolved-no-home: " + i for i in sorted(ids - blocks)], skips
+    return findings + ["resolved-no-home: " + i for i in sorted(ids - blocks)], skips
 
 
 def check_panel_receipts(project, card_dir, ws):
