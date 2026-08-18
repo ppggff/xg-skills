@@ -333,11 +333,10 @@ def render_text(cards):
 TASK_HEAD = re.compile(r"^###\s+(?:Task\s*|T)(\d+)\s*[::]?\s*(.*)$", re.M)
 RID = re.compile(r"\bR(\d+)\b")
 
-# `001 的 R34` names another card's item; harvesting it as a local R-id made the trace
-# matrix invent rows (R31–R36 on a card whose own items stop at R22) and flag them
-# `not-in-需求条目`. Same for the shorthand `其 R36` (antecedent card named earlier in
-# the sentence) and `M5 R8` (another mechanism's item) — 021 review #3 caught both
-# firing as real findings. Strip cross-context references before any local-id harvest.
+# `NNN 的 R<n>` names another card's item; harvesting it as a local R-id made the
+# trace matrix invent rows and flag them `not-in-需求条目`. Same for the shorthand
+# `其 R<n>` (antecedent card named earlier in the sentence) and `M<n> R<n>` (another
+# mechanism's item). Strip cross-context references before any local-id harvest.
 XCARD_REF = re.compile(r"\d{3}\s*的\s*[*`~]{0,2}R\d+|其\s*[*`~]{0,2}R\d+|\bM\d+\s+R\d+")
 
 

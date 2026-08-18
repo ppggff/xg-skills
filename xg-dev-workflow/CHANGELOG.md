@@ -11,9 +11,9 @@ Each entry says *what changed* and *why*, not the raw diff.
   are scripted, not delegated」was already the stated principle; and M3's script-eligible
   list had never gotten its checker.
 - `--check` gains a project scope (`--check <project>` = project-level checks + every card,
-  the legacy-baseline full sweep) and a skip contract: carrier-missing paths print
-  `skip(<原因>)`, never silently pass, never gate; per-check exceptions isolate as
-  `check-error:<id>`. Check bodies move to a new `tools/workflow-checks.py` (one-way
+  the legacy-baseline full sweep) and a skip contract: carrier-missing paths print a
+  `skip: <check>: <原因>` line, never silently pass, never gate; per-check exceptions
+  isolate as `check-error:<id>`. Check bodies move to a new `tools/workflow-checks.py` (one-way
   dependency checks→parsing; CLI and letters unchanged for (a)–(i)).
 - New checks (j)–(w): gated-doc（落纸补充）clear · grill-log resolved→ledger existence
   (canonical-table form) · panel-receipt presence (structural anchor `### Panel receipt` /

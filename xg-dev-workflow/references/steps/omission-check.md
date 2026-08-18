@@ -21,9 +21,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
   ways (u) · project-root strays (v) · board monotonic machine subset (w). Exit 1 =
-  findings; carrier-missing paths print `skip(<原因>)` and never gate — **skip ≠ pass**,
-  an unexpected skip is worth a look. Semantic contradiction with approved decisions
-  stays in the judgment subset.
+  findings; carrier-missing paths print a `skip: <check>: <原因>` line and never gate —
+  **skip ≠ pass**, an unexpected skip is worth a look. Semantic contradiction with
+  approved decisions stays in the judgment subset.
 - **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
   reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this
   checklist, take back only the violation list; the orchestrator fixes what's flagged, which
@@ -42,8 +42,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 ## Checklist
 - [ ] **Links resolve** — every `[[wiki/<project>/<slug>]]` resolves (KB raw/concept); every
       relative link (`./design.md`, `./adr/NNNN-*.md`) points to an existing file.
-      (Scripted — `--check` (o); the judgment half is whether a *resolving* link points at
-      the right doc.)
+      (Scripted — `--check` (o), over the six phase docs + the project root's
+      index/roadmap; links inside adr/, notes/ and ledger/facts files, and whether a
+      *resolving* link points at the right doc, stay judgment.)
 - [ ] **ADRs wired + hygienic** — each `adr/NNNN-*.md` is linked from `design.md`; superseded
       ADRs carry the right status; **no `## Amendment` block** (decision changes are new
       superseding ADRs, not appended); a superseded ADR's forward cross-ref is **≤2 lines**;
