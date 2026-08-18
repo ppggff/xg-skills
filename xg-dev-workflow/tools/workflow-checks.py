@@ -452,11 +452,58 @@ def check_grill_reverse(project, card_dir, ws):
     return findings + ["resolved-no-home: " + i for i in sorted(ids - blocks)], skips
 
 
+RECEIPT_BLOCK_ANCHOR = re.compile(r"^(#{2,4}\s+Panel receipt|\*\*Panel receipt\*\*)")
+RECEIPT_HEADING = re.compile(r"^#{1,6}\s")
+RECEIPT_KEYS = ("round =", "round type", "lenses =", "re-dispatch =")
+RECEIPT_DISP = re.compile(r"^-\s*(adopted|refuted|open)\b(.*)$")
+RECEIPT_DISP_MARK = {"adopted": "→", "refuted": "—", "open": "→"}
+
+
+def _receipt_block_findings(name, text):
+    """(022 R5) structure core per anchored receipt block: the four header key
+    substrings present; a disposition list line's lead word carries its mark on
+    the same line (a parenthetical qualifier between word and mark is fine);
+    each block holds ≥1 disposition line or the literal "no findings". Only
+    lead-word lines are constrained — lens-4 verdict lists, tables, and free
+    bullets stay unparsed (021 R2-adjacent tolerance, panel L2-4/T-3)."""
+    lines = text.splitlines()
+    anchors = [i for i, ln in enumerate(lines)
+               if RECEIPT_BLOCK_ANCHOR.match(ln.strip())]
+    findings = []
+    for start in anchors:
+        end = len(lines)
+        for j in range(start + 1, len(lines)):
+            s = lines[j].strip()
+            if RECEIPT_HEADING.match(s) or RECEIPT_BLOCK_ANCHOR.match(s):
+                end = j
+                break
+        block = "\n".join(lines[start:end])
+        label = "%s block@%d" % (name, start + 1)
+        missing = [k for k in RECEIPT_KEYS if k not in block]
+        if missing:
+            findings.append("receipt-missing-key: %s (%s)"
+                            % (label, ",".join(missing)))
+        disp = 0
+        for raw in lines[start:end]:
+            m = RECEIPT_DISP.match(raw.strip())
+            if not m:
+                continue
+            disp += 1
+            if RECEIPT_DISP_MARK[m.group(1)] not in m.group(2):
+                findings.append("receipt-bad-disposition: %s (%s)"
+                                % (label, raw.strip()[:40]))
+        if disp == 0 and "no findings" not in block:
+            findings.append("receipt-no-dispositions: %s" % label)
+    return findings
+
+
 def check_panel_receipts(project, card_dir, ws):
     """(l) A3 — receipt presence: a card that passed any gate and keeps a grill-log
     must hold ≥1 receipt block; zero blocks = self-certified gate, the primary
     failure. Structural anchor from RECEIPT_STRUCT_CUTOFF on; earlier cards judged
-    by the loose word anchor (their receipts predate the pinned form)."""
+    by the loose word anchor (their receipts predate the pinned form). From
+    GRILL_SHAPE_CUTOFF on (022): each anchored block additionally passes the
+    per-block structure core (_receipt_block_findings)."""
     created = _card_created(card_dir, ws)
     if not created or created < DISCUSSION_FIRST_CUTOFF:
         return [], ["panel-receipts: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
@@ -466,9 +513,14 @@ def check_panel_receipts(project, card_dir, ws):
     if not logs:
         return [], ["panel-receipts: no-grill-log"]
     anchor = RECEIPT_ANCHOR if created >= RECEIPT_STRUCT_CUTOFF else RECEIPT_LOOSE
-    if any(anchor.search(ws._read(f)) for f in logs):
+    if not any(anchor.search(ws._read(f)) for f in logs):
+        return ["no-receipts: gated card, grill-log without receipt block"], []
+    if created < GRILL_SHAPE_CUTOFF:
         return [], []
-    return ["no-receipts: gated card, grill-log without receipt block"], []
+    findings = []
+    for f in logs:
+        findings += _receipt_block_findings(os.path.basename(f), ws._read(f))
+    return findings, []
 
 
 def check_docgate_gateline(project, card_dir, ws):

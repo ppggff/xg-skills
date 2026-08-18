@@ -312,6 +312,64 @@ class GateAdjacent(unittest.TestCase):
         _write(self.tmp.name, "proj/001-a/notes/grill-x.md", "…本轮 receipts 落于此…\n")
         self.assertEqual(wc.check_panel_receipts("proj", self.card, ws._L1), ([], []))
 
+    # -- A3 structure core (022)
+    RECEIPT_OK = ("## Panel receipt — r1\n"
+                  "- **Header**：round = pre-gate · round type = 全量 · "
+                  "lenses = 1/2/3/4 · re-dispatch = no（首次）。\n"
+                  "- adopted → G3 收进。\n"
+                  "- adopted（轻）→ R2 注记（括注形）。\n"
+                  "- refuted — 理由一句。\n"
+                  "- lens 4 判词：a satisfied · b not satisfied（自由行不受核）。\n")
+
+    def _shape_req(self):
+        self._req(created="2026-08-18")
+
+    def test_a3_structure_full_block_passes(self):
+        self._shape_req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md", CANON_LOG + self.RECEIPT_OK)
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
+    def test_a3_missing_header_key_flagged(self):
+        self._shape_req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + "## Panel receipt — r1\n"
+               "- **Header**：round = pre-gate · lenses = 1/2/3/4。\n- adopted → G3。\n")
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("receipt-missing-key")
+                            and "round type" in x and "re-dispatch" in x for x in f))
+
+    def test_a3_bad_disposition_lead_word_without_mark(self):
+        self._shape_req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + self.RECEIPT_OK + "- adopted 但同行无箭头标记。\n")
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertTrue(any("receipt-bad-disposition" in x for x in f))
+
+    def test_a3_clean_run_literal_passes(self):
+        self._shape_req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + "**Panel receipt** — 轻量复核：round = r2 · "
+               "round type = 定向 · lenses = 4 · re-dispatch = yes（scope=修订）。"
+               "no findings。\n")
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
+    def test_a3_block_without_dispositions_flagged(self):
+        self._shape_req()
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               CANON_LOG + "## Panel receipt — r1\n"
+               "- **Header**：round = pre-gate · round type = 全量 · "
+               "lenses = 1/2/3/4 · re-dispatch = no。\n判词全 satisfied。\n")
+        f, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertTrue(any("receipt-no-dispositions" in x for x in f))
+
+    def test_a3_pre_shape_cutoff_presence_only(self):
+        self._req(created="2026-08-17")
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "### Panel receipt — r1\n判词自由形（021 时代不受结构核）。\n")
+        self.assertEqual(wc.check_panel_receipts("proj", self.card, ws._L1), ([], []))
+
     # -- A5
     def test_a5_gate_line_present_clean(self):
         self._req(body="## Change log\n- 2026-08-17 — confirmed（gate `abc1234`）。\n")
