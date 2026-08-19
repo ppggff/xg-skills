@@ -939,19 +939,25 @@ def check_card(project, card_dir):
     return _checks().check_card(project, card_dir, _L1)
 
 
-def run_check(root, arg):
+def run_check(root, arg, verbose_skips=False):
     """--check CLI, three-tier dispatch (021 design): an arg containing "/" → card
     scope via resolve_card; a bare name that is a project dir under root → project
     scope (project-level checks + every card — the full-sweep form), taking priority
     over resolve_card's card-dir/single-card branches; anything else → resolve_card
-    legacy behavior. Prints findings (⚠) then skips (skip:); exit 1 iff findings —
-    a skip is visible but never gates. Catches its own exceptions — the top-level
-    never-crash wrapper clamps exceptions (only) to exit 0, so an unhandled error
-    here would silently pass the check."""
+    legacy behavior. Prints findings (⚠), carrier skips (skip:, verbatim), then the
+    exemption tier: by default one two-bucket counting line per gate-passed card
+    (grandfathered · carrier-silent; not-yet-due never prints) plus one project-level
+    line; --verbose-skips itemizes every exemption instead (no gate predicate).
+    Exit 1 iff findings — a skip/exemption is visible but never gates. The ok tail's
+    N counts printed skip lines (counting lines included), not exemption instances.
+    Catches its own exceptions — the top-level never-crash wrapper clamps exceptions
+    (only) to exit 0, so an unhandled error here would silently pass the check."""
+    proj_scope = False
     try:
         if "/" not in arg.rstrip("/") and \
                 os.path.isdir(os.path.join(root, arg.rstrip("/"))):
             name = arg.rstrip("/")
+            proj_scope = True
             findings, skips, exemptions = _checks().check_project(
                 name, os.path.join(root, name), _L1)
         else:
@@ -963,20 +969,52 @@ def run_check(root, arg):
         findings, skips, exemptions = ["check-error: %s" % e], [], []
     for f in findings:
         print("⚠ " + f)
+    printed = 0
     for s in skips:
         print("skip: " + s)
+        printed += 1
+    seen, uniq = set(), []
+    for e in exemptions:   # (check, card, class, reason) dedup — per-item loop hits fold
+        k = (e.check, e.card, e.cls, e.reason)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(e)
+    if verbose_skips:
+        for e in uniq:
+            pre = "%s: " % e.card if e.card and proj_scope else ""
+            print("skip: %s%s: %s [%s]" % (pre, e.check, e.reason, e.cls))
+            printed += 1
+    else:
+        counted = {}   # card "" = the project-level line
+        for e in uniq:
+            if e.cls == "not-yet-due" or not e.gated:
+                continue
+            n, m = counted.get(e.card, (0, 0))
+            counted[e.card] = (n + 1, m) if e.cls == "grandfathered" else (n, m + 1)
+        for card in sorted(counted):
+            n, m = counted[card]
+            buckets = " · ".join(filter(None, ["%d grandfathered" % n if n else "",
+                                               "%d carrier-silent" % m if m else ""]))
+            pre = "%s: " % card if card and proj_scope else "project " if not card else ""
+            print("skip: %sexempt: %s (--verbose-skips)" % (pre, buckets))
+            printed += 1
     if findings:
         return 1
-    print("check: ok" + (" (%d skipped)" % len(skips) if skips else ""))
+    print("check: ok" + (" (%d skipped)" % printed if printed else ""))
     return 0
 
 
 def main():
     args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
-    check_arg = None
+    check_arg, verbose_skips = None, False
     while i < len(args):
         a = args[i]
-        if a in ("--root", "--trace", "--check") and i + 1 < len(args):
+        if a in ("--root", "--trace", "--check"):
+            # a value is required and must not look like a flag — a misplaced switch
+            # would otherwise be swallowed as the argument (R9)
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("workflow-status: %s requires a value" % a, file=sys.stderr)
+                return 2
             if a == "--root":
                 root_arg = args[i + 1]
             elif a == "--trace":
@@ -993,12 +1031,17 @@ def main():
             check_arg = a.split("=", 1)[1]
         elif a == "--json":
             as_json = True
-        elif not a.startswith("--"):
+        elif a == "--verbose-skips":
+            verbose_skips = True
+        elif a.startswith("--"):
+            print("workflow-status: unknown flag %r" % a, file=sys.stderr)
+            return 2
+        else:
             want.append(a)
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
     if check_arg:
-        return run_check(root, check_arg)
+        return run_check(root, check_arg, verbose_skips)
     if trace_arg:
         if as_json:
             print(json.dumps(trace_data(*resolve_card(root, trace_arg)), ensure_ascii=False))

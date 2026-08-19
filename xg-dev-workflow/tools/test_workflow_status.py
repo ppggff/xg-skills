@@ -1056,5 +1056,50 @@ class CarrierSkeleton(unittest.TestCase):
                             for e in cards[0]["carriers"]))
 
 
+class CliFlagSafety(unittest.TestCase):
+    """023 T2 (R9): unknown flags error out; flag values are never swallowed
+    switches; --check/--verbose-skips parse in either order."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        card = os.path.join(self.root, "proj/001-a")
+        os.makedirs(card, exist_ok=True)
+        with open(os.path.join(card, "requirement.md"), "w", encoding="utf-8") as f:
+            f.write("---\nstatus: drafting\n---\n")
+        with open(os.path.join(self.root, "proj/index.md"), "w", encoding="utf-8") as f:
+            f.write("| 001 | x | todo | — |\n")
+
+    def _main(self, *argv):
+        import contextlib, io, sys
+        old = sys.argv
+        sys.argv = ["workflow-status.py", "--root", self.root] + list(argv)
+        out, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ws.main()
+        finally:
+            sys.argv = old
+        return code, out.getvalue(), err.getvalue()
+
+    def test_unknown_flag_errors_not_ignored(self):
+        code, _, err = self._main("--check", "proj", "--verbose-skip")   # typo'd flag
+        self.assertEqual(code, 2)
+        self.assertIn("unknown flag", err)
+
+    def test_flag_never_swallowed_as_value(self):
+        code, _, err = self._main("--check", "--verbose-skips", "proj")
+        self.assertEqual(code, 2)
+        self.assertIn("requires a value", err)
+
+    def test_both_orders_parse(self):
+        for argv in (("--check", "proj", "--verbose-skips"),
+                     ("--verbose-skips", "--check", "proj")):
+            code, out, _ = self._main(*argv)
+            self.assertEqual(code, 0, argv)
+            self.assertIn("check: ok", out)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

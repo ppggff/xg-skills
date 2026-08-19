@@ -819,5 +819,84 @@ class ExemptionChannel(unittest.TestCase):
                          ("project", "", True))
 
 
+class ExemptionRendering(unittest.TestCase):
+    """023 T2: default counting tier (gate-scoped, two buckets) + --verbose-skips
+    itemization + tail-N sourcing from printed skip lines."""
+
+    EMIT = [("grandfathered", "pre-cutoff x"), ("grandfathered", "pre-cutoff y"),
+            ("carrier-missing", "no z"), ("not-yet-due", "dim off")]
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        _write(self.root, "proj/001-a/requirement.md", "---\nstatus: confirmed\n---\n")
+        _write(self.root, "proj/002-b/requirement.md", "---\nstatus: drafting\n---\n")
+        _write(self.root, "proj/index.md", "| 001 | x | todo | — |\n")
+        self._with_entries((("emit", lambda p, c, ws2: ([], [], list(self.EMIT))),))
+
+    def _with_entries(self, extra):
+        orig = wc.CARD_CHECKS
+        wc.CARD_CHECKS = orig + extra
+        self.addCleanup(lambda: setattr(wc, "CARD_CHECKS", orig))
+
+    def _run_verbose(self, arg):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = ws.run_check(self.root, arg, verbose_skips=True)
+        return code, buf.getvalue()
+
+    def test_counting_line_two_buckets_card_scope(self):
+        code, out = _run(self.root, "proj/001")
+        self.assertEqual(code, 0)
+        self.assertIn("skip: exempt: 2 grandfathered · 1 carrier-silent (--verbose-skips)",
+                      out)
+        self.assertNotIn("not-yet-due", out)
+
+    def test_gate_scoped_draft_card_prints_no_counting_line(self):
+        code, out = _run(self.root, "proj/002")
+        self.assertEqual(code, 0)
+        self.assertNotIn("exempt:", out)
+
+    def test_verbose_itemizes_all_classes_no_gate_predicate(self):
+        code, out = self._run_verbose("proj/002")
+        self.assertEqual(code, 0)
+        for line in ("skip: emit: pre-cutoff x [grandfathered]",
+                     "skip: emit: no z [carrier-missing]",
+                     "skip: emit: dim off [not-yet-due]"):
+            self.assertIn(line, out)
+        self.assertNotIn("exempt:", out)   # verbose replaces the counting tier
+
+    def test_dedup_folds_repeat_hits(self):
+        self._with_entries((("dup", lambda p, c, ws2:
+                             ([], [], [("grandfathered", "same"),
+                                       ("grandfathered", "same")])),))
+        code, out = _run(self.root, "proj/001")
+        self.assertIn("3 grandfathered", out)   # 2 from EMIT + 1 folded from dup
+
+    def test_project_scope_prefixes_cards_and_adds_project_line(self):
+        orig = wc.PROJECT_CHECKS
+        wc.PROJECT_CHECKS = orig + (
+            ("pemit", lambda p, d, ws2: ([], [], [("grandfathered", "old-board")])),)
+        self.addCleanup(lambda: setattr(wc, "PROJECT_CHECKS", orig))
+        code, out = _run(self.root, "proj")
+        self.assertIn("skip: 001-a: exempt: 2 grandfathered · 1 carrier-silent", out)
+        self.assertIn("skip: project exempt: 1 grandfathered (--verbose-skips)", out)
+        self.assertNotIn("002-b: exempt:", out)   # draft card stays silent
+
+    def test_tail_counts_printed_skip_lines(self):
+        code, out = _run(self.root, "proj/001")
+        self.assertEqual(code, 0)
+        n = sum(1 for ln in out.splitlines() if ln.startswith("skip: "))
+        self.assertIn("check: ok (%d skipped)" % n, out)
+
+    def test_findings_suppress_tail_not_counting_line(self):
+        self._with_entries((("bad", lambda p, c, ws2: (["boom-finding"], [])),))
+        code, out = _run(self.root, "proj/001")
+        self.assertEqual(code, 1)
+        self.assertIn("skip: exempt:", out)
+        self.assertNotIn("check: ok", out)
+
+
 if __name__ == "__main__":
     unittest.main()
