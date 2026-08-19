@@ -7,11 +7,34 @@ mode (i). workflow-status.py remains the parsing layer + CLI entry and lazy-load
 this module; every public function takes `ws` = a live view of the workflow-status
 module (one-way dependency: checks read the parsing layer, never the reverse).
 
+Exemption classes — the single source of the three-way not-applicable taxonomy.
+A check that cannot judge an object emits a structured exemption record instead of
+silently returning; each emission point states its class and reason in place:
+- not-yet-due: a lifecycle predicate hasn't fired (card not past a gate, status not
+  reached, governance mode not applicable) — silence is the correct semantics;
+  default output: none.
+- grandfathered: a forward-only cutoff or a legacy carrier shape permanently exempts
+  the object (pre-cutoff card, old board/grill-log format) — default output: folded
+  into the per-card counting line (bucket 1).
+- carrier-missing: an expected carrier is absent, or a present carrier is
+  structurally undecidable (missing doc/section/anchor) — a real coverage hole;
+  default output: already-visible skip lines stay verbatim, previously-silent paths
+  fold into the counting line (bucket 2).
+
 Lives only in xg-dev-workflow/tools/ (not a synced copy).
 """
+import collections
 import glob
 import os
 import re
+
+EXEMPTION_CLASSES = ("not-yet-due", "grandfathered", "carrier-missing")
+# cls ∈ EXEMPTION_CLASSES · check = registry id · reason = short phrase ·
+# scope ∈ ("card", "project") · card = dir basename ("" at project scope) ·
+# gated = card passed ≥1 gate (rendering's counting-line predicate; True at
+# project scope). Check functions emit (cls, reason) pairs; _run_entries stamps
+# the check id; the aggregators stamp scope/card/gated.
+Exemption = collections.namedtuple("Exemption", "cls check reason scope card gated")
 
 # ---- (f) design.md required-section existence — the scripted slice of M3's
 # Design-completeness. Only the unconditional template sections; conditional ones
@@ -27,18 +50,18 @@ DESIGN_REQUIRED_SECTIONS = (
 
 
 def check_design_sections(card_dir, ws):
-    """Missing-section findings for design.md; [] when absent or grandfathered."""
+    """Missing-section findings for design.md; none when absent or grandfathered."""
     path = os.path.join(card_dir, "design.md")
     if not os.path.exists(path):
-        return []
+        return [], []
     created = str(ws.frontmatter(path).get("created", ""))
     if not created or created < DESIGN_SECTIONS_CUTOFF:
-        return []
+        return [], []
     heads = " | ".join(m.group(1) for m in
                        re.finditer(r"^##+\s+(.+)$", ws._read(path), re.M))
     return ["missing-section: design.md " + name
             for name, pat in DESIGN_REQUIRED_SECTIONS
-            if not re.search(pat, heads, re.I)]
+            if not re.search(pat, heads, re.I)], []
 
 
 # trailing annotation after ] is legal (longrun_test 002 idiom: `### F24 [VERIFIED] —— note`)
@@ -63,7 +86,7 @@ def check_fact_markers(card_dir, ws):
     """
     text = ws._read(os.path.join(card_dir, "facts.md"))
     if not text:
-        return []
+        return [], []
     findings, heads = [], list(FACT_HEAD.finditer(text))
     for i, m in enumerate(heads):
         marker = m.group(2)
@@ -80,7 +103,7 @@ def check_fact_markers(card_dir, ws):
         if hit:
             findings.append("fact-marker: %s marked [%s] but 来源 says '%s'"
                             % (m.group(1), marker, hit.group(0).strip()))
-    return findings
+    return findings, []
 
 
 def check_part_consistency(card_dir, ws):
@@ -89,11 +112,11 @@ def check_part_consistency(card_dir, ws):
     column) and un-split cards skip — 006-style plan-only Part grouping stays legal."""
     parts, _ = ws.trace_parts(card_dir)
     if not parts:
-        return []
+        return [], []
     return ["part-mismatch: T%s Part '%s' not in design Parts (%s)"
             % (tid, t["part"], ", ".join(parts))
             for tid, t in sorted(ws.trace_plan(card_dir).items(), key=lambda kv: int(kv[0]))
-            if t["part"] and t["part"] not in parts]
+            if t["part"] and t["part"] not in parts], []
 
 
 GOVERNANCE_CUTOFF = "2026-08-10"     # cards created on/after must declare the field
@@ -118,7 +141,7 @@ def check_governance(card_dir, ws):
         findings.append("ledger-mode-no-ledger")
     if mode == "doc-gate" and has_ledger:
         findings.append("doc-gate-has-ledger")
-    return findings
+    return findings, []
 
 
 # ---- ledger reference helpers (feed check_card's (a)) ----
@@ -198,16 +221,16 @@ def check_card(project, card_dir, ws):
     + ledger (a)–(e), in the pre-split order. New code goes through check_card_all
     (per-check isolation + skips); this stays the findings-only surface tests and
     docs cite."""
-    return (check_design_sections(card_dir, ws) + check_fact_markers(card_dir, ws)
-            + check_part_consistency(card_dir, ws) + check_governance(card_dir, ws)
-            + check_ledger(card_dir, ws))
+    return (check_design_sections(card_dir, ws)[0] + check_fact_markers(card_dir, ws)[0]
+            + check_part_consistency(card_dir, ws)[0] + check_governance(card_dir, ws)[0]
+            + check_ledger(card_dir, ws)[0])
 
 
 def check_ledger(card_dir, ws):
     """The ledger checks (a)–(e); semantic contradiction stays M3 judgment.
-    No decisions.md → [] (old-card semantics, never flagged)."""
+    No decisions.md → no findings (old-card semantics, never flagged)."""
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        return []
+        return [], []
     blocks, findings = ws.parse_ledger(card_dir)
     by_id = {}
     for b in blocks:
@@ -264,7 +287,7 @@ def check_ledger(card_dir, ws):
     for b in blocks:                                                          # (d)
         if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
             findings.append("bad-approve-note: " + b["id"])
-    return findings
+    return findings, []
 
 
 # ---- (j)-(m): gate-adjacent checks (021 T3) ----
@@ -1004,11 +1027,12 @@ def check_board_monotonic(project, project_dir, ws):
 # a check never emits both a finding and a skip for the same condition.
 
 CARD_CHECKS = (
-    ("design-sections", lambda p, c, ws: (check_design_sections(c, ws), [])),
-    ("fact-markers", lambda p, c, ws: (check_fact_markers(c, ws), [])),
-    ("part-consistency", lambda p, c, ws: (check_part_consistency(c, ws), [])),
-    ("governance", lambda p, c, ws: (check_governance(c, ws), [])),
-    ("ledger", lambda p, c, ws: (check_ledger(c, ws), [])),
+    # signature adapters only — each function owns its full return shape
+    ("design-sections", lambda p, c, ws: check_design_sections(c, ws)),
+    ("fact-markers", lambda p, c, ws: check_fact_markers(c, ws)),
+    ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws)),
+    ("governance", lambda p, c, ws: check_governance(c, ws)),
+    ("ledger", lambda p, c, ws: check_ledger(c, ws)),
     ("transcription-marker", check_transcription_markers),      # (j) A1
     ("grill-reverse", check_grill_reverse),                     # (k) A2
     ("panel-receipts", check_panel_receipts),                   # (l) A3
@@ -1030,34 +1054,56 @@ PROJECT_CHECKS = (
 )
 
 
+def _normalize(res):
+    """Return-shape adapter: bare findings list / (findings, skips) /
+    (findings, skips, exemptions) all normalize to the 3-tuple — incremental
+    migration stays legal, the two legacy streams' content untouched."""
+    if isinstance(res, list):
+        return res, [], []
+    if len(res) == 2:
+        return res[0], res[1], []
+    return res
+
+
 def _run_entries(entries, args, ws):
-    findings, skips = [], []
+    findings, skips, exemptions = [], [], []
     for cid, fn in entries:
         try:
-            f, s = fn(*args, ws)
+            f, s, exs = _normalize(fn(*args, ws))
         except Exception as e:
             findings.append("check-error:%s: %s" % (cid, e))
             continue
         findings += f
         skips += s
-    return findings, skips
+        exemptions += [(cls, cid, reason) for cls, reason in exs]
+    return findings, skips, exemptions
 
 
 def check_card_all(project, card_dir, ws):
-    """All card-scoped checks, per-check isolated. Returns (findings, skips)."""
-    return _run_entries(CARD_CHECKS, (project, card_dir), ws)
+    """All card-scoped checks, per-check isolated. Returns (findings, skips,
+    exemptions); card attribution rides the record's fields, never a string
+    prefix (the skips stream keeps its prefix behavior)."""
+    findings, skips, raw = _run_entries(CARD_CHECKS, (project, card_dir), ws)
+    base = os.path.basename(card_dir.rstrip("/"))
+    gated = any(True for _ in _gated_docs(card_dir, ws))
+    exemptions = [Exemption(cls, check, reason, "card", base, gated)
+                  for cls, check, reason in raw]
+    return findings, skips, exemptions
 
 
 def check_project(project, project_dir, ws):
     """Project scope: project-level checks + every card's card-scoped set (the
     full-sweep form R8's 存量全量跑 runs on). Card rows are prefixed with their
     dir name so a sweep finding stays attributable."""
-    findings, skips = _run_entries(PROJECT_CHECKS, (project, project_dir), ws)
+    findings, skips, raw = _run_entries(PROJECT_CHECKS, (project, project_dir), ws)
+    exemptions = [Exemption(cls, check, reason, "project", "", True)
+                  for cls, check, reason in raw]
     for card_dir in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*"))):
         if not os.path.isdir(card_dir):
             continue
         base = os.path.basename(card_dir)
-        f, s = check_card_all(project, card_dir, ws)
+        f, s, e = check_card_all(project, card_dir, ws)
         findings += ["%s: %s" % (base, x) for x in f]
         skips += ["%s: %s" % (base, x) for x in s]
-    return findings, skips
+        exemptions += e
+    return findings, skips, exemptions

@@ -952,14 +952,15 @@ def run_check(root, arg):
         if "/" not in arg.rstrip("/") and \
                 os.path.isdir(os.path.join(root, arg.rstrip("/"))):
             name = arg.rstrip("/")
-            findings, skips = _checks().check_project(name, os.path.join(root, name), _L1)
+            findings, skips, exemptions = _checks().check_project(
+                name, os.path.join(root, name), _L1)
         else:
             project, card_dir = resolve_card(root, arg)
-            findings, skips = _checks().check_card_all(project, card_dir, _L1)
+            findings, skips, exemptions = _checks().check_card_all(project, card_dir, _L1)
     except SystemExit:
         raise
     except Exception as e:
-        findings, skips = ["check-error: %s" % e], []
+        findings, skips, exemptions = ["check-error: %s" % e], [], []
     for f in findings:
         print("⚠ " + f)
     for s in skips:

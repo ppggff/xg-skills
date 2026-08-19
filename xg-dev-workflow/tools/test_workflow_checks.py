@@ -105,7 +105,7 @@ class SkipAndIsolation(unittest.TestCase):
         boom = lambda p, c, ws: (_ for _ in ()).throw(RuntimeError("boom"))
         self._with_entries((("bad", boom),
                             ("after", lambda p, c, ws: (["late-finding"], []))))
-        findings, skips = wc.check_card_all("proj",
+        findings, skips, _ = wc.check_card_all("proj",
                                             os.path.join(self.root, "proj/001-a"), ws._L1)
         self.assertTrue(any(f.startswith("check-error:bad:") for f in findings))
         self.assertIn("late-finding", findings)   # the rest still ran
@@ -762,6 +762,61 @@ class ProjectScoped(unittest.TestCase):
         f, _ = wc.check_project_links("proj", self.proj, ws._L1)
         self.assertIn("broken-link: roadmap.md ./notes/none.md", f)
         self.assertIn("broken-wikilink: roadmap.md [[wiki/proj/x]]", f)
+
+
+class ExemptionChannel(unittest.TestCase):
+    """023 T1: three-arity return adapter + exemption record stamping."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        _write(self.root, "proj/001-a/requirement.md", "---\nstatus: drafting\n---\n")
+        self.card = os.path.join(self.root, "proj/001-a")
+
+    def _with_entries(self, extra):
+        orig = wc.CARD_CHECKS
+        wc.CARD_CHECKS = orig + extra
+        self.addCleanup(lambda: setattr(wc, "CARD_CHECKS", orig))
+
+    def test_adapter_normalizes_three_arities(self):
+        self.assertEqual(wc._normalize(["f"]), (["f"], [], []))
+        self.assertEqual(wc._normalize((["f"], ["s"])), (["f"], ["s"], []))
+        self.assertEqual(wc._normalize((["f"], ["s"], [("grandfathered", "why")])),
+                         (["f"], ["s"], [("grandfathered", "why")]))
+
+    def test_bare_list_entry_still_runs(self):
+        self._with_entries((("bare", lambda p, c, ws: ["bare-finding"]),))
+        f, _, _ = wc.check_card_all("proj", self.card, ws._L1)
+        self.assertIn("bare-finding", f)
+
+    def test_exemption_stamped_with_check_card_and_gate(self):
+        self._with_entries((("emitter", lambda p, c, ws:
+                             ([], [], [("grandfathered", "pre-cutoff")])),))
+        _, _, exs = wc.check_card_all("proj", self.card, ws._L1)
+        mine = [e for e in exs if e.check == "emitter"]
+        self.assertEqual(len(mine), 1)
+        self.assertEqual((mine[0].cls, mine[0].reason, mine[0].scope,
+                          mine[0].card, mine[0].gated),
+                         ("grandfathered", "pre-cutoff", "card", "001-a", False))
+
+    def test_gated_true_after_a_gate_passed(self):
+        _write(self.root, "proj/001-a/requirement.md", "---\nstatus: confirmed\n---\n")
+        self._with_entries((("emitter", lambda p, c, ws:
+                             ([], [], [("not-yet-due", "x")])),))
+        _, _, exs = wc.check_card_all("proj", self.card, ws._L1)
+        self.assertTrue([e for e in exs if e.check == "emitter"][0].gated)
+
+    def test_project_scope_stamps_project_records(self):
+        orig = wc.PROJECT_CHECKS
+        wc.PROJECT_CHECKS = orig + (
+            ("pemit", lambda p, d, ws: ([], [], [("grandfathered", "old-board")])),)
+        self.addCleanup(lambda: setattr(wc, "PROJECT_CHECKS", orig))
+        _write(self.root, "proj/index.md", "| 001 | x | todo | — |\n")
+        _, _, exs = wc.check_project("proj", os.path.join(self.root, "proj"), ws._L1)
+        mine = [e for e in exs if e.check == "pemit"]
+        self.assertEqual((mine[0].scope, mine[0].card, mine[0].gated),
+                         ("project", "", True))
 
 
 if __name__ == "__main__":
