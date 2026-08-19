@@ -560,17 +560,26 @@ def check_grill_reverse(project, card_dir, ws):
 RECEIPT_BLOCK_ANCHOR = re.compile(r"^(#{2,4}\s+Panel receipt|\*\*Panel receipt\*\*)")
 RECEIPT_HEADING = re.compile(r"^#{1,6}\s")
 RECEIPT_KEYS = ("round =", "round type", "lenses =", "re-dispatch =")
+# 024 (l) extension — era-gated on the card's created (RECEIPT_PREMISE_CUTOFF),
+# inheriting (l)'s gated predicate; premises additionally carries a value-domain
+# core, suspicions is presence-only (timing/content evidence stays with the
+# round header, human-judged — D14)
+RECEIPT_PREMISE_KEYS = ("premises =", "suspicions =")
+_PREMISE_VALUE = re.compile(r"premises\s*=\s*(problem\+claim|facts-pack|UNVERIFIED)")
 RECEIPT_DISP = re.compile(r"^-\s*(adopted|refuted|open)\b(.*)$")
 RECEIPT_DISP_MARK = {"adopted": "→", "refuted": "—", "open": "→"}
 
 
-def _receipt_block_findings(name, text):
+def _receipt_block_findings(name, text, premise_era=False):
     """(022 R5) structure core per anchored receipt block: the four header key
-    substrings present; a disposition list line's lead word carries its mark on
-    the same line (a parenthetical qualifier between word and mark is fine);
-    each block holds ≥1 disposition line or the literal "no findings". Only
-    lead-word lines are constrained — lens-4 verdict lists, tables, and free
-    bullets stay unparsed (021 R2-adjacent tolerance, panel L2-4/T-3)."""
+    substrings present (six in the premise era); a disposition list line's lead
+    word carries its mark on the same line (a parenthetical qualifier between
+    word and mark is fine); each block holds ≥1 disposition line or the literal
+    "no findings". Only lead-word lines are constrained — lens-4 verdict lists,
+    tables, and free bullets stay unparsed (021 R2-adjacent tolerance, panel
+    L2-4/T-3). Premise era adds the value-domain core: premises value starts in
+    {problem+claim, facts-pack, UNVERIFIED}; facts-pack demands an [F<n>] in the
+    same block."""
     lines = text.splitlines()
     anchors = [i for i, ln in enumerate(lines)
                if RECEIPT_BLOCK_ANCHOR.match(ln.strip())]
@@ -585,9 +594,21 @@ def _receipt_block_findings(name, text):
         block = "\n".join(lines[start:end])
         label = "%s block@%d" % (name, start + 1)
         missing = [k for k in RECEIPT_KEYS if k not in block]
+        if premise_era:
+            # mention ≠ use: dispositions cite the keys in backticks — strip
+            # code spans before presence/value judgment (new keys only; the
+            # four legacy keys keep their raw-substring semantics untouched)
+            scan = _INLINE_CODE_SPAN.sub("", block)
+            missing += [k for k in RECEIPT_PREMISE_KEYS if k not in scan]
         if missing:
             findings.append("receipt-missing-key: %s (%s)"
                             % (label, ",".join(missing)))
+        if premise_era and "premises =" in scan:
+            m = _PREMISE_VALUE.search(scan)
+            if not m:
+                findings.append("receipt-bad-premises: %s" % label)
+            elif m.group(1) == "facts-pack" and not re.search(r"\[F\d+\]", scan):
+                findings.append("receipt-premises-no-fact: %s" % label)
         disp = 0
         for raw in lines[start:end]:
             m = RECEIPT_DISP.match(raw.strip())
@@ -644,7 +665,8 @@ def check_panel_receipts(project, card_dir, ws):
             exs.append(("carrier-missing",
                         "receipt anchor near-form, block core off (%s)"
                         % os.path.basename(f)))
-        findings += _receipt_block_findings(os.path.basename(f), text)
+        findings += _receipt_block_findings(os.path.basename(f), text,
+                                            created >= RECEIPT_PREMISE_CUTOFF)
     return findings, [], exs
 
 

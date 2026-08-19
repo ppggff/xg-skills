@@ -563,6 +563,55 @@ class LedgerRows(unittest.TestCase):
                       buf.getvalue())
 
 
+class ReceiptPremiseKeys(unittest.TestCase):
+    """024 T5: premises=/suspicions= receipt keys — era-gated on RECEIPT_PREMISE_CUTOFF,
+    inheriting (l)'s gated predicate; premises carries a value-domain core."""
+
+    RCPT = ("### Panel receipt — Round 1\n\n"
+            "- round = 1\n- round type: topic\n- lenses = x\n- re-dispatch = no\n"
+            "%s\nDispositions:\n\n- adopted → x\n")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+
+    def _fix(self, keys, created="2026-08-19"):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "ledger", created))
+        _write(self.tmp.name, "proj/001-a/notes/grill-requirement.md",
+               self.RCPT % keys)
+        return wc.check_panel_receipts("proj", self.card, ws._L1)
+
+    def test_era_card_missing_keys_flags(self):
+        f, _, _ = self._fix("")
+        self.assertTrue(any("receipt-missing-key" in x and "premises =,suspicions =" in x
+                            for x in f))
+
+    def test_pre_era_card_four_keys_suffice(self):
+        f, _, _ = self._fix("", created="2026-08-18")
+        self.assertEqual(f, [])
+
+    def test_value_domain_violation_flags(self):
+        f, _, _ = self._fix("- premises = 阶段doc\n- suspicions = 3\n")
+        self.assertTrue(any(x.startswith("receipt-bad-premises") for x in f))
+
+    def test_facts_pack_demands_fact_ref(self):
+        f, _, _ = self._fix("- premises = facts-pack（附入）\n- suspicions = 3\n")
+        self.assertTrue(any(x.startswith("receipt-premises-no-fact") for x in f))
+        f, _, _ = self._fix("- premises = facts-pack（[F1] 附入）\n- suspicions = 3\n")
+        self.assertEqual(f, [])
+
+    def test_backtick_mention_not_presence(self):
+        f, _, _ = self._fix("- note: `premises =` 与 `suspicions =` 的值域核归实现\n")
+        self.assertTrue(any("receipt-missing-key" in x and "premises =" in x for x in f))
+
+    def test_valid_keys_clean(self):
+        f, _, _ = self._fix("- premises = problem+claim（无合成前提）\n"
+                            "- suspicions = n/a-非 rewrite 轮\n")
+        self.assertEqual(f, [])
+
+
 class GrillSignature(unittest.TestCase):
     """024 T4: (y) grill-signature — co-occurrence signature, union id index,
     closure = status not open (first word) ∧ chosen non-empty (placeholder-aware)."""
