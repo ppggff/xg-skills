@@ -23,9 +23,15 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
   ways (u) · project-root strays (v) · board monotonic machine subset (w). Exit 1 =
-  findings; carrier-missing paths print a `skip: <check>: <原因>` line and never gate —
-  **skip ≠ pass**, an unexpected skip is worth a look. Semantic contradiction with
-  approved decisions stays in the judgment subset.
+  findings; not-applicable paths emit classified exemptions and never gate — the
+  three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
+  live in workflow-checks.py's module docstring (the single source, 023). Visible
+  carrier skips keep their per-line `skip: <check>: <原因>` form; grandfathered and
+  previously-silent carrier paths fold into one two-bucket counting line per
+  gate-passed card (`N grandfathered · M carrier-silent`; `--verbose-skips`
+  itemizes) — **skip ≠ pass**, an unexpected skip or a swelling bucket count is
+  worth a look. Semantic contradiction with approved decisions stays in the
+  judgment subset.
 - **Judgment subset → one `model: sonnet` agent**: phase consistency, terminology,
   reasoning-shown, provenance marks, snapshot bloat, … — give it the requirement dir + this
   checklist, take back only the violation list; the orchestrator fixes what's flagged, which
