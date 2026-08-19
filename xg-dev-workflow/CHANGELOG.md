@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-19 — 023: --check exemption taxonomy + three-tier default output
+
+- **workflow-checks.py / workflow-status.py** — every silent not-applicable path in the
+  deterministic checks now emits a structured exemption record (class ∈ not-yet-due /
+  grandfathered / carrier-missing; the taxonomy's single source is the checker module
+  docstring). Default rendering folds grandfathered + previously-silent carrier records
+  into one two-bucket counting line per gate-passed card (`skip: [card:] exempt: N
+  grandfathered · M carrier-silent`) plus one project-level line; not-yet-due never
+  prints; `--verbose-skips` itemizes everything. Why: grandfathered exemptions were
+  simultaneously the run-time noise majority (43/44 visible skip lines re-printed every
+  sweep) and a permanent static blind spot (silent paths never leaving a trace) — the
+  counting line solves both without touching any check's judgment (finding set verified
+  byte-identical; visible carrier skips verbatim; three mislabeled no-created skips now
+  tell the truth).
+- **CLI** — unknown `--flags` error out (exit 2) instead of being silently ignored, and
+  `--root/--trace/--check` refuse `--`-prefixed values (a misplaced switch was silently
+  swallowed as the argument).
+- **check-superseded-phrases.py** — `terms_from_card` returns a third stream (exemption
+  side channel) forwarded by the resident (n) check; standalone CLI behavior unchanged.
+- **omission-check.md** — skip-semantics paragraph rewritten to the exemption tier and
+  pointer-ized to the docstring (021 R9's per-line-visibility narrowed: visibility kept,
+  itemization moved to verbose — recorded as a revision in the KB invariants ledger).
+
 ## 2026-08-18 — M6 retro (022 close-out): fold-in minted decisions, XS/S never-batch, porting detail
 
 - **grill.md (Transcription invariant)** — a fold-in that itself *mints* a decision-level item
