@@ -79,6 +79,17 @@ partial-completion prose, and never via a table keyed differently (探了 5 种 
 - [ ] … (verifies R1)
 - [ ] 每个写点值来源正确 — 键=写点, 列=调用者/可达性/依据; 表全行齐才勾 (verifies R2)（示意）
 
+## 人工澄清清单处置 (optional — doc-gate cards consuming an adopted learn report only)
+
+<!-- Fill ONLY when this card is a doc-gate card whose beat 1 consumed an adopted learn
+     report (steps/requirement.md Axis→section mapping, 024 R2): one row per §8b 清单行 —
+     类别 (习惯/意图 vs 事实) · 处置 (续期 / retire / Open) · 去向. All rows complete before
+     the confirm gate; the gate line cites this table. Ledger cards use a grill batch round
+     instead — leave this section absent there. -->
+
+| 清单行 | 类别 | 处置 | 去向 |
+|---|---|---|---|
+
 ## Future (未来)
 
 What is deliberately deferred; extensibility expected later; what we are NOT solving now and why.

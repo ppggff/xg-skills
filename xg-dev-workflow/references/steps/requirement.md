@@ -46,8 +46,22 @@ not transcribe the words.
    a report without it is input evidence only and does **not** unlock the grill relief above.
    Axis→section mapping: 事实类 (§5) → Context / `facts.md` citations · 执行区暴露点 (§7) →
    Effect candidates · 教训/起手规则 (§3/§4) → **candidate** Constraints, adopted/rejected one
-   by one at the confirm gate · 非事实类 (§6) → never into 需求条目; design-phase input
-   evidence marked 推断/假设. Re-verify discipline (consumption side): a reused fact enters
+   by one at the confirm gate · **人工澄清清单 (§8b) → 逐条处置 (024 R2)** — every 清单行 gets
+   an explicit disposition (续期成 G/R 行 · 显式 retire · 列 Open questions), one by one at the
+   confirm gate; silent absence is the violation the axis exists to block. **Disposition
+   carries a category constraint**: 习惯/意图类前提 (人工习惯、使用方式、意图) are **never
+   renewed by Claude from old text** — re-ask the human now (an open G 行); 事实类 follow the
+   re-verify discipline below with their 时效标注. **Carrier by governance mode (D10)**:
+   ledger card → a dedicated grill batch round (one G 行 per 清单行, each row carrying its own
+   recommendation per the one-question-one-decision rule; **类别 and 去向 are added columns**
+   — 022 checks only flag missing canonical columns, extra columns are legal; renewals mint
+   G/R rows; a disposition that mints no ledger id — retire, or 列 Open — writes bare
+   `resolved` in status with the destination in the 去向 column, never `→ <非 ledger-id>`);
+   doc-gate card → the requirement.md 处置表 (template's optional「人工澄清清单处置」section;
+   the gate line cites that table). **Verbatim spot-check duty**: while consuming, spot-check
+   §8b 与报告定性引句 against the source-card text for exact match (learn R3's 可复算 property
+   is only real if a consumer occasionally replays it) · 非事实类 (§6) → never into 需求条目;
+   design-phase input evidence marked 推断/假设. Re-verify discipline (consumption side): a reused fact enters
    the new card's `facts.md` at 最高 `[推断]` (来源 = 源卡 F-id + 原实测日期 + 未重核),
    upgrades on re-verify; a refuted one flips the **source** card's facts.md marker in the
    same batch (narrow flip — templates/facts.md 头注; only when the source card has a

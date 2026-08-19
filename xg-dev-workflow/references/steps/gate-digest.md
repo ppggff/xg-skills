@@ -70,7 +70,10 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
    background by reference to a card or doc §, not restated. Sources: pending rows' `alt:`
    trade-offs, downgrade-class decisions, risk bets — plus the **least-confident spots**
    (假设/推断-marked items, unverified comparisons, remote-trigger sizing calls): confidence
-   comes from being told where to look, not from having read everything.
+   comes from being told where to look, not from having read everything. A requirement
+   confirm that consumed an adopted learn report adds **清单处置完整性** (024 R2): the 人工
+   澄清清单's disposition table is all-rows-complete (类别/处置/去向) — blanks are what this
+   item exists to show.
 6. **Open questions** — what stays deliberately unresolved, with the default taken.
 7. **The gate question + receipts** — the Stop-at-gate go ask, naming doc paths + the dev_root
    commit (SKILL.md「Ask with receipts」— unchanged, the digest sits on top of it); state that
