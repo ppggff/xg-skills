@@ -404,27 +404,38 @@ def check_transcription_markers(project, card_dir, ws):
     return findings, [], exs
 
 
-def _grill_resolved_ids(text):
-    """(canonical?, ids): canonical grill-log table = header row with both `id` and
-    `status` columns (grill.md's seven-column form); ids = ledger-id targets of
-    `resolved → <id>` status cells. Non-id targets (doc-§ form) stay judgment."""
-    canonical, ids, lines, i = False, set(), text.splitlines(), 0
+def _canonical_tables(text):
+    """Yield (header, data_rows) for every canonical grill table in text — header
+    row holding both `id` and `status` columns (grill.md's seven-column form; the
+    single canonical judgment, shared by every consumer). header = lower-cased
+    cell list; data_rows = stripped cell lists (separator rows included — callers
+    that key off a non-matching cell skip them naturally)."""
+    lines, i = text.splitlines(), 0
     while i < len(lines):
         ln = lines[i].strip()
         if ln.startswith("|"):
             header = [c.strip().lower() for c in ln.strip("|").split("|")]
             if "id" in header and "status" in header:
-                canonical = True
-                st = header.index("status")
+                rows = []
                 i += 1
                 while i < len(lines) and lines[i].strip().startswith("|"):
-                    cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                    if len(cells) > st and "resolved" in cells[st]:
-                        ids |= {m.group(1)
-                                for m in GRILL_RESOLVED_ID.finditer(cells[st])}
+                    rows.append([c.strip() for c in
+                                 lines[i].strip().strip("|").split("|")])
                     i += 1
+                yield header, rows
                 continue
         i += 1
+
+
+def _grill_resolved_ids(text):
+    """(canonical?, ids): ids = ledger-id targets of `resolved → <id>` status
+    cells across canonical tables. Non-id targets (doc-§ form) stay judgment."""
+    canonical, ids = False, set()
+    for header, rows in _canonical_tables(text):
+        canonical, st = True, header.index("status")
+        for cells in rows:
+            if len(cells) > st and "resolved" in cells[st]:
+                ids |= {m.group(1) for m in GRILL_RESOLVED_ID.finditer(cells[st])}
     return canonical, ids
 
 
@@ -514,27 +525,17 @@ def _question_gloss_hints(name, text):
     never gates), not a finding. Coarse filter: any 括注 passes, gloss content
     quality stays unjudged. Own cutoff (QUESTION_GLOSS_CUTOFF, landing day + 1):
     grill rows are history — question cells are never gloss-backfilled."""
-    hints, lines, i = [], text.splitlines(), 0
-    while i < len(lines):
-        ln = lines[i].strip()
-        if ln.startswith("|"):
-            header = [c.strip().lower() for c in ln.strip("|").split("|")]
-            if "id" in header and "status" in header and "question" in header:
-                qi, idi = header.index("question"), header.index("id")
-                i += 1
-                while i < len(lines) and lines[i].strip().startswith("|"):
-                    cells = [c.strip() for c in
-                             lines[i].strip().strip("|").split("|")]
-                    if len(cells) > qi and cells[0] and \
-                            not set(cells[0]) <= set("|-: "):
-                        q = cells[qi]
-                        if _QG_ID.search(q) and "（" not in q and "(" not in q:
-                            hints.append("question-gloss: %s %s bare id, no gloss"
-                                         % (name, cells[idi] if idi < len(cells)
-                                            else "?"))
-                    i += 1
-                continue
-        i += 1
+    hints = []
+    for header, rows in _canonical_tables(text):
+        if "question" not in header:
+            continue
+        qi, idi = header.index("question"), header.index("id")
+        for cells in rows:
+            if len(cells) > qi and cells[0] and not set(cells[0]) <= set("|-: "):
+                q = cells[qi]
+                if _QG_ID.search(q) and "（" not in q and "(" not in q:
+                    hints.append("question-gloss: %s %s bare id, no gloss"
+                                 % (name, cells[idi] if idi < len(cells) else "?"))
     return hints
 
 
@@ -937,34 +938,21 @@ def _accounting_line(line, ws):
 
 def _grill_id_index(card_dir, ws):
     """(any_canonical, {G-id: {"status", "chosen"}}) — union over every canonical
-    table in the card's grill-logs (G ids are card-unique). Canonical judgment is
-    _grill_resolved_ids' header criterion (id + status columns) — no second
-    definition; the header's own column positions supply the cells."""
+    table in the card's grill-logs (G ids are card-unique). Canonical judgment
+    lives once in _canonical_tables; the header's own column positions supply
+    the cells."""
     index, any_canonical = {}, False
     for f in _grill_logs(card_dir):
-        lines = ws._read(f).splitlines()
-        i = 0
-        while i < len(lines):
-            ln = lines[i].strip()
-            if ln.startswith("|"):
-                header = [c.strip().lower() for c in ln.strip("|").split("|")]
-                if "id" in header and "status" in header:
-                    any_canonical = True
-                    st, ch = header.index("status"), (header.index("chosen")
-                                                      if "chosen" in header else -1)
-                    idc = header.index("id")
-                    i += 1
-                    while i < len(lines) and lines[i].strip().startswith("|"):
-                        cells = [c.strip() for c in
-                                 lines[i].strip().strip("|").split("|")]
-                        gid = cells[idc].strip("`* ") if idc < len(cells) else ""
-                        if _GID.fullmatch(gid):
-                            index.setdefault(gid, {
-                                "status": cells[st] if st < len(cells) else "",
-                                "chosen": cells[ch] if 0 <= ch < len(cells) else ""})
-                        i += 1
-                    continue
-            i += 1
+        for header, rows in _canonical_tables(ws._read(f)):
+            any_canonical = True
+            idc, st = header.index("id"), header.index("status")
+            ch = header.index("chosen") if "chosen" in header else -1
+            for cells in rows:
+                gid = cells[idc].strip("`* ") if idc < len(cells) else ""
+                if _GID.fullmatch(gid):
+                    index.setdefault(gid, {
+                        "status": cells[st] if st < len(cells) else "",
+                        "chosen": cells[ch] if 0 <= ch < len(cells) else ""})
     return any_canonical, index
 
 
