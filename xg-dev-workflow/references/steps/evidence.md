@@ -38,6 +38,29 @@ An absence claim is only as good as the search behind it. Before asserting "not 
   layer where a few-line assert would do, and unlike an `(assumption)` it slips past review once
   "grounded". Can't verify → mark `(assumption)` and design as if X *might* already reach Y.
 
+## Consuming a KB negative/qualified conclusion (024 R12 — the reader side)
+
+The rules above govern *writing* a negative; this governs *building on one already written*.
+Both 003 accidents happened here, after the writing rules existed — hence a mechanical face,
+not another prose rule:
+
+- **F-block first, then cite.** Using a KB negative/qualified conclusion as 立论 (the reason to
+  add/skip/shape a mechanism) requires landing it in the card's `facts.md` first — the
+  **verbatim original sentence + its recorded scope** as an `[F<n>]` block — and citing
+  `[F<n>]` from the doc/ledger. The file-level trace is what existing checks then cover
+  (reference resolution — `--check` (r); marker↔source integrity — (g); verbatim fidelity of
+  the quote stays lens 4/M3 judgment). A KB conclusion consumed without its F block is an
+  inherited-unverified claim, not evidence.
+- **Three reading states — never extrapolate across them.** A KB statement is one of:
+  **语义边界** (a path/use limitation — "无 SQL 视图", "不能用于 Y") · **存在性否定** (the thing
+  doesn't exist / is unreachable) · **规范处置** (a should/shouldn't ruling). Reading a
+  boundary as an existence negation, or as a prescription, is the accident form (one each in
+  003); the F block records which state the original sentence carries.
+- **Attachment, not a parallel rule**: this tightens the **birth-certificate rule** above (a
+  KB negative that justifies new plumbing still needs the hop-by-hop VERIFIED trace — the KB
+  sentence alone never births code) and the subagent **inherit-unverified** rule (don't
+  inherit a KB negative into a verdict without re-checking its scope).
+
 ## Feasibility claims ("can't be done / infeasible") — design-time
 Distinct from a fact about behavior: a feasibility verdict is a judgment about **mutable**
 code, and during design the code is exactly what we'd change. Correctly-cited code is **not**
@@ -68,7 +91,10 @@ proof of infeasibility. Before writing "infeasible / 不可行 / can't":
 
 ## Where evidence comes from (by authority)
 1. **The code itself** — `func()` in `file.c` (read it; no line numbers in prose).
-2. **Project knowledge** — xg-knowledge-lite `[[wiki/<project>/<slug>]]`.
+2. **Project knowledge** — xg-knowledge-lite `[[wiki/<project>/<slug>]]`. Rank-2 authority
+   does **not** exempt the Negative-results discipline: a KB negative is only as good as its
+   recorded query+scope, and consuming one as 立论 goes through the F-block rule above
+   (「Consuming a KB negative/qualified conclusion」).
 3. **Official docs / changelog** for a framework/library at the **detected version**
    (read the dependency file first); deep-link with anchors.
 4. ❌ Not authoritative: Stack Overflow, blogs, AI summaries, your own training data.
