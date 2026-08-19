@@ -563,6 +563,120 @@ class LedgerRows(unittest.TestCase):
                       buf.getvalue())
 
 
+class GrillSignature(unittest.TestCase):
+    """024 T4: (y) grill-signature — co-occurrence signature, union id index,
+    closure = status not open (first word) ∧ chosen non-empty (placeholder-aware)."""
+
+    LOG_HEAD = ("| id | question | recommended | chosen | why | depends-on | status |\n"
+                "|---|---|---|---|---|---|---|\n")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+
+    def _card(self, body, log=None, created="2026-08-19", gov="ledger",
+              status="drafting", log2=None):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % (status, gov, created) + body)
+        if log is not None:
+            _write(self.tmp.name, "proj/001-a/notes/grill-requirement.md",
+                   self.LOG_HEAD + log)
+        if log2 is not None:
+            _write(self.tmp.name, "proj/001-a/notes/grill-design.md",
+                   self.LOG_HEAD + log2)
+
+    def _y(self):
+        return wc.check_grill_signature("proj", self.card, ws._L1)
+
+    def _row(self, gid, status="resolved", chosen="是"):
+        return "| %s | q | r | %s | w | — | %s |\n" % (gid, chosen, status)
+
+    def test_open_row_flags(self):
+        self._card("边界定案（人工 2026-08-20，G1）\n", log=self._row("G1", status="open"))
+        self.assertEqual(self._y()[0], ["signature-open: G1 (requirement.md)"])
+
+    def test_placeholder_chosen_flags(self):
+        self._card("边界定案（人工 2026-08-20，G1）\n",
+                   log=self._row("G1", chosen="—"))
+        self.assertEqual(self._y()[0], ["signature-open: G1 (requirement.md)"])
+
+    def test_closed_row_passes(self):
+        self._card("边界定案（人工 2026-08-20，G1）\n", log=self._row("G1"))
+        self.assertEqual(self._y()[:2], ([], []))
+
+    def test_resolved_arrow_target_not_substring_trapped(self):
+        self._card("边界定案（人工 2026-08-20，G1）\n",
+                   log=self._row("G1", status="resolved → Scope/Open"))
+        self.assertEqual(self._y()[0], [])
+
+    def test_no_log_and_missing_id_carrier_missing(self):
+        self._card("边界定案（人工 2026-08-20，G1）\n")
+        f, s, exs = self._y()
+        self.assertEqual((f, s), ([], []))
+        self.assertIn(("carrier-missing", "no grill-log, signatures not checkable"), exs)
+        self._card("边界定案（人工 2026-08-20，G2）\n", log=self._row("G1"))
+        f, s, exs = self._y()
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "signature id G2 not in grill-log index"), exs)
+
+    def test_longest_match_suffix_id_not_degraded(self):
+        # `G6b` must not resolve to G6's (closed) row — carrier-missing for G6b
+        self._card("沿 `G6b` 判定（人工 2026-08-20）\n", log=self._row("G6"))
+        f, s, exs = self._y()
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "signature id G6b not in grill-log index"),
+                      exs)
+
+    def test_slash_and_range_expansion(self):
+        rows = "".join(self._row("G%d" % i) for i in (1, 2, 3, 4, 5))
+        self._card("定案（人工 2026-08-20，G1/G2 与 G3–G5）\n", log=rows)
+        self.assertEqual(self._y(), ([], [], []))
+        rows_gap = "".join(self._row("G%d" % i) for i in (1, 2, 3, 5))
+        self._card("定案（人工 2026-08-20，G1/G2 与 G3–G5）\n", log=rows_gap)
+        f, s, exs = self._y()
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "signature id G4 not in grill-log index"),
+                      exs)
+
+    def test_backtick_gid_visible_union_index(self):
+        # extraction precedes code-span strip; index unions across grill-logs
+        self._card("沿 `G7` 定案（人工 2026-08-20）；另 G8 拍板（人工）\n",
+                   log=self._row("G7", status="open"), log2=self._row("G8"))
+        self.assertEqual(self._y()[0], ["signature-open: G7 (requirement.md)"])
+
+    def test_accounting_lines_out_of_scope(self):
+        self._card("| ID | 需求条目 |\n|---|---|\n"
+                   "| ~~R8~~ | ~~旧~~ retired (G9 人工照案) |\n",
+                   log=self._row("G9", status="open"))
+        _write(self.tmp.name, "proj/001-a/decisions.md",
+               "### R8 [requirement] retired\n- 陈述: x\n"
+               "- retired: 2026-08-20（G9 人工照案）\n")
+        self.assertEqual(self._y()[0], [])
+
+    def test_history_masked(self):
+        self._card("正文无署名\n\n## Change log\n\n- 2026-08-20 — G3 人工照案。\n",
+                   log=self._row("G1"))
+        self.assertEqual(self._y(), ([], [], []))
+
+    def test_pre_cutoff_grandfathered_and_no_created_carrier_missing(self):
+        self._card("定案（人工 2026-08-20，G1）\n", log=self._row("G1", status="open"),
+                   created="2026-08-18")
+        f, s, exs = self._y()
+        self.assertEqual((f, s), ([], []))
+        self.assertEqual(exs, [("grandfathered", "pre-2026-08-19 card")])
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               "---\nstatus: drafting\ngovernance: ledger\n---\n定案（人工，G1）\n")
+        f, s, exs = self._y()
+        self.assertEqual((f, s), ([], []))
+        self.assertIn(("carrier-missing", "no created date, signature check off"), exs)
+
+    def test_mode_agnostic_doc_gate_checked(self):
+        self._card("定案（人工 2026-08-20，G1）\n", gov="doc-gate",
+                   log=self._row("G1", status="open"))
+        self.assertEqual(self._y()[0], ["signature-open: G1 (requirement.md)"])
+
+
 class SupersedeResidue(unittest.TestCase):
     """021 T4: A4′ machine anchors + resident conditional sweep + --from-card."""
 
@@ -1031,6 +1145,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("progress-cap", CM, "progress.md missing"),
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", GF, "pre-2026-08-19 card"),
+            ("grill-signature", GF, "pre-2026-08-19 card"),
         })
 
     def test_docgate_draft_card_exact_set_and_ungated_flag(self):
@@ -1059,6 +1174,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("progress-cap", CM, "progress.md missing"),
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", ND, "doc-gate card, ledger is a forbidden carrier"),
+            ("grill-signature", CM, "no grill-log, signatures not checkable"),
         })
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)

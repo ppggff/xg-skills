@@ -843,6 +843,128 @@ def check_ledger_rows(project, card_dir, ws):
     return findings, [], exs
 
 
+SIGNATURE_SCAN_DOCS = ("requirement.md", "decisions.md", "facts.md", "design.md",
+                       "detail.md", "plan.md", "test.md")
+_GID = re.compile(r"G\d+(?:[a-z]|\.\d+)?")
+_GID_RANGE = re.compile(r"G(\d+)\s*[–-]\s*G?(\d+)\b")
+
+
+def _line_gids(line):
+    """G-ids referenced on one line: longest-match grammar (G6b never degrades to
+    G6), slash lists fall out of findall, en-dash/hyphen ranges expand. Extraction
+    runs BEFORE any code-span strip — backtick-quoted G-ids are references here
+    (the corpus majority form). The range cap guards prose dashes."""
+    ids = set(_GID.findall(line))
+    for m in _GID_RANGE.finditer(line):
+        a, b = int(m.group(1)), int(m.group(2))
+        if a < b and b - a <= 200:
+            ids |= {"G%d" % k for k in range(a, b + 1)}
+    return ids
+
+
+def _accounting_line(line, ws):
+    """Supersede/retire accounting carriers: the judgment has migrated — residue is
+    (n)/M2 domain, not a closure demand."""
+    ls = line.strip()
+    if re.match(r"-\s*(retired|superseded):", ls):
+        return True
+    if ls.startswith("|"):
+        cells = [c.strip() for c in ls.strip("|").split("|")]
+        return bool(cells and (ws.RETIRE_ID.search(cells[0]) or
+                    (len(cells) > 1 and
+                     ws.RETIRE_MARK.match(cells[1].replace("**", "")))))
+    return False
+
+
+def _grill_id_index(card_dir, ws):
+    """(any_canonical, {G-id: {"status", "chosen"}}) — union over every canonical
+    table in the card's grill-logs (G ids are card-unique). Canonical judgment is
+    _grill_resolved_ids' header criterion (id + status columns) — no second
+    definition; the header's own column positions supply the cells."""
+    index, any_canonical = {}, False
+    for f in _grill_logs(card_dir):
+        lines = ws._read(f).splitlines()
+        i = 0
+        while i < len(lines):
+            ln = lines[i].strip()
+            if ln.startswith("|"):
+                header = [c.strip().lower() for c in ln.strip("|").split("|")]
+                if "id" in header and "status" in header:
+                    any_canonical = True
+                    st, ch = header.index("status"), (header.index("chosen")
+                                                      if "chosen" in header else -1)
+                    idc = header.index("id")
+                    i += 1
+                    while i < len(lines) and lines[i].strip().startswith("|"):
+                        cells = [c.strip() for c in
+                                 lines[i].strip().strip("|").split("|")]
+                        gid = cells[idc].strip("`* ") if idc < len(cells) else ""
+                        if _GID.fullmatch(gid):
+                            index.setdefault(gid, {
+                                "status": cells[st] if st < len(cells) else "",
+                                "chosen": cells[ch] if 0 <= ch < len(cells) else ""})
+                        i += 1
+                    continue
+            i += 1
+    return any_canonical, index
+
+
+def check_grill_signature(project, card_dir, ws):
+    """(y) grill-signature — closure of human-signature references: a top-level-doc
+    line co-locating 人工 and a G-id claims a human grill decision; the referenced
+    row (union id index over all grill-logs) must be closed — status not open
+    (lexically anchored on the cell's first word) and chosen non-empty
+    (placeholder-aware). There is no separate deferred rule: a deferred row is
+    excluded from passing by the chosen-non-empty condition alone. Scan domain =
+    the seven top-level card files (notes/, log.md, progress.md excluded); history
+    masked (a Change-log-only reference is never checked — _mask_history's
+    boundary); accounting lines and non-active ledger blocks are out of scope.
+    Absence in every form — no grill-log, no canonical table, id not in the union
+    index — is carrier-missing (prune compatibility, 019 D3, outranks wrong-id
+    detection; typos stay M3 judgment). Closure is shape, not fidelity (lens 4).
+    Mode-agnostic; created-only pre-gate predicate."""
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date, signature check off")]
+    if created < GRILL_SIGNATURE_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % GRILL_SIGNATURE_CUTOFF)]
+    refs = {}
+    for name in SIGNATURE_SCAN_DOCS:
+        text = ws._read(os.path.join(card_dir, name))
+        if not text:
+            continue
+        if name == "decisions.md":
+            head = text.split("### ", 1)[0]
+            scan = head.splitlines()
+            for b in ws.parse_ledger(card_dir)[0]:
+                if b["state"] in ws.ACTIVE_STATES:
+                    scan += b["body"].splitlines()
+        else:
+            scan = _mask_history(text, ws).splitlines()
+        for line in scan:
+            if "人工" not in line or _accounting_line(line, ws):
+                continue
+            for gid in _line_gids(line):
+                refs.setdefault(gid, name)
+    if not _grill_logs(card_dir):
+        return [], [], [("carrier-missing", "no grill-log, signatures not checkable")]
+    any_canonical, index = _grill_id_index(card_dir, ws)
+    if not any_canonical:
+        return [], [], [("carrier-missing", "grill-log without canonical table")]
+    findings, exs = [], []
+    for gid in sorted(refs, key=lambda g: (int(re.match(r"G(\d+)", g).group(1)), g)):
+        row = index.get(gid)
+        if row is None:
+            exs.append(("carrier-missing",
+                        "signature id %s not in grill-log index" % gid))
+            continue
+        chosen = row["chosen"].strip("* ")
+        if re.match(r"open\b", row["status"].strip(), re.I) \
+                or not chosen or chosen in ws.PLACEHOLDERS:
+            findings.append("signature-open: %s (%s)" % (gid, refs[gid]))
+    return findings, [], exs
+
+
 _WEIGHT_TOKEN = re.compile(r"\d+|[一二三四五六七八九十百千万亿零两]+")
 _PAREN_COUNT = re.compile(r"（\s*(\d+|[一二三四五六七八九十])\s*[类条项处种个]）")
 _CJK_NUM = {c: i for i, c in enumerate("零一二三四五六七八九十")}
@@ -1314,6 +1436,7 @@ CARD_CHECKS = (
     ("progress-cap", check_progress_cap),                       # (s) B8
     ("adr-hygiene", check_adr_hygiene),                         # (t) C4
     ("ledger-rows", check_ledger_rows),                         # (x) 024
+    ("grill-signature", check_grill_signature),                 # (y) 024
 )
 
 PROJECT_CHECKS = (
