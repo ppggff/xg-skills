@@ -42,6 +42,17 @@ a finding's numeric/enumerative factual claims before adopting them** (counts, "
 corpus-wide absences) — panels sample and misstate totals; the claim's *direction* is usually
 right, the *number* often isn't.
 
+**Dispatch closure — load-bearing-premise tightening (024 R4).** The prompt's closure
+({problem + claim} + the verified-facts pack) is also the **only legal source for load-bearing
+premises** (numbers, durations, scale, environment facts): a premise the dispatcher
+synthesizes from anywhere else is marked `UNVERIFIED` inside the prompt or left out. This is a
+tightening example of the existing closure, not a new authorization — "it appears somewhere in
+a phase doc" never launders a premise into a lens prompt (the 003 accident form: an unsourced
+"几个月" reached all four lens prompts). The dispatch template carries evidence.md's existing
+**Negative-results duty** into every subagent prompt (a negative result states query + scope —
+the wiring point for dispatch-tree misses). Mechanical face = the receipt header's
+`premises =` key (「Receipts」).
+
 1. **Causal-coverage lens.** Enumerate the *minimal complete* set of causal paths to the
    goal/failure. Demand a **bijection** between what's being built/logged and those causes:
    flag anything that maps to *no* cause (unnecessary), and any cause with *no* coverage
@@ -79,11 +90,19 @@ right, the *number* often isn't.
    夹带/漏记 report as `not satisfied` subtypes (the verdict vocabulary stays three-valued);
    the verdict list + forward/reverse tables land in the receipts; gap rows route to the
    digest's §5 待你判. Input gains {the grill-log's resolved decision rows (`resolved → <id>`
-   status cells — grill.md's canonical table) + decisions.md}. **Mechanical half-steps are
+   status cells — grill.md's canonical table) + decisions.md + the human-message verbatim
+   pack below}. **Mechanical half-steps are
    scripted, not re-judged** (021): `workflow-status.py --check` covers the marker count
    ((j) stray-marker), the reverse id-existence half ((k) resolved-no-home), receipt presence
    ((l) no-receipts) and the doc-gate audit line ((m)); the judge runs the check and audits
    the semantic fidelity on top — never hand-greps those four.
+   **Human-message verbatim pack (024 D21).** Before every decision-zone gate ask the
+   dispatcher packs the phase's **complete human chat messages** into the lens 4 prompt —
+   verbatim, in chronological order, with a count line reconcilable against the message count
+   (all-or-nothing packing is what makes selective packing auditable). With the human's actual
+   words visible, the fidelity audit checks each pending/approved row's G-row chosen against
+   an **individually given** human answer — one answer transcribed as N approvals is the
+   finding (R13's bundling risk: a bundled reply read as N item-approvals).
 
 **Receipts.** Every panel run leaves a receipt in the grill-log (or, for a **generic** grill
 whose conversation is the log, in the round's closing message — decision-zone discussion-first
@@ -101,6 +120,11 @@ key substrings `round =` · `round type` · `lenses =` · `re-dispatch =` (order
 free); each finding's disposition is a `- `-led list line whose lead word is followed **on the
 same line** by its mark — `adopted … →` / `refuted … —` / `open … →` (a parenthetical qualifier
 between word and mark is fine: `adopted（轻）→`); a clean run carries the literal `no findings`.
+**From the 024 receipt-premise cutoff** the header additionally carries `premises =` — value
+starts in the closed set `problem+claim` / `facts-pack` (then the block names an `[F<n>]`) /
+`UNVERIFIED…` (the premise-closure trace, R4) — and `suspicions =` — a rewrite round's
+round-header suspicion-list count, else `n/a-非 rewrite 轮` (R5; presence machine-checked,
+timing/content stay with the round header).
 `--check` (l) verifies each anchored block structurally; wording quality stays human/M6.
 The refuted-with-why lines are the content a verdict-only receipt loses:
 they are what stops a dead concern from being re-found every pass, and the only audit trail
@@ -180,6 +204,16 @@ notes, the better the starting points — invest there.
   effort — SKILL.md「Subagent model assignment」), mandate =
   hunt surviving old-semantics text and doc↔doc contradictions (no kernel re-verification);
   escalate a finding to code-verification only when it implicates code truth.
+  **Rewrite rounds add the dispatcher's own suspicion list (024 R5):** before dispatching the
+  pass, the dispatcher self-lists 「本轮改动可能自造的矛盾」(incl. cross-doc reference points)
+  in the **grill-log round header** — backtick any decision id inside the list, a bare
+  `resolved → <id>` form would misparse as a decision row — and folds the list into the pass
+  mandate: what the dispatcher touched is information the agent cannot reconstruct (003
+  Round 9: self-listing closed in one round what generic hunting took two). Feeding the
+  list's terms to `check-superseded-phrases.py --terms` is a suggested move, not a duty.
+  The receipt's `suspicions =` key carries the list's count (presence machine-checked;
+  timing and content evidence stay with the round header, human-judged). Interlocks with
+  grill.md「Whole-doc rewrite」's rewrite-list discipline.
 - **discussion-first rounds (requirement/design)** — dispatch per the **round-type mapping**
   in `references/design-agenda.md`. Override relation: the mapping governs in-discussion
   cadence only — ADR-class new/changed-mechanism checkpoints and the pre-freeze pass keep the
