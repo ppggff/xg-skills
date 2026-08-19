@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -1007,6 +1008,26 @@ class ExemptionRendering(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("skip: exempt:", out)
         self.assertNotIn("check: ok", out)
+
+    def test_finding_lines_identical_across_modes(self):
+        # E4/R5 hermetic form: the exemption tier never leaks into the ⚠ set
+        self._with_entries((("emit", lambda p, c, ws2: ([], [], list(self.EMIT))),
+                            ("bad", lambda p, c, ws2: (["boom-finding"], [])),))
+        code_d, out_d = _run(self.root, "proj/001")
+        code_v, out_v = self._run_verbose("proj/001")
+        pick = lambda out: [ln for ln in out.splitlines() if ln.startswith("⚠")]
+        self.assertEqual(pick(out_d), pick(out_v))
+        self.assertEqual((code_d, code_v), (1, 1))
+
+    def test_counting_equals_verbose_itemization(self):
+        # E2/R10: counting-line numbers = per-class verbose line counts, same card same run
+        code, out = _run(self.root, "proj/001")
+        m = re.search(r"exempt: (\d+) grandfathered · (\d+) carrier-silent", out)
+        self.assertTrue(m)
+        _, out_v = self._run_verbose("proj/001")
+        vg = sum(1 for ln in out_v.splitlines() if ln.endswith("[grandfathered]"))
+        vc = sum(1 for ln in out_v.splitlines() if ln.endswith("[carrier-missing]"))
+        self.assertEqual((int(m.group(1)), int(m.group(2))), (vg, vc))
 
 
 if __name__ == "__main__":
