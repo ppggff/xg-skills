@@ -50,13 +50,18 @@ DESIGN_REQUIRED_SECTIONS = (
 
 
 def check_design_sections(card_dir, ws):
-    """Missing-section findings for design.md; none when absent or grandfathered."""
+    """Missing-section findings for design.md; not-applicable paths emit exemptions
+    (missing carrier / no own created date — judged before the cutoff, whose bare
+    string compare would otherwise swallow it / pre-cutoff design)."""
     path = os.path.join(card_dir, "design.md")
     if not os.path.exists(path):
-        return [], []
+        return [], [], [("carrier-missing", "design.md missing")]
     created = str(ws.frontmatter(path).get("created", ""))
-    if not created or created < DESIGN_SECTIONS_CUTOFF:
-        return [], []
+    if not created:
+        return [], [], [("carrier-missing", "design.md without created date")]
+    if created < DESIGN_SECTIONS_CUTOFF:
+        return [], [], [("grandfathered",
+                         "design created pre-%s" % DESIGN_SECTIONS_CUTOFF)]
     heads = " | ".join(m.group(1) for m in
                        re.finditer(r"^##+\s+(.+)$", ws._read(path), re.M))
     return ["missing-section: design.md " + name
@@ -86,8 +91,8 @@ def check_fact_markers(card_dir, ws):
     """
     text = ws._read(os.path.join(card_dir, "facts.md"))
     if not text:
-        return [], []
-    findings, heads = [], list(FACT_HEAD.finditer(text))
+        return [], [], [("carrier-missing", "facts.md missing/empty")]
+    findings, exs, heads = [], [], list(FACT_HEAD.finditer(text))
     for i, m in enumerate(heads):
         marker = m.group(2)
         if "VERIFIED" not in marker.upper() or re.search(r"superseded|retired", marker, re.I):
@@ -95,6 +100,7 @@ def check_fact_markers(card_dir, ws):
         body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
         src = FACT_SOURCE.search(body)
         if not src:
+            exs.append(("carrier-missing", "VERIFIED block without 来源 field"))
             continue
         src = src.group(1)
         hit = FACT_SELF_INFER.search(src)
@@ -103,7 +109,7 @@ def check_fact_markers(card_dir, ws):
         if hit:
             findings.append("fact-marker: %s marked [%s] but 来源 says '%s'"
                             % (m.group(1), marker, hit.group(0).strip()))
-    return findings, []
+    return findings, [], exs
 
 
 def check_part_consistency(card_dir, ws):
@@ -112,7 +118,17 @@ def check_part_consistency(card_dir, ws):
     column) and un-split cards skip — 006-style plan-only Part grouping stays legal."""
     parts, _ = ws.trace_parts(card_dir)
     if not parts:
-        return [], []
+        # classify the empty result: a Parts table lacking the R column is the
+        # legacy shape; anything else is the legal un-split常态
+        sect = ws._section(ws._read(os.path.join(card_dir, "design.md")),
+                           r"Decomposition\s*/\s*Parts", level=3)
+        lines = [ln for ln in sect.splitlines() if ln.lstrip().startswith("|")]
+        header = ([c.strip().lower() for c in lines[0].strip().strip("|").split("|")]
+                  if lines else [])
+        if len(lines) >= 2 and any("part" in h for h in header) \
+                and not any(h == "r" for h in header):
+            return [], [], [("grandfathered", "legacy Parts table (no R column)")]
+        return [], [], [("not-yet-due", "un-split card (no Parts table)")]
     return ["part-mismatch: T%s Part '%s' not in design Parts (%s)"
             % (tid, t["part"], ", ".join(parts))
             for tid, t in sorted(ws.trace_plan(card_dir).items(), key=lambda kv: int(kv[0]))
@@ -127,21 +143,33 @@ def check_governance(card_dir, ws):
     mode = ws.card_mode(card_dir)
     fm = ws.frontmatter(os.path.join(card_dir, "requirement.md"))
     has_ledger = os.path.exists(os.path.join(card_dir, "decisions.md"))
-    findings = []
+    findings, exs = [], []
     if mode == "invalid":
         findings.append("bad-governance-value: %r" % fm.get("governance"))
     created = str(fm.get("created", ""))
     # bare string compare needs the canonical zero-padded form; a malformed date skips (i2)
-    if (mode == "legacy" and re.match(r"\d{4}-\d{2}-\d{2}", created)
-            and created >= GOVERNANCE_CUTOFF):
-        findings.append("missing-governance-field")
+    if mode == "legacy":
+        if not re.match(r"\d{4}-\d{2}-\d{2}", created):
+            exs.append(("carrier-missing", "(i2) created missing/malformed"))
+        elif created < GOVERNANCE_CUTOFF:
+            exs.append(("grandfathered", "(i2) pre-%s card" % GOVERNANCE_CUTOFF))
+        else:
+            findings.append("missing-governance-field")
+    else:
+        exs.append(("not-yet-due", "(i2) governed card, field check off"))
     # real cards annotate status inline ("confirmed # 2026-07-11 human confirm") — strip it
     status = fm.get("status", "").split("#")[0].strip()
-    if mode == "ledger" and status == "confirmed" and not has_ledger:
+    if mode != "ledger":
+        exs.append(("not-yet-due", "(i3) mode not ledger"))
+    elif status != "confirmed":
+        exs.append(("not-yet-due", "(i3) requirement not confirmed"))
+    elif not has_ledger:
         findings.append("ledger-mode-no-ledger")
-    if mode == "doc-gate" and has_ledger:
+    if mode != "doc-gate":
+        exs.append(("not-yet-due", "(i4) mode not doc-gate"))
+    elif has_ledger:
         findings.append("doc-gate-has-ledger")
-    return findings, []
+    return findings, [], exs
 
 
 # ---- ledger reference helpers (feed check_card's (a)) ----
@@ -228,9 +256,18 @@ def check_card(project, card_dir, ws):
 
 def check_ledger(card_dir, ws):
     """The ledger checks (a)–(e); semantic contradiction stays M3 judgment.
-    No decisions.md → no findings (old-card semantics, never flagged)."""
+    No decisions.md → no findings (old-card semantics, never flagged); the absence
+    classifies by governance mode — a doc-gate card forbids the carrier (its
+    presence is the finding), a ledger card truly lacks it, a legacy card predates
+    the mechanism."""
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        return [], []
+        mode = ws.card_mode(card_dir)
+        if mode == "doc-gate":
+            return [], [], [("not-yet-due",
+                             "doc-gate card, ledger is a forbidden carrier")]
+        if mode == "ledger":
+            return [], [], [("carrier-missing", "ledger card without decisions.md")]
+        return [], [], [("grandfathered", "legacy card without decisions.md")]
     blocks, findings = ws.parse_ledger(card_dir)
     by_id = {}
     for b in blocks:
@@ -243,9 +280,12 @@ def check_ledger(card_dir, ws):
         active[i] = act[-1] if act else None
     levels_present = {b["level"] for b in blocks}
 
+    exs = []
     for ref in sorted(_referenced_ids(card_dir, ws)):                        # (a)
         if _id_level(ref) not in levels_present:
-            continue  # level not ledger-managed yet (degradation axis 2)
+            # level not ledger-managed yet (degradation axis 2)
+            exs.append(("carrier-missing", "(a) referenced level not ledger-managed"))
+            continue
         if ref not in by_id:
             findings.append("dangling-id: " + ref)
         elif active[ref] is None:
@@ -260,20 +300,33 @@ def check_ledger(card_dir, ws):
                                    ("design", "design.md", ("frozen", "approved")),
                                    ("detail", "detail.md", ("baseline",))):    # (b)
         path = os.path.join(card_dir, doc)
-        if level not in levels_present or not os.path.exists(path):
+        if level not in levels_present:
+            exs.append(("carrier-missing", "(b) level has no ledger blocks"))
+            continue
+        if not os.path.exists(path):
+            exs.append(("carrier-missing", "(b) phase doc missing for ledger level"))
             continue
         status = ws.frontmatter(path).get("status", "")
         if (status in done_words) != all_approved(level):
             findings.append(f"status-mismatch: {doc} '{status}' vs ledger {level}")
 
-    for f in sorted(glob.glob(os.path.join(card_dir, "adr", "*.md"))):       # (b) ADR 行
+    adr_files = sorted(glob.glob(os.path.join(card_dir, "adr", "*.md")))     # (b) ADR 行
+    if not adr_files:
+        exs.append(("carrier-missing", "(b-ADR) no adr dir or empty"))
+    for f in adr_files:
         m = re.search(r"^Status:\s*(\w+)", ws._read(f), re.M)
         adr_id = "ADR-" + os.path.basename(f)[:4]
         act = [b for b in blocks if (b["id"] == adr_id or b["id"].startswith(adr_id + " "))
                and b["state"] in ws.ACTIVE_STATES]
-        if not m or not act:
+        if not m:
+            exs.append(("carrier-missing", "(b-ADR) ADR without Status line"))
+            continue
+        if not act:
+            exs.append(("carrier-missing", "(b-ADR) ADR without active ledger block"))
             continue
         word = ADR_STATUS_MAP.get(m.group(1).lower())
+        if word is None:
+            exs.append(("carrier-missing", "(b-ADR) ADR status value unparsable"))
         if word == "approved" and any(b["state"] == "proposed" for b in act):
             findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
         elif word == "proposed" and all(b["state"] == "approved" for b in act):
@@ -287,7 +340,7 @@ def check_ledger(card_dir, ws):
     for b in blocks:                                                          # (d)
         if b["state"] == "approved" and not APPROVE_NOTE.search(b["body"]):
             findings.append("bad-approve-note: " + b["id"])
-    return findings, []
+    return findings, [], exs
 
 
 # ---- (j)-(m): gate-adjacent checks (021 T3) ----
@@ -330,13 +383,20 @@ def _grill_logs(card_dir):
 def check_transcription_markers(project, card_dir, ws):
     """(j) A1 — gate form only: a doc whose status passed its gate carries zero exact
     （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment)."""
-    findings = []
-    for name, path in _gated_docs(card_dir, ws):
+    findings, exs = [], []
+    for name, gated in GATED_DOCS:
+        path = os.path.join(card_dir, name)
+        if not os.path.exists(path):
+            exs.append(("carrier-missing", "phase doc missing"))
+            continue
+        if _doc_status(path, ws) not in gated:
+            exs.append(("not-yet-due", "doc not past its gate"))
+            continue
         n = _strip_code(_strip_comments(ws._read(path))).count(TRANSCRIPTION_MARKER)
         if n:
             findings.append("stray-marker: %s %d×%s past gate"
                             % (name, n, TRANSCRIPTION_MARKER))
-    return findings, []
+    return findings, [], exs
 
 
 def _grill_resolved_ids(text):
@@ -447,32 +507,49 @@ def check_grill_reverse(project, card_dir, ws):
     canonical table is a finding, and canonical tables must carry all seven
     columns — the skip branches stay untouched outside the era (skip ≠ pass)."""
     created = _card_created(card_dir, ws)
-    if not created or created < DISCUSSION_FIRST_CUTOFF:
-        return [], ["grill-reverse: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
+    if not created:
+        # judged before the cutoff — '' < cutoff is vacuously true and used to
+        # mislabel this as a pre-cutoff card
+        return [], ["grill-reverse: no-created-date"], []
+    if created < DISCUSSION_FIRST_CUTOFF:
+        return [], [], [("grandfathered",
+                         "pre-%s card" % DISCUSSION_FIRST_CUTOFF)]
     logs = _grill_logs(card_dir)
     if not logs:
-        return [], ["grill-reverse: no-grill-log"]
+        return [], ["grill-reverse: no-grill-log"], []
     shape_era = _grill_shape_era(card_dir, ws)
+    exs = []
+    if created < GRILL_SHAPE_CUTOFF:
+        exs.append(("grandfathered",
+                    "shape core off (pre-%s)" % GRILL_SHAPE_CUTOFF))
+    elif not shape_era:
+        exs.append(("not-yet-due", "shape core off (card not past a gate)"))
     gov = str(ws.frontmatter(os.path.join(card_dir, "requirement.md"))
               .get("governance", "")).split("#")[0].strip()
-    findings, ids, skips = [], set(), []
+    if shape_era and gov not in ("ledger", "doc-gate"):
+        exs.append(("not-yet-due", "legacy governance, notation not judged"))
+    findings, ids, noncanon = [], set(), 0
     for f in logs:
         text = ws._read(f)
         c, s = _grill_resolved_ids(text)
         if c:
             ids |= s
         elif not shape_era:   # per-file verdict — a mixed set must not read as fully checked (#15)
-            skips.append("grill-reverse: non-canonical-grill-log (%s)"
-                         % os.path.basename(f))
+            noncanon += 1
+            exs.append(("grandfathered" if created < GRILL_SHAPE_CUTOFF
+                        else "not-yet-due",
+                        "non-canonical-grill-log (%s)" % os.path.basename(f)))
         if shape_era:
             findings += _grill_shape_findings(os.path.basename(f), text, gov)
-    if not shape_era and len(skips) == len(logs):
-        return [], skips
+    if not shape_era and noncanon == len(logs):
+        # aggregation-only early return — no new emission point
+        return [], [], exs
     if ids and not os.path.exists(os.path.join(card_dir, "decisions.md")):
         # canonical table on a ledger-less card: no home to check against (#13)
-        return findings, skips + ["grill-reverse: no-ledger for resolved ids"]
+        return findings, ["grill-reverse: no-ledger for resolved ids"], exs
     blocks = {b["id"] for b in ws.parse_ledger(card_dir)[0]}
-    return findings + ["resolved-no-home: " + i for i in sorted(ids - blocks)], skips
+    return (findings + ["resolved-no-home: " + i for i in sorted(ids - blocks)],
+            [], exs)
 
 
 RECEIPT_BLOCK_ANCHOR = re.compile(r"^(#{2,4}\s+Panel receipt|\*\*Panel receipt\*\*)")
@@ -528,22 +605,42 @@ def check_panel_receipts(project, card_dir, ws):
     GRILL_SHAPE_CUTOFF on (022): each anchored block additionally passes the
     per-block structure core (_receipt_block_findings)."""
     created = _card_created(card_dir, ws)
-    if not created or created < DISCUSSION_FIRST_CUTOFF:
-        return [], ["panel-receipts: pre-%s card" % DISCUSSION_FIRST_CUTOFF]
+    if not created:
+        # judged before the cutoff (see check_grill_reverse) — was mislabeled pre-cutoff
+        return [], ["panel-receipts: no-created-date"], []
+    if created < DISCUSSION_FIRST_CUTOFF:
+        return [], [], [("grandfathered",
+                         "pre-%s card" % DISCUSSION_FIRST_CUTOFF)]
     if not any(True for _ in _gated_docs(card_dir, ws)):
-        return [], []
+        return [], [], [("not-yet-due", "card not past a gate")]
     logs = _grill_logs(card_dir)
     if not logs:
-        return [], ["panel-receipts: no-grill-log"]
-    anchor = RECEIPT_ANCHOR if created >= RECEIPT_STRUCT_CUTOFF else RECEIPT_LOOSE
+        return [], ["panel-receipts: no-grill-log"], []
+    exs = []
+    loose = created < RECEIPT_STRUCT_CUTOFF
+    if loose:
+        exs.append(("grandfathered",
+                    "loose receipt anchor (pre-%s)" % RECEIPT_STRUCT_CUTOFF))
+    anchor = RECEIPT_LOOSE if loose else RECEIPT_ANCHOR
     if not any(anchor.search(ws._read(f)) for f in logs):
-        return ["no-receipts: gated card, grill-log without receipt block"], []
+        return ["no-receipts: gated card, grill-log without receipt block"], [], exs
     if created < GRILL_SHAPE_CUTOFF:
-        return [], []
+        exs.append(("grandfathered",
+                    "receipt block core off (pre-%s)" % GRILL_SHAPE_CUTOFF))
+        return [], [], exs
     findings = []
     for f in logs:
-        findings += _receipt_block_findings(os.path.basename(f), ws._read(f))
-    return findings, []
+        text = ws._read(f)
+        if RECEIPT_ANCHOR.search(text) and \
+                not any(RECEIPT_BLOCK_ANCHOR.match(ln.strip())
+                        for ln in text.splitlines()):
+            # near-form anchor passed the presence gate but yields zero blocks —
+            # the block core silently checks nothing there
+            exs.append(("carrier-missing",
+                        "receipt anchor near-form, block core off (%s)"
+                        % os.path.basename(f)))
+        findings += _receipt_block_findings(os.path.basename(f), text)
+    return findings, [], exs
 
 
 def check_docgate_gateline(project, card_dir, ws):
@@ -551,12 +648,23 @@ def check_docgate_gateline(project, card_dir, ws):
     Change-log line (017 S4); detail.md's container is its Change-notes section so
     only the pattern is required there."""
     if ws.card_mode(card_dir) != "doc-gate":
-        return [], []
-    findings = []
-    for name, path in _gated_docs(card_dir, ws):
+        return [], [], [("not-yet-due", "mode not doc-gate")]
+    findings, exs = [], []
+    for name, gated in GATED_DOCS:
+        path = os.path.join(card_dir, name)
+        if not os.path.exists(path):
+            exs.append(("carrier-missing", "gated doc missing"))
+            continue
+        if _doc_status(path, ws) not in gated:
+            exs.append(("not-yet-due", "doc not past its gate"))
+            continue
         text = _strip_comments(ws._read(path))
         if name == "detail.md":
-            target = ws._section(text, r"Change notes|Change log") or text
+            target = ws._section(text, r"Change notes|Change log")
+            if not target:
+                exs.append(("carrier-missing",
+                            "detail.md without Change-notes section, full text scanned"))
+                target = text
         else:
             target = ws._section(text, r"Change log")
             if not target:
@@ -564,7 +672,7 @@ def check_docgate_gateline(project, card_dir, ws):
                 continue
         if not GATE_LINE.search(target):
             findings.append("no-gate-line: " + name)
-    return findings, []
+    return findings, [], exs
 
 
 # ---- (n): resident supersede-residue sweep (021 T4, A4′) ----
@@ -620,15 +728,26 @@ def check_supersede_residue(project, card_dir, ws):
     finding."""
     created = _card_created(card_dir, ws)
     if not created or created < RECEIPT_STRUCT_CUTOFF:
-        if _csp().terms_from_card(card_dir) != ([], []):
-            return [], ["supersede-residue: pre-021 anchors (one-shot swept at their M2)"]
-        return [], []
+        has_anchors = _csp().terms_from_card(card_dir) != ([], [])
+        if not created:
+            # judged apart from the cutoff — was folded into (and mislabeled as)
+            # the pre-021 branch
+            if has_anchors:
+                return [], ["supersede-residue: no-created-date (anchors not swept)"], []
+            return [], [], [("carrier-missing", "no created date, sweep off")]
+        if has_anchors:
+            return [], [], [("grandfathered",
+                             "pre-021 anchors (one-shot swept at their M2)")]
+        return [], [], [("carrier-missing",
+                         "no retired-phrase anchors (pre-021 card)")]
     terms, findings = _csp().terms_from_card(card_dir)
     if not terms:
-        return findings, []
+        return findings, [], [("carrier-missing", "no retired-phrase anchors")]
+    exs = []
     for name in SWEEP_DOCS:
         text = ws._read(os.path.join(card_dir, name))
         if not text:
+            exs.append(("carrier-missing", "sweep doc missing/empty"))
             continue
         in_fence = False
         for i, line in enumerate(_mask_history(text, ws).splitlines(), 1):
@@ -643,7 +762,7 @@ def check_supersede_residue(project, card_dir, ws):
             for t in terms:
                 if t in scan:
                     findings.append("superseded-phrase: %s:%d [%s]" % (name, i, t))
-    return findings, []
+    return findings, [], exs
 
 
 # ---- (o)-(t): card-scoped B/C checks (021 T5) ----
@@ -736,43 +855,43 @@ def _rel_targets(stripped):
             and (p.startswith(("./", "../")) or "/" in p or p.endswith(".md"))]
 
 
-def _doc_links(card_dir, ws):
-    """Per doc: (wikilink targets, relative link paths), code-stripped."""
-    for name in PHASE_DOC_NAMES:
-        text = ws._read(os.path.join(card_dir, name))
-        if not text:
-            continue
-        stripped = _strip_code(text)
-        yield name, _wiki_targets(stripped), _rel_targets(stripped)
-
-
 def check_links(project, card_dir, ws):
     """(o) B1 card half — every [[wikilink]] resolves in the KB (aliases honored),
     every relative link resolves on disk. KB root unreachable ⇒ the whole check
     skips (never a partial finding+skip mix)."""
     kb = _kb_root()
     if not os.path.isdir(kb):
-        return [], ["links: no-kb-root"]
-    findings = []
-    for name, wikis, rels in _doc_links(card_dir, ws):
-        for t in wikis:
+        return [], ["links: no-kb-root"], []
+    findings, exs = [], []
+    for name in PHASE_DOC_NAMES:
+        text = ws._read(os.path.join(card_dir, name))
+        if not text:
+            exs.append(("carrier-missing", "phase doc missing/empty"))
+            continue
+        stripped = _strip_code(text)
+        if any("/" not in t for t in WIKILINK.findall(stripped)
+               if not LINK_PLACEHOLDER.search(t)):
+            exs.append(("grandfathered", "bare-slug wikilink not validated"))
+        for t in _wiki_targets(stripped):
             if not _kb_resolves(kb, t):
                 findings.append("broken-wikilink: %s [[%s]]" % (name, t))
-        for p in rels:
+        for p in _rel_targets(stripped):
             if not os.path.exists(os.path.normpath(os.path.join(card_dir, p))):
                 findings.append("broken-link: %s %s" % (name, p))
-    return findings, []
+    return findings, [], exs
 
 
 def check_status_field(project, card_dir, ws):
     """(p) B2′ — every existing phase doc declares frontmatter `status` (the one
     machine-read field left after `updated:` was dropped, 021 R4)."""
-    findings = []
+    findings, exs = [], []
     for name in PHASE_DOC_NAMES:
         path = os.path.join(card_dir, name)
-        if os.path.exists(path) and not ws.frontmatter(path).get("status"):
+        if not os.path.exists(path):
+            exs.append(("carrier-missing", "phase doc missing"))
+        elif not ws.frontmatter(path).get("status"):
             findings.append("missing-status: " + name)
-    return findings, []
+    return findings, [], exs
 
 
 TRACE_CUTOFF = "2026-07-28"   # 011 template-explicitness: the R-id spine became mandatory
@@ -787,8 +906,25 @@ def check_r_trace(project, card_dir, ws):
     TRACE_CUTOFF. Prose-only requirements (no 需求条目 table) and retired R-ids exempt."""
     reqs = ws.trace_requirement(card_dir)
     if not reqs:
-        return [], []
-    downstream = _card_created(card_dir, ws) >= TRACE_CUTOFF
+        return [], [], [("carrier-missing", "no 需求条目 table")]
+    created = _card_created(card_dir, ws)
+    exs = []
+    if not created:
+        exs.append(("carrier-missing", "no created date, downstream trace off"))
+    elif created < TRACE_CUTOFF:
+        exs.append(("grandfathered",
+                    "downstream trace off (pre-%s)" % TRACE_CUTOFF))
+    downstream = bool(created) and created >= TRACE_CUTOFF
+    if downstream:
+        dpath = os.path.join(card_dir, "design.md")
+        if not os.path.exists(dpath):
+            exs.append(("carrier-missing", "design.md missing, no-design-home off"))
+        elif _doc_status(dpath, ws) not in ("frozen", "approved"):
+            exs.append(("not-yet-due", "design not frozen, no-design-home off"))
+        if not os.path.exists(os.path.join(card_dir, "plan.md")):
+            exs.append(("carrier-missing", "plan.md missing, no-task off"))
+        if not os.path.exists(os.path.join(card_dir, "test.md")):
+            exs.append(("carrier-missing", "test.md missing, no-test-coverage off"))
     retired = ws._retired_req_ids(card_dir)
     home, _verify = ws.trace_design(card_dir)
     tasks = ws.trace_plan(card_dir)
@@ -799,6 +935,7 @@ def check_r_trace(project, card_dir, ws):
     findings = []
     for r in sorted(set(reqs) | set(home) | by_r | set(cov), key=lambda x: int(x[1:])):
         if r in retired:
+            exs.append(("grandfathered", "retired R-id excluded"))
             continue
         if r not in reqs:
             findings.append("trace: %s not-in-需求条目" % r)
@@ -812,7 +949,7 @@ def check_r_trace(project, card_dir, ws):
             findings.append("trace: %s no-task" % r)
         if os.path.exists(os.path.join(card_dir, "test.md")) and r not in cov:
             findings.append("trace: %s no-test-coverage" % r)
-    return findings, []
+    return findings, [], exs
 
 
 # existence harvest is marker-agnostic (012-era heads carry no [marker]); a head naming
@@ -840,10 +977,11 @@ def check_fact_refs(project, card_dir, ws):
     card's fact carriers. A citation with no carrier anywhere is a finding — the
     non-silent form R9 assigns this check."""
     own = None   # lazy — most docs have no refs
-    findings = []
+    findings, exs = [], []
     for name in PHASE_DOC_NAMES:
         text = ws._read(os.path.join(card_dir, name))
         if not text:
+            exs.append(("carrier-missing", "phase doc missing/empty"))
             continue
         stripped = _strip_code(text)
         stripped_x = XFREF.sub("", stripped)
@@ -856,7 +994,7 @@ def check_fact_refs(project, card_dir, ws):
             hits = glob.glob(os.path.join(os.path.dirname(card_dir), nnn + "-*"))
             if not hits or n not in _fact_ids(hits[0], ws):
                 findings.append("dangling-fref: [%s:F%d] (%s)" % (nnn, n, name))
-    return findings, []
+    return findings, [], exs
 
 
 def check_progress_cap(project, card_dir, ws):
@@ -864,11 +1002,11 @@ def check_progress_cap(project, card_dir, ws):
     (done/dropped cards' prune duty ended with the card, 021 D5)."""
     path = os.path.join(card_dir, "progress.md")
     if not os.path.exists(path):
-        return [], []
+        return [], [], [("carrier-missing", "progress.md missing")]
     state = ws.board(os.path.dirname(card_dir)).get(
         os.path.basename(card_dir)[:3], {}).get("state", "").strip("*").strip()
     if state in ("done", "dropped"):
-        return [], []
+        return [], [], [("not-yet-due", "closed card (done/dropped), cap not judged")]
     n = ws._read(path).count("\n") + 1
     if n > PROGRESS_CAP:
         return ["progress-over-cap: %d lines (cap %d)" % (n, PROGRESS_CAP)], []
@@ -879,8 +1017,11 @@ def check_adr_hygiene(project, card_dir, ws):
     """(t) C4 — ADR hygiene: no `## Amendment` block (changes are superseding ADRs);
     body ≤ ADR_BODY_CAP lines; a superseded ADR keeps ≤2 lines referencing its
     superseder (the forward pointer, not a running commentary)."""
-    findings = []
-    for f in sorted(glob.glob(os.path.join(card_dir, "adr", "*.md"))):
+    adr_files = sorted(glob.glob(os.path.join(card_dir, "adr", "*.md")))
+    if not adr_files:
+        return [], [], [("carrier-missing", "no adr dir or empty")]
+    findings, exs = [], []
+    for f in adr_files:
         base = "adr/" + os.path.basename(f)
         text = ws._read(f)
         if re.search(r"^##\s*Amendment", text, re.M):
@@ -889,12 +1030,15 @@ def check_adr_hygiene(project, card_dir, ws):
         if n > ADR_BODY_CAP:
             findings.append("adr-over-cap: %s %d lines (cap %d)" % (base, n, ADR_BODY_CAP))
         m = re.search(r"^Status:\s*superseded\s*(?:by\s*(ADR-\d{4}))?", text, re.M | re.I)
+        if m and not m.group(1):
+            exs.append(("carrier-missing",
+                        "superseded without 'by ADR-NNNN' pointer"))
         if m and m.group(1):
             refs = sum(1 for ln in text.splitlines() if m.group(1) in ln)
             if refs > 2:
                 findings.append("adr-forward-ref: %s %d lines cite %s"
                                 % (base, refs, m.group(1)))
-    return findings, []
+    return findings, [], exs
 
 
 # ---- (u)-(w) + B1 project half: project-scoped checks (021 T6) ----

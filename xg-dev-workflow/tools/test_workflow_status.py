@@ -293,7 +293,7 @@ class DesignSections(unittest.TestCase):
         return card
 
     def test_full_sections_clean(self):
-        self.assertEqual(ws.check_design_sections(self._card(self.FULL)), ([], []))
+        self.assertEqual(ws.check_design_sections(self._card(self.FULL))[:2], ([], []))
 
     def test_missing_sections_flagged_without_ledger(self):
         # runs through check_card even when decisions.md is absent
@@ -307,18 +307,18 @@ class DesignSections(unittest.TestCase):
     def test_pre_cutoff_created_is_grandfathered(self):
         card = self._card("---\nid: 006\nstatus: frozen\ncreated: 2026-07-30\n---\n\n"
                           "## 方案与否决\n\nx\n")
-        self.assertEqual(ws.check_design_sections(card), ([], []))
+        self.assertEqual(ws.check_design_sections(card)[:2], ([], []))
 
     def test_no_design_md_is_clean(self):
         root = tempfile.mkdtemp()
         card = os.path.join(root, "proj", "014-fix")
         os.makedirs(card)
-        self.assertEqual(ws.check_design_sections(card), ([], []))
+        self.assertEqual(ws.check_design_sections(card)[:2], ([], []))
 
     def test_chinese_variant_heading_accepted(self):
         card = self._card(self.FULL.replace("## How it meets the requirement",
                                             "## 如何满足需求"))
-        self.assertEqual(ws.check_design_sections(card), ([], []))
+        self.assertEqual(ws.check_design_sections(card)[:2], ([], []))
 
 
 class LedgerCheck(unittest.TestCase):
@@ -585,7 +585,7 @@ class FactMarkerCheck(unittest.TestCase):
         card = self._card(
             "### F7 [VERIFIED]\n- 事实: the names are hardcoded\n"
             "- 来源: `minio_reset()` in `cb3x`（本轮实测确认）\n")
-        self.assertEqual(ws.check_fact_markers(card), ([], []))
+        self.assertEqual(ws.check_fact_markers(card)[:2], ([], []))
 
     def test_correcting_idiom_is_not_a_finding(self):
         """A VERIFIED block may say it supersedes an earlier 推断 — three real cards did."""
@@ -595,24 +595,24 @@ class FactMarkerCheck(unittest.TestCase):
             "### F14 [VERIFIED]\n- 事实: build311 suffices\n"
             "- 来源: 容器内实测 —— go build 通过\n"
             "- 说明: 修正了 design 里那条**推断**\n")
-        self.assertEqual(ws.check_fact_markers(card), ([], []))
+        self.assertEqual(ws.check_fact_markers(card)[:2], ([], []))
 
     def test_superseded_block_is_exempt(self):
         card = self._card(
             "### F21 [superseded 2026-07-31 → F22]\n- 事实（已被证伪）: data lives in S3\n"
             "- 来源: 由两个事实的组合推断，未实测\n")
-        self.assertEqual(ws.check_fact_markers(card), ([], []))
+        self.assertEqual(ws.check_fact_markers(card)[:2], ([], []))
 
     def test_inferred_marker_never_flagged(self):
         card = self._card(
             "### F2 [推断]\n- 事实: probably X\n- 来源: 由 F1 推断，未实测\n")
-        self.assertEqual(ws.check_fact_markers(card), ([], []))
+        self.assertEqual(ws.check_fact_markers(card)[:2], ([], []))
 
     def test_no_facts_file(self):
         root = tempfile.mkdtemp()
         card = os.path.join(root, "proj", "013-none")
         os.makedirs(card)
-        self.assertEqual(ws.check_fact_markers(card), ([], []))
+        self.assertEqual(ws.check_fact_markers(card)[:2], ([], []))
 
 
 NEW_PARTS_DESIGN = """## Chosen approach
@@ -823,28 +823,28 @@ class PartConsistency(unittest.TestCase):
 
     def test_bad_value_named(self):
         card = self._card(NEW_PARTS_DESIGN, self.BAD_PLAN)
-        findings, _ = ws.check_part_consistency(card)
+        findings, _, *_x = ws.check_part_consistency(card)
         self.assertEqual(len(findings), 1)
         self.assertIn("T2", findings[0])
         self.assertIn("觀測", findings[0])
 
     def test_legacy_and_unsplit_skip(self):
         card = self._card(LEGACY_PARTS_DESIGN, self.BAD_PLAN)
-        self.assertEqual(ws.check_part_consistency(card), ([], []))
+        self.assertEqual(ws.check_part_consistency(card)[:2], ([], []))
         card = self._card("## Chosen approach\n", self.BAD_PLAN)
-        self.assertEqual(ws.check_part_consistency(card), ([], []))
+        self.assertEqual(ws.check_part_consistency(card)[:2], ([], []))
 
     def test_placeholder_part_not_flagged(self):
         plan = "### T1: one\n- **Part:** —\n  - [x] ok\n"
         card = self._card(NEW_PARTS_DESIGN, plan)
-        self.assertEqual(ws.check_part_consistency(card), ([], []))
+        self.assertEqual(ws.check_part_consistency(card)[:2], ([], []))
 
     def test_bold_part_value_matches_design(self):
         # 015 review #1: design cells are conventionally bold — a plan author copying
         # that style must not trip a false part-mismatch.
         plan = "### T1: one\n- **Part:** **观测**\n  - [x] ok\n"
         card = self._card(NEW_PARTS_DESIGN, plan)
-        self.assertEqual(ws.check_part_consistency(card), ([], []))
+        self.assertEqual(ws.check_part_consistency(card)[:2], ([], []))
 
     def test_placeholder_part_cell_not_registered(self):
         design = NEW_PARTS_DESIGN.replace("| 推进 | mod-c | R3 | — |",
