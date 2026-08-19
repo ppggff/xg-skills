@@ -504,6 +504,40 @@ def _grill_shape_findings(name, text, gov=""):
     return findings
 
 
+_QG_ID = re.compile(r"(?<![A-Za-z0-9])[RG]\d+(?![0-9])")
+
+
+def _question_gloss_hints(name, text):
+    """(k) D22 question-gloss hook, report-only: a canonical-table question cell
+    holding an R/G id with no parenthetical gloss at all is a bare backreference
+    (R6's heaviest clarification-tax form) — a hint on the skips stream (visible,
+    never gates), not a finding. Coarse filter: any 括注 passes, gloss content
+    quality stays unjudged. Own cutoff (QUESTION_GLOSS_CUTOFF, landing day + 1):
+    grill rows are history — question cells are never gloss-backfilled."""
+    hints, lines, i = [], text.splitlines(), 0
+    while i < len(lines):
+        ln = lines[i].strip()
+        if ln.startswith("|"):
+            header = [c.strip().lower() for c in ln.strip("|").split("|")]
+            if "id" in header and "status" in header and "question" in header:
+                qi, idi = header.index("question"), header.index("id")
+                i += 1
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in
+                             lines[i].strip().strip("|").split("|")]
+                    if len(cells) > qi and cells[0] and \
+                            not set(cells[0]) <= set("|-: "):
+                        q = cells[qi]
+                        if _QG_ID.search(q) and "（" not in q and "(" not in q:
+                            hints.append("question-gloss: %s %s bare id, no gloss"
+                                         % (name, cells[idi] if idi < len(cells)
+                                            else "?"))
+                    i += 1
+                continue
+        i += 1
+    return hints
+
+
 def check_grill_reverse(project, card_dir, ws):
     """(k) A2 — transcription reverse fidelity, canonical-table form only: every
     grill-log `resolved → <ledger-id>` row has a decisions.md block (any state —
@@ -533,7 +567,7 @@ def check_grill_reverse(project, card_dir, ws):
               .get("governance", "")).split("#")[0].strip()
     if shape_era and gov not in ("ledger", "doc-gate"):
         exs.append(("not-yet-due", "legacy governance, notation not judged"))
-    findings, ids, noncanon = [], set(), 0
+    findings, hints, ids, noncanon = [], [], set(), 0
     for f in logs:
         text = ws._read(f)
         c, s = _grill_resolved_ids(text)
@@ -546,15 +580,18 @@ def check_grill_reverse(project, card_dir, ws):
                         "non-canonical-grill-log (%s)" % os.path.basename(f)))
         if shape_era:
             findings += _grill_shape_findings(os.path.basename(f), text, gov)
+        if created >= QUESTION_GLOSS_CUTOFF:
+            hints += _question_gloss_hints(os.path.basename(f), text)
     if not shape_era and noncanon == len(logs):
-        # aggregation-only early return — no new emission point
+        # aggregation-only early return — no new emission point (the gloss hook
+        # scans canonical tables only, so hints are vacuously empty here)
         return [], [], exs
     if ids and not os.path.exists(os.path.join(card_dir, "decisions.md")):
         # canonical table on a ledger-less card: no home to check against (#13)
-        return findings, ["grill-reverse: no-ledger for resolved ids"], exs
+        return findings, ["grill-reverse: no-ledger for resolved ids"] + hints, exs
     blocks = {b["id"] for b in ws.parse_ledger(card_dir)[0]}
     return (findings + ["resolved-no-home: " + i for i in sorted(ids - blocks)],
-            [], exs)
+            hints, exs)
 
 
 RECEIPT_BLOCK_ANCHOR = re.compile(r"^(#{2,4}\s+Panel receipt|\*\*Panel receipt\*\*)")

@@ -563,6 +563,38 @@ class LedgerRows(unittest.TestCase):
                       buf.getvalue())
 
 
+class QuestionGlossHook(unittest.TestCase):
+    """024 T6: D22 question-gloss report-only hook — hints on the skips stream."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+
+    def _fix(self, question, created="2026-08-20"):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("drafting", "ledger", created))
+        _write(self.tmp.name, "proj/001-a/notes/grill-x.md",
+               "| id | question | recommended | chosen | why | depends-on | status |\n"
+               "|---|---|---|---|---|---|---|\n"
+               "| G1 | %s | r | c | w | — | resolved |\n" % question)
+        return wc.check_grill_reverse("proj", self.card, ws._L1)
+
+    def test_bare_id_no_gloss_hints(self):
+        f, s, _ = self._fix("R7 的哪个通道")
+        self.assertIn("question-gloss: grill-x.md G1 bare id, no gloss", s)
+        # report-only: rides skips, never a finding
+        self.assertFalse(any("question-gloss" in x for x in f))
+
+    def test_glossed_cell_clean(self):
+        _, s, _ = self._fix("R7（doc↔ledger 行级核）的哪个通道")
+        self.assertFalse(any("question-gloss" in x for x in s))
+
+    def test_pre_cutoff_card_no_hint(self):
+        _, s, _ = self._fix("R7 的哪个通道", created="2026-08-19")
+        self.assertFalse(any("question-gloss" in x for x in s))
+
+
 class ReceiptPremiseKeys(unittest.TestCase):
     """024 T5: premises=/suspicions= receipt keys — era-gated on RECEIPT_PREMISE_CUTOFF,
     inheriting (l)'s gated predicate; premises carries a value-domain core."""
