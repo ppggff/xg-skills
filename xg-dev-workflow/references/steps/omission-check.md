@@ -11,18 +11,25 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Deterministic subset → script, zero tokens — `workflow-status.py --check` covers it
   end to end (021)**: card scope `--check <project>/<card>` (run after any doc edit);
   project scope `--check <project>` (project-level checks + every card — the full sweep).
-  Checks (a)–(w): ledger (a)–(e) (id-reference integrity · derived-status mappings
+  Checks (a)–(y): ledger (a)–(e) (id-reference integrity · derived-status mappings
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
   gate (j) · grill-log resolved→ledger reverse existence + canonical-shape/notation
-  findings from the 022 shape cutoff (k) ·
-  panel-receipt presence + per-block structure core from the 022 shape cutoff (l) ·
+  findings from the 022 shape cutoff, plus the question-gloss report-only hint (bare R/G id
+  in a question cell with no 括注) from its own 024 cutoff (k) ·
+  panel-receipt presence + per-block structure core from the 022 shape cutoff, plus the
+  `premises =`/`suspicions =` keys (premises with value-domain core) from the 024
+  receipt-premise cutoff (l) ·
   doc-gate `（gate <hash>）` line (m) ·
   retired-phrasing resident sweep (n) · link/wikilink resolution incl. KB aliases (o) ·
   frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
-  ways (u) · project-root strays (v) · board monotonic machine subset (w). Exit 1 =
+  ways (u) · project-root strays (v) · board monotonic machine subset (w) · doc↔ledger
+  row-level consistency from the 024 cutoff, pre-gate: approved-block-no-row state-tiered
+  reverse check + statement-cell weight-token seek + opportunistic paren-count (x) ·
+  grill-signature closure from the 024 cutoff, pre-gate: a 人工+G-id co-occurrence line's
+  referenced grill row must be closed, absence in every form = carrier-missing (y). Exit 1 =
   findings; not-applicable paths emit classified exemptions and never gate — the
   three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
   live in workflow-checks.py's module docstring (the single source, 023). Visible
@@ -90,15 +97,20 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       semantics stay judgment. `[F<n>]` citation resolution incl. cross-card `[NNN:F<n>]`
       is scripted too — `--check` (r).)
 - [ ] **learn 报告形态** (only when the edit batch touches an `investigations/learn-*.md`
-  report) — the ten sections present in order (`learn.md` §1–§10); §8 coverage numbers
-  self-consistent (per input card `a+b=n`, skip reasons from the closed code list, no silent
-  caps); the metadata `adopted:` state matches reality (present ⇔ the post-go backfill ran).
+  report) — the ten sections present in order (`learn.md` §1–§10); §8 carries its two-block
+  form (8a coverage table + 8b 人工澄清清单 sub-table — a zero-hit run keeps the single
+  「无」 row, the shape invariant); §8a coverage numbers self-consistent (per input card
+  `a+b=n`, skip reasons from the closed code list, no silent caps); the metadata `adopted:`
+  state matches reality (present ⇔ the post-go backfill ran).
 - [ ] **Enumeration criteria well-formed** — every "every X …" Effect criterion declares its
       枚举键 + 必填列 (template Effect note); a `[x]` one has its table with **key matching the
       declaration and all rows complete**; partial-completion phrasing ("已完成 N 条") or a
       full table under a **different key** fails even when the prose sounds covered — check the
       criterion's words against the table's key, not the doc's claim. Criteria on the
       pre-declaration template (created before 2026-07-30) are exempt until touched.
+      (Stays a judgment item deliberately — the declared-count line-count check was
+      retired at 024 R8 (the `（N 行）` notation doesn't exist in this corpus); the
+      mechanical residue is (x)'s opportunistic paren-count.)
 - [ ] **Panel receipts present** — each gate this card passed traces to its adversarial-panel
       receipts (grill-log — discussion-first cards persist it from round 1; generic-grill
       round-closing messages otherwise — cited from the digest, per

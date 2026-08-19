@@ -44,8 +44,9 @@ config xg-knowledge-lite uses, so project names line up.
   `decisions.md` holds every human-judgment decision's status (proposed/approved/superseded/
   retired); gates approve pending rows via the digest, docs become rewritable views that must
   not contradict approved decisions (`workflow-status.py --check` verifies the mechanical
-  subset — checks (a)–(w) since 021, spanning ledger/doc integrity, gate-adjacent
-  transcription·receipt·gate-line anchors, links, traces and board shape; card scope
+  subset — checks (a)–(y) since 024, spanning ledger/doc integrity, gate-adjacent
+  transcription·receipt·gate-line anchors, links, traces, board shape and doc↔ledger
+  row-level/grill-signature consistency; card scope
   `--check <project>/<card>`, project full sweep `--check <project>`; implementations in
   `tools/workflow-checks.py`), and M2 shrinks to reopening a row (proposed blocks first,
   then a 修改列表 touch-list). **XS/S cards run `doc-gate` instead** (017): document-level gates — a scaled
