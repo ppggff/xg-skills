@@ -728,7 +728,9 @@ def check_supersede_residue(project, card_dir, ws):
     finding."""
     created = _card_created(card_dir, ws)
     if not created or created < RECEIPT_STRUCT_CUTOFF:
-        has_anchors = _csp().terms_from_card(card_dir) != ([], [])
+        # pre-021/no-created cards classify whole-check (the card-level rows own
+        # this era); csp's per-path side channel is forwarded in the active era only
+        has_anchors = _csp().terms_from_card(card_dir)[:2] != ([], [])
         if not created:
             # judged apart from the cutoff — was folded into (and mislabeled as)
             # the pre-021 branch
@@ -740,10 +742,10 @@ def check_supersede_residue(project, card_dir, ws):
                              "pre-021 anchors (one-shot swept at their M2)")]
         return [], [], [("carrier-missing",
                          "no retired-phrase anchors (pre-021 card)")]
-    terms, findings = _csp().terms_from_card(card_dir)
+    terms, findings, exs = _csp().terms_from_card(card_dir)
+    exs = list(exs)   # csp side channel rides (n)'s stream
     if not terms:
-        return findings, [], [("carrier-missing", "no retired-phrase anchors")]
-    exs = []
+        return findings, [], exs + [("carrier-missing", "no retired-phrase anchors")]
     for name in SWEEP_DOCS:
         text = ws._read(os.path.join(card_dir, name))
         if not text:
@@ -1055,11 +1057,12 @@ def check_project_links(project, project_dir, ws):
     """(o) B1 project half — index.md/roadmap.md wikilinks + relative links."""
     kb = _kb_root()
     if not os.path.isdir(kb):
-        return [], ["links: no-kb-root"]
-    findings = []
+        return [], ["links: no-kb-root"], []
+    findings, exs = [], []
     for name in ("index.md", "roadmap.md"):
         text = ws._read(os.path.join(project_dir, name))
         if not text:
+            exs.append(("carrier-missing", "project doc missing/empty"))
             continue
         stripped = _strip_code(text)
         for t in _wiki_targets(stripped):
@@ -1068,7 +1071,7 @@ def check_project_links(project, project_dir, ws):
         for p in _rel_targets(stripped):
             if not os.path.exists(os.path.normpath(os.path.join(project_dir, p))):
                 findings.append("broken-link: %s %s" % (name, p))
-    return findings, []
+    return findings, [], exs
 
 
 def check_board_rows(project, project_dir, ws):
@@ -1078,7 +1081,7 @@ def check_board_rows(project, project_dir, ws):
     if not text:
         return ["no-index: index.md missing"], []
     if not new_format:
-        return [], []
+        return [], [], [("grandfathered", "old-format board")]
     rows = ws.board(project_dir)
     dirs = {os.path.basename(d)[:3]: os.path.basename(d)
             for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
@@ -1128,21 +1131,32 @@ def check_board_monotonic(project, project_dir, ws):
     整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
     · done ⇒ test.md status ∈ TEST_STATUS_CANON's passing set. Old-format exempt."""
     text, new_format = _new_board_format(project_dir, ws)
-    if not text or not new_format:
+    if not text:
+        # index absence is (u)'s no-index finding — classified covered-by, not re-emitted
         return [], []
+    if not new_format:
+        return [], [], [("grandfathered", "old-format board")]
     rows = ws.board(project_dir)
     graph = {nnn: _deps_tokens(row.get("deps", "")) for nnn, row in rows.items()}
     findings = ["board-dep-cycle: " + " → ".join(p) for p in _dep_cycles(graph)]
-    skips = []
+    skips, exs = [], []
 
     dirs = {os.path.basename(d)[:3]: d
             for d in sorted(glob.glob(os.path.join(project_dir, "[0-9][0-9][0-9]-*")))
             if os.path.isdir(d)}
     for nnn, row in sorted(rows.items()):
         state = row.get("state", "")
-        if state and state != "?" and state not in ws.CANON_STATES:
+        if not state:
+            exs.append(("carrier-missing", "board row state empty"))
+        elif state == "?":
+            exs.append(("not-yet-due", "board row state '?'"))
+        elif state not in ws.CANON_STATES:
             findings.append("board-state: %s '%s' non-canonical" % (nnn, state))
-        if state != "done" or nnn not in dirs:
+        if state != "done":
+            exs.append(("not-yet-due", "not done, done-series off"))
+            continue
+        if nnn not in dirs:
+            # a done row with no dir is (u)'s board-orphan-row finding — covered-by
             continue
         card = dirs[nnn]
         reviews = glob.glob(os.path.join(card, "notes", "review-*.md"))
@@ -1160,7 +1174,7 @@ def check_board_monotonic(project, project_dir, ws):
                                 % (nnn, tstatus, "/".join(ws.TEST_STATUS_DONE_OK)))
         else:
             skips.append("board-monotonic: %s done without test.md" % nnn)
-    return findings, skips
+    return findings, skips, exs
 
 
 # ---- check registry & runners (the L3 entry surface) ----

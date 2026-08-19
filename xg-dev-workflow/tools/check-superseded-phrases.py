@@ -54,7 +54,10 @@ def _section(text, title_pat, level=2):
 
 
 def terms_from_card(card_dir):
-    """(terms, findings) from the card's machine anchors (021 G4).
+    """(terms, findings, exemptions) from the card's machine anchors (021 G4).
+    exemptions = (class, reason) pairs for the silent not-harvested paths — a
+    side channel for the resident check's exemption stream (023); this tool's
+    own CLI judgment and output ignore it.
 
     ADR「被取代表述」sections: a list line's first backtick span is the term; a list
     line without one — or a non-list line that carries a backtick span — is an
@@ -63,18 +66,23 @@ def terms_from_card(card_dir):
     an ADR) with no 被取代表述 section is `adr-retired-missing`. Phase-doc Change-log
     entries contribute via an indented sub-list under a 被取代表述-titled list line.
     """
-    terms, findings = [], []
+    terms, findings, exemptions = [], [], []
     for f in sorted(glob.glob(os.path.join(card_dir, 'adr', '*.md'))):
         base = 'adr/' + os.path.basename(f)
         text = re.sub(r'<!--.*?-->', '', pathlib.Path(f).read_text(errors='replace'),
                       flags=re.S)   # template guidance rides in comments — never terms
         st = re.search(r'^Status:\s*(\w+)', text, re.M)
         if st and st.group(1).lower() in ('superseded', 'deprecated', 'withdrawn'):
-            continue   # a dead decision's retired-terms are no longer authoritative
+            # a dead decision's retired-terms are no longer authoritative
+            exemptions.append(('not-yet-due', 'dead ADR, file not harvested'))
+            continue
         sect = _section(text, r'被取代表述')
         if not sect.strip():
             if re.search(r'ADR-\d{4}', _section(text, r'Supersedes')):
                 findings.append('adr-retired-missing: ' + base)
+            else:
+                exemptions.append(('carrier-missing',
+                                   'ADR without 被取代表述 section or Supersedes id'))
             continue
         for line in sect.splitlines():
             s = line.strip()
@@ -91,17 +99,23 @@ def terms_from_card(card_dir):
     for name in PHASE_DOCS:
         p = os.path.join(card_dir, name)
         if not os.path.exists(p):
+            exemptions.append(('carrier-missing',
+                               'phase doc missing, anchors not harvested'))
             continue
         clog = _section(pathlib.Path(p).read_text(errors='replace'),
                         r'Change log|Change notes')
-        in_anchor, anchor_indent = False, 0
+        if not clog.strip():
+            exemptions.append(('carrier-missing',
+                               'no Change-log section / 被取代表述 sub-list'))
+            continue
+        in_anchor, anchor_indent, saw_anchor = False, 0, False
         for line in clog.splitlines():
             if not line.strip():
                 continue
             indent = len(line) - len(line.lstrip())
             s = line.strip()
             if s.startswith('-') and '被取代表述' in s:
-                in_anchor, anchor_indent = True, indent
+                in_anchor, anchor_indent, saw_anchor = True, indent, True
                 continue
             if in_anchor:
                 if s.startswith('-') and indent > anchor_indent:
@@ -112,7 +126,10 @@ def terms_from_card(card_dir):
                         findings.append('adr-retired-format: %s %r' % (name, s[:40]))
                 else:
                     in_anchor = False
-    return terms, findings
+        if not saw_anchor:
+            exemptions.append(('carrier-missing',
+                               'no Change-log section / 被取代表述 sub-list'))
+    return terms, findings, exemptions
 
 
 def scan(root, terms, exclude=()):
@@ -152,7 +169,7 @@ def main():
                 terms.append(line)
     anchor_findings = []
     if args.from_card:
-        got, anchor_findings = terms_from_card(str(root))
+        got, anchor_findings, _ = terms_from_card(str(root))   # exemptions: resident-check face only
         terms += got
         # informational: legacy anchor shapes are data debt, not sweep hits — the
         # exit code belongs to term hits alone (021 review #6; change.md runs this

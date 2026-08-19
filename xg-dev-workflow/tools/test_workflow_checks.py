@@ -448,7 +448,7 @@ class SupersedeResidue(unittest.TestCase):
                SUP_ADR.replace("Status: accepted", "Status: superseded by ADR-0003"))
         _write(self.tmp.name, "proj/001-a/adr/0003-z.md",
                SUP_ADR.replace("- `旧词A` → `新词`", "- `/` → `空格`"))
-        terms, findings = wc._csp().terms_from_card(self.card)
+        terms, findings, _ = wc._csp().terms_from_card(self.card)
         self.assertEqual(terms, [])
         self.assertTrue(any("adr-retired-format" in x for x in findings))
 
@@ -466,7 +466,7 @@ class SupersedeResidue(unittest.TestCase):
             "- 「旧短语整句」 → 新说法\n- 「`in-progress` **允许直接继续**」 —— 未限定动作\n"
             "- `<old phrase>` → `<replacement>`")
         _write(self.tmp.name, "proj/001-a/adr/0002-x.md", adr)
-        terms, findings = wc._csp().terms_from_card(self.card)
+        terms, findings, _ = wc._csp().terms_from_card(self.card)
         self.assertEqual(terms, ["旧短语整句"])
         self.assertTrue(any("adr-retired-format" in x for x in findings))  # mixed form
         self.assertEqual([x for x in findings if "old phrase" in x], [])   # placeholder silent
@@ -494,7 +494,7 @@ class SupersedeResidue(unittest.TestCase):
         _write(self.tmp.name, "proj/001-a/adr/0002-x.md", SUP_ADR)
         _write(self.tmp.name, "proj/001-a/design.md", "---\n---\n旧词A here.\n")
         csp = wc._csp()
-        terms, findings = csp.terms_from_card(self.card)
+        terms, findings, _ = csp.terms_from_card(self.card)
         self.assertEqual((terms, findings), (["旧词A"], []))
         self.assertEqual(csp.scan(self.card, terms),
                          csp.scan(self.card, ["旧词A"]))   # E3 对拍：--from-card ≡ 手工词表
@@ -882,6 +882,8 @@ class EmissionTableConsistency(unittest.TestCase):
             ("docgate-gateline", ND, "doc not past its gate"),
             ("docgate-gateline", CM, "gated doc missing"),
             ("supersede-residue", CM, "no retired-phrase anchors"),
+            ("supersede-residue", CM, "phase doc missing, anchors not harvested"),
+            ("supersede-residue", CM, "no Change-log section / 被取代表述 sub-list"),
             ("links", CM, "phase doc missing/empty"),
             ("status-field", CM, "phase doc missing"),
             ("r-trace", CM, "no 需求条目 table"),
@@ -892,6 +894,36 @@ class EmissionTableConsistency(unittest.TestCase):
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)
         self.assertTrue(all(not e.gated for e in exs))   # E3: draft card stays gated=False
+
+    def _project_triples(self, project_dir):
+        _, _, raw = wc._run_entries(wc.PROJECT_CHECKS, ("po", project_dir), ws._L1)
+        return {(cid, cls, reason) for cls, cid, reason in raw}
+
+    def test_project_scope_old_format_exact_set(self):
+        _write(self.root, "po/index.md", "| 001 | x | todo | — |\n")
+        _write(self.root, "po/001-a/requirement.md", "---\nstatus: drafting\n---\n")
+        GF, CM = "grandfathered", "carrier-missing"
+        self.assertEqual(self._project_triples(os.path.join(self.root, "po")), {
+            ("links", CM, "project doc missing/empty"),      # roadmap.md absent
+            ("board-rows", GF, "old-format board"),
+            ("board-monotonic", GF, "old-format board"),
+        })
+
+    def test_project_scope_new_format_exact_set(self):
+        _write(self.root, "pn/index.md",
+               "| Card | Phase | 整体状态 | Deps |\n|--|--|--|--|\n"
+               "| 001 | 实现 | active | — |\n"
+               "| 002 | 设计 |  | — |\n"
+               "| 003 | 需求 | ? | — |\n")
+        _write(self.root, "pn/roadmap.md", "x\n")
+        for d in ("001-a", "002-b", "003-c"):
+            _write(self.root, "pn/%s/requirement.md" % d, "---\nstatus: drafting\n---\n")
+        ND, CM = "not-yet-due", "carrier-missing"
+        self.assertEqual(self._project_triples(os.path.join(self.root, "pn")), {
+            ("board-monotonic", CM, "board row state empty"),
+            ("board-monotonic", ND, "board row state '?'"),
+            ("board-monotonic", ND, "not done, done-series off"),
+        })
 
 
 class ExemptionRendering(unittest.TestCase):
