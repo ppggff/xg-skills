@@ -34,6 +34,13 @@ The four beats (numbering matches the frozen design's 四拍契约):
    - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」); **doc-gate cards**:
      → the doc-local「事实清单」;
    - reusable module findings → the KB (xg-knowledge-lite Write, or note as deferred);
+     **corrective KB writes are never deferred by default (024 R11)**: a finding that an
+     existing KB note is wrong or over-stated is listed **item by item**, each explicitly
+     judged 写 or 缓（附理由）— a 缓 lands as a named-container todo line (roadmap or this
+     card's progress.md), never an unanchored intention; the correction's evidence cites
+     code / query scope, never a card (FORMAT.md reverse-coupling — only the provenance tag
+     names the card). Routing is Claude's own call, zero new gates — the failure mode this
+     blocks is a wrong note deferred wholesale and re-misleading its next reader;
    - grill path → `notes/grill-<phase>.md` — decision-zone discussion-first runs are already
      persisted from round 1 (grill.md); a **generic** grill's conversation-is-the-log exemption
      **expires at leave time**: persist the log (open + resolved rows) before the conversation
@@ -66,7 +73,8 @@ The four beats (numbering matches the frozen design's 四拍契约):
 
 ## Contract invariants
 
-- Product working tree **byte-identical** before/after park (park writes dev_root docs only).
+- Product working tree **byte-identical** before/after park — park writes the two data repos
+  only (dev_root docs + KB writes from the beat-1 sweep), never the product tree.
 - Board `整体状态` and every gate-passed doc `status:` (confirmed/frozen/baseline — whether
   ledger-derived or doc-gate direct-written) untouched — progress.md's own live frontmatter
   fields are normal beat-2 updates.

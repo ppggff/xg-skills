@@ -206,6 +206,10 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       deferred — <why>` in the raw's frontmatter); not left only in the requirement dir, and not
       left as an uncompiled raw (which `kb-backlog.py` will flag each
       session). Compile back-annotates `compiled_to:` and updates `wiki/index.md`.
+      **Corrective writes are the exception to deferral (024 R11)**: a discovered error /
+      over-statement in an existing KB note is judged 写-or-缓 item by item (a 缓 needs a
+      named-container todo line + reason) — same rule as park's sweep; supplements may defer,
+      corrections may not silently.
       **XS cards: satisfied by default** — no per-round capture/defer statement required;
       still write to the KB when a find is plainly reusable.
 - [ ] **Roadmap fed** — deferred work this card surfaced (Future / Discovered issues) is captured
