@@ -821,7 +821,61 @@ def check_ledger_rows(project, card_dir, ws):
         else:
             exs.append(("not-yet-due",
                         "proposed block %s awaiting its row" % b["id"]))
+    # 判定2/判定3 — coarse filter over active statement cells (masked history);
+    # covered form = weight-token drift; a whole-clause addition carrying no
+    # digits is a KNOWN false negative (structural counting stays Future)
+    active_block = {}
+    for b in rblocks:
+        if b["state"] in ws.ACTIVE_STATES:
+            active_block.setdefault(b["id"], b)
+    masked = _mask_history(ws._read(os.path.join(card_dir, "requirement.md")), ws)
+    seen = set()
+    for m in re.finditer(r"^\|\s*(?:\*\*|~~|\[)?\s*(R\d+)[^|]*\|([^|]*)\|", masked, re.M):
+        rid, cell = m.group(1), m.group(2)
+        if rid in seen or rid not in rows or rid not in active_block:
+            continue   # retired accounting exempt; dangling rows are (a)'s domain
+        seen.add(rid)
+        body = active_block[rid]["body"]
+        for tok in _weight_tokens(cell):
+            if tok not in body:
+                findings.append("row-token-missing: %s [%s]" % (rid, tok))
+        findings += _paren_count_findings(rid, cell)
     return findings, [], exs
+
+
+_WEIGHT_TOKEN = re.compile(r"\d+|[一二三四五六七八九十百千万亿零两]+")
+_PAREN_COUNT = re.compile(r"（\s*(\d+|[一二三四五六七八九十])\s*[类条项处种个]）")
+_CJK_NUM = {c: i for i, c in enumerate("零一二三四五六七八九十")}
+_LIST_RUN = re.compile(r"[^、／（）：:；;。|]+(?:[、／][^、／（）：:；;。|]+)+")
+
+
+def _weight_tokens(cell):
+    """Digit + Chinese-numeral runs from a statement cell; inline code spans and
+    R-id forms stripped first (an id's digits are not a weight claim — 003 原型)."""
+    scan = re.sub(r"\bR\d+\b", "", _INLINE_CODE_SPAN.sub("", cell))
+    return _WEIGHT_TOKEN.findall(scan)
+
+
+def _paren_count_findings(rid, cell):
+    """判定3, opportunistic: a `（<数>[类条项处种个]）` claim is checked only when the
+    same cell holds a locatable closed list (、/／-separated run, ≥2 items — the
+    longest run counts); no locatable list → not accounted (the notation is not
+    mandatory)."""
+    scan = _INLINE_CODE_SPAN.sub("", cell)
+    claims = _PAREN_COUNT.findall(scan)
+    if not claims:
+        return []
+    listable = _PAREN_COUNT.sub("", scan)
+    runs = [r.count("、") + r.count("／") + 1 for r in _LIST_RUN.findall(listable)]
+    if not runs:
+        return []
+    n = max(runs)
+    out = []
+    for c in claims:
+        want = int(c) if c.isdigit() else _CJK_NUM[c]
+        if want != n:
+            out.append("count-mismatch: %s claims %d, list has %d" % (rid, want, n))
+    return out
 
 
 # ---- (o)-(t): card-scoped B/C checks (021 T5) ----

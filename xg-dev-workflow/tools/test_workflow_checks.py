@@ -419,7 +419,7 @@ class LedgerRows(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.card = os.path.join(self.tmp.name, "proj", "001-a")
 
-    def _card(self, rows="| R1 | 条目一 | 功能 | e |\n", ledger=None,
+    def _card(self, rows="| R1 | 条目甲 | 功能 | e |\n", ledger=None,
               created="2026-08-19", gov="ledger", status="drafting"):
         _write(self.tmp.name, "proj/001-a/requirement.md",
                REQ_FM % (status, gov, created) + self.TABLE_HEAD + rows)
@@ -446,7 +446,7 @@ class LedgerRows(unittest.TestCase):
         self.assertEqual(self._x()[0], [])
 
     def test_retired_accounting_row_exempt(self):
-        rows = ("| R1 | 条目一 | 功能 | e |\n"
+        rows = ("| R1 | 条目甲 | 功能 | e |\n"
                 "| ~~R8~~ | ~~旧条目~~ retired (2026-08-19: 并入 R1) | 功能 | e |\n")
         self._card(rows=rows, ledger=self.A1 + "### R8 [requirement] retired\n"
                                                "- 陈述: old\n- retired: 2026-08-19\n")
@@ -455,9 +455,9 @@ class LedgerRows(unittest.TestCase):
     def test_forward_direction_owned_by_a_at_composite(self):
         # E7 类1 (仅 doc → dangling-id) + 类7 (引纯 superseded id → superseded-ref):
         # findings come from (a) at the composite; (x) stays silent on both
-        rows = ("| R1 | 条目一 | 功能 | e |\n"
-                "| R2 | 条目二 | 功能 | e |\n"
-                "| R3 | 条目三 | 功能 | e |\n")
+        rows = ("| R1 | 条目甲 | 功能 | e |\n"
+                "| R2 | 条目乙 | 功能 | e |\n"
+                "| R3 | 条目丙 | 功能 | e |\n")
         self._card(rows=rows, status="confirmed",
                    ledger=self.A1 + "### R3 [requirement] superseded\n- 陈述: z\n")
         self.assertEqual(self._x()[0], [])
@@ -504,6 +504,53 @@ class LedgerRows(unittest.TestCase):
                REQ_FM % ("drafting", "ledger", "2026-08-19") + "散文需求，无表\n")
         _write(self.tmp.name, "proj/001-a/decisions.md", self.A1)
         self.assertIn(("carrier-missing", "no 需求条目 table"), self._x()[2])
+
+    # -- 判定2 token-seek (024 T3, E7 类3)
+    def test_token_in_row_missing_from_block_flags(self):
+        self._card(rows="| R1 | 强制搬运三个运行前提 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 强制搬运全部运行前提\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertIn("row-token-missing: R1 [三]", self._x()[0])
+
+    def test_ledger_finer_than_row_ok(self):
+        self._card(rows="| R1 | 强制搬运运行前提 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n"
+                          "- 陈述: 强制搬运三个运行前提（2026-07-31 全部三行）\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_rid_digits_and_code_spans_not_tokens(self):
+        self._card(rows="| R1 | 承接 R7 的残余，文法 `G\\d+` 最长匹配 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 残余承接与文法\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_paraphrase_drift_digit_vs_cjk_numeral_flags(self):
+        # recorded coarse-filter form: digit↔中文数词 drift trips the seek — the
+        # fix is wording alignment, not a checker change (D6 known form)
+        self._card(rows="| R1 | 第 3 步收口 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 第三步收口\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertIn("row-token-missing: R1 [3]", self._x()[0])
+
+    # -- 判定3 括注计数 (024 T3, E7 类6)
+    def test_paren_count_mismatch_flags(self):
+        self._card(rows="| R1 | 判据（4 类）：甲、乙、丙 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 判据 4 类：甲、乙、丙\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertIn("count-mismatch: R1 claims 4, list has 3", self._x()[0])
+
+    def test_paren_count_match_ok(self):
+        self._card(rows="| R1 | 判据（3 类）：甲、乙、丙 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 判据 3 类：甲、乙、丙\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_paren_count_unlocatable_not_accounted(self):
+        self._card(rows="| R1 | 判据（3 类）后文详述 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 判据 3 类后文详述\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
 
     def test_exemption_visible_verbose(self):
         _write(self.tmp.name, "proj/001-a/requirement.md",
