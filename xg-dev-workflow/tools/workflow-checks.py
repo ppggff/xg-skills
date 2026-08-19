@@ -373,7 +373,12 @@ def _gated_docs(card_dir, ws):
 
 
 def _card_created(card_dir, ws):
-    return str(ws.frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
+    """Card created date, format-guarded like (i2): malformed values normalize to ""
+    so every caller's no-created-date branch owns them — a bare string compare on a
+    malformed date (e.g. "2026-8-1") would otherwise mis-bucket the card around its
+    cutoff."""
+    created = str(ws.frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
+    return created if re.match(r"\d{4}-\d{2}-\d{2}", created) else ""
 
 
 def _grill_logs(card_dir):

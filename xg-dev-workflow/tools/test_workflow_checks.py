@@ -150,6 +150,16 @@ class GateAdjacent(unittest.TestCase):
         self._req(status="drafting", body="（落纸补充）中途状态合法\n")
         self.assertEqual(wc.check_transcription_markers("proj", self.card, ws._L1)[:2], ([], []))
 
+    # -- _card_created format guard (024 T1)
+    def test_malformed_created_routes_to_no_created_branch(self):
+        # "2026-8-1" compares lexically as post-2026-08-11 — without the guard the
+        # card would enter the era instead of the no-created-date branch
+        self._req(created="2026-8-1")
+        self.assertEqual(wc._card_created(self.card, ws._L1), "")
+        f, s, exs = wc.check_grill_reverse("proj", self.card, ws._L1)
+        self.assertEqual((f, exs), ([], []))
+        self.assertIn("grill-reverse: no-created-date", s)
+
     # -- A2
     def test_a2_pre_cutoff_is_grandfathered_exemption(self):
         self._req(created="2026-08-01")
