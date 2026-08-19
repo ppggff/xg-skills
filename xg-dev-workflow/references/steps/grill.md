@@ -20,6 +20,15 @@ priorities and tactics (see "Phase-specific layers").
   framing. Under either ground each item still carries its own recommendation + trade-off and
   gets its own grill-log row; the human sets the pace and may drop back to single-question at
   any time; neither ground reorders the tree walk — anything dependent stays sequenced.
+- **One question, one decision (024 R13).** Batching governs *how many questions per round*;
+  this governs *inside one question*: a grill question carries exactly **one independently
+  answerable decision** — a batched round's items each get their own line and recommendation,
+  never two decisions fused into one ask. **Transcription side:** the human's one answer lands
+  on the one item it independently answered; what was never independently put to the human is
+  never transcribed as approved (the accident form: one bundled reply read as N approvals — a
+  governance breach, the ledger showing approvals the human never gave). No mechanical
+  enforcement face (chat-level); effect rides this clause + the gate lens 4's human-message
+  verbatim pack (adversarial-critic.md, D21) + M6 repeat-offense accounting.
 - **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
   cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
   and their siblings — a batched round stays one round). It closes when the walk leaves
@@ -33,6 +42,15 @@ priorities and tactics (see "Phase-specific layers").
   per-round doc sync (write cadence below), and the go-ask pace — and is the unit the
   ~3-round rule counts in.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
+- **Mid-grill questions are self-contained (024 R6)** — the third attachment of gate-digest.md's
+  「Decision-object references are self-contained」SoT (after ledger 陈述 and digest cards; the
+  object here = any question put to the human mid-grill): no bare id backreference — an id's
+  first use in a question carries a one-clause gloss (conventions-core「First-use gloss」restated
+  for this object); the judgment object is phrased in **operation/behavior language**
+  (gate-digest §5's question + stake form), never an internal shorthand the human must expand
+  (「欠的两条」-class). Mechanical face = the question-gloss report-only hint (`--check` (k),
+  coarse: a bare R/G id in a question cell with no 括注 at all → hint); effect rides this
+  attachment + the hint + M6 repeat-offense accounting.
 - **A recommendation is not a decision — and transcription is never an ask.** Until the human
   answers, a recommendation lands in neither the phase doc nor the ledgers. A grill stops for
   exactly three ask shapes: the per-question answer ask, the round-end go ask, and the gate ask.
@@ -342,7 +360,10 @@ duplicated emphasis, sections that no longer carve the design at its joints). Wh
 is 建议收敛 — before the gate ask — judge the doc's structure as if writing it fresh today; if
 patched shape shows, do one content-preserving whole-doc rewrite (first collect every scattered
 "改写时澄清" self-note into a checklist and tick each — same discipline as `change.md`'s
-Rewrite checklist), then re-verify the rewritten text against the round's decisions.
+Rewrite checklist), then re-verify the rewritten text against the round's decisions. The
+re-verify dispatch is a **rewrite round**: the dispatcher self-lists the round's likely
+self-made contradictions in the grill-log round header and folds them into the pass mandate
+(adversarial-critic.md「Tiered」's suspicion-list rule, 024 R5).
 
 ## Rollback (回退 — return to a previous question)
 "回退" / "go back" re-opens an earlier decision. Reuse the append-only **supersede** discipline —
