@@ -743,7 +743,6 @@ def check_supersede_residue(project, card_dir, ws):
         return [], [], [("carrier-missing",
                          "no retired-phrase anchors (pre-021 card)")]
     terms, findings, exs = _csp().terms_from_card(card_dir)
-    exs = list(exs)   # csp side channel rides (n)'s stream
     if not terms:
         return findings, [], exs + [("carrier-missing", "no retired-phrase anchors")]
     for name in SWEEP_DOCS:
