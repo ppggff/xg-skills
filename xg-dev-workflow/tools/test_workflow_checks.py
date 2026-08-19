@@ -407,6 +407,115 @@ SUP_ADR = ("---\nStatus: accepted\n---\n# ADR-0002 x\n\n## Supersedes (optional)
            "- `旧词A` → `新词`\n")
 
 
+class LedgerRows(unittest.TestCase):
+    """024 T2: (x) ledger-rows — state-tiered reverse check + activation/exemptions."""
+
+    TABLE_HEAD = ("## 需求条目\n\n| ID | 需求条目 | 类型 | provenance |\n"
+                  "|---|---|---|---|\n")
+    A1 = "### R1 [requirement] approved\n- 陈述: x\n- approved: 2026-08-20 gate abc\n\n"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.card = os.path.join(self.tmp.name, "proj", "001-a")
+
+    def _card(self, rows="| R1 | 条目一 | 功能 | e |\n", ledger=None,
+              created="2026-08-19", gov="ledger", status="drafting"):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % (status, gov, created) + self.TABLE_HEAD + rows)
+        if ledger is not None:
+            _write(self.tmp.name, "proj/001-a/decisions.md", ledger)
+
+    def _x(self):
+        return wc.check_ledger_rows("proj", self.card, ws._L1)
+
+    def test_approved_block_without_row_flags(self):
+        self._card(ledger=self.A1 + "### R2 [requirement] approved\n- 陈述: y\n"
+                                    "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], ["block-no-row: R2"])
+
+    def test_proposed_block_without_row_is_not_yet_due(self):
+        self._card(ledger=self.A1 + "### R2 [requirement] proposed\n- 陈述: y\n")
+        f, s, exs = self._x()
+        self.assertEqual((f, s), ([], []))
+        self.assertIn(("not-yet-due", "proposed block R2 awaiting its row"), exs)
+
+    def test_v_prefix_blocks_exempt(self):
+        self._card(ledger=self.A1 + "### V1 [requirement] approved\n- 陈述: v\n"
+                                    "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_retired_accounting_row_exempt(self):
+        rows = ("| R1 | 条目一 | 功能 | e |\n"
+                "| ~~R8~~ | ~~旧条目~~ retired (2026-08-19: 并入 R1) | 功能 | e |\n")
+        self._card(rows=rows, ledger=self.A1 + "### R8 [requirement] retired\n"
+                                               "- 陈述: old\n- retired: 2026-08-19\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_forward_direction_owned_by_a_at_composite(self):
+        # E7 类1 (仅 doc → dangling-id) + 类7 (引纯 superseded id → superseded-ref):
+        # findings come from (a) at the composite; (x) stays silent on both
+        rows = ("| R1 | 条目一 | 功能 | e |\n"
+                "| R2 | 条目二 | 功能 | e |\n"
+                "| R3 | 条目三 | 功能 | e |\n")
+        self._card(rows=rows, status="confirmed",
+                   ledger=self.A1 + "### R3 [requirement] superseded\n- 陈述: z\n")
+        self.assertEqual(self._x()[0], [])
+        allf, _, _ = wc.check_card_all("proj", self.card, ws._L1)
+        self.assertIn("dangling-id: R2", allf)
+        self.assertIn("superseded-ref: R3", allf)
+
+    def test_doc_gate_card_without_ledger_not_yet_due(self):
+        self._card(gov="doc-gate", ledger=None)
+        f, s, exs = self._x()
+        self.assertEqual((f, s), ([], []))
+        self.assertIn(("not-yet-due", "doc-gate card, ledger is a forbidden carrier"),
+                      exs)
+
+    def test_era_drafting_card_is_active(self):
+        # pre-gate created-only predicate: fires while the card is still drafting
+        self._card(status="drafting",
+                   ledger="### R2 [requirement] approved\n- 陈述: y\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], ["block-no-row: R2"])
+
+    def test_pre_cutoff_card_grandfathered(self):
+        self._card(created="2026-08-18", ledger=self.A1)
+        f, s, exs = self._x()
+        self.assertEqual((f, s), ([], []))
+        self.assertEqual(exs, [("grandfathered", "pre-2026-08-19 card")])
+
+    def test_no_created_date_carrier_missing(self):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               "---\nstatus: drafting\ngovernance: ledger\n---\n"
+               + self.TABLE_HEAD + "| R1 | x | 功能 | e |\n")
+        _write(self.tmp.name, "proj/001-a/decisions.md", self.A1)
+        f, s, exs = self._x()
+        self.assertEqual((f, s), ([], []))
+        self.assertIn(("carrier-missing", "no created date, row check off"), exs)
+
+    def test_no_requirement_level_blocks_carrier_missing(self):
+        self._card(ledger="### D1 [design] proposed\n- 陈述: d\n")
+        self.assertIn(("carrier-missing", "no requirement-level ledger blocks"),
+                      self._x()[2])
+
+    def test_no_items_table_carrier_missing(self):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("drafting", "ledger", "2026-08-19") + "散文需求，无表\n")
+        _write(self.tmp.name, "proj/001-a/decisions.md", self.A1)
+        self.assertIn(("carrier-missing", "no 需求条目 table"), self._x()[2])
+
+    def test_exemption_visible_verbose(self):
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "ledger", "2026-08-19") + "散文需求，无表\n")
+        _write(self.tmp.name, "proj/001-a/decisions.md", self.A1)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ws.run_check(self.tmp.name, "proj/001", verbose_skips=True)
+        self.assertIn("skip: ledger-rows: no 需求条目 table [carrier-missing]",
+                      buf.getvalue())
+
+
 class SupersedeResidue(unittest.TestCase):
     """021 T4: A4′ machine anchors + resident conditional sweep + --from-card."""
 
@@ -874,6 +983,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("fact-refs", CM, "phase doc missing/empty"),
             ("progress-cap", CM, "progress.md missing"),
             ("adr-hygiene", CM, "no adr dir or empty"),
+            ("ledger-rows", GF, "pre-2026-08-19 card"),
         })
 
     def test_docgate_draft_card_exact_set_and_ungated_flag(self):
@@ -901,6 +1011,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("fact-refs", CM, "phase doc missing/empty"),
             ("progress-cap", CM, "progress.md missing"),
             ("adr-hygiene", CM, "no adr dir or empty"),
+            ("ledger-rows", ND, "doc-gate card, ledger is a forbidden carrier"),
         })
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)

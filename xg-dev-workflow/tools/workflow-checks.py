@@ -771,6 +771,59 @@ def check_supersede_residue(project, card_dir, ws):
     return findings, [], exs
 
 
+# ---- (x)/(y): doc↔ledger row-level + grill-signature checks (024) ----
+# Per-concern cutoffs (the six-step ladder precedent); both new checks activate on
+# created-only predicates — pre-gate: an era card is bound while still drafting
+# (learn L2's "gate 前机械清单" requires the check to fire before approval).
+LEDGER_ROWS_CUTOFF = "2026-08-19"       # (x) binds cards created from here
+GRILL_SIGNATURE_CUTOFF = "2026-08-19"   # (y) same date, separate concern
+RECEIPT_PREMISE_CUTOFF = "2026-08-19"   # premises=/suspicions= receipt-key era ((l) extension)
+QUESTION_GLOSS_CUTOFF = "2026-08-20"    # D22 hook: grill rows are history — no gloss backfill
+
+
+def check_ledger_rows(project, card_dir, ws):
+    """(x) ledger-rows — doc↔ledger row-level consistency, reverse direction only:
+    the forward direction (doc row with no / only-dead ledger block) is (a)'s
+    dangling-id ∪ superseded-ref, so "双向相等" is delivered by the (a)+(x) pair.
+    判定1, state-tiered: an approved requirement-level R block with no active
+    需求条目 row is a finding; a proposed block with none is not-yet-due (write
+    cadence — the row may legitimately land only at transcription time). V-prefix
+    ids and retired/superseded accounting stay out of the judgment set. Carrier
+    before mode: absence of decisions.md classifies by governance (check_ledger's
+    structure); no 需求条目 table / no requirement-level R blocks → carrier-missing."""
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date, row check off")]
+    if created < LEDGER_ROWS_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % LEDGER_ROWS_CUTOFF)]
+    if not os.path.exists(os.path.join(card_dir, "decisions.md")):
+        mode = ws.card_mode(card_dir)
+        if mode == "doc-gate":
+            return [], [], [("not-yet-due",
+                             "doc-gate card, ledger is a forbidden carrier")]
+        if mode == "ledger":
+            return [], [], [("carrier-missing", "ledger card without decisions.md")]
+        return [], [], [("grandfathered", "legacy card without decisions.md")]
+    reqs = ws.trace_requirement(card_dir)
+    if not reqs:
+        return [], [], [("carrier-missing", "no 需求条目 table")]
+    rblocks = [b for b in ws.parse_ledger(card_dir)[0]
+               if b["level"] == "requirement" and not b["id"].startswith("V")]
+    if not rblocks:
+        return [], [], [("carrier-missing", "no requirement-level ledger blocks")]
+    rows = set(reqs) - ws._retired_req_ids(card_dir)
+    findings, exs = [], []
+    for b in rblocks:
+        if b["id"] in rows or b["state"] not in ws.ACTIVE_STATES:
+            continue
+        if b["state"] == "approved":
+            findings.append("block-no-row: " + b["id"])
+        else:
+            exs.append(("not-yet-due",
+                        "proposed block %s awaiting its row" % b["id"]))
+    return findings, [], exs
+
+
 # ---- (o)-(t): card-scoped B/C checks (021 T5) ----
 PHASE_DOC_NAMES = ("requirement.md", "design.md", "detail.md",
                    "plan.md", "test.md", "progress.md")
@@ -1206,6 +1259,7 @@ CARD_CHECKS = (
     ("fact-refs", check_fact_refs),                             # (r) B7
     ("progress-cap", check_progress_cap),                       # (s) B8
     ("adr-hygiene", check_adr_hygiene),                         # (t) C4
+    ("ledger-rows", check_ledger_rows),                         # (x) 024
 )
 
 PROJECT_CHECKS = (
