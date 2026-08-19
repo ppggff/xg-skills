@@ -34,6 +34,16 @@ Load-bearing claims carry a marker: evidence-cited / 推断 (inferred) / 假设 
 only the claims a decision rests on. An uncited non-trivial assertion is flagged
 (`UNVERIFIED:` / `(assumption)`), never left bare.
 
+## Negative statements (否定性陈述)
+
+A written negative claim states its path and scope, never a bare absence — the same form the
+M1 evidence discipline pins for negative results: **"not found with query Q over scope S"**.
+A 语义边界 negation (a path/use limitation) is compliant as written; a scope-less existence
+negation is not — a later reader extrapolates it beyond what was actually checked.
+「示意」contrast-pair:
+- 可: 「无 SQL 视图（该元数据仅经 RPC 接口暴露）」——限定途径的语义边界
+- 不可: 「该信息不可得」——未限定 query/scope 的存在性否定，会被当全称否定消费
+
 ## Tables carry facts, prose carries reasoning
 
 Tables hold contracts / enumerable facts / comparisons; a compressed phrase in a table cell is

@@ -24,7 +24,10 @@ from elsewhere in the skill — keep them stable.
    cross-context term collision, CONTEXT-MAP purity). Plus the wiring checks not stated there:
    every concept's `_Context_` resolves to a context in the project/common CONTEXT-MAP, and every
    context "Governs" existing concepts. Drift → fix the term, record the scope, or move out
-   non-glossary content.
+   non-glossary content. **Wording conformance (024)**: a scope-less existence negation
+   (「不可得」「不存在」 with no query/scope qualifier — conventions-core.md「Negative
+   statements」) → report-only finding with a rewording suggestion (语义边界 form, or the
+   "not found with query Q over scope S" form); judgment side, never auto-fixed.
 6. **Size** — flag raw articles > 400 lines (FORMAT.md size guidance: split by sub-topic).
 7. **Designated docs** — a project with several concepts but **no `architecture` overview** →
    suggest creating one (it's the entry map). Every line in a `*-invariants` ledger is
