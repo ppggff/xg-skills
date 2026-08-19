@@ -55,6 +55,22 @@ directories via their pointer rows — and classify content **by nature** into t
 - **Execution-zone exposures (R6)**: point by canonical name — test.md Coverage/回归/Results ·
   评审报告 修复决策表/误报澄清 · log.md rework spots · part-check artifacts. **Test code is
   pointer-only** (file/case names), never copied.
+- **人工澄清轴 (024 R1) — mandatory, never skipped silently**: 挖掘键 = the **three-source
+  union** — 源卡 approved ledger 行 + grill-log 人工 chosen 行 + 人工澄清标题节 (executable
+  criterion: 节标题含「人工」或 澄清/前提, and the section body is a bullet expansion — one
+  清单行 per bullet). Output = the §8b sub-table, **指针分层**: every item gets a re-checkable
+  出处坐标 (卡/文件/节); 定性处 carries the verbatim quote, never a whole-passage transcription
+  (rows count toward the cap in pointer form). A mining miss is discoverable by the consumer
+  (requirement beat 1) re-checking the coordinates.
+- **定性引用二选一 (024 R3)**: a qualitative claim about a source-card item rides a
+  **pointer** where one is reachable (源卡 ADR / design.md Alternatives / decisions 行 — the
+  same §5/§6 "cite the owner, don't restate" discipline); otherwise a **逐字引句** that
+  matches the source text exactly (核对可机械复算) + 出处. A one-sentence restatement is
+  compression only — it never carries the qualitative content. Quote length rides
+  evidence.md's「one-line quote」vocabulary and limit (no second limit defined here).
+  「示意」contrast-pair:
+  - 可: 「001 R37 的定性见 001/decisions.md R37 行」（指针）; 或逐字引「执行 SQL 客户端无关」+ 出处
+  - 不可: 转述括注「R37 = 信封+三类退出码」——转述承载定性, 其错误在消费端不可见
 - **KB triage (D7) — judgment only, no writes yet**: 换个项目还成立的 lesson → M6 side
   (pointer in §4); 换组卡就不成立的 → stays in the report. durable environment facts →
   marked for post-go graduation; known-refuted facts are never marked.
@@ -90,10 +106,15 @@ them); a missing section fails Done-when (and the omission-check judgment item):
 - **§6 非事实类参考** — non-binding banner first; 判断 / 机制 / 死路 subsections (rules
   in §2 Mine).
 - **§7 执行区暴露点** — canonical-name pointers + one pointer line per non-md probe dir.
-- **§8 挖掘面覆盖表** — one row per input card: `n 载体 / 已读 a / 跳过 b(理由码)` with
+- **§8 挖掘面覆盖表** — two blocks under the one section (the ten-section closed list is
+  unchanged):
+  **8a 覆盖表** — one row per input card: `n 载体 / 已读 a / 跳过 b(理由码)` with
   **a+b=n** (mechanical self-consistency; 「存在」and「已覆盖」stay separate columns).
   理由码闭列: 不存在 · 空文件 · 无本轴内容 · 超规模截断(须点名). No expected set (invalid) →
   its warning row; legacy → the two markers shown as probed.
+  **8b 人工澄清清单** — the 人工澄清轴's output sub-table, one row per 澄清项: 源卡 ·
+  项名/一句 · 出处坐标 (卡/文件/节) · 逐字引句 (仅定性处) · 时效标注. Zero hits → the
+  single 「无」 row (shape invariant, §9 先例).
 - **§9 输入卡在途警示** (distinct name from improve's 在途卡提示节 — different semantics) —
   per in-flight input card: its facts may still move; consumers re-verify. No in-flight
   input card → the section carries a single 「无」 line (the ten-section shape is invariant).
@@ -144,10 +165,12 @@ skeleton bounds the mining face; R12 governs output size only).
 
 ## Done when
 - 口径 asked **before** mining, source 二态 recorded; coverage skeleton taken from the tool
-  (zero hand-derived carrier lists); all **ten** sections present in order; §8 numbers
-  self-consistent (a+b=n per card, no silent caps); every fact item carries source id +
+  (zero hand-derived carrier lists); all **ten** sections present in order; §8a numbers
+  self-consistent (a+b=n per card, no silent caps); **§8b present** (three-source union
+  mined, per-item 出处坐标; zero-hit = the 「无」 row); every fact item carries source id +
   时效标注; every non-fact item carries the non-binding mark + 证伪依据 + 失效条件; dead ends
-  are ADR/Alternatives pointers; test code pointer-only; size within caps (or the keep side
+  are ADR/Alternatives pointers; **qualitative claims are pointer-or-verbatim** (restatement
+  never carries 定性); test code pointer-only; size within caps (or the keep side
   re-cut); report committed and the chat stop made with receipts; backfill ran only post-go
   and walked its closed list (`adopted:` line first); M3 run. Log once per run:
   `log-usage.py log --skill xg-dev-workflow --action learn …`.
