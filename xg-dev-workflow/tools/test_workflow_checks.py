@@ -733,6 +733,12 @@ class GrillSignature(unittest.TestCase):
         self.assertIn(("carrier-missing", "signature id G4 not in grill-log index"),
                       exs)
 
+    def test_uppercase_prefixed_substring_not_a_gid(self):
+        # review #3: PG16 must not mint a phantom G16
+        self._card("核对 PG16 行为（人工 2026-08-20）\n",
+                   log=self._row("G16", status="open"))
+        self.assertEqual(self._y(), ([], [], []))
+
     def test_backtick_gid_visible_union_index(self):
         # extraction precedes code-span strip; index unions across grill-logs
         self._card("沿 `G7` 定案（人工 2026-08-20）；另 G8 拍板（人工）\n",

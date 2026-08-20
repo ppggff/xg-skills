@@ -912,8 +912,10 @@ def check_ledger_rows(project, card_dir, ws):
 
 SIGNATURE_SCAN_DOCS = ("requirement.md", "decisions.md", "facts.md", "design.md",
                        "detail.md", "plan.md", "test.md")
-_GID = re.compile(r"G\d+(?:[a-z]|\.\d+)?")
-_GID_RANGE = re.compile(r"G(\d+)\s*[–-]\s*G?(\d+)\b")
+# left boundary keeps PG16-style substrings from minting phantom ids (review #3;
+# same lookbehind as _QG_ID); fullmatch callers are unaffected (nothing precedes pos 0)
+_GID = re.compile(r"(?<![A-Za-z0-9])G\d+(?:[a-z]|\.\d+)?")
+_GID_RANGE = re.compile(r"(?<![A-Za-z0-9])G(\d+)\s*[–-]\s*G?(\d+)\b")
 
 
 def _line_gids(line):
