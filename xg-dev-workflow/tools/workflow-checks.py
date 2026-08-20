@@ -1004,7 +1004,10 @@ def check_grill_signature(project, card_dir, ws):
         else:
             scan = _mask_history(text, ws).splitlines()
         for line in scan:
-            if "人工" not in line or _accounting_line(line, ws):
+            # 待人工 (awaiting-human) is a pending marker, not a signature —
+            # a line whose every 人工 sits inside 待人工 makes no closure claim
+            # (review #7, human-approved D7 precision fix)
+            if "人工" not in line.replace("待人工", "") or _accounting_line(line, ws):
                 continue
             for gid in _line_gids(line):
                 refs.setdefault(gid, name)

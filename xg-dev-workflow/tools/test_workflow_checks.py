@@ -747,6 +747,14 @@ class GrillSignature(unittest.TestCase):
         self.assertIn(("carrier-missing", "signature id G4 not in grill-log index"),
                       exs)
 
+    def test_awaiting_human_marker_not_a_signature(self):
+        # review #7: 待人工 documents openness — it must not demand closure;
+        # an independent 人工 on the same line still signs
+        self._card("- G21 待人工裁决（仍 open）\n", log=self._row("G21", status="open"))
+        self.assertEqual(self._y(), ([], [], []))
+        self._card("人工已裁 G7；其余待人工复核\n", log=self._row("G7", status="open"))
+        self.assertEqual(self._y()[0], ["signature-open: G7 (requirement.md)"])
+
     def test_uppercase_prefixed_substring_not_a_gid(self):
         # review #3: PG16 must not mint a phantom G16
         self._card("核对 PG16 行为（人工 2026-08-20）\n",
