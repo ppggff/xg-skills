@@ -198,6 +198,11 @@ notes, the better the starting points — invest there.
   lens 4 before the confirm ask (against the requirement's own claimed-closed criteria).
 - **design-grill** — full attack-lens panel + the standing rules at each design-tree
   checkpoint, before freezing; lens 4 before the freeze ask (against requirement 条目 + Effect).
+  **Dispatch at the round that produces an expensive-to-redo artifact, not at the gate.** An
+  enumeration/classification table, a per-site disposition list, a layering decision later
+  phases build on — these are checked when produced; a finding that invalidates the artifact's
+  *axis* or a batch of its rows costs one round then and a rebuild of everything stacked on it
+  at freeze time. Applies even when the round felt like evidence work rather than a decision.
   **Tiered:** the full panel targets **decision-level** checkpoints (a new or changed
   ADR-class mechanism). A doc **rewrite that implements an already-grilled decision** gets a
   **lightweight consistency pass** instead: one agent (Agent tool `model: sonnet`, low

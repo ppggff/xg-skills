@@ -61,6 +61,21 @@ not another prose rule:
   sentence alone never births code) and the subagent **inherit-unverified** rule (don't
   inherit a KB negative into a verdict without re-checking its scope).
 
+## 负面断言的触发词 —— 路由到本节与下节，别当成普通观察
+
+下面两节的纪律只在你**意识到自己在下负面判断**时才会被想起，而最常出错的负面断言读起来像普通事实。
+出现这些措辞即为触发，必须当场给证据或改写成 open question：
+
+- 「只有一个调用方 / 放宽它无连带 / 改这里不影响别处」→ **枚举调用方全集**（grep 符号，数出来，
+  逐个判面），别从「我 grep 时只看见一处」推。
+- 「这是 X 的私有路径 / 这个对象走不到那里」→ 归属与可达性按**注册点/派发门**判，不按函数名或所在
+  文件判（seam 的枚举纪律见下节「swappable seam」条）。
+- 「已覆盖 / 这条错误说明它走到了 Y」→ 错误来源要指到抛错的那一行所在的函数与它的前置门；
+  「能报错」不等于「到达过下游」。
+- 「这条分支也会命中 / 会重复触发」→ 先算**前置门之后**这条分支还可不可达；被更早的门挡掉的分支
+  不构成反对理由。
+- 「不能复用 / 不可行 / 这条 alt 做不到」→ 见下节（含否决理由与选择理由同等载重那条）。
+
 ## Feasibility claims ("can't be done / infeasible") — design-time
 Distinct from a fact about behavior: a feasibility verdict is a judgment about **mutable**
 code, and during design the code is exactly what we'd change. Correctly-cited code is **not**

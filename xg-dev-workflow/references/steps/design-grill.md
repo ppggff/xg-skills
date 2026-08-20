@@ -195,7 +195,13 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    - **Coverage checks inherit the requirement's enumeration, never the solution's shape.** When
      defending a candidate's completeness, the objects enumerated are **the requirement
      enumeration table's rows** (same key — extend that table with 覆盖/漏 + 可达性 + 依据
-     columns), not a set derived from the candidate's own mechanism. A statement-level seam
+     columns), not a set derived from the candidate's own mechanism.
+     **But the requirement's key closes only the criterion, not the goal.** At design start name
+     the goal's own axis in one line (`目标 = X ⇒ 目标轴 = Y`) and compare it with the 条目's key;
+     when they differ, enumerate along **both** — an axis the requirement happens to phrase
+     (e.g. 判定点) cannot surface an object that never touches it (e.g. a writer consulting no
+     predicate), and no amount of reachability discipline inside the wrong axis will. A
+     divergence is reported back to 需求 (provenance correction or M2), never silently narrowed. A statement-level seam
      tempts enumerating statement entry points; the criterion's key (e.g. write points and their
      callers) is what must be walked — a wrong-key check looks closed while answering the wrong
      question. The extended table lands in「How it meets the requirement」(with the coverage

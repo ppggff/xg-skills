@@ -4,6 +4,43 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-20 — 025: negative-claim triggers, goal axis, panel timing (cbdb/007 retro)
+
+- **evidence.md gains「负面断言的触发词」** (routing block before the Feasibility section):
+  five phrasings — 只有一个调用方/无连带 · 这是 X 的私有路径 · 已覆盖/能报错说明到达过 ·
+  这条分支也会命中 · 不能复用/不可行 — each naming the enumeration that settles it (caller set,
+  registration/dispatch gate, the throwing function's own preceding gate, post-gate reachability).
+  It routes into the existing seam-enumeration and alt-rejection rules rather than restating them.
+  Why: cbdb/007's design grill had **8 conclusions overturned**, five of them the same shape —
+  a negative claim about reachability or blast radius asserted without the enumeration that the
+  skill *already* mandated. Concretely: `GpPolicyIsLocalTpEntry()` called "single caller, no
+  fallout" (4 callers, 3 in another face); create-storage 回传 rejected as "would double-create
+  + returns too late" (the dispatch was already on the hybrid path — `table_create_storage_hook`'s
+  registration was never checked, and a gdb probe overturned both grounds); hook reuse rejected on
+  three grounds, two of which collapsed on re-reading the same function; the `relation_vacuum`
+  ERROR read as proof of dispatch while `vacuum_rel()` (read four rounds earlier) sets
+  `shouldDispatch = false` first. The rules existed; the trigger didn't — these read as ordinary
+  observations, not as feasibility verdicts.
+- **design-grill.md's coverage-checks clause sharpened**: the requirement's enumeration key closes
+  the *criterion*, not the *goal* — name the goal's own axis at design start and enumerate along
+  both when they differ; a divergence goes back to 需求. Why: 007's R2 phrased its key as 判定点,
+  so the design enumerated 44 predicate sites flawlessly (a pre-freeze judge re-verified every
+  row) and still missed two writers that consult **no** predicate
+  (`ATExecSetDistributedBy()` / `ATExecExpandTableCTAS()` → `swap_relation_files(..., RecentXmin, …)`),
+  i.e. the most expensive finding of the card. Reachability discipline inside the wrong axis
+  cannot find them.
+- **adversarial-critic.md「When to run」: dispatch at the round that produces an
+  expensive-to-redo artifact, not at the gate.** Why: 007 ran eight rounds and built eight
+  decisions on top of an unverified-reachability enumeration before the panel ran at freeze time;
+  the axis finding now invalidates part of that table. Second same-shape signal the same day
+  (class-to-constraint): another card's log entry — "lens4 重判 + 一致性 pass 这一轮抓出 30 处
+  （含我自列的 13 条）" — same conclusion from the opposite direction, orchestrator self-check
+  does not substitute for a dispatched pass on a large artifact.
+- **Not added** (kept out deliberately): a fourth "check whether your conclusion is wider than
+  your evidence" rule — it fails the no-op test as written, and its three real instances in 007
+  (「R2 没有 E2E」·「不必实测」·「要走 M2」) are each covered by the trigger block or by
+  judging the finding's own level before escalating.
+
 ## 2026-08-20 — 024: longrun-003 hardening — premise transport, signature closure, ask discipline
 
 - **--check gains (x) `ledger-rows` and (y) `grill-signature`** (both pre-gate: created-only
