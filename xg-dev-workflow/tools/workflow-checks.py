@@ -642,10 +642,17 @@ def _receipt_block_findings(name, text, premise_era=False):
             findings.append("receipt-missing-key: %s (%s)"
                             % (label, ",".join(missing)))
         if premise_era and "premises =" in scan:
-            m = _PREMISE_VALUE.search(scan)
+            # D13 letter: value domain and the facts-pack [F<n>] demand judge the
+            # HEADER segment — up to the first disposition line (review #2)
+            hdr = next((k for k, ln in enumerate(lines[start:end])
+                        if RECEIPT_DISP.match(ln.strip())), end - start)
+            header_seg = _INLINE_CODE_SPAN.sub(
+                "", "\n".join(lines[start:start + hdr]))
+            m = _PREMISE_VALUE.search(header_seg)
             if not m:
                 findings.append("receipt-bad-premises: %s" % label)
-            elif m.group(1) == "facts-pack" and not re.search(r"\[F\d+\]", scan):
+            elif m.group(1) == "facts-pack" and \
+                    not re.search(r"\[F\d+\]", header_seg):
                 findings.append("receipt-premises-no-fact: %s" % label)
         disp = 0
         for raw in lines[start:end]:

@@ -643,6 +643,19 @@ class ReceiptPremiseKeys(unittest.TestCase):
                             "- suspicions = n/a-非 rewrite 轮\n")
         self.assertEqual(f, [])
 
+    def test_facts_pack_ref_below_header_not_credited(self):
+        # review #2 (D13 letter): an [F<n>] only in a disposition line does not
+        # satisfy the facts-pack demand — the header segment is the judged region
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("confirmed", "ledger", "2026-08-19"))
+        _write(self.tmp.name, "proj/001-a/notes/grill-requirement.md",
+               "### Panel receipt — Round 1\n\n"
+               "- round = 1\n- round type: topic\n- lenses = x\n- re-dispatch = no\n"
+               "- premises = facts-pack（附入）\n- suspicions = 3\n"
+               "\nDispositions:\n\n- adopted → 依据 [F1] 修正\n")
+        f, _, _ = wc.check_panel_receipts("proj", self.card, ws._L1)
+        self.assertTrue(any(x.startswith("receipt-premises-no-fact") for x in f))
+
 
 class GrillSignature(unittest.TestCase):
     """024 T4: (y) grill-signature — co-occurrence signature, union id index,
