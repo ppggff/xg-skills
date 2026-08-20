@@ -232,7 +232,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    (see `adr.md`).
 8. **Freeze gate:** before the ask, check the template's conditional/required sections are
    filled or consciously omitted — 速览 current · **Risks table** · Design qualities ·
-   存储足迹 (when the design touches storage) · 验证策略 (M+) · **Parts 表复核** (split
+   存储足迹 (when the design touches storage) · **验证策略 (M+) — checked for *correspondence*,
+   not for being non-empty**: the table is keyed by R-id, so three things silently have no row to
+   live in unless you sweep for them — (a) every 影响面「需回归的行为」item has a home (itemized,
+   not prose), (b) every landing point/site this phase's later rounds *discovered* is inside some
+   row, (c) each promised scenario names the suite that can actually run it when the project has
+   more than one harness · **Parts 表复核** (split
    designs: the per-part A↔B verdicts are recorded and the `R` column is filled — "定稿" is
    anchored here, the one decidable moment after multi-round grill churn); `workflow-status.py --check`
    verifies the unconditional sections mechanically — run the **criterion-conformance

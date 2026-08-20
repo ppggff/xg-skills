@@ -4,6 +4,28 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-20 — 026: 验证策略 checked for correspondence, not for being non-empty
+
+- **design-grill.md step 8's freeze checklist** now says the 验证策略 table is checked for
+  *correspondence*, and names the three things that have no row to live in because the table is
+  keyed by R-id: 影响面「需回归的行为」items need an itemized home (prose doesn't count), landing
+  points/sites **discovered in later rounds** must land inside some row, and each promised
+  scenario names the suite that can run it when the project has more than one harness.
+  Why: cbdb/007's freeze digest presented 验证策略 as a completed section on the strength of
+  "10 rows for R1–R10" + `--trace` showing zero gaps — while the table had no row for the two
+  writers found at panel time, no sibling-tpserver negative control for the design's most severe
+  failure mode, four Effect-required controls with no home (lens 4 found those), two baseline
+  assertions pinned to the wrong site, and a regression list that was four sentences of prose.
+  `--trace` only checks that each R-id has a design home; it cannot see a missing *dimension*.
+  Same shape as 025's third bullet — the artifact looked complete because its declared key was
+  satisfied.
+- Landed outside the skill (recorded here for the trail): the cbdb project CLAUDE.md gained a
+  **Test Harness Ownership** section (five harnesses; hybrid cases exist only in `REGRESS.mk`,
+  so `installcheckfdbobj` doesn't exercise them; the frozenxid suite has zero hybrid entries),
+  and `[[wiki/cbdb/fdbobj-test-patterns]]` gained the harness-map annotation plus the two reusable
+  idioms (XID-space distance assertion, sparse-burn force construction) and the two
+  don't-assert-this traps (log text, relfilenode-bearing error strings).
+
 ## 2026-08-20 — 025: negative-claim triggers, goal axis, panel timing (cbdb/007 retro)
 
 - **evidence.md gains「负面断言的触发词」** (routing block before the Feasibility section):
