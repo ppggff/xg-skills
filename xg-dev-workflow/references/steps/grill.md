@@ -104,6 +104,10 @@ priorities and tactics (see "Phase-specific layers").
   **Doc-gate cards (017 D2)**: no ledger — the resolved decision is written into the phase
   doc's matching section right then (the doc's `drafting` status is what marks it pending);
   the gate confirms the doc, and the audit anchor is its Change log gate line.
+  **Advisory, non-mandatory (024)**: when a doc/ledger line attributes a decision to 人工,
+  carry the `G<n>` on the same line — a bare signature sits outside the `--check` (y)
+  grill-signature checkable set (lens 4 stays its only audit); no mandatory writing form
+  (D7's alt stands).
 - **Self-contained 陈述.** A ledger 陈述 whose decision object is a list/count follows
   gate-digest.md's self-containment rule at write time (same thresholds, same evidence-ref
   exemption) — a digest card *leads with* the row's 陈述 (why/alt compress to the card
