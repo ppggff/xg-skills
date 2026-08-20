@@ -254,20 +254,24 @@ def check_card(project, card_dir, ws):
             + check_ledger(card_dir, ws)[0])
 
 
+def _no_ledger_exemption(card_dir, ws):
+    """Absence of decisions.md classified by governance mode — a doc-gate card
+    forbids the carrier, a ledger card truly lacks it, a legacy card predates the
+    mechanism. Shared by (a) and (x) (D3's 同构 made explicit, review #9)."""
+    mode = ws.card_mode(card_dir)
+    if mode == "doc-gate":
+        return ("not-yet-due", "doc-gate card, ledger is a forbidden carrier")
+    if mode == "ledger":
+        return ("carrier-missing", "ledger card without decisions.md")
+    return ("grandfathered", "legacy card without decisions.md")
+
+
 def check_ledger(card_dir, ws):
     """The ledger checks (a)–(e); semantic contradiction stays M3 judgment.
-    No decisions.md → no findings (old-card semantics, never flagged); the absence
-    classifies by governance mode — a doc-gate card forbids the carrier (its
-    presence is the finding), a ledger card truly lacks it, a legacy card predates
-    the mechanism."""
+    No decisions.md → no findings (old-card semantics, never flagged); the
+    absence classifies via _no_ledger_exemption."""
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        mode = ws.card_mode(card_dir)
-        if mode == "doc-gate":
-            return [], [], [("not-yet-due",
-                             "doc-gate card, ledger is a forbidden carrier")]
-        if mode == "ledger":
-            return [], [], [("carrier-missing", "ledger card without decisions.md")]
-        return [], [], [("grandfathered", "legacy card without decisions.md")]
+        return [], [], [_no_ledger_exemption(card_dir, ws)]
     blocks, findings = ws.parse_ledger(card_dir)
     by_id = {}
     for b in blocks:
@@ -864,13 +868,7 @@ def check_ledger_rows(project, card_dir, ws):
     if created < LEDGER_ROWS_CUTOFF:
         return [], [], [("grandfathered", "pre-%s card" % LEDGER_ROWS_CUTOFF)]
     if not os.path.exists(os.path.join(card_dir, "decisions.md")):
-        mode = ws.card_mode(card_dir)
-        if mode == "doc-gate":
-            return [], [], [("not-yet-due",
-                             "doc-gate card, ledger is a forbidden carrier")]
-        if mode == "ledger":
-            return [], [], [("carrier-missing", "ledger card without decisions.md")]
-        return [], [], [("grandfathered", "legacy card without decisions.md")]
+        return [], [], [_no_ledger_exemption(card_dir, ws)]
     reqs = ws.trace_requirement(card_dir)
     if not reqs:
         return [], [], [("carrier-missing", "no 需求条目 table")]
