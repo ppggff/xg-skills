@@ -525,6 +525,20 @@ class LedgerRows(unittest.TestCase):
                           "- approved: 2026-08-20 gate abc\n")
         self.assertEqual(self._x()[0], [])
 
+    def test_dates_ids_and_section_refs_not_tokens(self):
+        # review #6: dates, ADR ids, uppercase id forms and § refs carry no weight
+        self._card(rows="| R1 | 变更（2026-08-12，G11 残余、E7 随动、ADR-0003、§8 挂接） | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 变更承接\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], [])
+
+    def test_repeated_token_single_finding(self):
+        # review #6: per-cell dedup — the same missing token reports once
+        self._card(rows="| R1 | 三源并集与三态区分 | 功能 | e |\n",
+                   ledger="### R1 [requirement] approved\n- 陈述: 并集与区分\n"
+                          "- approved: 2026-08-20 gate abc\n")
+        self.assertEqual(self._x()[0], ["row-token-missing: R1 [三]"])
+
     def test_paraphrase_drift_digit_vs_cjk_numeral_flags(self):
         # recorded coarse-filter form: digit↔中文数词 drift trips the seek — the
         # fix is wording alignment, not a checker change (D6 known form)

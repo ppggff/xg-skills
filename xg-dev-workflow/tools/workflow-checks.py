@@ -1028,16 +1028,25 @@ def check_grill_signature(project, card_dir, ws):
 
 
 _WEIGHT_TOKEN = re.compile(r"\d+|[一二三四五六七八九十百千万亿零两]+")
+# non-weight digit carriers stripped before token extraction (024 review #6,
+# human-approved D6 strip-list extension): dates, ADR ids, uppercase-letter id
+# forms (R/G/E/F/D/T/S/L/V…, incl. suffixed G6b/G3.1), § references
+_TOKEN_STRIP = re.compile(
+    r"\d{4}-\d{2}-\d{2}|ADR-\d{4}"
+    r"|(?<![A-Za-z0-9])[A-Z]{1,3}\d+(?:[a-z]|\.\d+)?(?![0-9])"
+    r"|§\d+")
 _PAREN_COUNT = re.compile(r"（\s*(\d+|[一二三四五六七八九十])\s*[类条项处种个]）")
 _CJK_NUM = {c: i for i, c in enumerate("零一二三四五六七八九十")}
 _LIST_RUN = re.compile(r"[^、／（）：:；;。|]+(?:[、／][^、／（）：:；;。|]+)+")
 
 
 def _weight_tokens(cell):
-    """Digit + Chinese-numeral runs from a statement cell; inline code spans and
-    R-id forms stripped first (an id's digits are not a weight claim — 003 原型)."""
-    scan = re.sub(r"\bR\d+\b", "", _INLINE_CODE_SPAN.sub("", cell))
-    return _WEIGHT_TOKEN.findall(scan)
+    """Digit + Chinese-numeral runs from a statement cell; code spans, id forms,
+    dates, ADR ids and § refs are stripped first (their digits are not weight
+    claims — 003 原型 + review #6); tokens dedup per cell (one finding per
+    distinct missing token)."""
+    scan = _TOKEN_STRIP.sub("", _INLINE_CODE_SPAN.sub("", cell))
+    return list(dict.fromkeys(_WEIGHT_TOKEN.findall(scan)))
 
 
 def _paren_count_findings(rid, cell):
