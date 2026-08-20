@@ -945,14 +945,20 @@ def _grill_id_index(card_dir, ws):
     for f in _grill_logs(card_dir):
         for header, rows in _canonical_tables(ws._read(f)):
             any_canonical = True
+            if "chosen" not in header:
+                # closure is structurally undecidable without a chosen column —
+                # rows stay out of the index so their ids resolve to
+                # carrier-missing, never a finding (023 taxonomy; review #1);
+                # the column drop itself is (k)'s column-drop in the gated era
+                continue
             idc, st = header.index("id"), header.index("status")
-            ch = header.index("chosen") if "chosen" in header else -1
+            ch = header.index("chosen")
             for cells in rows:
                 gid = cells[idc].strip("`* ") if idc < len(cells) else ""
                 if _GID.fullmatch(gid):
                     index.setdefault(gid, {
                         "status": cells[st] if st < len(cells) else "",
-                        "chosen": cells[ch] if 0 <= ch < len(cells) else ""})
+                        "chosen": cells[ch] if ch < len(cells) else ""})
     return any_canonical, index
 
 

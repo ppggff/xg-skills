@@ -752,6 +752,21 @@ class GrillSignature(unittest.TestCase):
         self.assertEqual((f, s), ([], []))
         self.assertIn(("carrier-missing", "no created date, signature check off"), exs)
 
+    def test_chosen_less_table_rows_carrier_missing_not_finding(self):
+        # review #1: a canonical table without a chosen column is structurally
+        # undecidable — its ids resolve to carrier-missing, never signature-open
+        _write(self.tmp.name, "proj/001-a/requirement.md",
+               REQ_FM % ("drafting", "ledger", "2026-08-19")
+               + "定案（人工 2026-08-20，G3）\n")
+        _write(self.tmp.name, "proj/001-a/notes/grill-requirement.md",
+               "| id | question | recommended | why | status |\n"
+               "|---|---|---|---|---|\n"
+               "| G3 | q | rec | w | resolved → R1 |\n")
+        f, s, exs = self._y()
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "signature id G3 not in grill-log index"),
+                      exs)
+
     def test_mode_agnostic_doc_gate_checked(self):
         self._card("定案（人工 2026-08-20，G1）\n", gov="doc-gate",
                    log=self._row("G1", status="open"))
