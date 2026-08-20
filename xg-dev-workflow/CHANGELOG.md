@@ -4,6 +4,43 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-20 — 024: longrun-003 hardening — premise transport, signature closure, ask discipline
+
+- **--check gains (x) `ledger-rows` and (y) `grill-signature`** (both pre-gate: created-only
+  predicates from 2026-08-19, forward-only). (x): an approved requirement-level block with no
+  active 需求条目 row is a finding (proposed = not-yet-due), plus a coarse weight-token seek
+  (digits/Chinese numerals in statement cells must appear in the matching ledger block; ids,
+  dates, ADR refs stripped; whole-clause no-digit drift stays a known false negative) and an
+  opportunistic paren-count. (y): a doc line co-locating 人工 and a G-id must reference a
+  closed grill row (status not open, chosen non-empty); every absence form is carrier-missing
+  (prune compatibility); 待人工 contexts and accounting lines don't sign. Why: 003 shipped
+  doc↔ledger drift and open rows cited as human-approved that only hand-built card-local
+  scripts caught — "纪律挡不住，须机制化".
+- **Receipt headers carry `premises =` and `suspicions =`** (era-gated from 2026-08-19 inside
+  (l); premises value-domain checked over the header segment, facts-pack demands an [F<n>]).
+  Why: 003's dispatcher synthesized an unsourced "几个月" into all four lens prompts — the
+  premise-closure now has a file-grade trace. Dispatch closure tightened in
+  adversarial-critic.md (load-bearing premises only from {problem+claim}/facts pack, else
+  UNVERIFIED or out; Negative-results duty wired into every dispatch prompt); rewrite rounds
+  self-list likely self-made contradictions into the round header and the pass mandate.
+- **Gate lens 4 receives the phase's complete human messages verbatim** (count-reconcilable
+  packing), enabling the one-answer-transcribed-as-N-approvals audit; grill.md pins
+  one-question-one-decision (ask side and transcription side) and self-contained mid-grill
+  questions (third attachment of the gate-digest SoT), with a report-only question-gloss hint
+  in (k) (bare R/G id in a question cell with no 括注, own cutoff 2026-08-20).
+- **learn gains the 人工澄清轴** (three-source union mining into a §8b sub-table with
+  re-checkable coordinates and verbatim quotes for qualitative items; qualitative claims are
+  pointer-or-verbatim, restatement never carries them), and requirement beat 1 gains the
+  matching per-row consumption axis (习惯/意图 premises re-asked, never renewed from old
+  text; carriers per governance mode; gate-digest §5 completeness item). Why: 003's adopted
+  learn report silently dropped 002's three running premises and mid-grill re-litigated
+  approved judgments.
+- **KB negative-statement discipline both ends**: conventions-core (synced pair) pins the
+  scope-qualified negative form; evidence.md pins the consumption side (F-block first, three
+  reading states, no cross-state extrapolation — tightening birth-certificate /
+  inherit-unverified); park/M3 upgrade corrective KB writes to explicit per-item
+  write-or-defer. `_card_created` gains an (i2)-style format guard (malformed → "").
+
 ## 2026-08-19 — 023: --check exemption taxonomy + three-tier default output
 
 - **workflow-checks.py / workflow-status.py** — every silent not-applicable path in the
