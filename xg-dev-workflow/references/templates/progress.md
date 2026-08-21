@@ -47,7 +47,11 @@ created: YYYY-MM-DD
 - **Blockers:** …
 - **Build/test:** …  (exact build/test invocation from implement's environment recon — resume
   rebuilds and re-verifies from this line alone)
-- **Close-out:** …  (simplify-sweep run/skip · `XS/S — review skipped` note — M3 greps this line)
+- **Sizing:** …  (`sizing · 详设 · 评审` — answered at the 设计 freeze ask and written here; XS/S in
+  one clause, e.g. `XS/S — 详设 skipped · close-out review skipped`; M+ names where each lands.
+  M3 greps it twice: (ab) for the 详设 half once the design is frozen, the done-time check for
+  the 评审 half)
+- **Close-out:** …  (simplify-sweep run/skip — the 评审 disposition itself lives on the Sizing line)
 
 ## Task status
 

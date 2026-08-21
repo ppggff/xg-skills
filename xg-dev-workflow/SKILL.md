@@ -181,10 +181,13 @@ Each phase is a **contract** — input, output doc, gate — independent of whic
 
 **Requirement sizing (XS/S vs M+).** A human judgment, reusing the task-scope vocabulary (XS · S · M
 · L) at requirement level: **XS/S** = structure-light, ~one vertical slice, no new module/contract →
-may skip **详设** and the **评审** close-out (record the skip). **M+** = multi-slice, or
+may skip **详设** and the **评审** close-out. **M+** = multi-slice, or
 introduces/changes a module/contract → does 详设 when structural, and **must** pass 评审 before `done`.
-The 详设/评审 skips stay judged at design time, not a board column; M3's done-time signal: a review
-doc **or** an explicit `XS/S — review skipped` note. **The governance mode (017) moves one sizing
+**The judgment is carried by two action points, not by a phase-level requirement**: the 设计 freeze
+ask's §1 self-check line must state `sizing · 详设 · 评审` (`gate-digest.md`), and the answer is
+recorded in **`progress.md`**. M3 backstops both halves at their own moments: (ab) checks the 详设
+disposition once the design is frozen, the done-time check wants a review doc **or** an explicit
+`XS/S — review skipped` note. **The governance mode (017) moves one sizing
 consequence earlier**: `new` pre-fills `governance:` from the apparent sizing and the 需求 gate
 ratifies it — a card that outgrows its mode later upgrades via M2 (「Ledger」Governance mode).
 

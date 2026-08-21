@@ -25,6 +25,15 @@ Each entry says *what changed* and *why*, not the raw diff.
   written; two freeze digests and a five-agent panel (three attack lenses + lens 4 + a consistency
   pass) all passed — sizing is not in lens 4's criteria set. The human asked
   「不需要 detail？」 and that was the first time it surfaced.
+- **`SKILL.md`「Requirement sizing」changes shape, not just content** — from a phase-level
+  declaration (「the skips stay judged at design time」) to the two action points that carry it
+  (freeze-ask §1 line + `progress.md` carrier + the two M3 moments). Why the old form never fired:
+  a rule attached to a *phase* has no moment that forces an answer; SKILL.md is reloaded on every
+  invocation, so the sentence was always in context — **being in context is not being in a
+  checklist**, and the procedures actually executed (`design-grill.md` steps, `gate-digest.md`
+  sections) asked nothing about sizing. `(record the skip)` also named no carrier for the 详设 half.
+- **`templates/progress.md` gains a `Sizing:` line** in the at-a-glance block (the named carrier),
+  and the `Close-out:` gloss stops duplicating the review-skip mention.
 - Calibration: the first predicate (a `sizing` note naming both consequences) hit 5 cards across
   4 projects — cbdb/006 had a close-out review report and longrun_test/002 had a `detail.md`, i.e.
   the disposition was visible **by artifact**, so those were noise. Narrowing to the 详设 half and
