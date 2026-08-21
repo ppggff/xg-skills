@@ -4,6 +4,21 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-21 — 027: `[F<n>]` in an unquoted Mermaid edge label breaks the block
+
+- **`diagram-gotchas.md` (synced pair) gains the `[` `]` trap**: an unquoted flowchart label
+  containing `[` makes the parser start a node shape mid-label (`Expecting 'SQE' … got 'SQS'`)
+  and the whole block fails to render, so any label carrying an `[F<n>]`/`[R<n>]`/`[D<n>]`
+  citation must be quoted — `A -->|"… [F38]"| B`. Node labels written `N["…"]` are already safe;
+  **edge labels are the exposed form**, because `|…|` looks like it quotes and doesn't.
+  Why: longrun_test/003's module-interaction graph carried `事件流（pretty JSON，非 JSONL [F38]）`
+  as a bare edge label and did not render — found by the human, not by any check, **after** the
+  design froze through a four-lens panel, a lens-4 re-judgment, a consistency pass and two
+  green scripts. The file already documented the `;` trap, which is the same failure shape; this
+  one is worse because **our own provenance convention (M1's `[F<n>]` citations) produces it** —
+  the more evidence-cited a diagram is, the likelier it breaks. Both documented forms were
+  verified by parsing them with mermaid@11 (quoted → OK, unquoted → the same error verbatim).
+
 ## 2026-08-20 — 026: 验证策略 checked for correspondence, not for being non-empty
 
 - **design-grill.md step 8's freeze checklist** now says the 验证策略 table is checked for

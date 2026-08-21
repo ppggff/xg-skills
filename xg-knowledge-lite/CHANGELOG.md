@@ -4,6 +4,15 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-21 (via xg-dev-workflow retro 027)
+
+- **`diagram-gotchas.md` gains the `[` `]` trap** (synced pair with xg-dev-workflow): an unquoted
+  Mermaid flowchart label containing `[` starts a node shape mid-label and the block fails to
+  render ⟹ labels carrying an `[F<n>]`/`[R<n>]` citation must be quoted (`A -->|"… [F38]"| B`);
+  edge labels are the exposed form because `|…|` looks like quoting and isn't.
+  Why: a KB/workflow provenance convention (`[F<n>]` citations) is itself the trigger, so
+  evidence-cited diagrams in either skill's docs are the ones that break.
+
 ## 2026-08-20 (via xg-dev-workflow card 024 — longrun-003 hardening)
 
 - **conventions-core gains「Negative statements」** (synced pair with xg-dev-workflow): a

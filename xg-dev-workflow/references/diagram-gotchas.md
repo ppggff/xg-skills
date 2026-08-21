@@ -16,6 +16,14 @@ sequenceDiagram message text and unquoted flowchart labels — the tail parses a
 and the diagram errors. Use fullwidth punctuation in CJK diagram text; after writing, grep the
 mermaid blocks for `\x3b`.
 
+**Mermaid gotcha — `[` `]` in an unquoted flowchart label:** same shape as the `;` trap, one level
+worse because our own ID conventions produce it — an **unquoted** edge/node label containing `[`
+makes the parser start a *node shape* mid-label (`Expecting 'SQE' … got 'SQS'`) and the whole block
+fails to render. So any label carrying an `[F<n>]` / `[R<n>]` / `[D<n>]` citation **must be quoted**:
+`A -->|"事件流（非 JSONL [F38]）"| B`, `N["… [F12]"]`. Node labels written `N["…"]` are already safe;
+**edge labels are the exposed form** because `|…|` looks like it quotes and doesn't. After writing,
+grep the mermaid blocks for an unquoted `|`-label containing `[`.
+
 **Mermaid gotcha — subgraph `direction` is ignored when the subgraph has external links**
 (documented limitation): any edge crossing the subgraph boundary makes the subgraph inherit the
 parent graph's direction, so a "two vertical columns" layout built from `direction TB` subgraphs
