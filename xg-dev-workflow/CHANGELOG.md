@@ -4,6 +4,35 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-21 — 030: verify the candidate set's shared premise before listing options
+
+- **`evidence.md`「三种最容易漏标的载重断言」gains a fourth item** — 「这几个方案各有代价」——
+  那它们共享的前提呢?Framed as the mirror of the existing 「否决一个 alt 的理由与选择它的理由
+  同等载重」item: a wrong rejection costs one option, **a wrong shared premise voids the whole
+  candidate set** along with the comparison table and cost estimates already written down. The
+  concrete face: for 「reuse existing mechanism X to do Y」, the first action is checking whether
+  **X's path is wired up**, not whether X exists — grep finding a definition only proves existence.
+  Three places to look together: a commented-out call site · a `switch` whose `default` is `panic`
+  (so only the enumerated few are supported) · which manager/keyspace it operates on.
+- **`change.md` step 0b gains a one-line precondition** pointing at that rule, with the M2-specific
+  cost: a retraction here also takes the comparison table, the per-option estimates and the
+  touch-list with it. Pointer, not a restatement.
+- Why: hashdata/005 T27 (orphan cleanup). Deleting a StorState key was assumed to go through the
+  server's pending-delete chain, so three delete-channel options were worked up and costed —
+  branch the message per profile / support v3.11 only / drop deletion — and the trade-offs were
+  landed as a proposed M2 block in `design.md`「提议变更」. The human then supplied one domain fact:
+  `DeleteRelFileNodes` only ever targets AO auxiliary relations, so it cannot delete a system
+  table. Two greps confirmed it: `// go sm.processPending("meta")` is commented out, the
+  `processPending` switch has only `case "aometa"` with `default` panicking, and the ledger-key
+  delete goes through `sm.m2` (the V2/hash manager). **All three options were void — the shared
+  premise never held**, and the proposal section had to be rewritten wholesale. The existing
+  rejection-reason rule did not cover this: nothing was being rejected, the options simply all
+  rested on one unverified premise. Usage log carries the same incident at score 3
+  (「用户两次纠偏才回到正轨…领域事实该早点问人而不是自己推演三个选项」).
+- Not added: the project-specific evidence (`processPending`/`sm.m2` specifics) stays out of the
+  step body — it lives in the hashdata KB (`fdb-garbage-inventory`, "那条链从未启用") and in the
+  project memory, per the rule-in-body/evidence-in-CHANGELOG discipline.
+
 ## 2026-08-21 — 029: a pre-filled default is not a decision — the 详设 window closes at the design freeze
 
 - **`--check` gains (ab) `detail-disposition`** — a frozen `design.md` with neither a `detail.md`

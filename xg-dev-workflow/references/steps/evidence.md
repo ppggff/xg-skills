@@ -166,6 +166,12 @@ every sentence. An unmarked non-trivial assertion reads as evidence-backed — i
   方案从设计空间里移走。而它比被选中方案的前提**更危险** —— 被选中的会在实现里被检验,被否决的
   **没有任何下游动作会碰它**,错了可以一直错着,直到有人回头问「那条为什么不行来着」。写下否决理由
   前,按「要据以动手的前提」那个标准验它。
+- **「这几个方案各有代价」—— 那它们共享的前提呢?**(上一条的镜像:否决理由错是少一个方案,
+  **共享前提错是整组候选一起作废**,连带已写下的对比与代价评估。)列候选集之前,先把**整组共同
+  依赖的那一条**验到 VERIFIED。最常塌的形态是「复用既有机制 X 来做 Y」——
+  **第一个动作是查 X 那条路径有没有被接上,不是查 X 存不存在**:grep 到函数定义只证明它存在。
+  三处同看 —— 调用点是否被注释掉 · `switch` 的 `default` 是不是 `panic`(只认枚举内那几种)·
+  它操作的是哪个 manager / keyspace(决定它到底服务哪一类对象)。
 
 ## Honesty
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.

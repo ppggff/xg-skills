@@ -27,6 +27,9 @@ design are allowed to change, so the design stays stable while the plan flexes.
    - **Compute the affected closure** — reverse `depends-on` (who depends on the target) ∪
      the trace ripple (design sections citing the id → detail S rows → plan tasks → test
      rows). (--check (c) guarantees the closure walk terminates.)
+   - **Verify the candidate set's shared premise before landing anything** (evidence.md
+     「这几个方案各有代价」). A proposal's retraction costs more here than elsewhere: the
+     comparison table, the per-option cost estimates and the touch-list all go with it.
    - **Land the proposal substance as proposed blocks** in `decisions.md` — the new 陈述 +
      why + alt live there, the generalization of step 0's escalation row (appending proposed
      blocks is not "touching" the docs; approved rows and phase docs stay untouched). A
