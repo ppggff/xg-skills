@@ -11,7 +11,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Deterministic subset → script, zero tokens — `workflow-status.py --check` covers it
   end to end (021)**: card scope `--check <project>/<card>` (run after any doc edit);
   project scope `--check <project>` (project-level checks + every card — the full sweep).
-  Checks (a)–(aa): ledger (a)–(e) (id-reference integrity · derived-status mappings
+  Checks (a)–(ab): ledger (a)–(e) (id-reference integrity · derived-status mappings
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
@@ -32,7 +32,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   referenced grill row must be closed, absence in every form = carrier-missing (y) ·
   「How it meets」归宿-cell row resolution from the 028 cutoff, post-freeze: a cell citing a
   named table section must engage a row in it or cite a `D<n>`/`S<n>` (z) · 需求条目 handoff
-  carrier: work handed to design in the **provenance** column but not in the 陈述 (aa). Exit 1 =
+  carrier: work handed to design in the **provenance** column but not in the 陈述 (aa) ·
+  详设 disposition at the design freeze, in-flight cards only: a frozen `design.md` with neither a
+  `detail.md` nor a 详设 disposition recorded in `progress.md` (ab). Exit 1 =
   findings; not-applicable paths emit classified exemptions and never gate — the
   three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
   live in workflow-checks.py's module docstring (the single source, 023). Visible

@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-21 — 029: a pre-filled default is not a decision — the 详设 window closes at the design freeze
+
+- **`--check` gains (ab) `detail-disposition`** — a frozen `design.md` with neither a `detail.md`
+  nor a 详设 disposition recorded in `progress.md`. In-flight cards only: a card already `done` is
+  exempt (nothing actionable left; the done-time close-out check owns the 评审 half), and
+  `detail.md` existing counts as the record. Presence-only predicate (详设/detail + a disposition
+  word), no sizing heuristic — the script backstops the 详设 half, it cannot judge sizing.
+- **`gate-digest.md` §1 gains one line at the 设计 freeze ask**: `sizing · 详设 disposition · 评审
+  disposition`. XS/S answers in one clause; M+ names where each lands. One line inside the existing
+  checklist, no new artifact, scales down with sizing.
+- Why: cbdb/007 (hybrid table XID accounting) was scaffolded on 2026-08-19 when the ask looked like
+  S — one 判据 relaxation plus one skip — so `new` pre-filled `governance: doc-gate`. The 需求 gate
+  ask never listed mode as a judgment item; the field was merely echoed into the requirement's
+  Change log, so **the pre-filled default was recorded as if ratified while sizing was never
+  judged**. The card then grew to R1–R11, D1–D10, four kernel files and an approved ABI change —
+  M+ by every criterion — and both M+ obligations (详设, 评审 close-out) were skipped with no trace.
+  Nothing signalled it: `check_governance()` compares mode against **file shape**, not against the
+  card's size; the only skip signal fires at `done`, long past the point where 详设 could still be
+  written; two freeze digests and a five-agent panel (three attack lenses + lens 4 + a consistency
+  pass) all passed — sizing is not in lens 4's criteria set. The human asked
+  「不需要 detail？」 and that was the first time it surfaced.
+- Calibration: the first predicate (a `sizing` note naming both consequences) hit 5 cards across
+  4 projects — cbdb/006 had a close-out review report and longrun_test/002 had a `detail.md`, i.e.
+  the disposition was visible **by artifact**, so those were noise. Narrowing to the 详设 half and
+  exempting `done` cards took the sweep over all 8 dev_root projects from 13 hits to **2, both
+  genuine and actionable** (cbdb/006 and cbdb/007, both `active` with a frozen design). 157 tool
+  tests green (7 new).
+
 ## 2026-08-21 — 028: a design home must be a row, not a table; a handoff must sit where the next phase reads
 
 - **`--check` gains (z) `home-pointer`** — in「How it meets」, a 归宿 cell that cites a named table

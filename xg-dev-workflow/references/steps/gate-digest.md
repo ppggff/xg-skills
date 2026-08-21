@@ -37,6 +37,12 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
      dispatched verifier is a self-verification and doesn't belong; per-item correctness is
      backstopped by the verification flow and the close-out review, not by human re-reading —
      the gate approves **direction**, not line-by-line accuracy.
+   - **At the 设计 freeze ask, one more line: the sizing judgment** — `sizing · 详设 disposition ·
+     评审 disposition`. `governance:` was pre-filled from *apparent* sizing at `new`, and the freeze
+     is the last gate where the card's real size is visible (decision count, edit surface, ABI);
+     restate it here or the default silently becomes the decision. XS/S answers in one clause
+     (`XS/S — 详设 skipped · close-out review skipped`); M+ names where each lands. `--check` (ab)
+     backstops the 详设 half only — it cannot judge the sizing itself.
    - A one-line conclusion: 自检无欠账、gate 可判 — or what is still owed (owed → run it
      first; the ask is not presentable).
 2. **Decision cards** (3–5 emphasized) — fixed card layout, written for comprehension

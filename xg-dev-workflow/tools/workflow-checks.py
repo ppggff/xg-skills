@@ -1445,6 +1445,49 @@ def check_req_handoff(project, card_dir, ws):
     return findings, [], []
 
 
+# ---- (ab) 029: at the design freeze the 详设 disposition must be visible ----
+
+# presence-only: the note names 详设 and says what happens to it
+DETAIL_WORD = re.compile(r"详设|detail\.md")
+DETAIL_DISPOSITION = re.compile(r"skip|跳过|不做|免|planned|计划|待写|要写|排入|下一步")
+
+
+def check_detail_disposition(project, card_dir, ws):
+    """(ab) 029 — a frozen design closes the 详设 window, so the disposition must be
+    visible by then: either `detail.md` exists (the M+ path was taken) or `progress.md`
+    names 详设 with what happens to it. `governance:` is pre-filled from *apparent*
+    sizing at `new`; a card that outgrew it silently keeps the default, and the only
+    other machine signal for a skipped 详设/评审 fires at `done` — long past the point
+    where 详设 could still have been written. The 评审 half stays with that done-time
+    check; this one owns just the window that closes at freeze — so a card already
+    `done` is exempt (nothing actionable left), and it fires only while the card is
+    still in flight."""
+    dpath = os.path.join(card_dir, "design.md")
+    if not os.path.exists(dpath):
+        return [], [], [("carrier-missing", "design.md missing")]
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date")]
+    if created < TRACE_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % TRACE_CUTOFF)]
+    if _doc_status(dpath, ws) not in ("frozen", "approved"):
+        return [], [], [("not-yet-due", "design not frozen")]
+    if os.path.exists(os.path.join(card_dir, "detail.md")):
+        return [], [], []
+    rows = ws.board(os.path.dirname(card_dir))
+    state = str(rows.get(os.path.basename(card_dir)[:3], {}).get("state", "")).strip()
+    if state == "done":
+        # the window closed long ago; the done-time close-out check owns what is left
+        return [], [], [("not-yet-due", "card done, detail window closed")]
+    ptext = " ".join(ws._read(os.path.join(card_dir, "progress.md")).split())
+    if not ptext:
+        return [], [], [("carrier-missing", "progress.md missing")]
+    if DETAIL_WORD.search(ptext) and DETAIL_DISPOSITION.search(ptext):
+        return [], [], []
+    return (["detail-disposition: design frozen, no detail.md and no 详设 disposition "
+             "recorded"], [], [])
+
+
 # ---- (u)-(w) + B1 project half: project-scoped checks (021 T6) ----
 
 def _new_board_format(project_dir, ws):
@@ -1608,6 +1651,7 @@ CARD_CHECKS = (
     ("grill-signature", check_grill_signature),                 # (y) 024
     ("home-pointer", check_home_pointer),                       # (z) 028
     ("req-handoff", check_req_handoff),                         # (aa) 028
+    ("detail-disposition", check_detail_disposition),           # (ab) 029
 )
 
 PROJECT_CHECKS = (

@@ -1104,6 +1104,69 @@ created: 2026-08-01
 """
 
 
+class DetailDisposition(unittest.TestCase):
+    """(ab) 029 — the 详设 window closes at the design freeze."""
+
+    FROZEN = "---\nstatus: frozen\n---\n# design\n"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.card = os.path.join(self.root, "proj/001-a")
+        _write(self.root, "proj/001-a/requirement.md",
+               "---\nstatus: confirmed\ncreated: 2026-08-19\n---\n")
+        _write(self.root, "proj/001-a/design.md", self.FROZEN)
+        _write(self.root, "proj/001-a/progress.md", "# progress\n\n- Phase: 设计\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self):
+        return wc.check_detail_disposition("proj", self.card, ws._L1)
+
+    def test_frozen_without_detail_or_note_flags(self):
+        f, _s, _e = self._run()
+        self.assertEqual(len(f), 1)
+        self.assertTrue(f[0].startswith("detail-disposition:"))
+
+    def test_detail_md_present_passes(self):
+        _write(self.root, "proj/001-a/detail.md", "---\nstatus: baseline\n---\n")
+        f, _s, e = self._run()
+        self.assertEqual((f, e), ([], []))
+
+    def test_recorded_disposition_passes(self):
+        _write(self.root, "proj/001-a/progress.md",
+               "# progress\n\n- sizing: XS/S — 详设 skipped（close-out review skipped）\n")
+        f, _s, e = self._run()
+        self.assertEqual((f, e), ([], []))
+
+    def test_word_without_disposition_still_flags(self):
+        _write(self.root, "proj/001-a/progress.md", "# progress\n\n- 详设 见 design\n")
+        f, _s, _e = self._run()
+        self.assertEqual(len(f), 1)
+
+    def test_not_judged_before_freeze(self):
+        _write(self.root, "proj/001-a/design.md", "---\nstatus: drafting\n---\n")
+        f, _s, e = self._run()
+        self.assertEqual(f, [])
+        self.assertIn("not-yet-due", [c for c, _r in e])
+
+    def test_done_card_exempt(self):
+        _write(self.root, "proj/index.md",
+               "| NNN | Phase | 整体状态 | Deps | Dir |\n|---|---|---|---|---|\n"
+               "| 001 | 测试 | done | — | [a](./001-a/) |\n")
+        f, _s, e = self._run()
+        self.assertEqual(f, [])
+        self.assertIn("not-yet-due", [c for c, _r in e])
+
+    def test_grandfathered_before_cutoff(self):
+        _write(self.root, "proj/001-a/requirement.md",
+               "---\nstatus: confirmed\ncreated: 2026-01-01\n---\n")
+        f, _s, e = self._run()
+        self.assertEqual(f, [])
+        self.assertIn("grandfathered", [c for c, _r in e])
+
+
 class HomePointerAndHandoff(unittest.TestCase):
     """(z)/(aa) 028."""
 
@@ -1362,6 +1425,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("grill-signature", GF, "pre-2026-08-19 card"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
+            ("detail-disposition", CM, "design.md missing"),
         })
 
     def test_docgate_draft_card_exact_set_and_ungated_flag(self):
@@ -1393,6 +1457,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("grill-signature", CM, "no grill-log, signatures not checkable"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
+            ("detail-disposition", CM, "design.md missing"),
         })
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)
