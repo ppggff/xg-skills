@@ -4,6 +4,36 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-21 — 028: a design home must be a row, not a table; a handoff must sit where the next phase reads
+
+- **`--check` gains (z) `home-pointer`** — in「How it meets」, a 归宿 cell that cites a named table
+  section must engage a row in it (any 行 / N 条|项 / 本表|该表) or cite a `D<n>`/`S<n>`. Judged
+  only once `design.md` is frozen/approved, on cards created on/after `TRACE_CUTOFF`.
+- **`--check` gains (aa) `req-handoff`** — a 需求条目 row that hands work to the design phase in its
+  **provenance** column while its 陈述 does not. The design agenda runs off the R statement, Open
+  questions and the `G<n>` queue; nothing reads the provenance column, so a deferral parked there
+  is invisible to the phase meant to do it.
+- **`design-grill.md` step 8 gains the judgment half** the script cannot do: the cited table's
+  **enumeration key must be the same kind of thing as the R's subject**. Scoped by its own trigger
+  (only when a 归宿 cell points at a table), so it adds no fixed per-gate cost.
+- **`requirement.md` step 7 names the legal carriers** for work handed to a later phase.
+- Why: longrun_test/003 froze on 2026-08-20 with `R22`「安装产物经固定且可复现的镜像承载；可变状态经
+  named volume 承载」whose 归宿 cell read 「存储足迹 —— 安装产物经固定镜像、可变状态经 named
+  volume」— a restatement pointing at a table **keyed by this design's modules**, which structurally
+  cannot hold a landing point of the system under test: that table's six rows are 轮次账本×3 ·
+  crt-lite · env 库 · 备份产物, none of them SUT-side. So the design never picked the image-production
+  means (`docker commit` vs Dockerfile) even though `R22`'s provenance had assigned it —「手段 commit
+  或 Dockerfile 归设计」, parked in the evidence column — and never gave `/data0` a volume, while the
+  live container keeps 880 entries of it in the writable layer. `--trace` was green (R22 had a design
+  home), lens 4 judged it satisfied twice, the consistency pass and both scripts exited 0; the human
+  found it by asking "build or commit?" a day after the freeze. Same shape as 025/026 (an artifact
+  looking complete because its declared key was met) — third recurrence, so this time it is a script.
+- Calibration: both checks were measured against every card in `dev_root` (~50 cards, 537 需求条目
+  rows) before landing — **2 findings, both the R22 gap**. Two earlier formulations were rejected by
+  that measurement: text-overlap-with-the-requirement ranked four healthy rows above R22, and
+  "no `D<n>` reference" fired on 11 of 38 rows. The surviving discriminator is narrower and
+  structural: *does the cell engage the row dimension at all*.
+
 ## 2026-08-21 — 027: `[F<n>]` in an unquoted Mermaid edge label breaks the block
 
 - **`diagram-gotchas.md` (synced pair) gains the `[` `]` trap**: an unquoted flowchart label

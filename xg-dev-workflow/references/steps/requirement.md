@@ -124,7 +124,11 @@ not transcribe the words.
    its **枚举键 + 必填列** in the criterion text and closes only via the full table — see the
    template's Effect note; no partial-completion phrasing ("已完成 N 条").
 7. **Boundaries & open questions explicit.** Anything still unresolved or needing human
-   input → Open questions; anything deliberately deferred → Future. **Don't grill to death**
+   input → Open questions; anything deliberately deferred → Future. **Work handed to a
+   later phase needs a carrier that phase reads** — the R statement, Open questions, or a
+   `G<n>`; the **provenance column is not one** (it is the evidence trail, and no phase's
+   agenda is driven from it), so "手段归设计"-style deferrals parked there are invisible to
+   the phase meant to do them (`--check` (aa) flags it). **Don't grill to death**
    (`grill.md` Protocol): a point that won't converge → record it in Open questions and move on.
 8. **拆分审视 (split review — mandatory beat).** With the R-list final, answer "one card or
    several?" — by wiring what already exists, never a parallel judgment text:

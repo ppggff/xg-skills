@@ -1074,6 +1074,83 @@ class CardScopedBC(unittest.TestCase):
 NEW_BOARD_HEAD = "| Card | Phase | 整体状态 | Deps | Dir |\n|--|--|--|--|--|\n"
 
 
+DESIGN_Z = """---
+status: frozen
+---
+### 存储足迹
+
+| 模块 | 存储 |
+|---|---|
+| 轮次账本 | 游标 |
+| 备份产物 | tarball |
+
+## How it meets the requirement
+
+| R-id | 设计归宿 |
+|---|---|
+| [R1](./requirement.md) | 存储足迹 —— 安装产物经固定镜像 |
+| [R2](./requirement.md) | 存储足迹的「轮次账本」行 |
+| [R3](./requirement.md) | 轮次账本 —— 由 `D4` 承载 |
+"""
+
+REQ_AA = """---
+status: confirmed
+created: 2026-08-01
+---
+| ID | 需求条目 | 类型 | part | provenance |
+|----|---------|------|------|------------|
+| R1 | 安装产物经固定镜像承载 | 约束 | env | 人工（手段 commit 或 Dockerfile 归设计） |
+| R2 | 呈现形态归设计 | 功能 | env | 人工 2026-08-01 |
+"""
+
+
+class HomePointerAndHandoff(unittest.TestCase):
+    """(z)/(aa) 028."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.card = os.path.join(self.root, "proj/001-a")
+        _write(self.root, "proj/001-a/requirement.md",
+               "---\nstatus: confirmed\ncreated: 2026-08-01\n---\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_bare_table_pointer_flags_row_named_and_decision_ref_pass(self):
+        _write(self.root, "proj/001-a/design.md", DESIGN_Z)
+        f, _s, _e = wc.check_home_pointer("proj", self.card, ws._L1)
+        self.assertEqual(
+            f, ["home-pointer: R1 cites 「存储足迹」 without naming a row"])
+
+    def test_not_judged_before_freeze(self):
+        _write(self.root, "proj/001-a/design.md",
+               DESIGN_Z.replace("status: frozen", "status: drafting"))
+        f, _s, e = wc.check_home_pointer("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertIn("not-yet-due", [c for c, _r in e])
+
+    def test_grandfathered_before_cutoff(self):
+        _write(self.root, "proj/001-a/requirement.md",
+               "---\nstatus: confirmed\ncreated: 2026-01-01\n---\n")
+        _write(self.root, "proj/001-a/design.md", DESIGN_Z)
+        f, _s, e = wc.check_home_pointer("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertIn("grandfathered", [c for c, _r in e])
+
+    def test_handoff_in_provenance_only_flags(self):
+        _write(self.root, "proj/001-a/requirement.md", REQ_AA)
+        f, _s, _e = wc.check_req_handoff("proj", self.card, ws._L1)
+        self.assertEqual(
+            f, ["req-handoff: R1 hands work to design in provenance only"])
+
+    def test_handoff_in_statement_passes(self):
+        _write(self.root, "proj/001-a/requirement.md",
+               REQ_AA.replace("人工（手段 commit 或 Dockerfile 归设计）", "人工 2026-08-01"))
+        f, _s, _e = wc.check_req_handoff("proj", self.card, ws._L1)
+        self.assertEqual(f, [])
+
+
 class ProjectScoped(unittest.TestCase):
     """021 T6: B3 board-rows / B4 root-strays / B5 board-monotonic / B1 project half
     + G6 markup-tolerant state parse."""
@@ -1283,6 +1360,8 @@ class EmissionTableConsistency(unittest.TestCase):
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", GF, "pre-2026-08-19 card"),
             ("grill-signature", GF, "pre-2026-08-19 card"),
+            ("home-pointer", CM, "design.md missing"),
+            ("req-handoff", CM, "no 需求条目 table"),
         })
 
     def test_docgate_draft_card_exact_set_and_ungated_flag(self):
@@ -1312,6 +1391,8 @@ class EmissionTableConsistency(unittest.TestCase):
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", ND, "doc-gate card, ledger is a forbidden carrier"),
             ("grill-signature", CM, "no grill-log, signatures not checkable"),
+            ("home-pointer", CM, "design.md missing"),
+            ("req-handoff", CM, "no 需求条目 table"),
         })
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)

@@ -237,7 +237,12 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    live in unless you sweep for them — (a) every 影响面「需回归的行为」item has a home (itemized,
    not prose), (b) every landing point/site this phase's later rounds *discovered* is inside some
    row, (c) each promised scenario names the suite that can actually run it when the project has
-   more than one harness · **Parts 表复核** (split
+   more than one harness · **「How it meets」归宿复核 — the cited container must be able to
+   hold the item**: when a 归宿 cell points at a table, that table's enumeration key must be
+   the same *kind* of thing as the R's subject (a table keyed by this design's modules cannot
+   hold a landing point of the system under test), and the row must exist. `--check` (z) flags
+   a cell that engages no row at all; the key-kind match is the judgment half — a 归宿 that
+   only restates the requirement is not a home · **Parts 表复核** (split
    designs: the per-part A↔B verdicts are recorded and the `R` column is filled — "定稿" is
    anchored here, the one decidable moment after multi-round grill churn); `workflow-status.py --check`
    verifies the unconditional sections mechanically — run the **criterion-conformance

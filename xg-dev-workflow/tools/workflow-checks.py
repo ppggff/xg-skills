@@ -1348,6 +1348,103 @@ def check_adr_hygiene(project, card_dir, ws):
     return findings, [], exs
 
 
+# ---- (z)/(aa) 028: home-pointer + requirement handoff carrier ----
+
+# a 归宿 cell that cites a table must name a row inside it (or cite a decision id);
+# a bare table pointer is a dangling home — the row it needs may not exist at all
+# calibrated against every card in dev_root: engaging the row dimension AT ALL
+# (any 行 / 本表 / 该表) is the discriminator — narrower forms produced false positives
+ROW_NAMED = re.compile(r"行|\d+\s*[条项]|本表|该表")
+DECISION_REF = re.compile(r"`[DS]\d+`")
+# the 需求条目 provenance column handing work to the design phase
+HANDOFF = re.compile(r"归\s*(设计|`?design)|由设计(定|阶段)|设计阶段(须|再|要|给出|确认|定)|留给设计")
+
+
+def _design_table_sections(card_dir, ws):
+    """Named design.md sections whose body is a table (≥3 pipe lines), keyed by the
+    short name a 归宿 cell would cite (heading text before ' ——' / a paren gloss)."""
+    text = ws._read(os.path.join(card_dir, "design.md"))
+    keys = {}
+    heads = list(re.finditer(r"^###?\s+(.+?)\s*$", text, re.M))
+    for i, m in enumerate(heads):
+        body = text[m.end():heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        if len([ln for ln in body.split("\n") if ln.strip().startswith("|")]) < 3:
+            continue
+        key = re.split(r"（|\(| ——", m.group(1))[0].strip()
+        if len(key) >= 3:
+            keys[key] = m.group(1)
+    return keys
+
+
+def check_home_pointer(project, card_dir, ws):
+    """(z) 028 — 「How it meets」归宿 cells resolve to a row, not just a table: a cell
+    citing a named table section must name a row in it (「X」行 / 逐行 / N 行) or cite a
+    `D<n>`/`S<n>`. A bare table pointer reads as a home while the row may not exist —
+    the table's enumeration key can be a different kind of thing than the R's subject.
+    Judged once design.md is frozen/approved (mid-draft gaps are the freeze gate's
+    business), on cards created on/after TRACE_CUTOFF."""
+    dpath = os.path.join(card_dir, "design.md")
+    if not os.path.exists(dpath):
+        return [], [], [("carrier-missing", "design.md missing")]
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date")]
+    if created < TRACE_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % TRACE_CUTOFF)]
+    if _doc_status(dpath, ws) not in ("frozen", "approved"):
+        return [], [], [("not-yet-due", "design not frozen")]
+    text = ws._read(dpath)
+    parts = text.split("## How it meets the requirement")
+    if len(parts) < 2:
+        return [], [], [("carrier-missing", "no 「How it meets」 section")]
+    keys = _design_table_sections(card_dir, ws)
+    if not keys:
+        return [], [], [("carrier-missing", "no table sections to point at")]
+    findings = []
+    for ln in parts[1].split("\n## ")[0].split("\n"):
+        m = re.match(r"^\|\s*\[?(R\d+)\]?[^|]*\|\s*(.*?)\s*\|\s*$", ln)
+        if not m:
+            continue
+        rid, home = m.group(1), m.group(2)
+        cited = sorted(k for k in keys if k in home)
+        if not cited or ROW_NAMED.search(home) or DECISION_REF.search(home):
+            continue
+        findings.append("home-pointer: %s cites 「%s」 without naming a row"
+                        % (rid, cited[0]))
+    return findings, [], []
+
+
+def check_req_handoff(project, card_dir, ws):
+    """(aa) 028 — work handed to a later phase needs a carrier that phase reads: a
+    需求条目 row whose **provenance** column hands work to design while its 陈述 does
+    not is flagged. The design agenda is driven by the R statement, Open questions and
+    the `G<n>` queue — never by the provenance column, so a handoff parked there is
+    invisible to the phase meant to do it. Cards created on/after TRACE_CUTOFF."""
+    path = os.path.join(card_dir, "requirement.md")
+    if not os.path.exists(path):
+        return [], [], [("carrier-missing", "requirement.md missing")]
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date")]
+    if created < TRACE_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % TRACE_CUTOFF)]
+    rows = 0
+    findings = []
+    for ln in ws._read(path).split("\n"):
+        if not re.match(r"^\|\s*R\d+\s*\|", ln):
+            continue
+        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        rows += 1
+        if HANDOFF.search(cells[-1]) and not HANDOFF.search(cells[1]):
+            findings.append("req-handoff: %s hands work to design in provenance only"
+                            % cells[0])
+    if not rows:
+        return [], [], [("carrier-missing", "no 需求条目 table")]
+    return findings, [], []
+
+
 # ---- (u)-(w) + B1 project half: project-scoped checks (021 T6) ----
 
 def _new_board_format(project_dir, ws):
@@ -1509,6 +1606,8 @@ CARD_CHECKS = (
     ("adr-hygiene", check_adr_hygiene),                         # (t) C4
     ("ledger-rows", check_ledger_rows),                         # (x) 024
     ("grill-signature", check_grill_signature),                 # (y) 024
+    ("home-pointer", check_home_pointer),                       # (z) 028
+    ("req-handoff", check_req_handoff),                         # (aa) 028
 )
 
 PROJECT_CHECKS = (
