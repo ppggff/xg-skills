@@ -30,8 +30,10 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
   agenda negotiation …, `references/design-agenda.md`) — stages are not ledger rows, no letter
   prefix exists or should be minted for them.
 - `governance:` — not an id scheme but a **registered frontmatter field** (requirement.md only,
-  017 D1): literals `ledger`/`doc-gate`, key word-only (the flat frontmatter parser drops
-  hyphenated keys), no inline comments (values are taken verbatim); omitted = legacy cascade.
+  017 D1): literals `ledger`/`doc-gate`/`doc-native-pilot` (the last is card 026's self-hosted
+  trial mode — non-ledger downstream, guarded by its card-local crosscheck until the check-family
+  rewrite), key word-only (the flat frontmatter parser drops hyphenated keys), no inline comments
+  (values are taken verbatim); omitted = legacy cascade.
 
 ## Rules
 
