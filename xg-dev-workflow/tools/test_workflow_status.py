@@ -884,6 +884,14 @@ class GovernanceMode(unittest.TestCase):
         self.assertEqual(ws.card_mode(self.card("---\ngovernance: bogus\n---")), "invalid")
         self.assertEqual(ws.card_mode(self.card(None)), "legacy")
 
+    def test_doc_native_pilot_registered(self):
+        # card 026 self-hosted trial mode: valid, non-ledger, no decisions.md demanded
+        card = self.card("---\ngovernance: doc-native-pilot\ncreated: 2026-08-25\n---")
+        self.assertEqual(ws.card_mode(card), "doc-native-pilot")
+        findings = ws.check_card("proj", card)
+        self.assertFalse(any(f.startswith("bad-governance-value") for f in findings))
+        self.assertFalse(any(f.startswith("ledger-mode-no-ledger") for f in findings))
+
     def test_i1_bad_value_flagged(self):
         card = self.card("---\ngovernance: bogus\n---")
         self.assertTrue(any(f.startswith("bad-governance-value")

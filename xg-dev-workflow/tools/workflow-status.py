@@ -755,7 +755,10 @@ def card_decisions(card_dir):
 # decisions.md-existence axis, i.e. "legacy", pre-existing behavior untouched. The field
 # lives only in requirement.md frontmatter; invalid values behave as legacy downstream
 # and are flagged by check_governance (workflow-checks.py).
-GOVERNANCE_VALUES = ("ledger", "doc-gate")
+# "doc-native-pilot": card 026's self-hosted trial mode — decisions live in the phase docs,
+# no decisions.md/facts.md (mode-specific checks treat it as non-ledger; full semantics land
+# via card 026, until then its cards are guarded by their card-local crosscheck).
+GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot")
 
 
 def card_mode(card_dir):
