@@ -937,3 +937,36 @@ t("R17: the find box seeds from the selection, remembers past queries, and waits
 });
 
 console.log("\n" + pass + " shell-helper tests passed");
+
+// --- 026 T16: doc-native id anchors (SV pure half) + xid extension behavior ---
+t("xidHead parses block headings, rejects near-misses", () => {
+  assert.deepEqual(SV.xidHead("Req-1 approved — 标题"), { id: "Req-1", state: "approved" });
+  assert.deepEqual(SV.xidHead("LLD-8 proposed"), { id: "LLD-8", state: "proposed" });
+  assert.equal(SV.xidHead("Req-1 frozen — 坏状态词"), null);
+  assert.equal(SV.xidHead("REQ-1 approved — case 错"), null);
+  assert.equal(SV.xidHead("需求 026: 普通标题"), null);
+});
+t("xidCite matches the exact citation grammar only (zero false links)", () => {
+  assert.equal(SV.xidCite("[Req-12] …").id, "Req-12");
+  assert.equal(SV.xidCite("[Req-12-a] 子句").clause, "-a");
+  assert.equal(SV.xidCite("[F3] legacy alias"), null);          // alias is not a block cite
+  assert.equal(SV.xidCite("[025:F3] cross-card"), null);
+  assert.equal(SV.xidCite("[R1](./requirement.md)"), null);     // legacy link form untouched
+  assert.equal(SV.xidCite("[wiki/x]"), null);
+});
+t("marked xid extension renders in-pane anchors; legacy content untouched", () => {
+  const markedSrc = readFileSync(join(here, "marked.min.js"), "utf8");
+  const box = {}; box.globalThis = box; box.self = box; box.window = box;
+  vm.createContext(box); vm.runInContext(markedSrc, box);
+  const reg = html.match(/window\.marked\.use\(\{[\s\S]*?\}\] \}\);/);
+  const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);
+  vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
+  vm.runInContext(reg[0], box);
+  const out = box.marked.parse("见 [HLD-3] 与 [Req-12-a]。");
+  assert.ok(out.includes('<a class="xid" href="#xid:HLD-3">[HLD-3]</a>'), out);
+  assert.ok(out.includes('href="#xid:Req-12"') && out.includes("[Req-12-a]"), out);
+  const legacy = box.marked.parse("legacy [R1](./requirement.md) 与 [F3] 与 [[wiki/p/x]]。");
+  assert.ok(!legacy.includes("class=\"xid\""), "legacy forms must not linkify: " + legacy);
+  const fenced = box.marked.parse("```\n[Req-1]\n```");
+  assert.ok(!fenced.includes("class=\"xid\""), "no linkify inside code fences");
+});

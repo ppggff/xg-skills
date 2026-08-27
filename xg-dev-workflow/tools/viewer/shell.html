@@ -139,6 +139,11 @@
   .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
   /* R1: the boundary is a 9px grab strip whose 1px line stays out of the way until the cursor
      comes near it (or a drag is in progress). Height is set to the body's, in JS. */
+  .xhead::before { content: "●"; font-size: .55em; vertical-align: 2px; margin-right: .45em; color: var(--muted); }
+  .xhead.xstate-approved::before { color: #2da44e; }
+  .xhead.xstate-proposed::before { color: #bf8700; }
+  .xhead.xstate-superseded::before, .xhead.xstate-retired::before { color: var(--muted); }
+  a.xid { text-decoration: none; border-bottom: 1px dotted; }
   .mrule { position: absolute; top: 0; width: 9px; margin-left: -4px; cursor: col-resize; z-index: 1; }
   .mrule::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px;
     background: var(--line); opacity: 0; transition: opacity .12s; }
@@ -1109,6 +1114,18 @@ var SV = (function () {
     return Math.max(0, Math.min(top, trackH - 2));
   }
 
+  // ---- doc-native id anchors (026 T16): block-head parse + bracket-cite grammar ----
+  var XID_HEAD = /^(Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-(\d+) (proposed|approved|superseded|retired)(?: — .*)?$/;
+  var XID_CITE = /^\[((?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d+)(-[a-z])?\]/;
+  function xidHead(text) {
+    var m = XID_HEAD.exec((text || "").trim());
+    return m ? { id: m[1] + "-" + m[2], state: m[3] } : null;
+  }
+  function xidCite(src) {
+    var m = XID_CITE.exec(src);
+    return m ? { id: m[1], clause: m[2] || "", raw: m[0] } : null;
+  }
+
   return { parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
@@ -1119,7 +1136,8 @@ var SV = (function () {
            blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
-           viewKey: viewKey, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind };
+           viewKey: viewKey, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
+           xidHead: xidHead, xidCite: xidCite };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1261,6 +1279,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
     tokenizer: function (src) { var m = /^\[\[([^\]]+)\]\]/.exec(src);
       if (m) return { type: "wikilink", raw: m[0], text: m[1] }; },
     renderer: function (t) { return '<a href="[[' + esc(t.text) + ']]">' + esc(t.text) + "</a>"; },
+  }, {
+    // 026 T16 id-linkify: exact three-letter grammar only (HLD-10 — precise match,
+    // no heuristics); clause suffix rides the display, the anchor is the block id
+    name: "xid", level: "inline",
+    start: function (src) { var m = /\[(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d/.exec(src); return m ? m.index : -1; },
+    tokenizer: function (src) { var m = /^\[((?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d+)(-[a-z])?\]/.exec(src);
+      if (m) return { type: "xid", raw: m[0], id: m[1], clause: m[2] || "" }; },
+    renderer: function (t) { return '<a class="xid" href="#xid:' + esc(t.id) + '">' + esc(t.raw) + "</a>"; },
   }] });
 
   // ===== navigation model: each pane holds a view + its own history (R30) =====
@@ -1392,6 +1418,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       lineGutter([].slice.call(pane.querySelectorAll(".docbody > *")), window.marked.lexer(fm.body), pane._doc.fmLines);   // R9
       var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
+      hs.forEach(function (h) { var x = SV.xidHead(h.textContent);   // 026 T16: block anchors
+        if (x) { h.setAttribute("data-xid", x.id); h.classList.add("xhead", "xstate-" + x.state); } });
       markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(side, pane.querySelector(".docbody"));
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
@@ -2559,6 +2587,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
   document.addEventListener("click", function (e) {
     var t;
+    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // 026 T16: in-pane block jump
+      var xs = sideOf(t) || focus, xp = PANES[xs],
+          xh = xp && xp.querySelector('[data-xid="' + (t.getAttribute("href") || "").slice(5) + '"]');
+      if (xh) xh.scrollIntoView({ block: "start", behavior: "smooth" });
+      return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
