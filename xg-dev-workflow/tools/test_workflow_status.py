@@ -1199,3 +1199,36 @@ class GovernanceCollapse(unittest.TestCase):
         self.assertFalse(any(r["name"] == "notes/grill-design.md" for r in rows))
         fam = next(r for r in rows if r["name"] == "notes/grill-*.md")
         self.assertTrue(fam["expected"] and fam["exists"])
+
+
+class DualRidNotation(unittest.TestCase):
+    """(026 T15) trace shape stays put on legacy notation; doc-native resolves."""
+
+    def test_legacy_r_notation_unchanged(self):
+        d = tempfile.mkdtemp()
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 906\n---\n| ID | 条目 |\n|---|---|\n| R1 | 旧形 |\n", encoding="utf-8")
+        self.assertEqual(list(ws.trace_requirement(d)), ["R1"])
+
+    def test_docnative_index_feeds_trace(self):
+        d = tempfile.mkdtemp()
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 907\ngovernance: doc-native\n---\n"
+            "| id | 标题 | state |\n|---|---|---|\n| Req-1 | t | approved |\n",
+            encoding="utf-8")
+        self.assertEqual(list(ws.trace_requirement(d)), ["Req-1"])
+
+    def test_wrapped_implements_keeps_tail(self):
+        d = tempfile.mkdtemp()
+        (Path(d) / "plan.md").write_text(
+            "### T1: x\n- **Implements:** [Req-1](./requirement.md),\n"
+            "  [Req-7](./requirement.md)\n- **Part:** —\n", encoding="utf-8")
+        self.assertEqual(ws.trace_plan(d)["1"]["rids"], ["Req-1", "Req-7"])
+
+    def test_xcard_shorthand_stripped(self):
+        self.assertNotIn("R6", [m.group(0) for m in
+                                ws.RID.finditer(ws._strip_xcard("引 024 R6 不重述"))])
+
+    def test_range_expansion_in_parts(self):
+        self.assertIn("Req-3",
+                      ws._expand_rid_ranges("Req-1..Req-4"))

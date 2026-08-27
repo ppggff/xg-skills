@@ -6,6 +6,24 @@ scheme, consulted when naming. A new scheme picks an **unused** letter and lands
 
 ## Prefixes
 
+**Doc-native three-letter set (026 HLD-1 — the current form on doc-native cards; the single-
+letter forms below stay the 存量 notation, dual-recognized by the tools):**
+`Req-<n>` 需求条目 · `HLD-<n>` design decisions · `LLD-<n>` 详设 items · `Task-<n>` plan tasks
+(tools still parse `T<n>` heads) · `Ask-<n>` grill rows (`G<n>` = transitional 存量 form in
+approved-note ask-id slots) · `Fact-<n>` fact entries (`[F<n>]` stays legal as the transitional
+alias on transported text) · `Eff-<n>` Effect criteria · `Crit-<n>` verification-criteria
+definitions (V 存量) · `Layer-<n>` abstraction layers (L 存量). Case-sensitive strict, no
+zero-padding. **Unchanged set**: `MS` · `ADR-NNNN` · `#<n>` (report-local) · `NNN` · `M1`–`M6` ·
+P-rules · lens 1–4 · Tier 0–2. Two-form rule (Req-30): definition site bare (the structural
+position is the anchor), prose citations bracketed `[Req-1]`; **clause exception (W-10)**: a
+clause's definition site is the in-block local marker `- (x) `, cited as `[Req-12-a]`
+(hyphen-to-the-end single token); **clause-marker disambiguation**: only the line-leading
+`- (x) ` form is a clause address — `(a)`/`(b)` inside clause prose (batching grounds, source
+§ numbers) is content, not an address. **Range notation** `Req-1..Req-23` is a legal id-set
+form; consuming parsers expand it (block_parse.expand_ranges / the trace layer). Check-id
+families ((a)–(ae) / ABC 族 / (c1)–(c8)) stay their own scheme — the `- (a)` clause marker is
+the same glyph in a different scheme, context disambiguates (declared ambiguity, W-10).
+
 - `NNN` — card dir · `ADR-NNNN` — decision records · `T<n>` — plan tasks.
 - `R<n>` — requirement 条目; **R is reserved** for requirements.
 - `G<n>` — grill-log questions, **continuous across rounds**; round-scoped form `G<round>.<n>`,
