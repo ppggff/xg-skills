@@ -64,9 +64,10 @@ authorization there are no per-phase stops (「Two zones」).
   continuing after a grill convergence verdict.
 - **Ask with receipts — write first, then ask.** An advance ask (and any reply that closes a verb
   run) is made only after this round's artifacts are on disk, and it **names them**: doc paths + the
-  dev_root commit — on a ledger card, also **the pending `decisions.md` rows being asked about**
-  (the approve transcription cites this receipts commit); on a doc-gate card, the doc itself is
-  the receipt and the go lands as its Change log gate line (`gate-digest.md`「Doc-gate cards」).
+  dev_root commit — on a doc-native card, **the pending blocks being asked about** (the
+  per-block approve transcription cites this receipts commit — gate-digest.md「Doc-native
+  cards」); on a ledger card, the pending `decisions.md` rows; on a doc-gate card, the doc
+  itself is the receipt and the go lands as its Change log gate line (「Doc-gate cards」).
   No receipts, no ask (closes M3's trigger
   blind spot: an omitted write produces no doc edit for M3 to catch).
 - **Plan mode ≠ a gate substitute.** An ExitPlanMode approval only authorizes writing **this**
@@ -90,13 +91,15 @@ The phases split at the **设计/详设 freeze**, and that line is both the **de
   `decisions.md` row** Claude escalates from any post-freeze phase (design fork or split
   proposal → M2; on a doc-gate card the escalation carrier is the target doc's「提议变更」
   section + a `progress.md` pointer instead; blockers and
-  push requests stay chat-level; commits autonomous, push gated).
+  push requests stay chat-level; commits autonomous, push gated). Doc-native cards use the
+  doc-gate escalation form (「提议变更」+ pointer), with proposed **blocks** as the substance.
 
 ## Ledger (决策账本) — the gate currency
 
-Gate approval's unit is the **decision, not the document**: each card's `decisions.md` is the
-**single source of approval status** for every human-judgment decision (mechanics:
-`templates/decisions.md` 头注; digest & approve transcription: `gate-digest.md`).
+Gate approval's unit is the **decision, not the document**. The approval-status single source
+is per mode: on **doc-native** cards (all new cards) the phase-doc **blocks themselves** carry
+it via annotations; on ledger 存量卡 it is `decisions.md` (mechanics: `templates/decisions.md`
+头注; digest & approve transcription both modes: `gate-digest.md`).
 
 - **States**: proposed / approved / superseded / retired — the only enumeration; freeze (需求/设计)
   and baseline (详设) are **binding forces** approved carries by level, never state words.
@@ -104,15 +107,18 @@ Gate approval's unit is the **decision, not the document**: each card's `decisio
   **derived** — `confirmed`/`frozen`/`baseline` ⇔ that level's rows all approved (the
   **derived-status rule**).
 - **Changing an approved decision = M2 reopen** (`change.md`).
-- **Governance mode (017)**: the ledger machinery above is the **`governance: ledger`** (M+)
-  mode. **`doc-gate`** (XS/S) cards run document-level gates instead — no ledger/facts files
-  and no transcription loop (the digest itself **scales down**, it doesn't vanish —
-  gate-digest.md「Doc-gate cards」); gate = doc + confirm + commit, audit anchor = the doc's
-  Change log gate line
-  (`gate-digest.md`「Doc-gate cards」). Mode judged by the two-level cascade: frontmatter field
-  first (pre-filled at `new`, human-ratified at the 需求 gate); **no field = legacy** — pre-017
-  cards keep their original semantics (pre-010 document-gate, 010–016 ledger) end to end.
-  Upgrading doc-gate→ledger is a one-time explicit M2 action, past decisions not backfilled.
+- **Governance mode (017 → 026 collapse)**: **new cards run single-track `doc-native`** —
+  decisions ARE phase-doc blocks with approval annotations (templates/requirement.md 头注 holds
+  the grammar): no decisions.md, gates transcribe as per-block `- approved:` notes (partial
+  approve legal per block), doc status **derived** (all blocks approved ⇔
+  confirmed/frozen/baseline), text guarded by the diff guard + git anchor ((ac)/(ad)), the
+  ledger/index a generated view (`--digest`/render_index); sizing scales volume, never the
+  mechanism (Req-32). **存量 modes keep their semantics end to end**: `ledger` (010–017 M+) =
+  the decisions.md machinery above; `doc-gate` (017 XS/S) = document-level gates, audit anchor =
+  the doc's Change log gate line (gate-digest.md「Doc-gate cards」); **no field = legacy**
+  (pre-017 originals). Mode judged by the frontmatter field (pre-filled at `new`, human-ratified
+  at the 需求 gate). Upgrading is a one-time explicit M2, past decisions never backfilled;
+  direction enumeration: doc-gate→ledger (017) and `*→doc-native` (026 HLD-13).
 
 ## Layout (requirement-centric)
 
@@ -129,7 +135,8 @@ Gate approval's unit is the **decision, not the document**: each card's `decisio
     legacy/                        # pre-workflow archive (read-only; never linked as canonical)
     NNN-requirement-slug/           # created lazily — each doc a skeleton at its phase start
       requirement.md               # 需求 (created by `new`)
-      decisions.md                 # 决策账本 — approval-status single source (SKILL.md「Ledger」)
+      decisions.md                 # 决策账本 — ledger 存量卡 only (doc-native cards: none — blocks
+                                    #   in the phase docs are the ledger, 026)
       facts.md                     # 卡级事实层 F<n> (lazily; cited as [F<n>] from phase docs)
       design.md                    # 设计 (概设/HLD) — FROZEN once approved
       adr/NNNN-slug.md             # decision records (adr/ created on first ADR)
@@ -324,9 +331,9 @@ Invoke as `xg-dev-workflow <verb> [args] [use:<skill>]`.
 - `new <slug>` — resolve project + next `NNN` (zero-padded; scan the project dir, increment),
   scaffold from templates, add the `index.md` card row (初始整体状态 `todo`); a roadmap-sourced slug
   is marked graduated there; a tracker-born ask records `issue:` in `requirement.md` frontmatter
-  (the card↔issue anchor; `progress.md` carries the repo/branch/MR anchors). **Pre-fill the
-  `governance:` field by sizing** (M+ → ledger, XS/S → doc-gate; the 需求 gate ratifies it —
-  templates/requirement.md 头注). **Create files
+  (the card↔issue anchor; `progress.md` carries the repo/branch/MR anchors). **Pre-fill
+  `governance: doc-native`** (the post-026 single track — sizing scales volume, not mechanism;
+  the 需求 gate ratifies it — templates/requirement.md 头注). **Create files
   lazily**: `requirement.md` now, each later doc when its phase starts, `adr/` on the first ADR.
 - `requirement` | `design` | `detail` | `plan` | `test` — advance **exactly one** phase, then stop
   at its gate (Stop-at-gate). Past the `plan` gate the zone flows autonomously (「Two zones」) — you

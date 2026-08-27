@@ -1158,3 +1158,44 @@ class DigestGenerator(unittest.TestCase):
     def test_parse_findings_surface_in_header(self):
         card = self._card("### Req-1 badstate — 坏头\n- 陈述: x\n" + self._block(2))
         self.assertIn("先修再问", ws.digest_text(card))
+
+
+class GovernanceCollapse(unittest.TestCase):
+    """(026 Req-32/33, E14) four parse branches alive; per-mode carrier sets."""
+
+    def _card(self, gov):
+        d = tempfile.mkdtemp()
+        fm = "---\nid: 904\n%s---\n" % ("governance: %s\n" % gov if gov else "")
+        (Path(d) / "requirement.md").write_text(fm, encoding="utf-8")
+        return d
+
+    def test_four_branches_exist(self):
+        for gov, want in (("ledger", "ledger"), ("doc-gate", "doc-gate"),
+                          ("doc-native-pilot", "doc-native-pilot"),
+                          ("doc-native", "doc-native"), (None, "legacy"),
+                          ("bogus", "invalid")):
+            self.assertEqual(ws.card_mode(self._card(gov)), want, gov)
+
+    def test_carrier_sets_per_mode(self):
+        def names(gov):
+            return {e["name"] for e in ws.card_carriers(self._card(gov)) if e["expected"]}
+        ledger = names("ledger")
+        self.assertIn("decisions.md", ledger)
+        self.assertIn("facts.md", ledger)
+        docgate = names("doc-gate")
+        self.assertNotIn("decisions.md", docgate)
+        self.assertNotIn("facts.md", docgate)
+        for gov in ("doc-native-pilot", "doc-native"):
+            dn = names(gov)
+            self.assertNotIn("decisions.md", dn, gov)
+            self.assertIn("facts.md", dn, gov)          # Req-41
+            self.assertIn("notes/grill-*.md", dn, gov)  # HLD-14 formalized carrier
+
+    def test_docnative_grill_files_ride_family_glob_not_discovery(self):
+        d = self._card("doc-native")
+        p = Path(d) / "notes"; p.mkdir()
+        (p / "grill-design.md").write_text("x", encoding="utf-8")
+        rows = ws.card_carriers(d)
+        self.assertFalse(any(r["name"] == "notes/grill-design.md" for r in rows))
+        fam = next(r for r in rows if r["name"] == "notes/grill-*.md")
+        self.assertTrue(fam["expected"] and fam["exists"])

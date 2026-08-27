@@ -88,8 +88,8 @@ them); a missing section fails Done-when (and the omission-check judgment item):
   date · `Supersedes: <旧文件名>` (rerun only) · `adopted:` (absent until backfill) ·
   口径槽状态 (人拍/未问) · 输入集外被引用卡 id;
   (b) **blockquote — three declarations**: 非真相源 (the cards' authority stays in their own
-  decisions.md/facts.md — state it in those terms; no template carries a canonical
-  wording) · 非状态源、非承载容器 (never on any card's resume path) · 无 `adopted:` 行时仅
+  decision/fact carriers — per mode, SKILL.md「Ledger」; state it in those terms; no template
+  carries a canonical wording) · 非状态源、非承载容器 (never on any card's resume path) · 无 `adopted:` 行时仅
   input evidence (conditional sentence; the `adopted: <date>` line is written only by the
   post-go backfill step);
   (c) **single Reader line** (test.md form): reader = a future card's requirement/design

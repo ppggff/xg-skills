@@ -9,10 +9,11 @@ un-persisted state into its containers and prints the `resume` line this step an
 1. Resolve project + `dev_root` (`tools/resolve-project.py`, `--dev-root`).
 2. Read `<dev_root>/<project>/index.md` → find the requirement (by slug/NNN, or the one
    the user named).
-3. Read, in order: `requirement.md` (what & why, success criteria) → **`decisions.md`** (the
-   ledger — approval authority: what is approved / still pending; absent on pre-ledger cards
-   **and doc-gate cards** — there the docs carry the decisions: gate state = frontmatter
-   status + Change log gate lines, pending items =「提议变更」sections, 017 D2)
+3. Read, in order: `requirement.md` (what & why, success criteria) → **the decision carrier**
+   (approval authority; per mode — SKILL.md「Ledger」): doc-native cards carry it **in the
+   phase-doc blocks** (approved/变更 annotations; pending = proposed blocks +「提议变更」),
+   ledger cards in `decisions.md`; doc-gate/legacy cards in the docs (gate state = frontmatter
+   status + Change log gate lines, 017 D2)
    → `design.md` + `adr/` (the contract **view** — its `frozen` means the referenced decisions
    are all approved) → `plan.md` (intended tasks) → **`progress.md`** (the live state:
    phase, now-doing, next-step, blockers, **Build/test:** — the exact build/test invocation to

@@ -30,9 +30,11 @@ design are allowed to change, so the design stays stable while the plan flexes.
    - **Verify the candidate set's shared premise before landing anything** (evidence.md
      「这几个方案各有代价」). A proposal's retraction costs more here than elsewhere: the
      comparison table, the per-option cost estimates and the touch-list all go with it.
-   - **Land the proposal substance as proposed blocks** in `decisions.md` — the new 陈述 +
+   - **Land the proposal substance as proposed blocks** in the mode's decision carrier —
+     `decisions.md` on ledger cards; **doc-native**: proposed blocks in the target doc's
+     matching section (frozen docs: under「提议变更」, HLD-13(4)) — the new 陈述 +
      why + alt live there, the generalization of step 0's escalation row (appending proposed
-     blocks is not "touching" the docs; approved rows and phase docs stay untouched). A
+     blocks is not "touching" the approved content; approved blocks/rows stay untouched). A
      proposed block may be rewritten in place while under discussion (git keeps history —
      the supersede-into-new-block rule binds approved blocks only, templates/decisions.md).
      残留/open questions fold into the relevant block's why/alt or a `log.md` line — they

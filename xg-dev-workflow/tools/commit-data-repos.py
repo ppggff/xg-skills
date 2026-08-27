@@ -43,7 +43,7 @@ GITIGNORE = ".DS_Store\n*.swp\n*.swo\n*~\n__pycache__/\n"
 
 # ---- doc-native diff guard (026 LLD-8) ----
 PHASE_DOC = re.compile(r"^(?P<card>[^/]+/\d{3}-[^/]+)/(?P<doc>requirement|design|detail)\.md$")
-DOC_NATIVE_MODES = ("doc-native-pilot",)
+DOC_NATIVE_MODES = ("doc-native-pilot", "doc-native")
 GUARD_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
 _BP = None
 

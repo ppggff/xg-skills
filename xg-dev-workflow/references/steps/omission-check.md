@@ -57,8 +57,11 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Right after an edit, inline is fine** — the docs are already in context, so a self-check
   costs little. Delegation pays off on a standalone `check`, after `resume`, or a full sweep
   of a large card.
-- **Mode conditioning (017 S6)** — the checklist is per-card-mode (`card_mode` cascade,
-  `--check` (i)): on a **doc-gate** card, ledger-id / derived-status / facts-marker checks
+- **Mode conditioning (017 S6; doc-native 026)** — the checklist is per-card-mode (`card_mode`
+  cascade, `--check` (i)): on a **doc-native** card, the ledger family ((a)–(e)/(x)) skips
+  (blocks are the ledger) and the doc-native family runs instead — (ac) format core, (ad) git
+  anchor, the (y) v2 ask-id sweep — with facts read as `Fact-<n>`/`[Fact-n]`; on a **doc-gate**
+  card, ledger-id / derived-status / facts-marker checks
   naturally skip (no files); the Panel-receipts item verifies the scaled digest §1 lines
   instead; the three-class items read the doc-carried form (decisions in sections, facts in
   「事实清单」,「提议变更」cleared after confirm). Everything else — links, indexes, phase

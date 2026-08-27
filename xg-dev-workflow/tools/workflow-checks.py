@@ -258,11 +258,14 @@ def check_card(project, card_dir, ws):
 
 def _no_ledger_exemption(card_dir, ws):
     """Absence of decisions.md classified by governance mode — a doc-gate card
-    forbids the carrier, a ledger card truly lacks it, a legacy card predates the
-    mechanism. Shared by (a) and (x) (D3's 同构 made explicit, review #9)."""
+    forbids the carrier, a doc-native card retired it (blocks are the ledger,
+    026), a ledger card truly lacks it, a legacy card predates the mechanism.
+    Shared by (a) and (x) (D3's 同构 made explicit, review #9)."""
     mode = ws.card_mode(card_dir)
     if mode == "doc-gate":
         return ("not-yet-due", "doc-gate card, ledger is a forbidden carrier")
+    if mode in DOC_NATIVE_MODES:
+        return ("not-yet-due", "doc-native card, ledger retired — blocks are the ledger")
     if mode == "ledger":
         return ("carrier-missing", "ledger card without decisions.md")
     return ("grandfathered", "legacy card without decisions.md")
@@ -1630,7 +1633,7 @@ def check_board_monotonic(project, project_dir, ws):
 
 # ---- doc-native block checks (026 slice 1): format core (ac) + git anchor (ad) ----
 
-DOC_NATIVE_MODES = ("doc-native-pilot",)   # "doc-native" joins at the slice-3 collapse
+DOC_NATIVE_MODES = ("doc-native-pilot", "doc-native")   # pilot = 026 self-host; doc-native = post-collapse single track
 ANCHOR_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
 # 026 slice 2 (T9): ask-id becomes mandatory by TIME BOUNDARY — a note whose gate
 # date is on/after the cutoff must carry the ask-id slot (the pre-cutoff存量 stays

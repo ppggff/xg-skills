@@ -28,11 +28,12 @@ The four beats (numbering matches the frozen design's 四拍契约):
 1. **Container-routing sweep.** Walk this session for content not yet on disk and land
    each piece in its **existing** container — the scan list is "every write obligation the
    steps declare":
-   - human-judgment decisions → `decisions.md` proposed blocks (grill.md「逐条入账」; park never
-     writes `approved`); **doc-gate cards**: → the phase doc's matching section /「提议变更」
-     (grill.md's doc-gate branch);
-   - verified load-bearing facts → `facts.md` (grill.md「载重事实入账」); **doc-gate cards**:
-     → the doc-local「事实清单」;
+   - human-judgment decisions → that mode's decision carrier as **proposed** (park never writes
+     `approved`) — carrier per mode: SKILL.md「Ledger」/「Layout」+ `CARD_CARRIERS` (doc-native:
+     proposed blocks in the phase doc; ledger: decisions.md; doc-gate: matching section /
+     「提议变更」— grill.md's mode branches own the details, not this list);
+   - verified load-bearing facts → the mode's fact carrier (grill.md「载重事实入账」— facts.md
+     on doc-native/ledger, doc-local「事实清单」on doc-gate);
    - reusable module findings → the KB (xg-knowledge-lite Write, or note as deferred);
      **corrective KB writes are never deferred by default (024 R11)**: a finding that an
      existing KB note is wrong or over-stated is listed **item by item**, each explicitly

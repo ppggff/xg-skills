@@ -3,13 +3,13 @@ id: NNN
 title: <requirement title>
 project: <project>
 status: drafting | confirmed | superseded
-governance: ledger | doc-gate | doc-native-pilot  <the card's governance mode (017 D1;
-  doc-native 026). `new` pre-fills by sizing
-  (M+ → ledger, XS/S → doc-gate); the human ratifies at the 需求 confirm gate — mode is the
-  gate's FIRST judgment item — and the field takes effect with `status: confirmed`. Omitted =
-  legacy (pre-017 cards only; new cards must declare, `--check` flags the omission). Upgrading
-  doc-gate→ledger is a one-time explicit M2 action, past decisions not backfilled; never the
-  reverse.>
+governance: doc-native  <the card's governance mode. New cards are single-track doc-native
+  (026 Req-32 — sizing scales volume, never the mechanism); `new` pre-fills it and the human
+  ratifies at the 需求 confirm gate (mode stays the gate's FIRST judgment item), effective with
+  `status: confirmed`. 存量 values stay valid on their own cards: ledger (010–017 M+),
+  doc-gate (017 XS/S), doc-native-pilot (card 026); omitted = legacy (pre-017 only — new cards
+  must declare, `--check` flags the omission). Upgrading is a one-time explicit M2
+  (doc-gate→ledger, 017; `*→doc-native`, 026 HLD-13), past decisions never backfilled.>
 issue: <optional — originating tracker issue(s)/ticket(s): id or URL, comma-separated. The
   card↔issue anchor; also the outward ref code comments may cite. Omit when there is none.>
 created: YYYY-MM-DD

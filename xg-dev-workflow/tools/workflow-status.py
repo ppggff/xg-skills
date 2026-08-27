@@ -761,7 +761,7 @@ def card_decisions(card_dir):
 # "doc-native-pilot": card 026's self-hosted trial mode — decisions live in the phase docs,
 # no decisions.md/facts.md (mode-specific checks treat it as non-ledger; full semantics land
 # via card 026, until then its cards are guarded by their card-local crosscheck).
-GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot")
+GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot", "doc-native")
 
 
 def card_mode(card_dir):
@@ -781,20 +781,28 @@ PROJECT_ROOT_DIRS = ("investigations", "reviews", "notes", "legacy")
 # 020 D6: machine-readable mirror of SKILL.md「Layout」's card-dir listing, in Layout order.
 # The closed carrier-list mapping lives ONLY here — a Layout change edits this tuple in the
 # same batch (invariant 6(a)); step files and templates never copy it.
-CARD_CARRIERS = (                     # (name, kind, ledger_only)
-    ("requirement.md", "file", False),
-    ("decisions.md", "file", True),
-    ("facts.md", "file", True),
-    ("design.md", "file", False),
-    ("adr/", "dir", False),
-    ("detail.md", "file", False),
-    ("plan.md", "file", False),
-    ("progress.md", "file", False),
-    ("log.md", "file", False),
-    ("test.md", "file", False),
-    ("notes/review-*.md", "glob", False),
-    ("notes/part-check-*.md", "glob", False),
+# modes: "" = every mode; else the space-separated carrier-mode keys it belongs to
+# (ledger / doc-gate / doc-native — doc-native covers the pilot value too, 026 HLD-13/14).
+CARD_CARRIERS = (                     # (name, kind, modes)
+    ("requirement.md", "file", ""),
+    ("decisions.md", "file", "ledger"),
+    ("facts.md", "file", "ledger doc-native"),
+    ("design.md", "file", ""),
+    ("adr/", "dir", ""),
+    ("detail.md", "file", ""),
+    ("plan.md", "file", ""),
+    ("progress.md", "file", ""),
+    ("log.md", "file", ""),
+    ("test.md", "file", ""),
+    ("notes/grill-*.md", "glob", "doc-native"),
+    ("notes/review-*.md", "glob", ""),
+    ("notes/part-check-*.md", "glob", ""),
 )
+
+
+def _carrier_mode_key(mode):
+    """card_mode value → CARD_CARRIERS modes key (pilot folds into doc-native)."""
+    return "doc-native" if mode in ("doc-native-pilot", "doc-native") else mode
 
 
 def _carrier_exists(card_dir, name, kind):
@@ -851,15 +859,16 @@ def card_carriers(card_dir):
     after them, non-md dir rows last."""
     mode = card_mode(card_dir)
     if mode in GOVERNANCE_VALUES:
-        want_ledger = (mode == "ledger")
+        mode_key = _carrier_mode_key(mode)
     elif mode == "legacy":
-        want_ledger = os.path.exists(os.path.join(card_dir, "decisions.md"))
+        mode_key = "ledger" if os.path.exists(os.path.join(card_dir, "decisions.md")) \
+            else "doc-gate"
     else:                                          # invalid: no expected set
-        want_ledger = None
+        mode_key = None
     entries = []
-    if want_ledger is not None:
-        for name, kind, ledger_only in CARD_CARRIERS:
-            if ledger_only and not want_ledger:
+    if mode_key is not None:
+        for name, kind, modes in CARD_CARRIERS:
+            if modes and mode_key not in modes.split():
                 continue
             entries.append({"name": name, "kind": kind, "expected": True,
                             "exists": _carrier_exists(card_dir, name, kind)})
@@ -867,10 +876,12 @@ def card_carriers(card_dir):
         # closed-list modes still surface actual notes/*.md (top level) as discovery —
         # grill logs etc. are real carriers the learn mining face must see (Layout notes/)
         listed = {e["name"] for e in entries}
+        family_globs = [n[len("notes/"):] for n in listed if n.startswith("notes/") and "*" in n]
         for f in sorted(glob.glob(os.path.join(card_dir, "notes", "*.md"))):
             base = os.path.basename(f)
             if fnmatch.fnmatch(base, "review-*.md") or \
-               fnmatch.fnmatch(base, "part-check-*.md"):
+               fnmatch.fnmatch(base, "part-check-*.md") or \
+               any(fnmatch.fnmatch(base, g) for g in family_globs):
                 continue
             if "notes/" + base not in listed:
                 entries.append({"name": "notes/" + base, "kind": "file",
