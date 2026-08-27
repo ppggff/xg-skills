@@ -11,7 +11,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Deterministic subset → script, zero tokens — `workflow-status.py --check` covers it
   end to end (021)**: card scope `--check <project>/<card>` (run after any doc edit);
   project scope `--check <project>` (project-level checks + every card — the full sweep).
-  Checks (a)–(ab): ledger (a)–(e) (id-reference integrity · derived-status mappings
+  Checks (a)–(ad): ledger (a)–(e) (id-reference integrity · derived-status mappings
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
@@ -34,7 +34,13 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   named table section must engage a row in it or cite a `D<n>`/`S<n>` (z) · 需求条目 handoff
   carrier: work handed to design in the **provenance** column but not in the 陈述 (aa) ·
   详设 disposition at the design freeze, in-flight cards only: a frozen `design.md` with neither a
-  `detail.md` nor a 详设 disposition recorded in `progress.md` (ab). Exit 1 =
+  `detail.md` nor a 详设 disposition recorded in `progress.md` (ab) · doc-native block
+  format core, doc-native cards only: parse-class findings (bad-header / duplicate-id /
+  bad-annotation) + approved-state blocks carry a valid approved annotation (E10) + note
+  date == gate commit author date (ac) · doc-native git anchor, doc-native cards only:
+  per approved block, the five load-bearing fields vs the explicit baseline snapshot
+  (last 变更 hash, else the approved gate hash) — 文本被改 / 历史不可达 / 基线处块缺席
+  (ad). Exit 1 =
   findings; not-applicable paths emit classified exemptions and never gate — the
   three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
   live in workflow-checks.py's module docstring (the single source, 023). Visible

@@ -1426,6 +1426,8 @@ class EmissionTableConsistency(unittest.TestCase):
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
             ("detail-disposition", CM, "design.md missing"),
+            ("block-format", ND, "mode not doc-native"),
+            ("block-anchor", ND, "mode not doc-native"),
         })
 
     def test_docgate_draft_card_exact_set_and_ungated_flag(self):
@@ -1458,6 +1460,8 @@ class EmissionTableConsistency(unittest.TestCase):
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
             ("detail-disposition", CM, "design.md missing"),
+            ("block-format", ND, "mode not doc-native"),
+            ("block-anchor", ND, "mode not doc-native"),
         })
         _, _, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/002-b"),
                                       ws._L1)
@@ -1599,3 +1603,148 @@ class ExemptionRendering(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DocNativeBlockChecks(unittest.TestCase):
+    """(ac)/(ad) — 026 slice 1: format core + git anchor over fixture git repos
+    (the E9 sample set: three negative classes + no-false-positive positives)."""
+
+    DATE = "2026-08-25"
+    FM = "---\nid: 900\ntitle: t\ngovernance: doc-native-pilot\nstatus: drafting\n---\n\n"
+    PROPOSED = "### Req-1 proposed — 样例\n- 陈述: 原文\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n"
+
+    def _env(self):
+        stamp = self.DATE + "T12:00:00"
+        return dict(os.environ,
+                    GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                    GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
+                    GIT_AUTHOR_DATE=stamp, GIT_COMMITTER_DATE=stamp)
+
+    def _repo(self):
+        import subprocess
+        root = tempfile.mkdtemp()
+        subprocess.run(["git", "init", "-q", root], check=True, env=self._env())
+        card = os.path.join(root, "900-block-fixture")
+        _write(root, "900-block-fixture/requirement.md", self.FM + self.PROPOSED)
+        self._commit(root, "receipts")
+        return root, card
+
+    def _commit(self, root, msg):
+        import subprocess
+        subprocess.run(["git", "-C", root, "add", "."], check=True, env=self._env())
+        subprocess.run(["git", "-C", root, "commit", "-q", "-m", msg],
+                       check=True, env=self._env())
+        out = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                             capture_output=True, text=True, env=self._env())
+        return out.stdout.strip()
+
+    def _approve(self, root, card, h, date=None):
+        text = open(os.path.join(card, "requirement.md"), encoding="utf-8").read()
+        text = text.replace("### Req-1 proposed", "### Req-1 approved")
+        text += "- approved: %s gate %s (single: 「go」)\n" % (date or self.DATE, h)
+        _write(root, "900-block-fixture/requirement.md", text)
+        self._commit(root, "gate")
+        return text
+
+    def test_first_approval_positive(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        self._approve(root, card, h)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertEqual(f, [])
+
+    def test_negative_text_drift(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("- 陈述: 原文", "- 陈述: 被改"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any(x.startswith("文本被改: Req-1 field 陈述") for x in f))
+
+    def test_negative_unreachable_hash(self):
+        root, card = self._repo()
+        self._approve(root, card, "1234567890ab")
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any(x.startswith("历史不可达: Req-1") for x in f))
+
+    def test_negative_absent_at_baseline(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        text += ("\n### Req-2 approved — 伪造\n- 陈述: x\n"
+                 "- approved: %s gate %s (single: 「go」)\n" % (self.DATE, h))
+        _write(root, "900-block-fixture/requirement.md", text)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any(x.startswith("基线处块缺席: Req-2") for x in f))
+
+    def test_positive_m2_rebaseline(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        text = text.replace("- 陈述: 原文", "- 陈述: 改后")
+        _write(root, "900-block-fixture/requirement.md", text)
+        h2 = self._commit(root, "M2 landing")
+        text += "- 变更: 就地改写 (M2 %s, %s)\n" % (h2, self.DATE)
+        _write(root, "900-block-fixture/requirement.md", text)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])
+
+    def test_silent_retire_flagged_noted_retire_exempt(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        silent = text.replace("### Req-1 approved", "### Req-1 retired")
+        _write(root, "900-block-fixture/requirement.md", silent)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        # baseline is the receipts commit (proposed state); silent retire still flags
+        self.assertTrue(any("state proposed→retired" in x for x in f))
+        noted = silent + "- 退役: 不再需要 (M2 %s, %s)\n" % (h, self.DATE)
+        _write(root, "900-block-fixture/requirement.md", noted)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual([x for x in f if "state" in x], [])
+
+    def test_format_approved_note_missing_and_date(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        # approved state, no note at all
+        text = open(os.path.join(card, "requirement.md"), encoding="utf-8").read()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("### Req-1 proposed", "### Req-1 approved"))
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertIn("approved-note-missing: Req-1", f)
+        # note date != commit author date
+        self._approve(root, card, h, date="2026-08-26")
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertTrue(any(x.startswith("note-date-mismatch: Req-1") for x in f))
+
+    def test_non_docnative_card_skips(self):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "901-x")
+        _write(root, "901-x/requirement.md",
+               "---\nid: 901\ngovernance: doc-gate\n---\n")
+        for fn in (wc.check_block_anchor, wc.check_block_format):
+            f, s, exs = fn(card, ws)
+            self.assertEqual((f, s), ([], []))
+            self.assertEqual(exs[0][0], "not-yet-due")
+
+    def test_proposed_block_not_applicable(self):
+        root, card = self._repo()
+        f, _, exs = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])
+        self.assertTrue(any(cls == "not-yet-due" and "Req-1" in r
+                            for cls, r in exs))

@@ -282,12 +282,13 @@ investigation 把契约摸出来再判；写得出是必要非充分。字段级
   Full flow: `references/steps/change.md`.
 - **M3 Omission check** — after **any** doc edit: requirement↔design↔detail↔plan↔test
   consistent; terminology canonical (one term per concept, matching its KB concept); run
-  `workflow-status.py --check <project>/<card>` — the deterministic subset, checks (a)–(ab)
-  (029): ledger integrity · design sections · facts markers · part consistency · governance
+  `workflow-status.py --check <project>/<card>` — the deterministic subset, checks (a)–(ad)
+  (026 slice 1): ledger integrity · design sections · facts markers · part consistency · governance
   mode · gate-adjacent transcription/receipt/gate-line · retired-phrasing residue · links ·
   status field · R-trace/F-ref existence · progress cap · ADR hygiene · doc↔ledger row-level
   consistency · grill-signature closure · 归宿-cell row resolution · 需求条目 handoff carrier ·
-  详设 disposition at the design freeze;
+  详设 disposition at the design freeze · doc-native block format/annotation core ·
+  doc-native git anchor;
   `--check <project>`
   adds board rows/strays/monotonic + the per-card full sweep. Exit 1 = findings; skips are
   visible, never pass (full listing: `references/steps/omission-check.md`). Reusable

@@ -3,9 +3,11 @@
 
 Check implementations behind `workflow-status.py --check`: the ledger checks (a)-(e),
 design required sections (f), fact markers (g), part consistency (h), governance
-mode (i). workflow-status.py remains the parsing layer + CLI entry and lazy-loads
-this module; every public function takes `ws` = a live view of the workflow-status
-module (one-way dependency: checks read the parsing layer, never the reverse).
+mode (i), the gate-adjacent/trace family (j)-(ab), and the doc-native block family
+(ac) format core / (ad) git anchor (026). workflow-status.py remains the parsing
+layer + CLI entry and lazy-loads this module; every public function takes `ws` = a
+live view of the workflow-status module (one-way dependency: checks read the parsing
+layer, never the reverse — block_parse.py joins on the parsing side).
 
 Exemption classes — the single source of the three-way not-applicable taxonomy.
 A check that cannot judge an object emits a structured exemption record instead of
@@ -1622,6 +1624,123 @@ def check_board_monotonic(project, project_dir, ws):
     return findings, skips, exs
 
 
+# ---- doc-native block checks (026 slice 1): format core (ac) + git anchor (ad) ----
+
+DOC_NATIVE_MODES = ("doc-native-pilot",)   # "doc-native" joins at the slice-3 collapse
+ANCHOR_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+
+
+def _dn_gate(card_dir, ws):
+    """Shared (ac)/(ad) gating predicate: non-doc-native cards skip, visibly."""
+    if ws.card_mode(card_dir) not in DOC_NATIVE_MODES:
+        return [("not-yet-due", "mode not doc-native")]
+    return None
+
+
+def _git(card_dir, *args):
+    """dev_root git call (workflow-status idiom: -C + timeout + except → None;
+    callers turn None into a visible skip, never a pass)."""
+    import subprocess
+    try:
+        return subprocess.run(["git", "-C", card_dir] + list(args),
+                              capture_output=True, text=True, timeout=10)
+    except Exception:
+        return None
+
+
+def check_block_format(card_dir, ws):
+    """(ac) doc-native block format core: parse-class findings surfaced
+    (bad-header / duplicate-id / bad-annotation — the caller-side hard stop,
+    LLD-3); every approved-state block carries ≥1 valid approved annotation
+    (mode + verbatim in place — E10; ask-id optional until the slice-2 归一);
+    each approved annotation's date equals its gate commit's author date
+    (lens4 D8). Unresolvable hashes are (ad)'s 历史不可达 — not re-judged here."""
+    skip = _dn_gate(card_dir, ws)
+    if skip:
+        return [], [], skip
+    blocks, findings = ws._block_parse().card_blocks(card_dir)
+    findings, exs, dated, git_gone = list(findings), [], {}, False
+    for bid, b in blocks.items():
+        notes = [a for a in b["annotations"] if a["kind"] == "approved"]
+        if b["state"] == "approved" and not notes:
+            findings.append("approved-note-missing: %s" % bid)
+        for a in notes:
+            h = a["extra"]["hash"]
+            if h not in dated:
+                out = _git(card_dir, "show", "-s", "--format=%ad",
+                           "--date=format:%Y-%m-%d", h)
+                if out is None:
+                    git_gone = True
+                dated[h] = (out.stdout.strip()
+                            if out is not None and out.returncode == 0 else None)
+            if dated[h] and dated[h] != a["extra"]["date"]:
+                findings.append("note-date-mismatch: %s %s note %s vs commit %s"
+                                % (bid, h[:12], a["extra"]["date"], dated[h]))
+    if git_gone:
+        exs.append(("carrier-missing", "git unavailable — note-date half skipped"))
+    return findings, [], exs
+
+
+def check_block_anchor(card_dir, ws):
+    """(ad) git anchor core (LLD-4): per block with an approved annotation, the
+    explicit baseline = last 变更 annotation's landing hash, else the last
+    approved annotation's gate hash (first-approval receipts snapshots carry
+    the approved text in proposed state — hence the proposed→approved state
+    exemption; any other state change needs a same-batch 变更/退役 note).
+    Compare face = the five load-bearing fields, field-by-field, working tree
+    vs `git show <baseline>:<doc>` parsed in locate mode (titles optional in
+    the HEAD grammar). Titles and annotation lines never compare. Failures:
+    文本被改 / 历史不可达 / 基线处块缺席. One git show per (baseline, doc)."""
+    skip = _dn_gate(card_dir, ws)
+    if skip:
+        return [], [], skip
+    probe = _git(card_dir, "rev-parse", "--show-toplevel")
+    if probe is None or probe.returncode != 0:
+        return [], [], [("carrier-missing", "git unavailable/non-repo — anchor skipped")]
+    top = os.path.realpath(probe.stdout.strip())   # macOS /var symlink alias
+    bp = ws._block_parse()
+    blocks, _ = bp.card_blocks(card_dir)   # parse findings are (ac)'s
+    findings, exs, cache = [], [], {}
+    for bid, b in blocks.items():
+        approved = [a for a in b["annotations"] if a["kind"] == "approved"]
+        if not approved:
+            exs.append(("not-yet-due", "block-anchor: %s no approved note" % bid))
+            continue
+        changes = [a for a in b["annotations"] if a["kind"] == "变更"]
+        state_notes = [a for a in b["annotations"] if a["kind"] in ("变更", "退役")]
+        base = (changes[-1] if changes else approved[-1])["extra"]["hash"]
+        rel = os.path.relpath(
+            os.path.realpath(os.path.join(card_dir, b["doc"])), top)
+        key = (base, rel)
+        if key not in cache:
+            out = _git(card_dir, "show", "%s:%s" % (base, rel))
+            if out is None or out.returncode != 0:
+                cache[key] = None
+            else:
+                snap_blocks, _f = bp.parse_doc_blocks(out.stdout, doc=b["doc"])
+                cache[key] = {"%s-%s" % (x["prefix"], x["num"]): x
+                              for x in snap_blocks}
+        snap = cache[key]
+        if snap is None:
+            findings.append("历史不可达: %s baseline %s:%s" % (bid, base[:12], rel))
+            continue
+        old = snap.get(bid)
+        if old is None:
+            findings.append("基线处块缺席: %s not at %s:%s" % (bid, base[:12], rel))
+            continue
+        for f in ANCHOR_FIELDS:
+            if old["fields"].get(f, "") != b["fields"].get(f, ""):
+                findings.append("文本被改: %s field %s vs baseline %s"
+                                % (bid, f, base[:12]))
+        if old["state"] != b["state"]:
+            legal = ((old["state"] == "proposed" and b["state"] == "approved")
+                     or state_notes)
+            if not legal:
+                findings.append("文本被改: %s state %s→%s without 变更/退役 note"
+                                % (bid, old["state"], b["state"]))
+    return findings, [], exs
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -1652,6 +1771,8 @@ CARD_CHECKS = (
     ("home-pointer", check_home_pointer),                       # (z) 028
     ("req-handoff", check_req_handoff),                         # (aa) 028
     ("detail-disposition", check_detail_disposition),           # (ab) 029
+    ("block-format", lambda p, c, ws: check_block_format(c, ws)),   # (ac) 026
+    ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws)),   # (ad) 026
 )
 
 PROJECT_CHECKS = (
