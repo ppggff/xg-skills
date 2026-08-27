@@ -1748,3 +1748,77 @@ class DocNativeBlockChecks(unittest.TestCase):
         self.assertEqual(f, [])
         self.assertTrue(any(cls == "not-yet-due" and "Req-1" in r
                             for cls, r in exs))
+
+
+class DocNativeGrillV2(unittest.TestCase):
+    """(y) v2 — 026 LLD-5: ask-id sweep + tier/round core over nine-col tables."""
+
+    FM = "---\nid: 903\ngovernance: doc-native-pilot\n---\n\n"
+    NINE = "| id | question | recommended | chosen | why | depends-on | tier | round | status |\n" \
+           "|---|---|---|---|---|---|---|---|---|\n"
+
+    def _card(self, grill_rows, block_note="(single Ask-1: 「go」)"):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md",
+               self.FM + "### Req-1 approved — t\n- 陈述: x\n"
+               "- approved: 2026-08-27 gate abcdef0 %s\n" % block_note)
+        _write(d, "notes/grill-x.md", self.NINE + grill_rows)
+        return d
+
+    def test_noted_open_row_flags(self):
+        d = self._card("| Ask-1 | q | r | c | w | — | 真判 | 1 | open |\n")
+        f, _, _ = wc.check_grill_docnative(d, ws)
+        self.assertTrue(any(x.startswith("signature-open: Ask-1") for x in f))
+
+    def test_resolved_row_passes_and_prune_is_skip(self):
+        d = self._card("| Ask-1 | q | r | c | w | — | 真判 | 1 | resolved → doc §x |\n")
+        f, _, _ = wc.check_grill_docnative(d, ws)
+        self.assertEqual(f, [])
+        d2 = self._card("")  # row pruned entirely
+        f, _, exs = wc.check_grill_docnative(d2, ws)
+        self.assertEqual(f, [])
+        self.assertTrue(any("prune-legal" in r for _, r in exs))
+
+    def test_tier_vocab_and_round(self):
+        d = self._card("| Ask-2 | q | r | c | w | — | 大概 | 0 | resolved → doc §x |\n")
+        f, _, _ = wc.check_grill_docnative(d, ws)
+        self.assertTrue(any(x.startswith("tier-vocab: Ask-2") for x in f))
+        self.assertTrue(any(x.startswith("round-invalid: Ask-2") for x in f))
+
+    def test_batch_table_round_rejects_tier2(self):
+        rows = ("| Ask-2 | q | r | c | w | — | 照案 | 3 | resolved → doc §a |\n"
+                "| Ask-3 | q | r | c | w | — | 照案 | 3 | resolved → doc §b |\n"
+                "| Ask-4 | q | r | c | w | — | 真判 | 3 | resolved → doc §c |\n")
+        f, _, _ = wc.check_grill_docnative(self._card(rows), ws)
+        self.assertTrue(any(x.startswith("batch-round-tier2") for x in f))
+        # solo 真判 + one batch-go row in the same gate round is the legal freeze shape
+        rows2 = ("| Ask-2 | q | r | c | w | — | 真判 | 9 | resolved → doc §a |\n"
+                 "| Ask-3 | q | r | c | w | — | 照案 | 9 | resolved → doc §b |\n")
+        f, _, _ = wc.check_grill_docnative(self._card(rows2), ws)
+        self.assertEqual([x for x in f if x.startswith("batch-round")], [])
+
+    def test_unsure_round_cap(self):
+        rows = "".join("| Ask-%d | q | r | c | w | — | 拿不准 | 4 | open |\n" % i
+                       for i in range(2, 9))
+        f, _, _ = wc.check_grill_docnative(self._card(rows), ws)
+        self.assertTrue(any(x.startswith("unsure-over-cap") for x in f))
+
+    def test_ninecol_era_per_file(self):
+        # seven-col file on a doc-native card: created date unknown (no git) → visible skip
+        d = self._card("")
+        _write(d, "notes/grill-legacy.md",
+               "| id | question | recommended | chosen | why | depends-on | status |\n"
+               "|---|---|---|---|---|---|---|\n")
+        f, _, exs = wc.check_grill_docnative(d, ws)
+        self.assertTrue(any("nine-col era unjudged" in r for _, r in exs))
+
+    def test_askid_time_boundary_in_block_format(self):
+        d = self._card("", block_note="(single: 「go」)")   # post-cutoff note, no ask-id
+        f, _, _ = wc.check_block_format(d, ws)
+        self.assertTrue(any(x.startswith("ask-id-missing: Req-1") for x in f))
+        d2 = tempfile.mkdtemp()  # pre-cutoff note stays optional
+        _write(d2, "requirement.md",
+               self.FM + "### Req-1 approved — t\n- 陈述: x\n"
+               "- approved: 2026-08-25 gate abcdef0 (single: 「go」)\n")
+        f, _, _ = wc.check_block_format(d2, ws)
+        self.assertEqual([x for x in f if x.startswith("ask-id-missing")], [])

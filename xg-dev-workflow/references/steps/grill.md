@@ -272,15 +272,22 @@ reverse-fidelity enumeration key; plain alignment rows don't count. A bare human
 | G1 | …        | …           | …      | …   | —          | resolved |
 | G2 | …        | …           | …      | …   | G1         | open / superseded |
 
-**Canonical shape (the machine contract, 022).** The seven-column table above is the **only
-normative table shape**: a decision row exists *only* as a row of a canonical table — one whose
-header carries `id` and `status` and whose column set is the full seven. Everything else in the
+**Canonical shape (the machine contract, 022; nine columns on doc-native cards, 026).** The
+canonical table is the **only normative table shape**: a decision row exists *only* as a row of
+a canonical table — one whose header carries `id` and `status` and whose column set is the full
+seven; **doc-native cards add two mandatory columns — `tier`** (closed vocab 照案/真判/拿不准,
+the routing tiers) **and `round`** (positive integer; key = (phase, round) composite), binding
+**per grill file** created on/after the nine-column cutoff (older files grandfather; ids mint as
+`Ask-<n>`, the transitional `G<n>` form stays legal in存量). Everything else in the
 log — round summaries, receipt-internal verdict/fidelity tables, prose — is the **navigation
 layer (导航层)**: legal, but checks don't parse it, and a `resolved →` appearing outside a
 canonical table is a **misplaced decision row**. Decision-row notation is a closed set —
-`resolved → <ledger-id>` on ledger cards, `resolved → <file>.md §<…>` on doc-gate cards; a
+`resolved → <ledger-id>` on ledger cards, `resolved → <file>.md §<…>` on doc-gate cards
+(doc-native uses the doc-form too); a
 notation↔governance mismatch is a defect. Machine-checked by `--check` (k) for cards created
-on/after its shape cutoff and gated (earlier cards keep their old skip behavior); the Density
+on/after its shape cutoff and gated (earlier cards keep their old skip behavior), plus the
+doc-native (y) v2 core (ask-id sweep · tier vocab · batch-table/真判 exclusion · 拿不准 round
+cap); the Density
 rule above stands unchanged — verdicts may fold into round headings, decision rows never drop
 columns.
 

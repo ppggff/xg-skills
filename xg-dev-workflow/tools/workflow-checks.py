@@ -72,7 +72,7 @@ def check_design_sections(card_dir, ws):
 
 
 # trailing annotation after ] is legal (longrun_test 002 idiom: `### F24 [VERIFIED] —— note`)
-FACT_HEAD = re.compile(r"^###\s+(F\d+)\s+\[([^\]]+)\]", re.M)
+FACT_HEAD = re.compile(r"^###\s+((?:Fact-|F)\d+)\s+\[([^\]]+)\]", re.M)  # Fact- = 026 归一形, F = legacy
 # Scoped to the 来源 field: only how THIS fact was obtained can contradict its marker.
 FACT_SOURCE = re.compile(r"^-\s*(?:来源|source)\s*[:：](.*?)(?=^-\s|\Z)", re.M | re.S)
 # Self-attributed inference — flags regardless of any citation alongside it.
@@ -658,7 +658,7 @@ def _receipt_block_findings(name, text, premise_era=False):
             if not m:
                 findings.append("receipt-bad-premises: %s" % label)
             elif m.group(1) == "facts-pack" and \
-                    not re.search(r"\[F\d+\]", header_seg):
+                    not re.search(r"\[(?:Fact-|F)\d+\]", header_seg):
                 findings.append("receipt-premises-no-fact: %s" % label)
         disp = 0
         for raw in lines[start:end]:
@@ -984,7 +984,11 @@ def check_grill_signature(project, card_dir, ws):
     Absence in every form — no grill-log, no canonical table, id not in the union
     index — is carrier-missing (prune compatibility, 019 D3, outranks wrong-id
     detection; typos stay M3 judgment). Closure is shape, not fidelity (lens 4).
-    Mode-agnostic; created-only pre-gate predicate."""
+    Doc-native cards branch to the ask-id-keyed v2 (026 LLD-5); legacy/doc-gate
+    keep the 人工-co-location key and scan domain untouched. Created-only
+    pre-gate predicate."""
+    if ws.card_mode(card_dir) in DOC_NATIVE_MODES:
+        return check_grill_docnative(card_dir, ws)
     created = _card_created(card_dir, ws)
     if not created:
         return [], [], [("carrier-missing", "no created date, signature check off")]
@@ -1082,8 +1086,8 @@ PHASE_DOC_NAMES = ("requirement.md", "design.md", "detail.md",
 LINK_PLACEHOLDER = re.compile(r"[…<>*]|\.\.\.|NNN|<slug>|<project>")
 WIKILINK = re.compile(r"\[\[([^\]|#]+)")
 MDLINK = re.compile(r"\]\(([^)#\s]+)")
-FREF = re.compile(r"\[F(\d+)\]")
-XFREF = re.compile(r"\[(\d{3}):F(\d+)\]")   # cross-card form [NNN:F<n>] (021 D4)
+FREF = re.compile(r"\[(?:Fact-|F)(\d+)\]")
+XFREF = re.compile(r"\[(\d{3}):(?:Fact-|F)(\d+)\]")   # cross-card form [NNN:F<n>] (021 D4)
 PROGRESS_CAP = 180        # template's ≈150-line cap + 20% buffer
 ADR_BODY_CAP = 240        # omission-check's ~200-line lean body + 20% buffer
 
@@ -1263,7 +1267,7 @@ def check_r_trace(project, card_dir, ws):
 
 # existence harvest is marker-agnostic (012-era heads carry no [marker]); a head naming
 # superseded/retired is excluded either way — marker INTEGRITY stays (g)'s job
-FACT_HEAD_ANY = re.compile(r"^###\s+F(\d+)\b(.*)$", re.M)
+FACT_HEAD_ANY = re.compile(r"^###\s+(?:Fact-|F)(\d+)\b(.*)$", re.M)
 
 
 def _fact_ids(card_dir, ws):
@@ -1628,6 +1632,15 @@ def check_board_monotonic(project, project_dir, ws):
 
 DOC_NATIVE_MODES = ("doc-native-pilot",)   # "doc-native" joins at the slice-3 collapse
 ANCHOR_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+# 026 slice 2 (T9): ask-id becomes mandatory by TIME BOUNDARY — a note whose gate
+# date is on/after the cutoff must carry the ask-id slot (the pre-cutoff存量 stays
+# optional; the carrier-existence predicate was refuted as a self-report escape
+# hatch — grill-implement.md T8 lens receipt). Nine-column grill tables bind
+# per-file from the same day (LLD-7 cutoff value fixed here).
+ASK_ID_CUTOFF = "2026-08-27"
+GRILL_NINECOL_CUTOFF = "2026-08-27"
+TIER_VOCAB = ("照案", "真判", "拿不准")
+UNSURE_ROUND_CAP = 5   # HLD-7 拿不准组规模阈值 (M6-calibrated)
 
 
 def _dn_gate(card_dir, ws):
@@ -1676,8 +1689,109 @@ def check_block_format(card_dir, ws):
             if dated[h] and dated[h] != a["extra"]["date"]:
                 findings.append("note-date-mismatch: %s %s note %s vs commit %s"
                                 % (bid, h[:12], a["extra"]["date"], dated[h]))
+            if not a["extra"].get("ask_id") and a["extra"]["date"] >= ASK_ID_CUTOFF:
+                # time-boundary mandate (T9): post-cutoff notes carry the ask-id
+                # slot; the pre-cutoff存量 stays optional (LLD-2 过渡组)
+                findings.append("ask-id-missing: %s gate %s (post-%s note)"
+                                % (bid, h[:12], ASK_ID_CUTOFF))
     if git_gone:
         exs.append(("carrier-missing", "git unavailable — note-date half skipped"))
+    return findings, [], exs
+
+
+def _file_created(card_dir, relpath):
+    """First-commit author date (YYYY-MM-DD) of a card file, via dev_root git;
+    None when git can't answer (callers classify, never pass silently)."""
+    out = _git(card_dir, "log", "--reverse", "--format=%ad",
+               "--date=format:%Y-%m-%d", "--", relpath)
+    if out is None or out.returncode != 0 or not out.stdout.strip():
+        return None
+    return out.stdout.splitlines()[0].strip()
+
+
+_ASK_ROW_ID = re.compile(r"^(?:Ask-|G)(\d+)$")
+
+
+def _grill_rows_docnative(card_dir, ws):
+    """Doc-native grill index: (rows, ninecol_files, legacy_files). Rows come
+    from nine-column canonical tables only (tier+round present); ids normalize
+    to Ask-<n> (legacy G<n> rows alias by number)."""
+    rows, ninecol, legacy = [], [], []
+    for f in _grill_logs(card_dir):
+        base = os.path.basename(f)
+        has9 = False
+        for header, trows in _canonical_tables(ws._read(f)):
+            if "tier" not in header or "round" not in header:
+                continue
+            has9 = True
+            idc = header.index("id")
+            cols = {k: header.index(k) for k in ("status", "tier", "round")}
+            for cells in trows:
+                m = _ASK_ROW_ID.match(cells[idc].strip("`* ")) if idc < len(cells) else None
+                if not m:
+                    continue
+                rows.append({"id": "Ask-" + m.group(1), "file": base,
+                             **{k: (cells[i].strip() if i < len(cells) else "")
+                                for k, i in cols.items()}})
+        (ninecol if has9 else legacy).append(base)
+    return rows, ninecol, legacy
+
+
+def check_grill_docnative(card_dir, ws):
+    """(y) v2 — the doc-native branch (026 LLD-5 + Req-12 同批三核), nine-column
+    rows only; legacy/doc-gate cards never reach here (mode gate in (y)):
+    sweep: an approved note's ask-id whose grill row is still `open` →
+    signature-open (transcribed-while-open, the 003 six-row hole); a noted id
+    with no row is prune-legal — the block note is the回溯锚 (visible skip).
+    tier 在场核: nine-col rows carry a closed-vocab tier and a positive round.
+    batch-table rule: a round holding a 照案 batch table (≥2 照案 rows) must not
+    hold a 真判 row (solo-and-batch legally share a gate round — freeze round 9
+    shape — so mode↔tier is NOT 1:1; only the table form is the accident shape).
+    拿不准 rows per (file, round) cap at UNSURE_ROUND_CAP (HLD-7).
+    Nine-column era binds per-file: a doc-native grill file created on/after
+    GRILL_NINECOL_CUTOFF must carry tier+round (older files grandfather)."""
+    rows, ninecol, legacy = _grill_rows_docnative(card_dir, ws)
+    findings, exs = [], []
+    for base in legacy:
+        created = _file_created(card_dir, os.path.join("notes", base))
+        if created is None:
+            exs.append(("carrier-missing", "%s: created date unknown, nine-col era unjudged" % base))
+        elif created >= GRILL_NINECOL_CUTOFF:
+            findings.append("column-drop: %s missing tier,round (nine-col era)" % base)
+        else:
+            exs.append(("grandfathered", "%s: pre-%s grill file" % (base, GRILL_NINECOL_CUTOFF)))
+    groups = {}
+    for r in rows:
+        if r["tier"] not in TIER_VOCAB:
+            findings.append("tier-vocab: %s tier '%s' (%s)" % (r["id"], r["tier"], r["file"]))
+        if not re.fullmatch(r"[1-9]\d*", r["round"]):
+            findings.append("round-invalid: %s round '%s' (%s)" % (r["id"], r["round"], r["file"]))
+        groups.setdefault((r["file"], r["round"]), []).append(r)
+    for (base, rnd), grp in sorted(groups.items()):
+        ancase = [r for r in grp if r["tier"] == "照案"]
+        if len(ancase) >= 2 and any(r["tier"] == "真判" for r in grp):
+            findings.append("batch-round-tier2: %s round %s holds a 照案 table + 真判 row"
+                            % (base, rnd))
+        if sum(1 for r in grp if r["tier"] == "拿不准") > UNSURE_ROUND_CAP:
+            findings.append("unsure-over-cap: %s round %s > %d"
+                            % (base, rnd, UNSURE_ROUND_CAP))
+    index = {r["id"]: r for r in rows}
+    blocks, _ = ws._block_parse().card_blocks(card_dir)
+    noted = {}
+    for bid, b in blocks.items():
+        for a in b["annotations"]:
+            if a["kind"] == "approved" and a["extra"].get("ask_id"):
+                m = _ASK_ROW_ID.match(a["extra"]["ask_id"])
+                if m:
+                    noted.setdefault("Ask-" + m.group(1), bid)
+    for aid, bid in sorted(noted.items()):
+        row = index.get(aid)
+        if row is None:
+            exs.append(("carrier-missing",
+                        "%s not in nine-col grill rows — prune-legal, block %s note is the anchor"
+                        % (aid, bid)))
+        elif re.match(r"open\b", row["status"], re.I):
+            findings.append("signature-open: %s noted in %s while row open" % (aid, bid))
     return findings, [], exs
 
 
