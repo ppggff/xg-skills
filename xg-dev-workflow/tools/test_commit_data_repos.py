@@ -351,3 +351,88 @@ class CLIIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
+
+
+FM_DN = "---\nid: 900\ngovernance: doc-native-pilot\nstatus: drafting\n---\n\n"
+BLOCK_OK = ("### Req-1 approved — 样例\n- 陈述: 原文\n- 类型: 功能\n- why: w\n"
+            "- provenance: p\n- depends-on: 无\n"
+            "- approved: 2026-08-25 gate abcdef0 (single: 「go」)\n")
+
+
+class DiffGuard(unittest.TestCase):
+    """(026 LLD-8) the docs-repo pre-commit guard over doc-native cards."""
+
+    def _docs_repo(self, block=BLOCK_OK, governance=FM_DN):
+        return init_repo({"proj/900-x/requirement.md": governance + block})
+
+    def test_approved_edit_blocked(self):
+        repo = self._docs_repo()
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("BLOCKED" in l for l in lines))
+        self.assertTrue(any("approved-block-touched" in l and "Req-1" in l for l in lines))
+        # nothing committed — worktree still dirty
+        st = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                            capture_output=True, text=True, env=GIT_ENV)
+        self.assertTrue(st.stdout.strip())
+
+    def test_same_batch_change_note_passes(self):
+        repo = self._docs_repo()
+        edited = (BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改")
+                  + "- 变更: 就地改写 (M2 1234567, 2026-08-27)\n")
+        dirty(repo, "proj/900-x/requirement.md", FM_DN + edited)
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)
+
+    def test_annotation_append_passes(self):
+        repo = self._docs_repo()
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK + "- approved: 2026-08-27 gate 7654321 (single: 「再批」)\n")
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)
+
+    def test_removed_block_blocked(self):
+        repo = self._docs_repo()
+        dirty(repo, "proj/900-x/requirement.md", FM_DN + "（空）\n")
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("removed" in l for l in lines), lines)
+
+    def test_allow_flag_commits_and_books_log(self):
+        repo = self._docs_repo()
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj", allow=True)
+        self.assertTrue(any("committed" in l for l in lines), lines)
+        log = (repo / "proj/900-x/log.md").read_text(encoding="utf-8")
+        self.assertIn("diff 守卫显式放行", log)
+        self.assertIn("Req-1", log)
+        # the booked log line rides the same commit
+        st = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                            capture_output=True, text=True, env=GIT_ENV)
+        self.assertFalse(st.stdout.strip())
+
+    def test_non_docnative_card_unguarded(self):
+        repo = init_repo({"proj/901-y/requirement.md":
+                          "---\nid: 901\ngovernance: doc-gate\n---\n" + BLOCK_OK})
+        dirty(repo, "proj/901-y/requirement.md",
+              "---\nid: 901\ngovernance: doc-gate\n---\n"
+              + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)
+
+    def test_proposed_block_edit_passes(self):
+        block = BLOCK_OK.replace("### Req-1 approved", "### Req-1 proposed")
+        block = "\n".join(l for l in block.splitlines()
+                          if not l.startswith("- approved:")) + "\n"
+        repo = self._docs_repo(block=block)
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + block.replace("- 陈述: 原文", "- 陈述: 随便改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)
+
+    def test_kb_repo_unguarded(self):
+        repo = init_repo({"raw/proj/note.md": "x\n"})
+        dirty(repo, "raw/proj/note.md", "y\n")
+        lines = cdr.commit_repo(repo, "kb", "kb", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)

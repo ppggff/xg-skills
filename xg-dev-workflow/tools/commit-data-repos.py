@@ -18,6 +18,11 @@ human-gated, per global Git & MR Safety).
 
 NOT a byte-identical synced script — it lives only here (xg-dev-workflow/tools/).
 
+Docs-repo commits pass the doc-native diff guard (026 LLD-8): an approved block's
+compare-face change without a same-batch 变更/退役 annotation blocks the commit
+(`approved-block-touched`); `--allow-approved-edit` overrides and books a log.md
+line per card. The (ad) anchor check is the after-the-fact backstop.
+
 Usage:
   commit-data-repos.py [--message MSG] [--reason TEXT] [--only kb|docs] [--project NAME]
 `--project NAME` scopes the commit to that project's paths only (both repos) — the
@@ -27,6 +32,7 @@ Exit 0 always (a commit failure on one repo is reported, doesn't abort the other
 """
 import argparse
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -34,6 +40,105 @@ from pathlib import Path
 
 DEFAULTS = {"root": "~/knowledge", "dev_root": "~/dev-workflow"}
 GITIGNORE = ".DS_Store\n*.swp\n*.swo\n*~\n__pycache__/\n"
+
+# ---- doc-native diff guard (026 LLD-8) ----
+PHASE_DOC = re.compile(r"^(?P<card>[^/]+/\d{3}-[^/]+)/(?P<doc>requirement|design|detail)\.md$")
+DOC_NATIVE_MODES = ("doc-native-pilot",)
+GUARD_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+_BP = None
+
+
+def _block_parse():
+    global _BP
+    if _BP is None:
+        import importlib.util
+        path = Path(__file__).resolve().parent / "block_parse.py"
+        spec = importlib.util.spec_from_file_location("block_parse", str(path))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _BP = mod
+    return _BP
+
+
+def _card_governance(repo: Path, card_rel: str) -> str:
+    try:
+        text = (repo / card_rel / "requirement.md").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = re.search(r"^governance:\s*([\w-]+)", text, re.M)
+    return m.group(1) if m else ""
+
+
+def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> list:
+    """Write-time guard (026 LLD-8), docs repo only: an approved doc-native
+    block whose compare face (the five load-bearing fields, or the state word)
+    differs from HEAD without a same-batch 变更/退役 annotation blocks the
+    commit (`approved-block-touched`). Proposed blocks, annotation appends and
+    legal M2 (fresh 变更/退役 note in the same diff) pass. `allow` (the
+    --allow-approved-edit flag) lets findings through and books one log.md
+    line per card. Guard errors fail open with a warning — the (ad) anchor
+    check is the after-the-fact backstop, and the session-end sweep must never
+    lose data to a guard bug."""
+    if kind != "docs":
+        return []
+    try:
+        status = git(repo, "status", "--porcelain", "-uall", "-z", "--", *pathspecs)
+        touched = {}
+        for path in parse_porcelain_z(status.stdout):
+            m = PHASE_DOC.match(path)
+            if m:
+                touched.setdefault(m.group("card"), []).append(path)
+        findings, by_card = [], {}
+        for card_rel, paths in sorted(touched.items()):
+            if _card_governance(repo, card_rel) not in DOC_NATIVE_MODES:
+                continue
+            bp = _block_parse()
+            for path in paths:
+                head = git(repo, "show", "HEAD:" + path)
+                if head.returncode != 0:
+                    continue  # new doc — first landing is not a touch
+                try:
+                    wt = (repo / path).read_text(encoding="utf-8")
+                except OSError:
+                    wt = ""
+                old_blocks, _ = bp.parse_doc_blocks(head.stdout)
+                new_blocks, _ = bp.parse_doc_blocks(wt)
+                new_by = {}
+                for b in new_blocks:
+                    new_by.setdefault("%s-%s" % (b["prefix"], b["num"]), b)
+                for ob in old_blocks:
+                    if ob["state"] != "approved":
+                        continue
+                    bid = "%s-%s" % (ob["prefix"], ob["num"])
+                    nb = new_by.get(bid)
+                    if nb is None:
+                        findings.append("approved-block-touched: %s %s removed" % (path, bid))
+                        by_card.setdefault(card_rel, []).append(bid)
+                        continue
+                    fresh_note = (
+                        len([a for a in nb["annotations"] if a["kind"] in ("变更", "退役")])
+                        > len([a for a in ob["annotations"] if a["kind"] in ("变更", "退役")]))
+                    diffs = [f for f in GUARD_FIELDS
+                             if ob["fields"].get(f, "") != nb["fields"].get(f, "")]
+                    if ob["state"] != nb["state"]:
+                        diffs.append("state")
+                    if diffs and not fresh_note:
+                        findings.append("approved-block-touched: %s %s (%s) — 同批无 变更/退役 注记"
+                                        % (path, bid, ", ".join(diffs)))
+                        by_card.setdefault(card_rel, []).append(bid)
+        if findings and allow:
+            stamp = datetime.now().strftime("%Y-%m-%d")
+            for card_rel, ids in sorted(by_card.items()):
+                log = repo / card_rel / "log.md"
+                with open(log, "a", encoding="utf-8") as f:
+                    f.write("\n- `[纠错]` diff 守卫显式放行（--allow-approved-edit，%s）：%s"
+                            "——已批块比对面改动随本提交放行（LLD-8 记账）。\n"
+                            % (stamp, "、".join(sorted(set(ids)))))
+            return []
+        return findings
+    except Exception as e:  # fail open, loudly
+        print("(diff-guard error: %s — proceeding unguarded)" % e, file=sys.stderr)
+        return []
 
 
 def config_path() -> Path:
@@ -172,13 +277,18 @@ def _add_commit(repo: Path, pathspecs: list, message: str) -> subprocess.Complet
     return git(repo, "commit", "-m", message, "--", *pathspecs)
 
 
-def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool) -> list:
+def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool,
+                   allow: bool = False) -> list:
     """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit."""
     pathspecs = existing_pathspecs(repo, scoped_pathspecs(kind, project))
     if inited:
         pathspecs = pathspecs + [".gitignore"]  # D3: never lost to scoping
     if not pathspecs:
         return [f"{label}: nothing to commit for project {project}"]
+    guard = diff_guard(repo, kind, pathspecs, allow)
+    if guard:
+        return ([f"{label}: BLOCKED — LLD-8 diff guard (pass --allow-approved-edit to override):"]
+                + ["  " + g for g in guard])
     msg = ("init: " + label + " repo\n\n" + message) if inited else message
     res = _add_commit(repo, pathspecs, msg)
     if res.returncode != 0:
@@ -201,7 +311,8 @@ def group_pathspecs(group: str, kind: str, paths: list) -> list:
     return scoped_pathspecs(kind, group)
 
 
-def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool) -> list:
+def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool,
+                  allow: bool = False) -> list:
     """No `--project`: safety-net sweep (R2) — one commit per project group, `(root)`
     catching unowned stragglers (R6). A freshly-`init`-ed `.gitignore` is itself unowned,
     so `sweep_groups()` already places it in `(root)` — D3 falls out for free, no
@@ -214,6 +325,12 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool)
         pathspecs = existing_pathspecs(repo, group_pathspecs(group, kind, groups[group]))
         if not pathspecs:
             continue
+        guard = diff_guard(repo, kind, pathspecs, allow)
+        if guard:
+            lines.append(f"{label}: group {group} BLOCKED — LLD-8 diff guard "
+                         "(pass --allow-approved-edit to override):")
+            lines += ["  " + g for g in guard]
+            continue
         msg = _tag_subject(message, f"[{group}]")
         res = _add_commit(repo, pathspecs, msg)
         if res.returncode != 0:
@@ -225,7 +342,8 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool)
     return lines or [f"{label}: clean — nothing to commit"]
 
 
-def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None) -> list:
+def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None,
+                allow: bool = False) -> list:
     if not repo.exists():
         return [f"{label}: {repo} does not exist — skipped"]
     inited = False
@@ -238,8 +356,8 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
         inited = True
 
     if project is not None:
-        return _commit_scoped(repo, label, kind, message, project, inited)
-    return _commit_sweep(repo, label, kind, message, inited)
+        return _commit_scoped(repo, label, kind, message, project, inited, allow)
+    return _commit_sweep(repo, label, kind, message, inited, allow)
 
 
 def main():
@@ -250,6 +368,9 @@ def main():
     ap.add_argument("--project", default=None,
                     help="scoped mode (R3): commit only this project's paths, "
                          "in both repos (R4). Omit for the sweep safety net.")
+    ap.add_argument("--allow-approved-edit", action="store_true",
+                    help="override the LLD-8 diff guard: commit approved-block "
+                         "compare-face changes and book a log.md line per card.")
     a = ap.parse_args()
 
     cp = config_path()
@@ -269,7 +390,8 @@ def main():
         targets.append((docs, "dev-workflow (docs)", "docs"))
 
     for repo, label, kind in targets:
-        for line in commit_repo(repo, label, kind, default_msg, project=a.project):
+        for line in commit_repo(repo, label, kind, default_msg, project=a.project,
+                                allow=a.allow_approved_edit):
             print(line)
     sys.exit(0)
 
