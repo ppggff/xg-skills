@@ -43,6 +43,14 @@ design are allowed to change, so the design stays stable while the plan flexes.
      one grouped line (count + ids). The human judges substance in the proposed blocks; the
      touch-list is **never persisted as a file** (an analysis note that *precedes* an M2 —
      a reboundary proposal, a design probe — stays a legal note; the list itself is not one).
+   - **The touch-list carries a 分型 field (026 Req-38), self-reported per proposal**:
+     **机械传播型** (propagating an already-made decision — rides the current flow) vs
+     **语义引入型** (introduces a new cause/mechanism/trade-off — MUST pass a grill round +
+     a lens pass **before** any text lands). The human may reclassify on the spot; Claude
+     silently filing a semantic change as mechanical is the escape hatch this field closes.
+   - **A touch-list item holding an unresolved trade-off gets its own solo question first
+     (026 Req-23)** — it never rides the list confirm; the list is confirmed only when every
+     item is either mechanical or already individually decided.
    The human confirms the list; **no approved row flips and no phase doc is touched before
    that confirm**. Rejected proposals: proposed → retired with a one-line reason. Targeted
    re-grill scope = the closure's decisions.

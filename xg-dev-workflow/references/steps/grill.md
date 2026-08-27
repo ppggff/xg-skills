@@ -11,15 +11,23 @@ file owns the *protocol*, the *grill-log* (history), and *rollback*; each phase 
 priorities and tactics (see "Phase-specific layers").
 
 ## Protocol (one question at a time)
+- **Ask routing (two-lane) — `references/ask-routing-core.md` is the SoT** (026): 交人判条目
+  route through its three tiers (Tier 0 incorporation-only · Tier 1 照案 batch · Tier 2 真判
+  solo · the 拿不准 group), its Tier 2 closed list + decision order, and its value-rewrite
+  direction. This file maps the carriers: a Tier 1 row = a batch-table row (recommendation +
+  trade-off + evidence anchor per the SoT; its grill-log row carries tier/round), a Tier 2 ask
+  = the per-question protocol below, and the 拿不准 group renders as **its own section of the
+  round's ask** (each row naming its uncertainty point) — never mixed into the 照案 table.
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
-- **Batching admission (one rule, two grounds):** (a) a **panorama** topic (per its
+- **Batching admission (one rule, three grounds):** (a) a **panorama** topic (per its
   topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents
   its full spread in one round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
   **independent sibling** questions — no `depends-on` between them, none gating another's
-  framing. Under either ground each item still carries its own recommendation + trade-off and
+  framing; (c) a **Tier 1 照案 batch table** (ask-routing-core.md) — rows independently
+  accept/reject-able by construction. Under any ground each item still carries its own recommendation + trade-off and
   gets its own grill-log row; the human sets the pace and may drop back to single-question at
-  any time; neither ground reorders the tree walk — anything dependent stays sequenced.
+  any time; no ground reorders the tree walk — anything dependent stays sequenced.
 - **One question, one decision (024 R13).** Batching governs *how many questions per round*;
   this governs *inside one question*: a grill question carries exactly **one independently
   answerable decision** — a batched round's items each get their own line and recommendation,
@@ -29,6 +37,9 @@ priorities and tactics (see "Phase-specific layers").
   governance breach, the ledger showing approvals the human never gave). No mechanical
   enforcement face (chat-level); effect rides this clause + the gate lens 4's human-message
   verbatim pack (adversarial-critic.md, D21) + M6 repeat-offense accounting.
+  **Presentation-side extension (026 Req-3):** a general reply (「其他按推荐」类) covers only
+  the 照案 rows this round's ask listed; the 拿不准 group closes only per-row, or by an
+  explicit release naming the group (ask-routing-core.md「Value-rewrite direction」).
 - **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
   cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
   and their siblings — a batched round stays one round). It closes when the walk leaves
@@ -150,12 +161,14 @@ doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards sc
   code understanding」/ spike; facts per 载重事实入账) → **incremental restatement** (only what
   changed) → human confirmation; close per Round-end order, verdict per「Convergence」.
   Information gaps are listed up front; each ends **resolved or `deferred`**.
-- **Human-judgment items surface as questions.** A topic's presentation splits two ways —
-  evidence-settled items (labeled, not re-asked) vs **human-judgment items** (real trade-offs
-  with no objective answer): each of the latter is asked as its own question with
-  recommendation + trade-off (the per-question protocol), never folded silently into a
-  whole-topic 照案 go; a topic with zero human-judgment items says so (「本轮无人判点」+ the
-  evidence list). This is the gate digest's 判断分工 split applied per round.
+- **Human-judgment items surface as questions.** A topic's presentation follows the routing
+  tiers (ask-routing-core.md, 026): evidence-settled items are Tier 0 (labeled, not re-asked);
+  **human-judgment items** (real trade-offs with no objective answer) route Tier 1 照案 /
+  Tier 2 真判 / 拿不准 per the SoT's closed list and order — never folded silently into a
+  whole-topic 照案 go (the anti-silent-folding intent this split has always carried, 026
+  Req-7 动机); a topic with zero human-judgment items says so (「本轮无人判点」+ the
+  evidence list). This is the gate digest's 判断分工 split applied per round — same tiers,
+  round-level rendering.
 - **Granularity guardrail — discussion material ≠ draft**: understanding ≤ ~one screen, no
   section structure, diagrams, or contract text; a candidate's shape sketch = one-line 思路 +
   3–5 responsibility blocks + most-different point (**no diagrams/contracts/interfaces**); a

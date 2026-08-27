@@ -11,7 +11,9 @@ types here without touching protocol files.
 An index over three existing enumerations — design-grill's lens walk, the design template's
 sections, and the freeze-gate checklist — not a fourth list. `attr`: **panorama**
 (full spread in one round) / **detail** (one question at a time). `fixed`: contract-fixed —
-the agenda negotiation may reorder but never drop it.
+the agenda negotiation may reorder but never drop it. (`attr` feeds grill.md's batching
+ground (a); the Tier 1 照案 batch table is ground (c) — routing rules live in grill.md +
+`references/ask-routing-core.md`, never here.)
 
 | Topic | attr | fixed | Lens / section hook (existing home) |
 |---|---|---|---|

@@ -23,7 +23,11 @@ same scaled form with doc-cited points in place of cards.
 rule applied to the chat digest); a card's 陈述 / why / alt / 锚点 each get **their own
 sub-bullet line**, never compressed into the header line. Section 1's self-check lines and
 section 5 (待你判) are a pair — without them the digest says *what* was decided but not
-*what the human's judgment is needed on*; keep both, scaled down for small gates. In this order:
+*what the human's judgment is needed on*; keep both, scaled down for small gates.
+**Vocabulary (026): the 判断分工 split is the routing tiers at gate level**
+(`references/ask-routing-core.md`) — 已验证(勿复核) = Tier 0 · 一并批 groups = Tier 1 照案 ·
+§5 待你判 = Tier 2 真判 · a 拿不准 group, when present, renders as its own §5 sub-group
+(each row naming its uncertainty point). In this order:
 
 1. **Grill / 自检状态 (lead section — is this ask qualified to be judged?)**
    - The grill **convergence verdict** (grill.md auto-verdict): 继续/建议收敛 + this round's
@@ -88,6 +92,9 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
 
 ## Rules
 
+- **No first-seen 真判 rides the gate ask (026 Req-23).** A Tier 2 judgment item making its
+  first appearance gets its own solo question **before** the gate; the gate ask approves what
+  was already asked and answered — it is never the vehicle that introduces a new judgment.
 - **Panel-receipt precondition.** Before presenting any gate ask: every decision-level
   checkpoint this phase passed has a panel receipt, and the **criterion-conformance judge**
   (adversarial-critic.md lens 4) has run against this gate's criteria — its per-criterion

@@ -102,7 +102,12 @@ the wiring point for dispatch-tree misses). Mechanical face = the receipt header
    (all-or-nothing packing is what makes selective packing auditable). With the human's actual
    words visible, the fidelity audit checks each pending/approved row's G-row chosen against
    an **individually given** human answer — one answer transcribed as N approvals is the
-   finding (R13's bundling risk: a bundled reply read as N item-approvals).
+   finding (R13's bundling risk: a bundled reply read as N item-approvals). **Explicit
+   exemption (026 Req-3):** a compliant batch release is NOT that finding — when the ask was
+   an enumerated batch table with a per-row recommendation and the reply is a general answer
+   naming the group (三要素齐备, ask-routing-core.md), the one reply legally approves exactly
+   the listed 照案 rows; anything outside the listed rows (拿不准 rows included) stays held
+   to the individually-given standard.
 
 **Receipts.** Every panel run leaves a receipt in the grill-log (or, for a **generic** grill
 whose conversation is the log, in the round's closing message — decision-zone discussion-first
