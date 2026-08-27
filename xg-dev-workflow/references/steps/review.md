@@ -129,7 +129,10 @@ SKILL.md「Requirement sizing」.
 5. **Adjudicate every finding (non-negotiable).** Before anything enters the report,
    verify it yourself (or via an independent verifier agent) against the actual
    code, scoring confidence 0–100; report only ≥80 as findings, carry 50–79 as
-   explicitly-uncertain notes, drop the rest. Verify the TRIGGER CONDITION's
+   explicitly-uncertain notes, drop the rest. (Vocabulary mapping, 026 Req-17: the
+   0–100 band is the **internal adjudication filter** — numeric scores stay off the
+   ask surface; the 50–79 explicitly-uncertain band is this face's 拿不准 form,
+   ask-routing-core.md.) Verify the TRIGGER CONDITION's
    distance, not just the mechanism — a real failure mechanism whose precondition
    is a remote tail case (e.g. "only after shared slop exhausts cluster-wide") is
    a sizing note, not a finding; re-derive how far away the trigger actually is. **Adjudicate the suggested FIX too,
@@ -172,7 +175,9 @@ SKILL.md「Requirement sizing」.
    `# | 项目 | 级别 | 预期修复 | 你需要定`. Mechanical single-way fixes get 否; an
    item with real alternatives gets **是** plus the concrete choice and your
    recommended option; flag rows whose files need explicit approval under the
-   repo's scope rules (e.g. test dirs). Items judged not-worth-fixing go to a
+   repo's scope rules (e.g. test dirs). (026 Req-17: the existing columns ARE this
+   face's tier carrier — 否 = 照案 lane, 是 = 真判 lane, ask-routing-core.md
+   vocabulary; no third word set.) Items judged not-worth-fixing go to a
    明确不修 line below the table, with the reason.
    **Future/deferred items obey M1 like any other claim**: a review-born Future item states
    its provenance (evidence-cited / 推断 / 假设) — an unverified "this wastes X" written as

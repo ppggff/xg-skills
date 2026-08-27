@@ -46,7 +46,10 @@ Authority (two levels): **deterministic findings are auto-fixed** —
 back-annotations; **judgment findings are report-only** — contradictions, concept-promotion
 (§1), terminology/scope calls (§5), size splits (§6), designated-doc gaps (§7),
 reverse-coupling moves (§8 — the flag is deterministic, the fix is a judgment) go to the user
-with a suggestion, never silently fixed.
+with a suggestion, never silently fixed. Within the report-only bucket the presentation
+follows the routing tiers (`references/ask-routing-core.md`): single-way suggestions batch
+as 照案 rows (recommendation + trade-off per row); real terminology/scope trade-offs are
+真判 solo asks; a contradiction against recorded knowledge is a natural solo ask already.
 
 Execution (cost): §2 / §3 / §4 / §6 / §8's grep are deterministic — script them when tooling exists; run
 the rest (and any unscripted deterministic item) via one cheaper-model agent (Agent tool

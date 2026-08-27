@@ -22,7 +22,11 @@ fixes back into the workflow itself — so the skill compounds.
    - **the project's CLAUDE.md** (e.g. `cbdb/CLAUDE.md`) — a project rule should be explicit;
    - **xg-knowledge-lite** — recurring module knowledge to capture/promote.
 3. **Propose the edits**, smallest-diff first; confirm with the human before changing
-   SKILL.md or templates (they affect every future requirement).
+   SKILL.md or templates (they affect every future requirement). **Per-item tiering
+   (026 Req-17):** each proposal is one 照案 row (recommendation + trade-off +
+   evidence anchor) or a 真判 solo ask (SKILL.md/template changes with real
+   alternatives) — a blanket confirm over an untiered improvement list is the form
+   this closes (ask-routing-core.md vocabulary).
 4. **Apply**, then run the omission check on any workflow docs touched. When a SKILL.md
    mechanism/verb changed — or any multiply-referenced term/ID/deferral wording in a
    template/step changed — the cross-file stale-reference grep over `SKILL.md` +

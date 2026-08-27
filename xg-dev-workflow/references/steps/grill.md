@@ -18,6 +18,12 @@ priorities and tactics (see "Phase-specific layers").
   trade-off + evidence anchor per the SoT; its grill-log row carries tier/round), a Tier 2 ask
   = the per-question protocol below, and the 拿不准 group renders as **its own section of the
   round's ask** (each row naming its uncertainty point) — never mixed into the 照案 table.
+  **确认不动 closed list (026 Req-18, ask-semantics face only):** seven faces already conform
+  or are natural solo asks — M2 touch-list · park sweep · M3 exemptions · KB Write
+  contradiction · learn 采纳门 · implement mode-ask/push 门 · plan execution authorization
+  (rides gate-digest) — zero behavior change beyond, at most, an SoT reference sentence;
+  investigate/diagnose are 不适用 (report-only, no ask face); resume/test are explicit
+  non-goals (low stakes).
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
 - **Batching admission (one rule, three grounds):** (a) a **panorama** topic (per its
@@ -131,6 +137,9 @@ priorities and tactics (see "Phase-specific layers").
   persistent layer — only facts that later phases/rewrites will lean on get an F block.
   User-stated environment facts (versions, scale, deployment shape) are not F-block material
   until verified — they land in the phase doc's Context with provenance marked (M1).
+  **Adopting a panel finding books its layers separately (026 Req-19):** the verified facts
+  may enter as F blocks; the generalization/attribution/direction riding them never does —
+  that half is the adjudicator's own inference (adversarial-critic.md「Core move」).
   **Doc-gate cards**: no `facts.md` — verified load-bearing facts go to the doc-local
   「事实清单」section instead (the standalone-doc container form, doc-conventions
   「Provenance containers」).

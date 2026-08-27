@@ -12,7 +12,8 @@ skill — link, don't restate).
 Contract (design 013, ADR-0001): `improve <project> [<region>…]` — **read-only on product
 code**; scan a bounded region for deepening candidates; every candidate carries evidence +
 an independent refutation verdict; candidates conflicting with approved decisions are flagged
-or suppressed; the report lands in dev_root; the gate is a **chat stop** (no ledger approval);
+or suppressed; the report lands in dev_root; the gate is a **chat stop** (no ledger approval)
+— already a Tier 2 真判-shaped solo ask (ask-routing-core.md vocabulary, 026 Req-17);
 the **only exit is roadmap Next-up** — improve never creates a card.
 
 ## Procedure (five stages)

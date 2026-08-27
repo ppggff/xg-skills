@@ -40,7 +40,12 @@ reads). Cross-lens composites
 synthesis step exists anyway; don't keep the panel merged for it. **At adjudication, re-measure
 a finding's numeric/enumerative factual claims before adopting them** (counts, "all N are X",
 corpus-wide absences) — panels sample and misstate totals; the claim's *direction* is usually
-right, the *number* often isn't.
+right, the *number* often isn't. **Fact layer vs inference layer — direction/attribution/
+generalization get the same treatment (026 Req-19):** adopting a finding separates its facts
+from the generalization, attribution or direction claims riding them — the latter are the
+adjudicator's **own inferences** and need independent grounds, exactly like the numbers.
+Two same-shaped instances self-generalized become a **candidate rule put through a grill
+ask** (Class-to-constraint below) — never the panel's generalization adopted as given.
 
 **Dispatch closure — load-bearing-premise tightening (024 R4).** The prompt's closure
 ({problem + claim} + the verified-facts pack) is also the **only legal source for load-bearing
