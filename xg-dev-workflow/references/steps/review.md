@@ -125,6 +125,11 @@ SKILL.md「Requirement sizing」.
    **Deep tier — you MUST read `references/steps/review-deep.md` before running:** it carries the
    lens fan-out menu (incl. per-lens model assignment) and the standing model-diversity sweep,
    plus the 5b saturation stop-rule. A deep review without it is incomplete.
+   **Test-adequacy lens (026 Req-37, M+ close-out fixed member):** its target list is the
+   approved-block rubric (adversarial-critic.md「Approved-block rubric」) expanded over the
+   card's active approved set — per block: does the verification actually exercise the claim,
+   is it falsifiable, is the coverage row honest? Zero new gates — findings ride the normal
+   修复决策表.
 
 5. **Adjudicate every finding (non-negotiable).** Before anything enters the report,
    verify it yourself (or via an independent verifier agent) against the actual

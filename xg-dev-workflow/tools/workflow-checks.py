@@ -1265,6 +1265,20 @@ def check_r_trace(project, card_dir, ws):
             findings.append("trace: %s no-task" % r)
         if os.path.exists(os.path.join(card_dir, "test.md")) and r not in cov:
             findings.append("trace: %s no-test-coverage" % r)
+    if downstream and ws.card_mode(card_dir) in DOC_NATIVE_MODES \
+            and os.path.exists(os.path.join(card_dir, "test.md")):
+        # per-Effect granularity (026 Req-37 机械半, riding (q) — no new check):
+        # every Effect id keys a coverage row (first cell) in test.md
+        req_text = ws._read(os.path.join(card_dir, "requirement.md"))
+        test_text = ws._read(os.path.join(card_dir, "test.md"))
+        keyed = set()
+        for line in test_text.splitlines():
+            if line.lstrip().startswith("|"):
+                cell = line.strip().strip("|").split("|", 1)[0]
+                keyed |= set(re.findall(r"(?:Eff-|E)(\d+)", cell))
+        for eid in set(EFFECT_ID.findall(req_text)):
+            if re.search(r"(\d+)$", eid).group(1) not in keyed:
+                findings.append("trace: %s no-coverage-row" % eid)
     return findings, [], exs
 
 

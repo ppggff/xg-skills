@@ -149,6 +149,22 @@ self-certified work.
 (grill-log line / round-closing message); a panel reference that cannot be located is an
 unverified claim (M1), not evidence — treat it as such before building on it.
 
+## Approved-block rubric (026 Req-35 — the anti-误绿 target list)
+
+A lens dispatched at a gate-adjacent or review checkpoint on a card with approved decision
+blocks/rows expands this **fixed rubric mechanically over the active approved set** — every
+block gets the four questions, so "who attacks 批了但落地了吗" is never unassigned (the 003
+R22 误绿 shape: the attack target stayed implicit in the lens prompt and nobody owned it):
+
+1. **落地了吗** — does the demanded artifact exist, at the named home, doing what the 陈述 says?
+2. **可证伪吗** — does its acceptance have a failure mode a test/negative sample can trigger?
+3. **与他行矛盾吗** — against the other approved blocks and the invariant ledger.
+4. **测试覆盖了吗** — a coverage row/test cites it (the (q)/(ae) mechanical half feeds this).
+
+**Incremental application**: rows touched since the last pass get the full four; the rest are
+sampled. Card-specific targets land as blocks or grill rows — **never a checklist file** (a
+seventh mirror). The review step's test-adequacy lens takes this rubric as its target list.
+
 ## Three standing rules the orchestrator applies inline (no subagent needed)
 
 - **Verify-the-assumption.** Every load-bearing "X is available / true at point Y" gets an
