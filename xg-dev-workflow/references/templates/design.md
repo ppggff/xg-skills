@@ -19,7 +19,10 @@ created: YYYY-MM-DD
 > **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
 > decisions. (Doc-gate cards carry the same three classes in the doc — templates/requirement.md
-> 头注; gate passages land in「Change log」below, 017 S4.)
+> 头注; gate passages land in「Change log」below, 017 S4. **Doc-native cards**: design decisions
+> are `### HLD-<n> <state> — <标题>` blocks, same grammar as requirement 条目 — templates/
+> requirement.md 头注; gate events live in the blocks' approved annotations, no Change log
+> section, freeze = all HLD blocks approved, derived.)
 
 ## 思路 (Approach in one paragraph)
 

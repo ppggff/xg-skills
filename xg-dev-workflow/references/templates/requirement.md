@@ -3,7 +3,8 @@ id: NNN
 title: <requirement title>
 project: <project>
 status: drafting | confirmed | superseded
-governance: ledger | doc-gate  <the card's governance mode (017 D1). `new` pre-fills by sizing
+governance: ledger | doc-gate | doc-native-pilot  <the card's governance mode (017 D1;
+  doc-native 026). `new` pre-fills by sizing
   (M+ → ledger, XS/S → doc-gate); the human ratifies at the 需求 confirm gate — mode is the
   gate's FIRST judgment item — and the field takes effect with `status: confirmed`. Omitted =
   legacy (pre-017 cards only; new cards must declare, `--check` flags the omission). Upgrading
@@ -23,6 +24,16 @@ created: YYYY-MM-DD
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
 > decisions. (Doc-gate cards carry the same three classes **in the doc**: decisions in their
 > own sections, facts in a doc-local「事实清单」, pending proposals in「提议变更」— 017 D2.)
+> **Doc-native cards (026): decisions ARE doc blocks.** Each 需求条目 is one block —
+> `### Req-<n> <state> — <标题>` (states proposed/approved/superseded/retired) + the five
+> load-bearing fields (`- 陈述:` `- 类型:` `- why:` `- provenance:` `- depends-on:`), lettered
+> clauses `- (x) …` inside 陈述, and machine-read annotations appended per event:
+> `- approved: <date> gate <hash> (single|batch Ask-<n>: 「原话」)` (date = the gate commit's
+> author date; ask-id mandatory from the 2026-08-27 cutoff) · `- 变更/退役: <why> (M2 <hash>,
+> <尾注>)` · `- 澄清: …(凭据)` · `- 来源: …` for transported blocks. No decisions.md; facts
+> cite `[Fact-n]` (`facts.md` stays, Req-41); the 条目节首 index is a generated view
+> (workflow-status render_index — never hand-edit); the approved-block compare face is guarded
+> by the diff guard + git anchor checks ((ac)/(ad)).
 
 ## Context (背景)
 
@@ -99,6 +110,10 @@ What is deliberately deferred; extensibility expected later; what we are NOT sol
 - …
 
 ## Change log
+
+<!-- Doc-native cards: DO NOT create this section (026 Req-31, 护栏 4 switch 2026-08-27) —
+     gate events live in block approved annotations, content changes in 变更/退役 annotations,
+     doc-level events in log.md. Ledger/doc-gate/legacy cards keep it as before. -->
 
 - YYYY-MM-DD — created.
 <!-- On any requirement change, add a dated entry here and trigger the change-management flow

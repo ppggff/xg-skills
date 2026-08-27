@@ -1,7 +1,9 @@
 <!--
 <card>/facts.md — the card's fact layer (F-id registry): load-bearing facts that decisions
 rest on, kept OUTSIDE the freely-rewritable phase docs so a doc rewrite can never lose them
-(design 010, ADR-0002). Phase docs cite entries as [F<n>].
+(design 010, ADR-0002). Phase docs cite entries as [F<n>] — doc-native cards (026 Req-41,
+归一形): headers `### Fact-<n> [标注]`, citations `[Fact-n]` ([F<n>] stays legal as the
+transitional alias on transported text); the file itself is kept on every mode.
 
 Reader = Claude (both zones — cited evidence base; humans reach it by drill-down from a
 [F<n>] citation, never as a reading assignment). Written by grill/investigate rounds

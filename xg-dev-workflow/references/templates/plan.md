@@ -72,4 +72,8 @@ One paragraph: what this plan builds, against which design.
 - YYYY-MM-DD — created.
 <!-- Doc-gate cards: the execution-authorization gate line lands here as
      `- <date> — <状态>（gate <receipts-commit short hash>）` (017 S4). Plan churn logging
-     stays in log.md (M2 case B) — this section is for gate passages and dated milestones. -->
+     stays in log.md (M2 case B) — this section is for gate passages and dated milestones.
+     Doc-native cards KEEP this section too (026): plan.md carries no decision blocks, so the
+     execution-authorization gate line has no annotation carrier — it lands here, the one
+     Change log that survives the Req-31 retirement (decision docs' gates live in block
+     annotations instead). -->

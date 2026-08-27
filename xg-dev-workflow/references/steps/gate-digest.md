@@ -169,6 +169,23 @@ loop are exempt** — never the judgment surfaces:
   the matching section, verified facts in a doc-local「事实清单」, pending proposals in a
   「提议变更」section + a `progress.md` pointer (resume-reachable; cleared on confirm).
 
+## Doc-native cards (026 — blocks are the ledger; the generator makes the skeleton)
+
+The scaled-digest rules above apply with the blocks as the row source:
+
+- **§2 cards come from the pending (proposed) block set**; `workflow-status.py --digest
+  <project>/<card>` generates the seven-section skeleton (verbatim-prefix rows, fold rule,
+  the four-line 真判 card slots) — the author promotes 真判/拿不准 items and fills judgment
+  content on top. The digest **quotes block原文, never rewrites** (Req-28).
+- **On go — per-block approve transcription**: header state `proposed → approved` + append
+  `- approved: <date> gate <receipts-commit short hash> (single|batch Ask-<n>: 「原话」)`
+  (date = that commit's author date — the (ac) date check; ask-id mandatory from the
+  2026-08-27 cutoff, the ask's grill row is the id source). **Partial approve is legal
+  per block**; doc status is derived (all blocks approved ⇔ confirmed/frozen/baseline).
+  No Change log gate line on decision docs (Req-31 — plan.md's execution-authorization
+  line is the one exception, templates/plan.md). Commit immediately (the gate commit).
+- Changing an approved block later = M2 (变更/退役 annotation + the diff guard/anchor pair).
+
 ## Approve transcription (on the human's go — ledger cards)
 
 The go is the approval; Claude transcribes it into the ledger — never ahead of it:
