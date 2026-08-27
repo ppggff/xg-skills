@@ -30,7 +30,9 @@ priorities and tactics (see "Phase-specific layers").
   topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents
   its full spread in one round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
   **independent sibling** questions — no `depends-on` between them, none gating another's
-  framing; (c) a **Tier 1 照案 batch table** (ask-routing-core.md) — rows independently
+  framing, **and each answerable in a word (轻量项 only, 026 Req-6)** — a real-weighing
+  sibling goes solo, ground (a)'s full-spread rounds unaffected; (c) a **Tier 1 照案 batch
+  table** (ask-routing-core.md) — rows independently
   accept/reject-able by construction. Under any ground each item still carries its own recommendation + trade-off and
   gets its own grill-log row; the human sets the pace and may drop back to single-question at
   any time; no ground reorders the tree walk — anything dependent stays sequenced.
@@ -46,6 +48,9 @@ priorities and tactics (see "Phase-specific layers").
   **Presentation-side extension (026 Req-3):** a general reply (「其他按推荐」类) covers only
   the 照案 rows this round's ask listed; the 拿不准 group closes only per-row, or by an
   explicit release naming the group (ask-routing-core.md「Value-rewrite direction」).
+  **Turn-side extension (026 Req-14):** the reply turn to a human's solo challenge carries no
+  new substantive ask — the round-end go ask stays exempt (the three-ask-shapes rule above
+  is unchanged); the challenge-reply turn is the highest-value round shape and stays clean.
 - **Round = one decision cluster resolved.** A round opens at a load-bearing branch point; its
   cluster is that unsettled decision plus the questions hanging off it (dependent follow-ups
   and their siblings — a batched round stays one round). It closes when the walk leaves
@@ -53,11 +58,42 @@ priorities and tactics (see "Phase-specific layers").
   (all resolved / explicitly Open); an adversarial pass is its own round. In a discussion-first
   run (below) a beat or agenda topic IS one round — the topic is the cluster, its sub-decisions
   cluster members even when mutually independent. Backstop for deep or fuzzy-edged branches:
-  force-close after ~6-8 **human touchpoints** (answers and corrections both count) — a
+  force-close after ~6-8 **human touchpoints** (answers and corrections both count; a
+  touch-escalated solo round-trip **counts too** — not counting it would be a budget bypass,
+  026 Req-4/HLD-8) — a
   mid-topic force-close lands the flush + go ask with at most the mapping's lightweight
   mid-topic check; the full panel waits for topic end. This one boundary drives three mechanisms — the panel's branch checkpoints, the
   per-round doc sync (write cadence below), and the go-ask pace — and is the unit the
   ~3-round rule counts in.
+- **WIP cap (026 Req-13/HLD-7).** `GRILL_WIP_CAP = 12` — a named constant over the **total
+  open un-closed row count** (all three tiers, the cumulative-stock axis; initial value, M6
+  calibrates: usage log books each trigger, repeated triggering means raise it or audit the
+  triage quality first). Hitting the cap triggers a **盘点, not an ask**: re-render the live
+  agenda (the design 速览 open-rows view — the existing over-one-screen grouping rule's
+  close-up form, not a new surface); 真判 rows stay solo, unanswered rows stay queued.
+  Companion threshold: an 拿不准 group **over 5 rows escalates each row to a 真判 queue
+  entry** (queue-throttled, non-blocking, 026 Req-5) — no failure semantics attach to
+  declaring uncertainty (punishing declaration inverts the incentive); triage quality's true
+  metric = post-batch overturned/touched Tier 1 rows, booked to M6.
+- **Touch escalates; queue admission is dependency-gated (026 Req-4/9/10/20).**
+  An 拿不准 row the human touches (follow-up, hesitation) escalates to a Tier 2 solo
+  close-loop — never discussed in place inside a batch table (the 003 混装 shape). **建档即时**:
+  a to-be-judged item discovered anywhere (verification, transcription, tracing) lands in its
+  face's own open-item carrier **immediately** (grill face = an open grill-log row +
+  depends-on), decoupled from presentation; a face with no durable carrier (e.g. a KB Write
+  contradiction — a natural solo ask) is explicitly exempt. **出队才问**: an open row whose
+  depends-on isn't fully resolved never enters presentation; presentation order = dependency
+  order (batching ground (a)'s full-spread rounds exempt — dependents present together,
+  answered in order, per the existing sequencing rule); the grill-side depends-on cycle check
+  belongs to the block-parse layer (HLD-8), not discipline prose. **Panel回吐走队列**: lens
+  findings all get booked first (建档即时), adjudicated in batches, and adopted items reach
+  the human through the same queue + cap — the burst path that produced the 003 over-adoption
+  cluster runs through the same throttle, no separate mechanism.
+- **同形被否 → forced solo (026 Req-8).** A recommendation of the same shape the human
+  previously rejected is Tier 2 solo, always. Carrier is **reused, not new**: the grill-log's
+  superseded rows + the verified-facts pack's dead-findings section; scope = this card
+  (cross-card stays with the existing prior-rejection scan); the match predicate reuses
+  improve's contradicts / possible-conflict vocabulary.
 - For **each** question give your **recommended answer + the trade-off**, then wait for the human.
 - **Mid-grill questions are self-contained (024 R6)** — the third attachment of gate-digest.md's
   「Decision-object references are self-contained」SoT (after ledger 陈述 and digest cards; the
@@ -400,7 +436,11 @@ self-made contradictions in the grill-log round header and folds them into the p
 
 ## Rollback (回退 — return to a previous question)
 "回退" / "go back" re-opens an earlier decision. Reuse the append-only **supersede** discipline —
-don't delete history:
+don't delete history. **Trigger set includes dequeue-time premise re-check (026 Req-11):**
+before an open row enters presentation, its framing is re-checked against what has resolved
+since it was booked — a question standing on a since-rejected approach re-frames or supersedes
+(the mechanism below is unchanged; only this trigger is new; the「否决理由与选择理由同等载重」
+duty in evidence.md is the grounds):
 1. **Pick the target** `Gk` (default: the last resolved question).
 2. **Invalidate the dependent subtree** — mark `Gk` and every later entry that (transitively)
    `depends-on` it as `superseded` (a status change on those rows, **not** a deletion); independent
