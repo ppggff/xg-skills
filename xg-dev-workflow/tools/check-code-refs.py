@@ -44,6 +44,11 @@ PATTERNS = [
 # parameters and identifiers, while nothing legitimately writes "T42 measured" in prose.
 COMMENT_PATTERNS = [
     (re.compile(r"\b[TRS]\d{1,3}[a-z]?\b"), "card task/item id"),
+    # card-context ledger/block ids (roadmap absorption, 026 T14): "017 D1"-style
+    # NNN-qualified ids and the doc-native three-letter forms resolve only inside
+    # dev_root — the same leak as a *.md reference (017 part-check evidence)
+    (re.compile(r"\b\d{3}\s+[DSRVG]\d{1,3}\b"), "card-qualified ledger id"),
+    (re.compile(r"\b(?:Req|HLD|LLD|Ask|Eff|Fact|Crit|Layer)-\d{1,3}\b"), "doc-native block id"),
 ]
 COMMENT_MARK = re.compile(r"(^\s*[*#]|//|/\*|<!--|^\s*--(?!\w))")
 

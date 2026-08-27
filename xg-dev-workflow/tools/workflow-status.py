@@ -23,6 +23,8 @@ Usage:
   workflow-status.py --digest <project>/<card>  # gate-ask digest skeleton from the pending
                                        # block set (doc-native cards, 026 HLD-9); chat-use
                                        # stdout, never a file
+  workflow-status.py --manifest        # check-family manifest (026 HLD-11) — registry meta
+                                       # rendered human-readable; SoT stays in code
 """
 import fnmatch
 import glob
@@ -334,13 +336,36 @@ def render_text(cards):
 # convention (product commit subjects carry the plan task id).
 
 TASK_HEAD = re.compile(r"^###\s+(?:Task\s*|T)(\d+)\s*[::]?\s*(.*)$", re.M)
-RID = re.compile(r"\bR(\d+)\b")
+RID = re.compile(r"\b(?:Req-|R)(\d+)\b")   # dual notation: R<n> legacy · Req-<n> doc-native
+
+
+def _rid_form(text):
+    """The card's R-id display form inferred from where the match came from —
+    Req-<n> when the token was the doc-native form, else R<n>."""
+    return "Req-" if "Req-" in text else "R"
+
+
+def _expand_rid_ranges(cell):
+    """`Req-1..Req-23` / `R1..R11` range notation appends its expansion (HLD-1)."""
+    out = cell
+    for m in re.finditer(r"(Req-|R)(\d+)\.\.(?:Req-|R)(\d+)", cell):
+        out += " " + " ".join("%s%d" % (m.group(1), n)
+                              for n in range(int(m.group(2)), int(m.group(3)) + 1))
+    return out
+
+
+def rid_key(rid):
+    """Numeric sort key over both notations."""
+    return int(re.search(r"(\d+)$", rid).group(1))
 
 # `NNN 的 R<n>` names another card's item; harvesting it as a local R-id made the
 # trace matrix invent rows and flag them `not-in-需求条目`. Same for the shorthand
 # `其 R<n>` (antecedent card named earlier in the sentence) and `M<n> R<n>` (another
 # mechanism's item). Strip cross-context references before any local-id harvest.
-XCARD_REF = re.compile(r"\d{3}\s*的\s*[*`~]{0,2}R\d+|其\s*[*`~]{0,2}R\d+|\bM\d+\s+R\d+")
+XCARD_REF = re.compile(
+    r"\d{3}\s*的\s*[*`~]{0,2}(?:Req-|R)\d+"      # NNN 的 R<n>
+    r"|\b\d{3}\s+[*`~]{0,2}(?:Req-|R)\d+"        # NNN R<n> shorthand (e.g. 024 R6)
+    r"|其\s*[*`~]{0,2}(?:Req-|R)\d+|\bM\d+\s+(?:Req-|R)\d+")
 
 
 def _strip_xcard(text):
@@ -388,7 +413,7 @@ def trace_requirement(card):
     them made the trace matrix report a false `not-in-需求条目` for every such row.
     """
     items = {}
-    for m in re.finditer(r"^\|\s*(?:\*\*|~~|\[)?\s*(R\d+)[^|]*\|([^|]*)\|",
+    for m in re.finditer(r"^\|\s*(?:\*\*|~~|\[)?\s*(Req-\d+|R\d+)[^|]*\|([^|]*)\|",
                          _read(os.path.join(card, "requirement.md")), re.M):
         items.setdefault(m.group(1), re.sub(r"\*\*", "", m.group(2)).strip())
     return items
@@ -407,12 +432,15 @@ def _retired_req_ids(card_dir):
 
 
 def _rows_by_rid(sect):
+    """R-id → its carrying line in the section. Table rows and prose lines both
+    count — the doc-native How-it-meets Part B/C mapping is prose with [Req-n]
+    arrows, as much a design home as a table row (ranges expanded)."""
     out = {}
     for line in sect.splitlines():
-        if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
+        if set(line.strip()) <= set("|-: ") or line.startswith("#"):
             continue
-        for rid in RID.findall(_strip_xcard(line)):
-            out.setdefault("R" + rid, re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
+        for m in RID.finditer(_expand_rid_ranges(_strip_xcard(line))):
+            out.setdefault(m.group(0), re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
     return out
 
 
@@ -447,8 +475,8 @@ def trace_parts(card):
             continue
         if name not in parts:
             parts.append(name)
-        for rid in RID.findall(cells[r_i]):
-            lst = r2p.setdefault("R" + rid, [])
+        for m in RID.finditer(_expand_rid_ranges(cells[r_i])):
+            lst = r2p.setdefault(m.group(0), [])
             if name not in lst:
                 lst.append(name)
     return parts, r2p
@@ -463,12 +491,14 @@ def trace_plan(card):
         nxt = re.search(r"^###\s", block, re.M)  # cut at Checkpoint/Final headings
         if nxt:
             block = block[:nxt.start()]
-        imp = re.search(r"\*\*Implements:?\*\*[::]?\s*(.+)", block)
+        # continuation lines (indented) belong to the field — a wrapped Implements
+        # list must not silently drop its tail rids
+        imp = re.search(r"\*\*Implements:?\*\*[::]?\s*(.+(?:\n[ \t]+\S[^\n]*)*)", block)
         part = re.search(r"\*\*Part:?\*\*[::]?\s*(.+)", block)
         boxes = re.findall(r"^\s*-\s*\[([ x!])\]", block, re.M)
         tasks[m.group(1)] = {
             "title": m.group(2).strip(),
-            "rids": ["R" + r for r in RID.findall(imp.group(1))] if imp else [],
+            "rids": [m.group(0) for m in RID.finditer(imp.group(1))] if imp else [],
             "part": norm_part(part.group(1)) if part else "",
             "state": ("done" if boxes and all(b == "x" for b in boxes)
                       else "failed" if "!" in boxes else "todo" if boxes else "?"),
@@ -477,16 +507,20 @@ def trace_plan(card):
 
 
 def trace_test(card):
-    """R-id → covered-by, from test.md coverage rows (first cell cites the id; last cell = test)."""
+    """R-id → covered-by, from test.md coverage rows (first cell cites the id; last
+    cell = test). Doc-native cards key coverage by Effect with the R-ids in a
+    verifies column — there every cell is scanned (ranges expanded)."""
     cov = {}
+    docnative = card_mode(card) in ("doc-native-pilot", "doc-native")
     for line in _read(os.path.join(card, "test.md")).splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 2 or set(cells[0]) <= set("-: "):
             continue
-        for rid in RID.findall(cells[0]):
-            cov.setdefault("R" + rid, cells[-1])
+        scan = " ".join(cells[:-1]) if docnative else cells[0]
+        for m in RID.finditer(_expand_rid_ranges(_strip_xcard(scan))):
+            cov.setdefault(m.group(0), cells[-1])
     return cov
 
 
@@ -612,7 +646,7 @@ def trace_data(project, card_dir):
     for tid, t in tasks.items():
         for r in t["rids"]:
             by_r.setdefault(r, []).append(tid)
-    all_r = sorted(set(reqs) | set(home) | set(by_r) | set(cov), key=lambda r: int(r[1:]))
+    all_r = sorted(set(reqs) | set(home) | set(by_r) | set(cov), key=rid_key)
 
     dstates = {b["id"]: b["state"] for b in parse_ledger(card_dir)[0]
                if b["state"] in ACTIVE_STATES}   # 010: per-R ledger state on trace rows
@@ -1021,6 +1055,37 @@ def digest_text(card_dir, max_lines=DIGEST_MAX_LINES):
     return "\n".join(out)
 
 
+def render_manifest():
+    """--manifest (026 HLD-11): the check-family registry rendered human-readable.
+    SoT = the registry rows' meta in workflow-checks.py (CARD_CHECKS/PROJECT_CHECKS
+    + EXTRA_MANIFEST); a registry row with no meta prints META-MISSING — the E5
+    全行齐 enforcement. Ends with the net-count line (E5 净减判定)."""
+    wc = _checks()
+    lines = ["| 检查 | 字母 | 查什么 | 何时跑 | 机械/判断 | 依据 | 去向 |",
+             "|---|---|---|---|---|---|---|"]
+    for scope, entries in (("card", wc.CARD_CHECKS), ("project", wc.PROJECT_CHECKS)):
+        for row in entries:
+            cid = row[0]
+            meta = row[2] if len(row) > 2 else None
+            if not meta:
+                lines.append("| %s (%s) | META-MISSING | | | | | |" % (cid, scope))
+                continue
+            lines.append("| %s | %s | %s | %s | %s | %s | %s |"
+                         % (cid, meta["letter"], meta["what"], meta["when"],
+                            meta["nature"], meta["basis"], meta["disp"]))
+    lines.append("")
+    lines.append("| 非注册项 | 去向 |")
+    lines.append("|---|---|")
+    for name, disp in wc.EXTRA_MANIFEST:
+        lines.append("| %s | %s |" % (name, disp))
+    retired = sum(1 for _n, d in wc.EXTRA_MANIFEST if d.startswith(("退役", "化解")))
+    added = 3  # (ac)(ad)(ae) — the 026 additions
+    lines.append("")
+    lines.append("净减判定 (Eff-5): 退役/化解 %d > 新增 %d → %s"
+                 % (retired, added, "净减成立" if retired > added else "未净减"))
+    return "\n".join(lines)
+
+
 # ---- deterministic checks: bodies live in workflow-checks.py (L2 of the split);
 # these thin delegators keep the module surface (tests, run_check, monkeypatching)
 # stable and inject the live L1 view so L2 never importlib-loads a second instance ----
@@ -1141,9 +1206,13 @@ def run_check(root, arg, verbose_skips=False):
 
 def main():
     args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
-    check_arg, verbose_skips, digest_arg = None, False, None
+    check_arg, verbose_skips, digest_arg, manifest_flag = None, False, None, False
     while i < len(args):
         a = args[i]
+        if a == "--manifest":
+            manifest_flag = True
+            i += 1
+            continue
         if a in ("--root", "--trace", "--check", "--digest"):
             # a value is required and must not look like a flag — a misplaced switch
             # would otherwise be swallowed as the argument (R9)
@@ -1179,6 +1248,9 @@ def main():
             want.append(a)
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
+    if manifest_flag:
+        print(render_manifest())
+        return 0
     if digest_arg:
         print(digest_text(resolve_card(root, digest_arg)[1]))
         return 0

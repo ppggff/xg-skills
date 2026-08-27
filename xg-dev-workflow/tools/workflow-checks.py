@@ -4,7 +4,7 @@
 Check implementations behind `workflow-status.py --check`: the ledger checks (a)-(e),
 design required sections (f), fact markers (g), part consistency (h), governance
 mode (i), the gate-adjacent/trace family (j)-(ab), and the doc-native block family
-(ac) format core / (ad) git anchor (026). workflow-status.py remains the parsing
+(ac) format core / (ad) git anchor / (ae) citations & generated views (026). workflow-status.py remains the parsing
 layer + CLI entry and lazy-loads this module; every public function takes `ws` = a
 live view of the workflow-status module (one-way dependency: checks read the parsing
 layer, never the reverse — block_parse.py joins on the parsing side).
@@ -1249,7 +1249,7 @@ def check_r_trace(project, card_dir, ws):
         by_r |= set(t["rids"])
     cov = ws.trace_test(card_dir)
     findings = []
-    for r in sorted(set(reqs) | set(home) | by_r | set(cov), key=lambda x: int(x[1:])):
+    for r in sorted(set(reqs) | set(home) | by_r | set(cov), key=ws.rid_key):
         if r in retired:
             exs.append(("grandfathered", "retired R-id excluded"))
             continue
@@ -1680,6 +1680,11 @@ def check_block_format(card_dir, ws):
         notes = [a for a in b["annotations"] if a["kind"] == "approved"]
         if b["state"] == "approved" and not notes:
             findings.append("approved-note-missing: %s" % bid)
+        if not any(a["kind"] == "来源" for a in b["annotations"]):
+            # (c6) 升格: authored blocks carry 类型 + provenance (transported ride 025's)
+            for field in ("类型", "provenance"):
+                if not b["fields"].get(field, "").strip():
+                    findings.append("field-missing: %s %s" % (bid, field))
         for a in notes:
             h = a["extra"]["hash"]
             if h not in dated:
@@ -1798,6 +1803,67 @@ def check_grill_docnative(card_dir, ws):
     return findings, [], exs
 
 
+EFFECT_ID = re.compile(r"^- \[[ x!]\] (Eff-\d+|E\d+)[::]", re.M)
+
+
+def check_block_views(card_dir, ws):
+    """(ae) doc-native citations & generated views (the crosscheck (c3)/(c5)/(c7)
+    升格): bracket citations [Xxx-n] over the three phase docs resolve — block
+    prefixes against card_blocks, Fact-n (and the transitional [F<n>] alias)
+    against facts.md headers, Eff-n against the requirement Effect list; Ask-n
+    citations are prune-legal (grill rows may be pruned — the (y) v2 anchor rule)
+    and never findings. Every active Req block is covered by a "verifies" clause
+    or opts out via a 验收随 disposition in its 陈述 (Effect coverage). The
+    requirement's generated index between the index markers must equal
+    render_index(blocks) byte-exactly (generated views are never hand-edited)."""
+    skip = _dn_gate(card_dir, ws)
+    if skip:
+        return [], [], skip
+    bp = ws._block_parse()
+    blocks, _ = bp.card_blocks(card_dir)
+    findings, exs = [], []
+    texts = {}
+    for name in ("requirement.md", "design.md", "detail.md"):
+        texts[name] = ws._read(os.path.join(card_dir, name))
+    alltext = "\n".join(texts.values())
+    ftext = ws._read(os.path.join(card_dir, "facts.md"))
+    fact_ids = set(re.findall(r"^### Fact-(\d+) ", ftext, re.M))
+    eff_ids = set(EFFECT_ID.findall(texts["requirement.md"]))
+    for pref, num, _clause in set(re.findall(
+            r"(?<!:)\[(Req|HLD|LLD|Task|Ask|Fact|Eff|Crit|Layer)-(\d+)(-[a-z])?\]",
+            alltext)):
+        cid = "%s-%s" % (pref, num)
+        if pref == "Fact":
+            if num not in fact_ids:
+                findings.append("dangling-cite: [%s] (facts.md)" % cid)
+        elif pref == "Eff":
+            if cid not in eff_ids:
+                findings.append("dangling-cite: [%s] (Effect list)" % cid)
+        elif pref == "Ask":
+            continue  # prune-legal — block annotations are the anchor
+        elif cid not in blocks:
+            findings.append("dangling-cite: [%s]" % cid)
+    for num in set(re.findall(r"\[F(\d+)\]", alltext)):
+        if num not in fact_ids:
+            findings.append("dangling-cite: [F%s] (facts.md alias)" % num)
+    covered = set()
+    for clause in re.findall(r"verifies ([^)]+)\)", texts["requirement.md"]):
+        covered |= set(bp.expand_ranges(clause))
+    for bid, b in blocks.items():
+        if b["doc"] != "requirement.md" or b["state"] in ("superseded", "retired"):
+            continue
+        if bid not in covered and "验收随" not in b["fields"].get("陈述", ""):
+            findings.append("effect-uncovered: %s (no verifies clause, no 验收随)" % bid)
+    if ws.INDEX_BEGIN in texts["requirement.md"]:
+        cur = texts["requirement.md"]
+        cur = cur[cur.index(ws.INDEX_BEGIN): cur.index(ws.INDEX_END) + len(ws.INDEX_END)]
+        if cur != ws.render_index(blocks):
+            findings.append("index-stale: requirement 条目 index != render_index output")
+    else:
+        exs.append(("carrier-missing", "no generated index markers"))
+    return findings, [], exs
+
+
 def check_block_anchor(card_dir, ws):
     """(ad) git anchor core (LLD-4): per block with an approved annotation, the
     explicit baseline = last 变更 annotation's landing hash, else the last
@@ -1865,38 +1931,102 @@ def check_block_anchor(card_dir, ws):
 # a raising check contributes `check-error:<id>` to findings and the rest still run;
 # a check never emits both a finding and a skip for the same condition.
 
+# Registry meta (026 HLD-11): the manifest's SoT rides the registry rows — fields
+# 查什么 / 何时跑 / 机械或判断 / 依据 / 去向; `--manifest` renders them, a row with
+# no meta renders META-MISSING (E5's 全行齐 enforcement).
+def _m(letter, what, when, basis, disp="保留", nature="机械"):
+    return {"letter": letter, "what": what, "when": when,
+            "nature": nature, "basis": basis, "disp": disp}
+
+
 CARD_CHECKS = (
     # signature adapters only — each function owns its full return shape
-    ("design-sections", lambda p, c, ws: check_design_sections(c, ws)),
-    ("fact-markers", lambda p, c, ws: check_fact_markers(c, ws)),
-    ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws)),
-    ("governance", lambda p, c, ws: check_governance(c, ws)),
-    ("ledger", lambda p, c, ws: check_ledger(c, ws)),
-    ("transcription-marker", check_transcription_markers),      # (j) A1
-    ("grill-reverse", check_grill_reverse),                     # (k) A2
-    ("panel-receipts", check_panel_receipts),                   # (l) A3
-    ("docgate-gateline", check_docgate_gateline),               # (m) A5
-    ("supersede-residue", check_supersede_residue),             # (n) A4′
-    ("links", check_links),                                     # (o) B1 card half
-    ("status-field", check_status_field),                       # (p) B2′
-    ("r-trace", check_r_trace),                                 # (q) B6
-    ("fact-refs", check_fact_refs),                             # (r) B7
-    ("progress-cap", check_progress_cap),                       # (s) B8
-    ("adr-hygiene", check_adr_hygiene),                         # (t) C4
-    ("ledger-rows", check_ledger_rows),                         # (x) 024
-    ("grill-signature", check_grill_signature),                 # (y) 024
-    ("home-pointer", check_home_pointer),                       # (z) 028
-    ("req-handoff", check_req_handoff),                         # (aa) 028
-    ("detail-disposition", check_detail_disposition),           # (ab) 029
-    ("block-format", lambda p, c, ws: check_block_format(c, ws)),   # (ac) 026
-    ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws)),   # (ad) 026
+    ("design-sections", lambda p, c, ws: check_design_sections(c, ws),
+     _m("(f)", "design.md 必备节在场", "design 在场", "011")),
+    ("fact-markers", lambda p, c, ws: check_fact_markers(c, ws),
+     _m("(g)", "facts VERIFIED 标注↔来源一致（Fact-/F 双记法）", "facts.md 在场", "010/026")),
+    ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws),
+     _m("(h)", "plan Part 值 ⊆ design Parts 表", "新格式 Parts 表在场", "015")),
+    ("governance", lambda p, c, ws: check_governance(c, ws),
+     _m("(i)", "governance 字段值域/级联", "cutoff 后卡", "017/026")),
+    ("ledger", lambda p, c, ws: check_ledger(c, ws),
+     _m("(a)-(e)", "账本 id/派生状态/环/注记形/单活块", "ledger 存量卡",
+        "010", disp="存量保留（doc-native 无账本，(ac)/(ad) 接棒）")),
+    ("transcription-marker", check_transcription_markers,
+     _m("(j)", "落纸补充 marker 过 gate 清零", "gate 后 doc", "021")),
+    ("grill-reverse", check_grill_reverse,
+     _m("(k)", "grill 表形/notation + resolved 反向存在", "022 cutoff 后", "022")),
+    ("panel-receipts", check_panel_receipts,
+     _m("(l)", "receipt 块在场 + 结构核（premises/suspicions）", "gate 过卡", "021/024")),
+    ("docgate-gateline", check_docgate_gateline,
+     _m("(m)", "doc-gate 卡 gate 行", "doc-gate 卡", "017")),
+    ("supersede-residue", check_supersede_residue,
+     _m("(n)", "被取代表述驻留扫描", "锚在场", "021")),
+    ("links", check_links,
+     _m("(o)", "链接/wikilink 解析（卡半）", "always", "021")),
+    ("status-field", check_status_field,
+     _m("(p)", "frontmatter status 在场/值域", "doc 在场", "021")),
+    ("r-trace", check_r_trace,
+     _m("(q)", "R-id 四维 trace（R/Req 双记法；doc-native 生成索引作条目源）",
+        "条目在场；下游维 cutoff 后", "021/026")),
+    ("fact-refs", check_fact_refs,
+     _m("(r)", "[F/Fact/NNN:F] 引用解析", "phase doc 在场", "021/026")),
+    ("progress-cap", check_progress_cap,
+     _m("(s)", "progress 行数帽（活卡）", "活卡", "021")),
+    ("adr-hygiene", check_adr_hygiene,
+     _m("(t)", "ADR Status 词/Supersedes 形", "adr/ 在场", "021")),
+    ("ledger-rows", check_ledger_rows,
+     _m("(x)", "doc↔账本行级一致（双写比对）", "ledger 存量卡",
+        "024", disp="存量保留（doc-native 单写面无此税——结构性消解）")),
+    ("grill-signature", check_grill_signature,
+     _m("(y)", "签名闭合：legacy=人工共位键 v1；doc-native=ask-id 键 v2 + tier/round 核",
+        "cutoff 后卡", "024/026")),
+    ("home-pointer", check_home_pointer,
+     _m("(z)", "归宿 cell 行级解析", "028 cutoff 后 frozen 卡", "028")),
+    ("req-handoff", check_req_handoff,
+     _m("(aa)", "需求条目 handoff 载体（provenance 列夹带）", "条目在场", "028")),
+    ("detail-disposition", check_detail_disposition,
+     _m("(ab)", "设计 freeze 后详设处置在案", "frozen 在卡", "029")),
+    ("block-format", lambda p, c, ws: check_block_format(c, ws),
+     _m("(ac)", "block 文法/注记五类/E10 在场/日期核/ask-id 时间界/字段在场（(c2)(c6)(c8) 升格）",
+        "doc-native 卡", "026 LLD-2")),
+    ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws),
+     _m("(ad)", "已批块显式基线锚定核（三分类）", "doc-native 卡", "026 LLD-4")),
+    ("block-views", lambda p, c, ws: check_block_views(c, ws),
+     _m("(ae)", "引用解析/Effect 覆盖/生成索引一致（(c3)(c5)(c7) 升格）",
+        "doc-native 卡", "026 T14")),
 )
 
 PROJECT_CHECKS = (
-    ("links", check_project_links),                             # (o) B1 project half
-    ("board-rows", check_board_rows),                           # (u) B3
-    ("root-strays", check_root_strays),                         # (v) B4
-    ("board-monotonic", check_board_monotonic),                 # (w) B5
+    ("links", check_project_links,
+     _m("(o)", "链接解析（项目半）", "always", "021")),
+    ("board-rows", check_board_rows,
+     _m("(u)", "看板行↔卡目录双向", "always", "021")),
+    ("root-strays", check_root_strays,
+     _m("(v)", "项目根杂散文件", "always", "021")),
+    ("board-monotonic", check_board_monotonic,
+     _m("(w)", "看板机器子集（环/状态词/done 系列）", "新格式看板", "021")),
+)
+
+# Non-registry manifest rows (026 Req-36): the crosscheck family's dispositions +
+# the six roadmap absorption candidates — each lands or explicitly rolls back.
+EXTRA_MANIFEST = (
+    ("crosscheck (c1)", "退役 → (i)/(p) 覆盖（frontmatter 核）"),
+    ("crosscheck (c2)", "退役 → (ac) parse findings（升格）"),
+    ("crosscheck (c3)", "退役 → (ae) dangling-cite（升格）"),
+    ("crosscheck (c4)", "卡内保留至 026 收口（025 archive frozen-hash——本卡专属），随卡退役归档"),
+    ("crosscheck (c5)", "退役 → (ae) effect-uncovered（升格）"),
+    ("crosscheck (c6)", "退役 → (ac) field-missing（升格）"),
+    ("crosscheck (c7)", "退役 → (ae) index-stale（升格；render_index 已迁 workflow-status）"),
+    ("crosscheck (c8)", "退役 → (ac) bad-header（升格）"),
+    ("APPROVE_NOTE 正则", "存量保留（check_ledger (d) 用）；doc-native 域由 block_parse 文法接管"),
+    ("护栏 2 手工 digest", "退役 → --digest 生成器（026 T7）"),
+    ("roadmap: check-code-refs ledger-id 缺口", "落地（COMMENT_PATTERNS += 卡上下文 id 引用，026 T14）"),
+    ("roadmap: trace loose 匹配收紧", "显式回退——观察困扰频次（roadmap 原判据，无表决面）"),
+    ("roadmap: R-id 整行扫描并入括号 id", "显式回退——随 loose 收紧同判观察"),
+    ("roadmap: 存量账本 findings 语义张力", "化解——doc-native 单写面下无双写张力（新轨结构性消解）"),
+    ("roadmap: 载体在但契约不判 5 处升 finding", "显式回退——升 finding 需独立裁（023 R5/Out 禁动判定逻辑）"),
+    ("roadmap: M3 脚本化", "落地——(a)-(ae) 检查族 + --manifest 即其形（026）"),
 )
 
 
@@ -1913,7 +2043,7 @@ def _normalize(res):
 
 def _run_entries(entries, args, ws):
     findings, skips, exemptions = [], [], []
-    for cid, fn in entries:
+    for cid, fn, *_meta in entries:
         try:
             f, s, exs = _normalize(fn(*args, ws))
         except Exception as e:
