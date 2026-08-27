@@ -1111,3 +1111,50 @@ class CliFlagSafety(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
+
+
+class DigestGenerator(unittest.TestCase):
+    """(026 HLD-9) the gate-ask digest skeleton over the pending block set."""
+
+    FM = "---\nid: 902\ngovernance: doc-native-pilot\n---\n\n"
+
+    def _card(self, req):
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, "requirement.md"), "w", encoding="utf-8") as f:
+            f.write(self.FM + req)
+        return d
+
+    def _block(self, n, state="proposed", stmt="决策正文一句。细节第二句。"):
+        return ("### Req-%d %s — 标题%d\n- 陈述: %s\n- 类型: 功能\n- why: w\n"
+                "- provenance: p\n- depends-on: 无\n\n" % (n, state, n, stmt))
+
+    def test_seven_sections_in_order_and_pending_rows(self):
+        card = self._card(self._block(1) + self._block(2, state="approved"))
+        out = ws.digest_text(card)
+        heads = [l for l in out.splitlines() if l.startswith("## ")]
+        self.assertEqual([h[:4] for h in heads],
+                         ["## 1", "## 2", "## 3", "## 4", "## 5", "## 6", "## 7"])
+        self.assertIn("[Req-1] 标题1 — 决策正文一句…", out)
+        self.assertNotIn("Req-2", out)          # approved 不入 pending 集
+        self.assertIn("pending 1 块", out)
+
+    def test_verbatim_quote_never_rewrites(self):
+        stmt = "**加粗原文**（含标点、`code`）就该原样出现。"
+        card = self._card(self._block(1, stmt=stmt))
+        self.assertIn(stmt.split("。")[0], ws.digest_text(card))
+
+    def test_large_n_folds_and_judge_slots_survive(self):
+        card = self._card("".join(self._block(i) for i in range(1, 101)))
+        out = ws.digest_text(card)
+        self.assertIn("照案组折叠：100 块 pending", out)
+        for slot in ("**问题**", "**选项与代价**", "**推荐及理由**", "**不决的后果**"):
+            self.assertIn(slot, out)             # 真判槽永不折叠
+        self.assertLessEqual(len(out.splitlines()), ws.DIGEST_MAX_LINES)
+
+    def test_no_pending_marks_closeout_shape(self):
+        card = self._card(self._block(1, state="approved"))
+        self.assertIn("无 pending 块", ws.digest_text(card))
+
+    def test_parse_findings_surface_in_header(self):
+        card = self._card("### Req-1 badstate — 坏头\n- 陈述: x\n" + self._block(2))
+        self.assertIn("先修再问", ws.digest_text(card))

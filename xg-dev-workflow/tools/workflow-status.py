@@ -20,6 +20,9 @@ Usage:
   workflow-status.py --check <project>          # project scope: (o)(u)(v)(w) + every card
                                        # exit 1 on findings; skips print but never gate
                                        # (M3 deterministic subset; bodies in workflow-checks.py)
+  workflow-status.py --digest <project>/<card>  # gate-ask digest skeleton from the pending
+                                       # block set (doc-native cards, 026 HLD-9); chat-use
+                                       # stdout, never a file
 """
 import fnmatch
 import glob
@@ -931,6 +934,82 @@ def render_index(blocks, scope="requirement"):
     return "\n".join([INDEX_BEGIN] + rows + [INDEX_END])
 
 
+# ---- digest generator (026 HLD-9): gate-ask skeleton from the pending block set ----
+DIGEST_MAX_LINES = 70
+DIGEST_LEVELS = (("requirement.md", "requirement 级"), ("design.md", "design 级"),
+                 ("detail.md", "detail 级"))
+JUDGE_CARD = """- **问题**：（一句白话——禁编号回指/未定义行话承载主句）
+- **选项与代价**：（各一行）
+- **推荐及理由**：
+- **不决的后果**：""".splitlines()
+
+
+def _head_sentence(text, cap=80):
+    """Verbatim prefix of a field for a one-line row — a quoted prefix, never a
+    rewrite ([Req-28]); truncation is marked."""
+    first = text.split("。", 1)[0].strip()
+    return first[:cap] + ("…" if len(first) > cap or "。" in text else "")
+
+
+def digest_text(card_dir, max_lines=DIGEST_MAX_LINES):
+    """Gate-ask digest skeleton (026 HLD-9): the pending (proposed) block set,
+    fetched through this generated-view layer, rendered into gate-digest.md's
+    seven fixed sections. Mechanical content only — §2 rows (grouped
+    requirement → design → detail, doc order within each; one line per block:
+    id + title + the 陈述 head sentence, quoted verbatim), the fold rule (over
+    the line budget, 照案 groups fold largest-first into a count + doc
+    pointer; the §5 真判 four-line card slots never fold), and labeled slots
+    for everything judgment-authored (self-check lines, tier promotion,
+    stakes). The author promotes 真判/拿不准 items out of §2 at gate time."""
+    blocks, findings = _block_parse().card_blocks(card_dir)
+    pending = [b for b in blocks.values() if b["state"] == "proposed"]
+    groups = []
+    for doc, label in DIGEST_LEVELS:
+        rows = ["- [%s-%s] %s — %s" % (b["prefix"], b["num"], b["title"],
+                                       _head_sentence(b["fields"].get("陈述", "")))
+                for b in pending if b["doc"] == doc]
+        if rows:
+            groups.append([doc, label, rows, False])
+    out = ["# Gate digest — %s（pending %d 块%s）"
+           % (os.path.basename(card_dir.rstrip("/")), len(pending),
+              "；parse findings %d — 先修再问" % len(findings) if findings else ""),
+           "",
+           "## 1 · Grill / 自检状态",
+           "-（出题人填：verifier · receipt 指针 · verdict，一行一条，≤10 行；末行 = 自检结论）",
+           ""]
+    body_budget = max_lines - len(out) - 24  # fixed tail sections below
+    while sum(len(g[2]) for g in groups if not g[3]) + len(groups) > max(body_budget, 0) \
+            and any(not g[3] for g in groups):
+        big = max((g for g in groups if not g[3]), key=lambda g: len(g[2]))
+        big[3] = True
+    out.append("## 2 · Decision cards（依赖序：requirement → design → detail）")
+    if not pending:
+        out.append("-（无 pending 块——本 gate 为再批/收口形）")
+    for doc, label, rows, folded in groups:
+        out.append("### %s" % label)
+        if folded:
+            out.append("-（照案组折叠：%d 块 pending — 见 %s 各块原文；真判项仍须提升到 §5）"
+                       % (len(rows), doc))
+        else:
+            out += rows
+    out += ["",
+            "## 3 · Phase attachments",
+            "-（按 phase step 规定附：trace gap summary / 拆分审视 verdict / 枚举判据表……）",
+            "",
+            "## 4 · 假设 closure sweep",
+            "-（载重 假设/推断 逐条：discharged / carried-with-a-home）",
+            "",
+            "## 5 · 待你判（真判/拿不准——由出题人从 §2 提升；每项四行自含，白话）"]
+    out += JUDGE_CARD
+    out += ["",
+            "## 6 · Open questions",
+            "-（留白项 + 所取默认）",
+            "",
+            "## 7 · Gate ask + receipts",
+            "-（doc 路径 + receipts commit + 回 go 授权语——partial approve 合法性按卡模式）"]
+    return "\n".join(out)
+
+
 # ---- deterministic checks: bodies live in workflow-checks.py (L2 of the split);
 # these thin delegators keep the module surface (tests, run_check, monkeypatching)
 # stable and inject the live L1 view so L2 never importlib-loads a second instance ----
@@ -1051,10 +1130,10 @@ def run_check(root, arg, verbose_skips=False):
 
 def main():
     args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
-    check_arg, verbose_skips = None, False
+    check_arg, verbose_skips, digest_arg = None, False, None
     while i < len(args):
         a = args[i]
-        if a in ("--root", "--trace", "--check"):
+        if a in ("--root", "--trace", "--check", "--digest"):
             # a value is required and must not look like a flag — a misplaced switch
             # would otherwise be swallowed as the argument (R9)
             if i + 1 >= len(args) or args[i + 1].startswith("--"):
@@ -1064,6 +1143,8 @@ def main():
                 root_arg = args[i + 1]
             elif a == "--trace":
                 trace_arg = args[i + 1]
+            elif a == "--digest":
+                digest_arg = args[i + 1]
             else:
                 check_arg = args[i + 1]
             i += 2
@@ -1072,6 +1153,8 @@ def main():
             root_arg = a.split("=", 1)[1]
         elif a.startswith("--trace="):
             trace_arg = a.split("=", 1)[1]
+        elif a.startswith("--digest="):
+            digest_arg = a.split("=", 1)[1]
         elif a.startswith("--check="):
             check_arg = a.split("=", 1)[1]
         elif a == "--json":
@@ -1085,6 +1168,9 @@ def main():
             want.append(a)
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
+    if digest_arg:
+        print(digest_text(resolve_card(root, digest_arg)[1]))
+        return 0
     if check_arg:
         return run_check(root, check_arg, verbose_skips)
     if trace_arg:
