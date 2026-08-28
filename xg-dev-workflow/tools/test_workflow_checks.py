@@ -1618,6 +1618,7 @@ class DocNativeBlockChecks(unittest.TestCase):
     def _env(self):
         stamp = self.DATE + "T12:00:00"
         return dict(os.environ,
+                    GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
                     GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
                     GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
                     GIT_AUTHOR_DATE=stamp, GIT_COMMITTER_DATE=stamp)
@@ -1881,3 +1882,114 @@ class DocNativeBlockViews(unittest.TestCase):
         f, _, _ = wc.check_block_format(d, ws)
         self.assertTrue(any(x.startswith("field-missing: Req-1 类型") for x in f))
         self.assertTrue(any(x.startswith("field-missing: Req-1 provenance") for x in f))
+
+
+class DocNativeReviewFixes(unittest.TestCase):
+    """Close-out review High fixes (#1/#2/#3/#13) — the injection scenarios as
+    misfire regressions."""
+
+    DATE = "2026-08-25"
+    FM = "---\nid: 908\ntitle: t\ngovernance: doc-native-pilot\nstatus: drafting\n---\n\n"
+    BLOCK = ("### Req-1 proposed — 样例\n- 陈述: 原文\n- 类型: 功能\n- why: w\n"
+             "- provenance: p\n- depends-on: 无\n")
+
+    def _env(self):
+        stamp = self.DATE + "T12:00:00"
+        return dict(os.environ,
+                    GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
+                    GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                    GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
+                    GIT_AUTHOR_DATE=stamp, GIT_COMMITTER_DATE=stamp)
+
+    def _repo(self):
+        import subprocess
+        root = tempfile.mkdtemp()
+        subprocess.run(["git", "init", "-q", root], check=True, env=self._env())
+        _write(root, "908-x/requirement.md", self.FM + self.BLOCK)
+        self._commit(root, "receipts")
+        return root, os.path.join(root, "908-x")
+
+    def _commit(self, root, msg):
+        import subprocess
+        subprocess.run(["git", "-C", root, "add", "."], check=True, env=self._env())
+        subprocess.run(["git", "-C", root, "commit", "-q", "-m", msg], check=True, env=self._env())
+        return subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                              capture_output=True, text=True, env=self._env()).stdout.strip()
+
+    def _head(self, root):
+        import subprocess
+        return subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                              capture_output=True, text=True, env=self._env()).stdout.strip()
+
+    def _legal_m2(self):
+        """approve → in-place rewrite with 同批 变更 + re-approve — the clean chain."""
+        root, card = self._repo()
+        h = self._head(root)
+        text = (self.FM + self.BLOCK.replace("### Req-1 proposed", "### Req-1 approved")
+                + "- approved: %s gate %s (single Ask-1: 「go」)\n" % (self.DATE, h))
+        _write(root, "908-x/requirement.md", text)
+        self._commit(root, "gate")
+        text = text.replace("- 陈述: 原文", "- 陈述: 改后")
+        _write(root, "908-x/requirement.md", text)
+        h2 = self._commit(root, "M2 landing")
+        text += ("- 变更: 就地改写 (M2 %s, %s)\n" % (h2, self.DATE)
+                 + "- approved: %s gate %s (single Ask-2: 「go」)\n" % (self.DATE, h2))
+        _write(root, "908-x/requirement.md", text)
+        self._commit(root, "re-approve")
+        return root, card, text
+
+    def test_1_stale_note_grants_no_state_pass(self):
+        root, card, text = self._legal_m2()
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])                       # clean chain green
+        _write(root, "908-x/requirement.md",
+               text.replace("### Req-1 approved", "### Req-1 retired"))
+        f, _, _ = wc.check_block_anchor(card, ws)     # silent retire after legal M2
+        self.assertTrue(any("state" in x and "同批" in x for x in f), f)
+
+    def test_3_pending_reapproval_and_unresolved_hash(self):
+        root, card, text = self._legal_m2()
+        # strip the trailing re-approve → 代际链 pending
+        pending = text[:text.rindex("- approved:")]
+        _write(root, "908-x/requirement.md", pending)
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertTrue(any(x.startswith("pending-reapproval: Req-1") for x in f))
+        # bogus second note hash → finding, not silent pass
+        _write(root, "908-x/requirement.md",
+               text + "- approved: %s gate abcdef9 (single Ask-3: 「再批」)\n" % self.DATE)
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertTrue(any(x.startswith("note-hash-unresolved: Req-1") for x in f))
+
+    def test_2_derived_status_regression_and_proposal_section_exempt(self):
+        root, card, text = self._legal_m2()
+        uncancel = (text.replace("### Req-1 approved", "### Req-1 proposed")
+                        .replace("status: drafting", "status: confirmed"))
+        _write(root, "908-x/requirement.md", uncancel)
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertTrue(any(x.startswith("derived-status-regression: Req-1") for x in f))
+        legal = (self.FM.replace("status: drafting", "status: confirmed")
+                 + text.split("\n\n", 1)[1].replace("\n- 变更:", "\n- 变更:")  # keep block
+                 + "\n## 提议变更\n\n### Req-2 proposed — 新提案\n- 陈述: x\n- 类型: 功能\n"
+                 + "- why: w\n- provenance: p\n- depends-on: 无\n")
+        _write(root, "908-x/requirement.md", legal)
+        f, _, _ = wc.check_block_format(card, ws)
+        self.assertEqual([x for x in f if x.startswith("derived-status-regression")], [], f)
+
+    def test_2b_block_level_marker(self):
+        root, card, text = self._legal_m2()
+        _write(root, "908-x/requirement.md",
+               text.replace("- 陈述: 改后", "- 陈述: 改后（落纸补充）"))
+        f, _, _ = wc.check_transcription_markers("p", card, ws)
+        self.assertTrue(any(x.startswith("stray-marker: Req-1") for x in f))
+
+    def test_13_non_ancestor_baseline_unreachable(self):
+        import subprocess
+        root, card, text = self._legal_m2()
+        subprocess.run(["git", "-C", root, "checkout", "-q", "-b", "side"], env=self._env())
+        _write(root, "908-x/requirement.md", text.replace("- 陈述: 改后", "- 陈述: 旁支文本"))
+        side = self._commit(root, "side landing")
+        subprocess.run(["git", "-C", root, "checkout", "-q", "-"], env=self._env())
+        forged = text + "- 变更: 指向旁支 (M2 %s, %s)\n" % (side, self.DATE)
+        _write(root, "908-x/requirement.md", forged)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("非 HEAD 祖先" in x for x in f), f)

@@ -396,7 +396,23 @@ def _grill_logs(card_dir):
 
 def check_transcription_markers(project, card_dir, ws):
     """(j) A1 — gate form only: a doc whose status passed its gate carries zero exact
-    （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment)."""
+    （落纸补充） markers (approve clears them; mid-flight placement stays M3 judgment).
+    Doc-native branch (review #2, HLD-13(1)): the gate predicate is per BLOCK —
+    an approved block's own text carries zero markers regardless of doc status
+    (partial approve keeps the doc pre-gate while blocks are already binding)."""
+    if ws.card_mode(card_dir) in DOC_NATIVE_MODES:
+        blocks, _ = ws._block_parse().card_blocks(card_dir)
+        findings = []
+        for bid, b in blocks.items():
+            if b["state"] != "approved":
+                continue
+            body = "\n".join([b["title"]] + list(b["fields"].values())
+                             + [c[1] for c in b["clauses"]])
+            n = body.count(TRANSCRIPTION_MARKER)
+            if n:
+                findings.append("stray-marker: %s %d×%s in approved block"
+                                % (bid, n, TRANSCRIPTION_MARKER))
+        return findings, [], []
     findings, exs = [], []
     for name, gated in GATED_DOCS:
         path = os.path.join(card_dir, name)
@@ -1716,9 +1732,54 @@ def check_block_format(card_dir, ws):
                 # slot; the pre-cutoff存量 stays optional (LLD-2 过渡组)
                 findings.append("ask-id-missing: %s gate %s (post-%s note)"
                                 % (bid, h[:12], ASK_ID_CUTOFF))
+            if dated[h] is None and not git_gone:
+                # review #3: an unresolvable note hash with git alive is a
+                # finding, never a silent pass (021 R9)
+                findings.append("note-hash-unresolved: %s %s" % (bid, h[:12]))
+        if b["annotations"] and b["annotations"][-1]["kind"] == "变更":
+            # review #3 代际链 (HLD-3): an in-place rewrite ends with its
+            # re-approve note — a trailing 变更 is a visibly pending state
+            findings.append("pending-reapproval: %s (末注记为 变更，缺再批 approved)" % bid)
     if git_gone:
         exs.append(("carrier-missing", "git unavailable — note-date half skipped"))
+    findings += _derived_status_findings(card_dir, ws, blocks)
     return findings, [], exs
+
+
+BINDING_STATUS = {"requirement.md": ("confirmed",), "design.md": ("frozen", "approved"),
+                  "detail.md": ("baseline",)}
+
+
+def _derived_status_findings(card_dir, ws, blocks):
+    """Review #2 (HLD-13(2) + the error-matrix hard-red row): on a doc whose
+    frontmatter status carries binding force, a proposed block outside a
+    「提议变更」section is a derived-status regression — the un-approve/rewrite
+    shape the injection test proved invisible."""
+    findings = []
+    for doc, binding in BINDING_STATUS.items():
+        path = os.path.join(card_dir, doc)
+        status = ws.frontmatter(path).get("status", "").split("#")[0].strip()
+        if status not in binding:
+            continue
+        text = ws._read(path)
+        spans = []
+        lines = text.split("\n")
+        for i, ln in enumerate(lines):
+            m = re.match(r"^(#+)\s.*提议变更", ln)
+            if m:
+                depth = len(m.group(1))
+                j = i + 1
+                while j < len(lines) and not re.match(r"^#{1,%d}\s" % depth, lines[j]):
+                    j += 1
+                spans.append((i + 1, j + 1))   # 1-based head_line range
+        for bid, b in blocks.items():
+            if b["doc"] != doc or b["state"] != "proposed":
+                continue
+            if any(a <= b["head_line"] < z for a, z in spans):
+                continue
+            findings.append("derived-status-regression: %s proposed under %s doc"
+                            % (bid, status))
+    return findings
 
 
 def _file_created(card_dir, relpath):
@@ -1897,14 +1958,13 @@ def check_block_anchor(card_dir, ws):
     top = os.path.realpath(probe.stdout.strip())   # macOS /var symlink alias
     bp = ws._block_parse()
     blocks, _ = bp.card_blocks(card_dir)   # parse findings are (ac)'s
-    findings, exs, cache = [], [], {}
+    findings, exs, cache, ancestry = [], [], {}, {}
     for bid, b in blocks.items():
         approved = [a for a in b["annotations"] if a["kind"] == "approved"]
         if not approved:
             exs.append(("not-yet-due", "block-anchor: %s no approved note" % bid))
             continue
         changes = [a for a in b["annotations"] if a["kind"] == "变更"]
-        state_notes = [a for a in b["annotations"] if a["kind"] in ("变更", "退役")]
         base = (changes[-1] if changes else approved[-1])["extra"]["hash"]
         rel = os.path.relpath(
             os.path.realpath(os.path.join(card_dir, b["doc"])), top)
@@ -1925,15 +1985,27 @@ def check_block_anchor(card_dir, ws):
         if old is None:
             findings.append("基线处块缺席: %s not at %s:%s" % (bid, base[:12], rel))
             continue
+        if base not in ancestry:
+            anc = _git(card_dir, "merge-base", "--is-ancestor", base, "HEAD")
+            ancestry[base] = bool(anc is not None and anc.returncode == 0)
+        if not ancestry[base]:
+            # review #13 ([LLD-4] premise): a reachable object off HEAD's history
+            # is not a legal baseline — forged-branch shape
+            findings.append("历史不可达: %s baseline %s 非 HEAD 祖先" % (bid, base[:12]))
+            continue
         for f in ANCHOR_FIELDS:
             if old["fields"].get(f, "") != b["fields"].get(f, ""):
                 findings.append("文本被改: %s field %s vs baseline %s"
                                 % (bid, f, base[:12]))
         if old["state"] != b["state"]:
+            # review #1: the exemption is SAME-BATCH — the state-change event's
+            # own 变更/退役 note must be the block's LAST annotation; a stale
+            # historical note never grants a standing pass (TA-1, injection-proven)
+            last_kind = b["annotations"][-1]["kind"] if b["annotations"] else None
             legal = ((old["state"] == "proposed" and b["state"] == "approved")
-                     or state_notes)
+                     or last_kind in ("变更", "退役"))
             if not legal:
-                findings.append("文本被改: %s state %s→%s without 变更/退役 note"
+                findings.append("文本被改: %s state %s→%s without同批 变更/退役 note"
                                 % (bid, old["state"], b["state"]))
     return findings, [], exs
 
