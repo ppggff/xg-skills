@@ -1915,7 +1915,16 @@ def check_block_views(card_dir, ws):
         texts[name] = ws._read(os.path.join(card_dir, name))
     alltext = "\n".join(texts.values())
     ftext = ws._read(os.path.join(card_dir, "facts.md"))
-    fact_ids = set(re.findall(r"^### Fact-(\d+) ", ftext, re.M))
+    fact_ids = set(re.findall(r"^### (?:Fact-|F)(\d+) ", ftext, re.M))  # 双记法（review #8）
+    _edges, cycles = bp.deps_graph(blocks)   # (c)-equivalent for doc-native (review #8)
+    findings += ["dep-cycle: " + " → ".join(p) for p in cycles]
+    dead = {bid for bid, b in blocks.items() if b["state"] in ("superseded", "retired")}
+    for bid, b in blocks.items():
+        if b["state"] != "approved":
+            continue
+        cited = set(re.findall(r"\[((?:Req|HLD|LLD)-\d+)", "\n".join(b["fields"].values())))
+        for c in sorted(cited & dead):
+            findings.append("superseded-ref: %s cites %s (载重字段引已死块)" % (bid, c))
     eff_ids = set(EFFECT_ID.findall(texts["requirement.md"]))
     for pref, num, _clause in set(re.findall(
             r"(?<!:)\[(Req|HLD|LLD|Task|Ask|Fact|Eff|Crit|Layer)-(\d+)(-[a-z])?\]",
@@ -2033,9 +2042,9 @@ def check_block_anchor(card_dir, ws):
 # Registry meta (026 HLD-11): the manifest's SoT rides the registry rows — fields
 # 查什么 / 何时跑 / 机械或判断 / 依据 / 去向; `--manifest` renders them, a row with
 # no meta renders META-MISSING (E5's 全行齐 enforcement).
-def _m(letter, what, when, basis, disp="保留", nature="机械"):
-    return {"letter": letter, "what": what, "when": when,
-            "nature": nature, "basis": basis, "disp": disp}
+def _m(letter, what, when, basis, disp="保留", nature="机械", misfire="既有套件"):
+    return {"letter": letter, "what": what, "when": when, "nature": nature,
+            "basis": basis, "disp": disp, "misfire": misfire}
 
 
 CARD_CHECKS = (
@@ -2078,8 +2087,8 @@ CARD_CHECKS = (
      _m("(x)", "doc↔账本行级一致（双写比对）", "ledger 存量卡",
         "024", disp="存量保留（doc-native 单写面无此税——结构性消解）")),
     ("grill-signature", check_grill_signature,
-     _m("(y)", "签名闭合：legacy=人工共位键 v1；doc-native=ask-id 键 v2 + tier/round 核",
-        "cutoff 后卡", "024/026")),
+     _m("(y)", "签名闭合：legacy=人工共位键 v1；doc-native=ask-id 键 v2 + tier/round 核 + batch-prune 禁",
+        "cutoff 后卡", "024/026", misfire="DocNativeGrillV2/ReviewFixesC")),
     ("home-pointer", check_home_pointer,
      _m("(z)", "归宿 cell 行级解析", "028 cutoff 后 frozen 卡", "028")),
     ("req-handoff", check_req_handoff,
@@ -2087,13 +2096,14 @@ CARD_CHECKS = (
     ("detail-disposition", check_detail_disposition,
      _m("(ab)", "设计 freeze 后详设处置在案", "frozen 在卡", "029")),
     ("block-format", lambda p, c, ws: check_block_format(c, ws),
-     _m("(ac)", "block 文法/注记五类/E10 在场/日期核/ask-id 时间界/字段在场（(c2)(c6)(c8) 升格）",
-        "doc-native 卡", "026 LLD-2")),
+     _m("(ac)", "block 文法/注记五类/E10 在场/日期核/ask-id 时间界/字段在场/derived-status/代际链（(c2)(c6)(c8) 升格）",
+        "doc-native 卡", "026 LLD-2", misfire="DocNativeBlockChecks/ReviewFixes")),
     ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws),
-     _m("(ad)", "已批块显式基线锚定核（三分类）", "doc-native 卡", "026 LLD-4")),
+     _m("(ad)", "已批块显式基线锚定核（三分类 + 同批豁免 + 祖先判）", "doc-native 卡",
+        "026 LLD-4", misfire="DocNativeReviewFixes（注入五景）")),
     ("block-views", lambda p, c, ws: check_block_views(c, ws),
-     _m("(ae)", "引用解析/Effect 覆盖/生成索引一致（(c3)(c5)(c7) 升格）",
-        "doc-native 卡", "026 T14")),
+     _m("(ae)", "引用解析/Effect 覆盖/生成索引一致/环/死引（(c3)(c5)(c7) 升格 + (a)(c) 等价）",
+        "doc-native 卡", "026 T14", misfire="DocNativeBlockViews")),
 )
 
 PROJECT_CHECKS = (

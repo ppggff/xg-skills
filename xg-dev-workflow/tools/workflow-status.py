@@ -25,6 +25,8 @@ Usage:
                                        # stdout, never a file
   workflow-status.py --manifest        # check-family manifest (026 HLD-11) — registry meta
                                        # rendered human-readable; SoT stays in code
+  workflow-status.py --write-index <project>/<card>  # regenerate the doc-native requirement
+                                       # 条目 index (the (ae) index-stale counterpart writer)
 """
 import fnmatch
 import glob
@@ -335,14 +337,8 @@ def render_text(cards):
 # are recorded once; the reverse map is derived). Commit tracing rides implement.md's commit
 # convention (product commit subjects carry the plan task id).
 
-TASK_HEAD = re.compile(r"^###\s+(?:Task\s*|T)(\d+)\s*[::]?\s*(.*)$", re.M)
+TASK_HEAD = re.compile(r"^###\s+(?:Task[ -]?|T)(\d+)\s*[::]?\s*(.*)$", re.M)
 RID = re.compile(r"\b(?:Req-|R)(\d+)\b")   # dual notation: R<n> legacy · Req-<n> doc-native
-
-
-def _rid_form(text):
-    """The card's R-id display form inferred from where the match came from —
-    Req-<n> when the token was the doc-native form, else R<n>."""
-    return "Req-" if "Req-" in text else "R"
 
 
 def _expand_rid_ranges(cell):
@@ -1063,14 +1059,45 @@ def digest_text(card_dir, max_lines=DIGEST_MAX_LINES):
     return "\n".join(out)
 
 
+def write_index(card_dir):
+    """--write-index (review #12): regenerate the requirement 条目 index between
+    the index markers — the generation entry point the (ae)/(c7) verifier was
+    missing once the card-local crosscheck retires. Marker text keeps the
+    legacy crosscheck wording: it is part of the byte-compared span on存量
+    docs; re-homing the wording would false-flag every existing index."""
+    bp = _block_parse()
+    blocks, findings = bp.card_blocks(card_dir)
+    if findings:
+        print("write-index: parse findings first:", "; ".join(findings))
+        return 1
+    path = os.path.join(card_dir, "requirement.md")
+    text = _read(path)
+    table = render_index(blocks)
+    if INDEX_BEGIN in text and INDEX_END in text:
+        text = (text[:text.index(INDEX_BEGIN)] + table
+                + text[text.index(INDEX_END) + len(INDEX_END):])
+    else:
+        anchor = re.search(r"^## 需求条目.*$", text, re.M)
+        if not anchor:
+            print("write-index: no index markers and no 需求条目 heading")
+            return 1
+        pos = anchor.end()
+        text = text[:pos] + "\n\n" + table + text[pos:]
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    n = sum(1 for b in blocks.values() if b["doc"] == "requirement.md")
+    print("index written (%d rows)" % n)
+    return 0
+
+
 def render_manifest():
     """--manifest (026 HLD-11): the check-family registry rendered human-readable.
     SoT = the registry rows' meta in workflow-checks.py (CARD_CHECKS/PROJECT_CHECKS
     + EXTRA_MANIFEST); a registry row with no meta prints META-MISSING — the E5
     全行齐 enforcement. Ends with the net-count line (E5 净减判定)."""
     wc = _checks()
-    lines = ["| 检查 | 字母 | 查什么 | 何时跑 | 机械/判断 | 依据 | 去向 |",
-             "|---|---|---|---|---|---|---|"]
+    lines = ["| 检查 | 字母 | 查什么 | 何时跑 | 机械/判断 | 依据 | misfire 测试 | 去向 |",
+             "|---|---|---|---|---|---|---|---|"]
     for scope, entries in (("card", wc.CARD_CHECKS), ("project", wc.PROJECT_CHECKS)):
         for row in entries:
             cid = row[0]
@@ -1078,16 +1105,19 @@ def render_manifest():
             if not meta:
                 lines.append("| %s (%s) | META-MISSING | | | | | |" % (cid, scope))
                 continue
-            lines.append("| %s | %s | %s | %s | %s | %s | %s |"
+            lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |"
                          % (cid, meta["letter"], meta["what"], meta["when"],
-                            meta["nature"], meta["basis"], meta["disp"]))
+                            meta["nature"], meta["basis"],
+                            meta.get("misfire", "既有套件"), meta["disp"]))
     lines.append("")
     lines.append("| 非注册项 | 去向 |")
     lines.append("|---|---|")
     for name, disp in wc.EXTRA_MANIFEST:
         lines.append("| %s | %s |" % (name, disp))
     retired = sum(1 for _n, d in wc.EXTRA_MANIFEST if d.startswith(("退役", "化解")))
-    added = 3  # (ac)(ad)(ae) — the 026 additions
+    added = sum(1 for row in wc.CARD_CHECKS
+                if len(row) > 2 and "026" in row[2].get("basis", "")
+                and row[2]["letter"].startswith("(a"))   # dynamic: the 026-added letters
     lines.append("")
     lines.append("净减判定 (Eff-5): 退役/化解 %d > 新增 %d → %s"
                  % (retired, added, "净减成立" if retired > added else "未净减"))
@@ -1215,13 +1245,14 @@ def run_check(root, arg, verbose_skips=False):
 def main():
     args, want, root_arg, as_json, trace_arg, i = sys.argv[1:], [], None, False, None, 0
     check_arg, verbose_skips, digest_arg, manifest_flag = None, False, None, False
+    windex_arg = None
     while i < len(args):
         a = args[i]
         if a == "--manifest":
             manifest_flag = True
             i += 1
             continue
-        if a in ("--root", "--trace", "--check", "--digest"):
+        if a in ("--root", "--trace", "--check", "--digest", "--write-index"):
             # a value is required and must not look like a flag — a misplaced switch
             # would otherwise be swallowed as the argument (R9)
             if i + 1 >= len(args) or args[i + 1].startswith("--"):
@@ -1233,6 +1264,8 @@ def main():
                 trace_arg = args[i + 1]
             elif a == "--digest":
                 digest_arg = args[i + 1]
+            elif a == "--write-index":
+                windex_arg = args[i + 1]
             else:
                 check_arg = args[i + 1]
             i += 2
@@ -1262,6 +1295,8 @@ def main():
     if digest_arg:
         print(digest_text(resolve_card(root, digest_arg)[1]))
         return 0
+    if windex_arg:
+        return write_index(resolve_card(root, windex_arg)[1])
     if check_arg:
         return run_check(root, check_arg, verbose_skips)
     if trace_arg:

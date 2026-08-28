@@ -1232,3 +1232,54 @@ class DualRidNotation(unittest.TestCase):
     def test_range_expansion_in_parts(self):
         self.assertIn("Req-3",
                       ws._expand_rid_ranges("Req-1..Req-4"))
+
+
+class ReviewFixesD(unittest.TestCase):
+    """Review #10/#12/#15/#19: manifest smoke, write-index, fold boundary, Task head."""
+
+    def test_manifest_all_rows_meta_and_misfire(self):
+        out = ws.render_manifest()
+        self.assertNotIn("META-MISSING", out)
+        self.assertIn("| misfire 测试 |", out)
+        self.assertIn("净减判定", out)
+        self.assertIn("净减成立", out)
+
+    def _card(self, n):
+        d = tempfile.mkdtemp()
+        blocks = "".join(
+            "### Req-%d proposed — 标题%d\n- 陈述: 内容%d。\n- 类型: 功能\n- why: w\n"
+            "- provenance: p\n- depends-on: 无\n\n" % (i, i, i) for i in range(1, n + 1))
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 910\ngovernance: doc-native\n---\n\n## 需求条目\n\n" + blocks,
+            encoding="utf-8")
+        return d
+
+    def test_fold_boundary_exact(self):
+        # 40 pending renders every row; 41 crosses the budget and folds — and the
+        # rows/fold state is what the assertion tracks (no unconditional constants)
+        out40 = ws.digest_text(self._card(40))
+        self.assertNotIn("照案组折叠", out40)
+        self.assertIn("[Req-40] 标题40", out40)
+        out41 = ws.digest_text(self._card(41))
+        self.assertIn("照案组折叠：41 块 pending", out41)
+        self.assertNotIn("[Req-40] 标题40", out41)
+        self.assertLessEqual(len(out41.splitlines()), ws.DIGEST_MAX_LINES)
+
+    def test_write_index_generates_and_ae_shape(self):
+        d = self._card(2)
+        code = ws.write_index(d)
+        self.assertEqual(code, 0)
+        text = (Path(d) / "requirement.md").read_text(encoding="utf-8")
+        self.assertIn(ws.INDEX_BEGIN, text)
+        self.assertIn("| Req-2 | 标题2 | proposed |", text)
+        # idempotent regenerate over the markers
+        self.assertEqual(ws.write_index(d), 0)
+        self.assertEqual(text, (Path(d) / "requirement.md").read_text(encoding="utf-8"))
+
+    def test_task_head_dual_notation(self):
+        d = tempfile.mkdtemp()
+        (Path(d) / "plan.md").write_text(
+            "### Task-3: 新形\n- **Implements:** [Req-1](./r.md)\n\n"
+            "### T4: 旧形\n- **Implements:** [Req-2](./r.md)\n", encoding="utf-8")
+        tasks = ws.trace_plan(d)
+        self.assertEqual(sorted(tasks), ["3", "4"])
