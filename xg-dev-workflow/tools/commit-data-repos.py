@@ -61,10 +61,17 @@ def _block_parse():
 
 
 def _card_governance(repo: Path, card_rel: str) -> str:
-    try:
-        text = (repo / card_rel / "requirement.md").read_text(encoding="utf-8")
-    except OSError:
-        return ""
+    """Mode as COMMITTED (HEAD side) — review #4: reading the worktree let a
+    same-batch governance downgrade switch the guard off; judged at HEAD, the
+    downgrade itself is a guarded phase-doc change. New cards (no HEAD copy)
+    fall back to the worktree."""
+    head = git(repo, "show", "HEAD:" + card_rel + "/requirement.md")
+    text = head.stdout if head.returncode == 0 else ""
+    if not text:
+        try:
+            text = (repo / card_rel / "requirement.md").read_text(encoding="utf-8")
+        except OSError:
+            return ""
     m = re.search(r"^governance:\s*([\w-]+)", text, re.M)
     return m.group(1) if m else ""
 
@@ -81,25 +88,30 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
     lose data to a guard bug."""
     if kind != "docs":
         return []
-    try:
+    try:   # discovery only — a failure here degrades the whole batch, loudly
         status = git(repo, "status", "--porcelain", "-uall", "-z", "--", *pathspecs)
         touched = {}
         for path in parse_porcelain_z(status.stdout):
             m = PHASE_DOC.match(path)
             if m:
                 touched.setdefault(m.group("card"), []).append(path)
-        findings, by_card = [], {}
-        for card_rel, paths in sorted(touched.items()):
-            if _card_governance(repo, card_rel) not in DOC_NATIVE_MODES:
-                continue
-            bp = _block_parse()
-            for path in paths:
+    except Exception as e:
+        print("(diff-guard error: %s — proceeding unguarded)" % e, file=sys.stderr)
+        return []
+    findings, by_card = [], {}
+    for card_rel, paths in sorted(touched.items()):
+        for path in paths:
+            try:   # review #11: fail-open is PER DOC — one bad file never
+                   # strips the guard from the rest of the batch
+                if _card_governance(repo, card_rel) not in DOC_NATIVE_MODES:
+                    break
+                bp = _block_parse()
                 head = git(repo, "show", "HEAD:" + path)
                 if head.returncode != 0:
                     continue  # new doc — first landing is not a touch
                 try:
                     wt = (repo / path).read_text(encoding="utf-8")
-                except OSError:
+                except (OSError, UnicodeDecodeError):
                     wt = ""
                 old_blocks, _ = bp.parse_doc_blocks(head.stdout)
                 new_blocks, _ = bp.parse_doc_blocks(wt)
@@ -126,19 +138,25 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
                         findings.append("approved-block-touched: %s %s (%s) — 同批无 变更/退役 注记"
                                         % (path, bid, ", ".join(diffs)))
                         by_card.setdefault(card_rel, []).append(bid)
-        if findings and allow:
-            stamp = datetime.now().strftime("%Y-%m-%d")
-            for card_rel, ids in sorted(by_card.items()):
-                log = repo / card_rel / "log.md"
-                with open(log, "a", encoding="utf-8") as f:
-                    f.write("\n- `[纠错]` diff 守卫显式放行（--allow-approved-edit，%s）：%s"
-                            "——已批块比对面改动随本提交放行（LLD-8 记账）。\n"
-                            % (stamp, "、".join(sorted(set(ids)))))
-            return []
-        return findings
-    except Exception as e:  # fail open, loudly
-        print("(diff-guard error: %s — proceeding unguarded)" % e, file=sys.stderr)
+            except Exception as e:
+                print("(diff-guard error on %s: %s — that doc unguarded)" % (path, e),
+                      file=sys.stderr)
+    if findings and allow:
+        # booking sits OUTSIDE any fail-open scope (review #11): the override's
+        # log.md line is the accounting invariant — a booking failure must
+        # surface as a normal error, never a silently unbooked pass-through
+        stamp = datetime.now().strftime("%Y-%m-%d")
+        for card_rel, ids in sorted(by_card.items()):
+            log = repo / card_rel / "log.md"
+            with open(log, "a", encoding="utf-8") as f:
+                f.write("\n- `[纠错]` diff 守卫显式放行（--allow-approved-edit，%s）：%s"
+                        "——已批块比对面改动随本提交放行（LLD-8 记账）。\n"
+                        % (stamp, "、".join(sorted(set(ids)))))
         return []
+    if findings:
+        print("diff-guard: %d finding(s) — docs commit blocked" % len(findings),
+              file=sys.stderr)   # review #11: sweep runs unwatched, stderr keeps it loud
+    return findings
 
 
 def config_path() -> Path:

@@ -436,3 +436,26 @@ class DiffGuard(unittest.TestCase):
         dirty(repo, "raw/proj/note.md", "y\n")
         lines = cdr.commit_repo(repo, "kb", "kb", "m", project="proj")
         self.assertTrue(any("committed" in l for l in lines), lines)
+
+
+class DiffGuardReviewFixes(unittest.TestCase):
+    """Review #4/#11: HEAD-side mode gate + per-doc fail-open."""
+
+    def test_4_same_batch_downgrade_does_not_disarm(self):
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK})
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN.replace("doc-native-pilot", "doc-gate")
+              + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("BLOCKED" in l for l in lines), lines)
+
+    def test_11_bad_doc_fails_open_per_doc_only(self):
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK,
+                          "proj/900-x/design.md": "### HLD-1 approved — t\n- 陈述: 设\n"
+                          "- approved: 2026-08-25 gate abcdef0 (single: 「go」)\n"})
+        (repo / "proj/900-x/design.md").write_bytes(b"\xff\xfe broken")   # undecodable
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        # requirement.md's tamper still caught; design.md degrades alone
+        self.assertTrue(any("requirement.md Req-1" in l for l in lines), lines)
