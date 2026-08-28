@@ -346,7 +346,9 @@ def _rid_form(text):
 
 
 def _expand_rid_ranges(cell):
-    """`Req-1..Req-23` / `R1..R11` range notation appends its expansion (HLD-1)."""
+    """`Req-1..Req-23` / `R1..R11` range notation appends its expansion (HLD-1).
+    Deliberately separate from block_parse.expand_ranges: this one also speaks the
+    legacy bare-R grammar, which is outside the block domain's prefix set."""
     out = cell
     for m in re.finditer(r"(Req-|R)(\d+)\.\.(?:Req-|R)(\d+)", cell):
         out += " " + " ".join("%s%d" % (m.group(1), n)
@@ -511,7 +513,7 @@ def trace_test(card):
     cell = test). Doc-native cards key coverage by Effect with the R-ids in a
     verifies column — there every cell is scanned (ranges expanded)."""
     cov = {}
-    docnative = card_mode(card) in ("doc-native-pilot", "doc-native")
+    docnative = card_mode(card) in DOC_NATIVE_MODES
     for line in _read(os.path.join(card, "test.md")).splitlines():
         if not line.lstrip().startswith("|"):
             continue
@@ -834,9 +836,15 @@ CARD_CARRIERS = (                     # (name, kind, modes)
 )
 
 
+# The doc-native pair is deliberately re-declared in workflow-checks.py (L2 cannot
+# import L1 at module load — it reads the live view at call time) and in
+# commit-data-repos.py (standalone by design); this tuple is the L1 original.
+DOC_NATIVE_MODES = ("doc-native-pilot", "doc-native")
+
+
 def _carrier_mode_key(mode):
     """card_mode value → CARD_CARRIERS modes key (pilot folds into doc-native)."""
-    return "doc-native" if mode in ("doc-native-pilot", "doc-native") else mode
+    return "doc-native" if mode in DOC_NATIVE_MODES else mode
 
 
 def _carrier_exists(card_dir, name, kind):
