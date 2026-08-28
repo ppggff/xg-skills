@@ -4,6 +4,21 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-28 — retro (card 026)
+
+- Slice-grouped plans must declare part completion at checkpoints (plan step), and that
+  declaration is the part-check trigger (implement.md) — 026 ran a part-split card through
+  slice scheduling and silently skipped every part-check.
+- Guard/audit-class mechanisms get the injection mandate at implement-time part-checks
+  (try to bypass, not just read) — all five High close-out holes were injection-shaped.
+- Gate-round fold-ins land before their notes (gate-digest.md doc-native section) — the
+  anchor's first live run flagged six blocks whose text landed after the cited receipts.
+- Requirement template: byte/output-comparison Effect criteria declare their compare face
+  (E6 paid a clarification round for leaving it implicit).
+- Roadmap gains the (af) plan tick-monotonicity candidate (XS); usage log corrective
+  re-score appended for the optimistic slice-1 entry.
+
+
 ## 2026-08-28 — doc-native decisions (card 026)
 
 - **Governance collapses to single-track `doc-native` for new cards**: decisions are

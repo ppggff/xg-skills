@@ -82,6 +82,8 @@ ABI / interface stability, project change rules, compatibility, performance, env
 
 Reframe the ask as testable conditions. "Done" means each of these is true. **Each criterion cites
 the R-item(s) it verifies** (so a changed `R` localises to its criteria + tests).
+**Byte/output-comparison criteria declare their compare face** (default-mode output vs the
+verbose/itemized stream — 026's E6 paid one clarification round for leaving it implicit).
 **Enumeration criteria declare their key.** A criterion of the form "every X …" names its
 **枚举键** (what one row is) and **必填列** (at minimum: 可达性/适用性 + 依据) in the criterion
 text; it flips to `[x]` only when the table exists with every declared row complete — never on

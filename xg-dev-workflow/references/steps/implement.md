@@ -154,6 +154,10 @@ Self-review against the angles that catch real systems bugs — verify each agai
 
 When a card's plan is grouped by parts, **each part's completion** (its last plan task done and
 committed) triggers one part-check — a fresh-context pass over that part's accumulated diff.
+**Slice-grouped plans (part axis carried as `Part:` fields): part completion is invisible in
+the task order — each checkpoint MUST declare which parts it completes** (plan step), and that
+checkpoint is the part-check trigger; a slice-axis card with no such declarations silently
+skips every part-check (026 retro: the miss this sentence closes).
 Un-split cards skip this entirely; seam 联调 stays in the 测试 phase (the first part has no
 neighbor yet).
 
@@ -161,7 +165,10 @@ neighbor yet).
   mirrors `review-deep.md`'s lens-agent shape (context pack + verify-against-files + structured
   findings + word cap + "return empty if none"); model per `references/model-tiering.md`
   (inference-heavy → session model capped at opus).
-- **Mandate:** static attack + a hands-on slice **gated by the project's test mode**
+- **Mandate:** static attack + a hands-on slice **gated by the project's test mode**;
+  **guard/audit-class mechanisms (a check, a commit guard, an anchor/audit core) get the
+  injection mandate — try to BYPASS it, don't just read it** (026 retro: all five High
+  close-out holes were injection-shaped and none had an implement-time attack round)
   (`progress.md` State at a glance): test-running projects → execute the changed tools/flows
   where read-only-safe; describe-don't-run projects → describe the verification steps, mark
   NOT executed (same rule as review).

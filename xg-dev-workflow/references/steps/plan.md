@@ -34,7 +34,10 @@ Output: `plan.md` (template: `references/templates/plan.md`).
    part builds and lands before an advance part), one `### Part: <name>` divider per group;
    each task's `Part:` carries the canonical part name verbatim (`--check` (h) enforces the ⊆);
    a cross-part task lists the **seam** under Dependencies. Un-split cards skip all of this.
-5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works).
+5. **Checkpoint** every 2–3 tasks (builds/tests green, end-to-end works). On a part-split
+   design whose schedule is NOT part-grouped (e.g. slice-grouped with `Part:` fields), each
+   checkpoint **names the parts it completes** — that line is what triggers implement's
+   part-check (026 retro; without it part completion is invisible in the task order).
 6. **Risks & open questions** table.
 7. **Execution-authorization ask** — run the **criterion-conformance judge**
    (adversarial-critic.md lens 4: against the R-id/design↔task trace the plan claims complete —

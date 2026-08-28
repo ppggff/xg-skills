@@ -184,6 +184,11 @@ The scaled-digest rules above apply with the blocks as the row source:
   per block**; doc status is derived (all blocks approved ⇔ confirmed/frozen/baseline).
   No Change log gate line on decision docs (Req-31 — plan.md's execution-authorization
   line is the one exception, templates/plan.md). Commit immediately (the gate commit).
+- **Gate-round fold-ins land FIRST**: when the gate round itself produces block changes (a
+  人工案 folded in at the ask), commit that content BEFORE writing the notes and cite the
+  landing commit — "the receipts snapshot carries the approved text" is made true by
+  ordering, never assumed (026 retro: the anchor's first live run flagged six blocks whose
+  gate-round text landed after the cited receipts).
 - Changing an approved block later = M2 (变更/退役 annotation + the diff guard/anchor pair).
 
 ## Approve transcription (on the human's go — ledger cards)
