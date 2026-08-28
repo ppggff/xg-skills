@@ -11,7 +11,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
 - **Deterministic subset → script, zero tokens — `workflow-status.py --check` covers it
   end to end (021)**: card scope `--check <project>/<card>` (run after any doc edit);
   project scope `--check <project>` (project-level checks + every card — the full sweep).
-  Checks (a)–(ae): ledger (a)–(e) (id-reference integrity · derived-status mappings
+  Checks (a)–(ag): ledger (a)–(e) (id-reference integrity · derived-status mappings
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
@@ -42,7 +42,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   (last 变更 hash, else the approved gate hash) — 文本被改 / 历史不可达 / 基线处块缺席
   (ad) · doc-native citations & generated views, doc-native cards only: bracket-cite
   resolution (block/Fact/alias/Eff domains; Ask prune-legal) + Effect coverage per active
-  block + generated-index byte-consistency (ae). Exit 1 =
+  block + generated-index byte-consistency (ae) · over-long load-bearing slots hint
+  ((ag), 028 — report-only on the skips stream, per-file cutoff created ≥ landing+1;
+  (af) reserved for the plan tick-monotonicity candidate). Exit 1 =
   findings; not-applicable paths emit classified exemptions and never gate — the
   three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
   live in workflow-checks.py's module docstring (the single source, 023). Visible

@@ -2032,6 +2032,85 @@ def check_block_anchor(card_dir, ws):
     return findings, [], exs
 
 
+# ---- long-cell hint (ag, 028): load-bearing slot length, report-only ----
+
+LONG_CELL_CHARS = 120        # len() chars, never bytes (028 Fact-3); M6-calibrated
+LONG_CELL_CUTOFF = "2026-08-29"   # landing day + 1 — grill rows are history, no backfill
+LONG_CELL_DOCS = ("requirement.md", "design.md", "detail.md")
+
+
+def _long_table_cells(text):
+    """Fence-aware generic per-cell scan (028 HLD-1): (lineno, col, len) for every
+    over-threshold data cell of every markdown table; a header naming `chosen`
+    exempts that column (human-quote audit face, HLD-4)."""
+    hits, fenced = [], False
+    header, chosen_i = None, None
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        ln = raw.strip()
+        if ln.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if not ln.startswith("|"):
+            header, chosen_i = None, None
+            continue
+        cells = [c.strip() for c in ln.strip("|").split("|")]
+        if header is None:
+            header = [c.lower() for c in cells]
+            chosen_i = header.index("chosen") if "chosen" in header else None
+            continue
+        if all(set(c) <= set("-: ") for c in cells):
+            continue
+        for i, cell in enumerate(cells):
+            if i == chosen_i:
+                continue
+            if len(cell) > LONG_CELL_CHARS:
+                hits.append((lineno, header[i] if i < len(header) else "col%d" % i,
+                             len(cell)))
+    return hits
+
+
+def check_long_cells(card_dir, ws):
+    """(ag) 028: over-long load-bearing slots — report-only hints on the skips
+    stream (visible, never gates; the (k) gloss-hint precedent). Faces: table
+    cells across the three card docs + notes/grill-*.md, plus single-line block
+    field payloads on doc-native docs. Pre-gate activation per file:
+    created >= LONG_CELL_CUTOFF; created unknown → carrier-missing."""
+    hints, exs, live = [], [], set()
+    files = [n for n in LONG_CELL_DOCS
+             if os.path.exists(os.path.join(card_dir, n))]
+    files += sorted(os.path.relpath(f, card_dir).replace(os.sep, "/") for f in
+                    glob.glob(os.path.join(card_dir, "notes", "grill-*.md")))
+    for rel in files:
+        created = _file_created(card_dir, rel)
+        if created is None:
+            exs.append(("carrier-missing",
+                        "%s: created date unknown, long-cell era unjudged" % rel))
+            continue
+        if created < LONG_CELL_CUTOFF:
+            exs.append(("grandfathered", "%s: pre-%s long-cell" % (rel, LONG_CELL_CUTOFF)))
+            continue
+        live.add(rel)
+        try:
+            with open(os.path.join(card_dir, rel), encoding="utf-8") as f:
+                text = f.read()
+        except OSError:
+            continue
+        for lineno, col, n in _long_table_cells(text):
+            hints.append("long-cell: %s line %d %s列 — %d字符" % (rel, lineno, col, n))
+    if ws.card_mode(card_dir) in DOC_NATIVE_MODES:
+        blocks, _ = ws._block_parse().card_blocks(card_dir)
+        for bid, b in blocks.items():
+            if b["doc"] not in live:
+                continue   # pre-cutoff/unknown docs already classified above
+            for fname, val in b["fields"].items():
+                if "\n" not in val and len(val) > LONG_CELL_CHARS:
+                    hints.append("long-cell: %s %s field %s — %d字符"
+                                 % (b["doc"], bid, fname, len(val)))
+    return [], hints, exs
+
+
 # ---- check registry & runners (the L3 entry surface) ----
 # Each entry: (id, fn(project, card_dir, ws) -> (findings, skips)). A skip carries its
 # reason and never affects the exit code; a check whose carrier predicate doesn't fire
@@ -2104,6 +2183,9 @@ CARD_CHECKS = (
     ("block-views", lambda p, c, ws: check_block_views(c, ws),
      _m("(ae)", "引用解析/Effect 覆盖/生成索引一致/环/死引（(c3)(c5)(c7) 升格 + (a)(c) 等价）",
         "doc-native 卡", "026 T14", misfire="DocNativeBlockViews")),
+    ("long-cell", lambda p, c, ws: check_long_cells(c, ws),
+     _m("(ag)", "载重格位超长单行 hint（表格 cell/block 单行字段 >120 字符；skips 流不 gate；(af) 留给 plan 勾选单调核候选）",
+        "cutoff 后文件（created-only）", "card 028", misfire="LongCellHint")),
 )
 
 PROJECT_CHECKS = (

@@ -1425,6 +1425,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("grill-signature", GF, "pre-2026-08-19 card"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
+            ("long-cell", CM, "requirement.md: created date unknown, long-cell era unjudged"),
             ("detail-disposition", CM, "design.md missing"),
             ("block-format", ND, "mode not doc-native"),
             ("block-anchor", ND, "mode not doc-native"),
@@ -1460,6 +1461,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("grill-signature", CM, "no grill-log, signatures not checkable"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
+            ("long-cell", CM, "requirement.md: created date unknown, long-cell era unjudged"),
             ("detail-disposition", CM, "design.md missing"),
             ("block-format", ND, "mode not doc-native"),
             ("block-anchor", ND, "mode not doc-native"),
@@ -1825,6 +1827,85 @@ class DocNativeGrillV2(unittest.TestCase):
                "- approved: 2026-08-25 gate abcdef0 (single: 「go」)\n")
         f, _, _ = wc.check_block_format(d2, ws)
         self.assertEqual([x for x in f if x.startswith("ask-id-missing")], [])
+
+
+class LongCellHint(unittest.TestCase):
+    """(ag) 028: over-long load-bearing slots — hints on skips, never findings."""
+
+    FM = "---\nid: 905\ngovernance: doc-native\n---\n\n"
+    LONG = "x" * 130
+    SHORT = "y" * 30
+
+    def _card(self, body, grill=None):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md", self.FM + body)
+        if grill is not None:
+            _write(d, "notes/grill-a.md", grill)
+        return d
+
+    def _post_cutoff(self, d):
+        """No git in tmpdir → patch created-date to a post-cutoff day."""
+        import unittest.mock as mock
+        return mock.patch.object(wc, "_file_created",
+                                 lambda card_dir, rel: "2026-08-30")
+
+    def test_no_git_is_carrier_missing(self):
+        d = self._card("### Req-1 proposed — t\n- 陈述: x\n")
+        f, s, exs = wc.check_long_cells(d, ws)
+        self.assertEqual((f, s), ([], []))
+        self.assertTrue(any(cls == "carrier-missing" for cls, _ in exs))
+
+    def test_long_table_cell_hints_not_finds(self):
+        grill = ("| id | question | status |\n|---|---|---|\n"
+                 "| Ask-1 | %s | open |\n" % self.LONG)
+        d = self._card("### Req-1 proposed — t\n- 陈述: x\n", grill=grill)
+        with self._post_cutoff(d):
+            f, s, exs = wc.check_long_cells(d, ws)
+        self.assertEqual(f, [])
+        self.assertTrue(any(h.startswith("long-cell: notes/grill-a.md") and "question列" in h
+                            for h in s))
+
+    def test_short_cells_and_chosen_column_silent(self):
+        grill = ("| id | question | chosen | status |\n|---|---|---|---|\n"
+                 "| Ask-1 | %s | %s | open |\n" % (self.SHORT, self.LONG))
+        d = self._card("### Req-1 proposed — t\n- 陈述: x\n", grill=grill)
+        with self._post_cutoff(d):
+            _, s, _ = wc.check_long_cells(d, ws)
+        self.assertEqual(s, [])
+
+    def test_fenced_table_silent(self):
+        body = ("### Req-1 proposed — t\n- 陈述: x\n\n```\n| a | b |\n|---|---|\n"
+                "| %s | c |\n```\n" % self.LONG)
+        d = self._card(body)
+        with self._post_cutoff(d):
+            _, s, _ = wc.check_long_cells(d, ws)
+        self.assertEqual(s, [])
+
+    def test_single_line_field_hints_multiline_silent(self):
+        body = ("### Req-1 proposed — t\n- 陈述: %s\n- why: w\n\n"
+                "### Req-2 proposed — u\n- 陈述: 导语行。\n  %s\n" % (self.LONG, self.LONG))
+        d = self._card(body)
+        with self._post_cutoff(d):
+            _, s, _ = wc.check_long_cells(d, ws)
+        self.assertTrue(any("Req-1 field 陈述" in h for h in s))
+        self.assertEqual([h for h in s if "Req-2" in h], [])
+
+    def test_pre_cutoff_grandfathered(self):
+        import unittest.mock as mock
+        d = self._card("### Req-1 proposed — t\n- 陈述: %s\n" % self.LONG)
+        with mock.patch.object(wc, "_file_created", lambda c, r: "2026-08-20"):
+            f, s, exs = wc.check_long_cells(d, ws)
+        self.assertEqual((f, s), ([], []))
+        self.assertTrue(any(cls == "grandfathered" for cls, _ in exs))
+
+    def test_exit_code_unaffected(self):
+        grill = ("| id | question | status |\n|---|---|---|\n"
+                 "| Ask-1 | %s | resolved → requirement.md §Req-1 |\n" % self.LONG)
+        d = self._card("### Req-1 proposed — t\n- 陈述: 导语。\n- 类型: 约束\n"
+                       "- why: w\n- provenance: e\n- depends-on: —\n")
+        with self._post_cutoff(d):
+            hints_only = wc.check_long_cells(d, ws)
+        self.assertEqual(hints_only[0], [])   # never findings → never exit 1
 
 
 class DocNativeBlockViews(unittest.TestCase):
