@@ -429,13 +429,17 @@ def _retired_req_ids(card_dir):
     return out
 
 
-def _rows_by_rid(sect):
-    """R-id → its carrying line in the section. Table rows and prose lines both
-    count — the doc-native How-it-meets Part B/C mapping is prose with [Req-n]
-    arrows, as much a design home as a table row (ranges expanded)."""
+def _rows_by_rid(sect, prose=False):
+    """R-id → its carrying line in the section. Table rows always count; prose
+    lines count only when `prose` (doc-native cards — their How-it-meets Part
+    B/C mapping is prose with [Req-n] arrows). 存量 cards keep the table-only
+    harvest: widening them re-judged old docs and regressed the grandfather
+    promise (005/013 sweep hits, close-out fix round)."""
     out = {}
     for line in sect.splitlines():
         if set(line.strip()) <= set("|-: ") or line.startswith("#"):
+            continue
+        if not prose and not line.lstrip().startswith("|"):
             continue
         for m in RID.finditer(_expand_rid_ranges(_strip_xcard(line))):
             out.setdefault(m.group(0), re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
@@ -445,8 +449,9 @@ def _rows_by_rid(sect):
 def trace_design(card):
     """R-id → its How-it-meets row (design home) and its 验证策略 row."""
     text = _read(os.path.join(card, "design.md"))
-    return (_rows_by_rid(_section(text, r"How it meets|如何满足")),
-            _rows_by_rid(_section(text, r"验证策略|Verification strategy")))
+    prose = card_mode(card) in DOC_NATIVE_MODES
+    return (_rows_by_rid(_section(text, r"How it meets|如何满足"), prose),
+            _rows_by_rid(_section(text, r"验证策略|Verification strategy"), prose))
 
 
 def trace_parts(card):

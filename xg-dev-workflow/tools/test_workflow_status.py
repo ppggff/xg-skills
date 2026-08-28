@@ -1283,3 +1283,24 @@ class ReviewFixesD(unittest.TestCase):
             "### T4: 旧形\n- **Implements:** [Req-2](./r.md)\n", encoding="utf-8")
         tasks = ws.trace_plan(d)
         self.assertEqual(sorted(tasks), ["3", "4"])
+
+
+class ProseHomeGating(unittest.TestCase):
+    """Fix-round regression guard: prose R-mentions are design homes on
+    doc-native cards only —存量 cards keep the table-only harvest."""
+
+    def _card(self, gov):
+        d = tempfile.mkdtemp()
+        fm = "---\nid: 911\n%s---\n" % ("governance: %s\n" % gov if gov else "")
+        (Path(d) / "requirement.md").write_text(fm, encoding="utf-8")
+        (Path(d) / "design.md").write_text(
+            "---\nid: 911\nstatus: frozen\n---\n## How it meets\n"
+            "散文提及 [Req-9] 与 R9。\n\n| R1 | 表行 |\n", encoding="utf-8")
+        return d
+
+    def test_legacy_table_only_docnative_prose_too(self):
+        legacy = ws.trace_design(self._card(None))[0]
+        self.assertIn("R1", legacy)
+        self.assertNotIn("R9", legacy)
+        dn = ws.trace_design(self._card("doc-native"))[0]
+        self.assertIn("Req-9", dn)
