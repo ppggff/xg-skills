@@ -517,7 +517,8 @@ def _grill_shape_findings(name, text, gov=""):
                         ok = (GRILL_RESOLVED_ID.search(cells[st])
                               if gov == "ledger" else
                               GRILL_DOCSEC_REF.search(cells[st])
-                              if gov == "doc-gate" else True)
+                              if gov == "doc-gate" or gov in DOC_NATIVE_MODES
+                              else True)   # HLD-13(5): doc-native shares the doc-form
                         if not ok:
                             findings.append(
                                 "notation-mismatch: %s line %d (%s card)"
@@ -591,8 +592,9 @@ def check_grill_reverse(project, card_dir, ws):
         exs.append(("not-yet-due", "shape core off (card not past a gate)"))
     gov = str(ws.frontmatter(os.path.join(card_dir, "requirement.md"))
               .get("governance", "")).split("#")[0].strip()
-    if shape_era and gov not in ("ledger", "doc-gate"):
-        exs.append(("not-yet-due", "legacy governance, notation not judged"))
+    if shape_era and gov not in ("ledger", "doc-gate") and gov not in DOC_NATIVE_MODES:
+        exs.append(("not-yet-due",
+                    "governance %s — notation not judged" % (gov or "legacy")))
     findings, hints, ids, noncanon = [], [], set(), 0
     for f in logs:
         text = ws._read(f)
@@ -1291,7 +1293,7 @@ def check_r_trace(project, card_dir, ws):
         for line in test_text.splitlines():
             if line.lstrip().startswith("|"):
                 cell = line.strip().strip("|").split("|", 1)[0]
-                keyed |= set(re.findall(r"(?:Eff-|E)(\d+)", cell))
+                keyed |= set(re.findall(r"(?<![A-Za-z])(?:Eff-|E)(\d+)(?![0-9A-Za-z])", cell))
         for eid in set(EFFECT_ID.findall(req_text)):
             if re.search(r"(\d+)$", eid).group(1) not in keyed:
                 findings.append("trace: %s no-coverage-row" % eid)
@@ -1796,26 +1798,29 @@ _ASK_ROW_ID = re.compile(r"^(?:Ask-|G)(\d+)$")
 
 
 def _grill_rows_docnative(card_dir, ws):
-    """Doc-native grill index: (rows, ninecol_files, legacy_files). Rows come
-    from nine-column canonical tables only (tier+round present); ids normalize
-    to Ask-<n> (legacy G<n> rows alias by number)."""
+    """Doc-native grill index: (rows, ninecol_files, legacy_files). Nine-column
+    tables feed the full row (tier/round core); seven-column 存量 tables still
+    feed id+status — the sweep's reverse-existence half must see them, or a
+    batch-note row in a grandfathered file misreads as pruned (review #6)."""
     rows, ninecol, legacy = [], [], []
     for f in _grill_logs(card_dir):
         base = os.path.basename(f)
         has9 = False
         for header, trows in _canonical_tables(ws._read(f)):
-            if "tier" not in header or "round" not in header:
-                continue
-            has9 = True
+            nine = "tier" in header and "round" in header
+            has9 = has9 or nine
             idc = header.index("id")
-            cols = {k: header.index(k) for k in ("status", "tier", "round")}
+            cols = {k: header.index(k)
+                    for k in (("status", "tier", "round") if nine else ("status",))}
             for cells in trows:
                 m = _ASK_ROW_ID.match(cells[idc].strip("`* ")) if idc < len(cells) else None
                 if not m:
                     continue
-                rows.append({"id": "Ask-" + m.group(1), "file": base,
-                             **{k: (cells[i].strip() if i < len(cells) else "")
-                                for k, i in cols.items()}})
+                row = {"id": "Ask-" + m.group(1), "file": base, "nine": nine,
+                       "tier": "", "round": ""}
+                row.update({k: (cells[i].strip() if i < len(cells) else "")
+                            for k, i in cols.items()})
+                rows.append(row)
         (ninecol if has9 else legacy).append(base)
     return rows, ninecol, legacy
 
@@ -1845,6 +1850,8 @@ def check_grill_docnative(card_dir, ws):
             exs.append(("grandfathered", "%s: pre-%s grill file" % (base, GRILL_NINECOL_CUTOFF)))
     groups = {}
     for r in rows:
+        if not r["nine"]:
+            continue   # 存量七列行只服务 reverse-existence，tier/round 核不追溯
         if r["tier"] not in TIER_VOCAB:
             findings.append("tier-vocab: %s tier '%s' (%s)" % (r["id"], r["tier"], r["file"]))
         if not re.fullmatch(r"[1-9]\d*", r["round"]):
@@ -1866,13 +1873,19 @@ def check_grill_docnative(card_dir, ws):
             if a["kind"] == "approved" and a["extra"].get("ask_id"):
                 m = _ASK_ROW_ID.match(a["extra"]["ask_id"])
                 if m:
-                    noted.setdefault("Ask-" + m.group(1), bid)
-    for aid, bid in sorted(noted.items()):
+                    key = "Ask-" + m.group(1)
+                    noted.setdefault(key, (bid, a["extra"]["mode"]))
+    for aid, (bid, mode) in sorted(noted.items()):
         row = index.get(aid)
         if row is None:
-            exs.append(("carrier-missing",
-                        "%s not in nine-col grill rows — prune-legal, block %s note is the anchor"
-                        % (aid, bid)))
+            if mode == "batch":
+                # HLD-14: a round row that carried a batch release may not be
+                # pruned — the sweep's audit key would vanish with it (review #6)
+                findings.append("batch-row-pruned: %s (noted in %s)" % (aid, bid))
+            else:
+                exs.append(("carrier-missing",
+                            "%s not in grill rows — solo prune-legal, block %s note is the anchor"
+                            % (aid, bid)))
         elif re.match(r"open\b", row["status"], re.I):
             findings.append("signature-open: %s noted in %s while row open" % (aid, bid))
     return findings, [], exs

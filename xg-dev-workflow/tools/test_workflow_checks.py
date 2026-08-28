@@ -1993,3 +1993,70 @@ class DocNativeReviewFixes(unittest.TestCase):
         _write(root, "908-x/requirement.md", forged)
         f, _, _ = wc.check_block_anchor(card, ws)
         self.assertTrue(any("非 HEAD 祖先" in x for x in f), f)
+
+
+class DocNativeReviewFixesC(unittest.TestCase):
+    """Review #5/#6/#14/#15: notation doc-form, batch-prune, Eff boundary, edges."""
+
+    FM = "---\nid: 909\ngovernance: doc-native-pilot\nstatus: drafting\ncreated: 2026-08-27\n---\n\n"
+    NINE = "| id | question | recommended | chosen | why | depends-on | tier | round | status |\n" \
+           "|---|---|---|---|---|---|---|---|---|\n"
+    SEVEN = "| id | question | recommended | chosen | why | depends-on | status |\n" \
+            "|---|---|---|---|---|---|---|\n"
+
+    def _card(self, grill="", note="(single Ask-1: 「go」)", grill_name="grill-x.md"):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md",
+               self.FM + "### Req-1 approved — t\n- 陈述: x\n"
+               "- approved: 2026-08-27 gate abcdef0 %s\n" % note)
+        if grill:
+            _write(d, "notes/" + grill_name, grill)
+        return d
+
+    def test_6_batch_note_row_pruned_is_finding_solo_is_skip(self):
+        d = self._card(grill=self.NINE, note="(batch Ask-9: 「其他照案」)")
+        f, _, _ = wc.check_grill_docnative(d, ws)
+        self.assertTrue(any(x.startswith("batch-row-pruned: Ask-9") for x in f), f)
+        d2 = self._card(grill=self.NINE, note="(single Ask-9: 「go」)")
+        f, _, exs = wc.check_grill_docnative(d2, ws)
+        self.assertEqual([x for x in f if "Ask-9" in x], [])
+        self.assertTrue(any("solo prune-legal" in r for _, r in exs))
+
+    def test_6b_sevencol_row_feeds_reverse_existence(self):
+        row = "| Ask-9 | q | r | c | w | — | resolved → doc §x |\n"
+        d = self._card(grill=self.SEVEN + row, note="(batch Ask-9: 「其他照案」)")
+        f, _, _ = wc.check_grill_docnative(d, ws)
+        self.assertEqual([x for x in f if "Ask-9" in x], [], f)   # 存量七列行在场即非 prune
+
+    def test_5_docnative_notation_judged(self):
+        bad = self.NINE + "| Ask-2 | q | r | c | w | — | 真判 | 1 | resolved → R5 |\n"
+        d = self._card(grill=bad, grill_name="grill-y.md")
+        f = wc._grill_shape_findings("grill-y.md", self.NINE +
+                                     "| Ask-2 | q | r | c | w | — | 真判 | 1 | resolved → R5 |\n",
+                                     gov="doc-native-pilot")
+        self.assertTrue(any("notation" in x or "mismatch" in x for x in f), f)
+        ok = wc._grill_shape_findings("grill-y.md", self.NINE +
+                                      "| Ask-2 | q | r | c | w | — | 真判 | 1 | resolved → design.md §HLD-1 |\n",
+                                      gov="doc-native-pilot")
+        self.assertEqual([x for x in ok if "notation" in x or "mismatch" in x], [])
+
+    def test_15_tier_empty_and_cap_boundary(self):
+        rows5 = "".join("| Ask-%d | q | r | c | w | — | 拿不准 | 4 | open |\n" % i
+                        for i in range(2, 7))
+        f, _, _ = wc.check_grill_docnative(self._card(grill=self.NINE + rows5), ws)
+        self.assertEqual([x for x in f if x.startswith("unsure-over-cap")], [])   # 5 过
+        short = "| Ask-8 | q | r | c | w | — |\n"   # 七列头下才合法；九列头下缺 tier 格
+        f, _, _ = wc.check_grill_docnative(self._card(grill=self.NINE + short), ws)
+        self.assertTrue(any(x.startswith("tier-vocab: Ask-8") for x in f), f)
+
+    def test_14_no_coverage_row_and_boundary(self):
+        d = self._card()
+        _write(d, "design.md", "---\nid: 909\nstatus: frozen\n---\n## How it meets\n[Req-1] 行\n")
+        _write(d, "plan.md", "### T1: x\n- **Implements:** [Req-1](./requirement.md)\n")
+        _write(d, "test.md", "| CASE5 | x | y |\n")   # 无 Eff 键行
+        t2 = open(os.path.join(d, "requirement.md"), encoding="utf-8").read()
+        _write(d, "requirement.md",
+               t2 + "\n## Effect\n- [ ] Eff-5: 判据 (verifies Req-1)\n"
+               + "\n| ID | 条目 |\n|---|---|\n| Req-1 | t |\n")
+        f, _, _ = wc.check_r_trace("p", d, ws)
+        self.assertTrue(any(x.startswith("trace: Eff-5 no-coverage-row") for x in f), f)

@@ -39,7 +39,9 @@ NOTE_KEY = re.compile(r"^- (approved|变更|退役|澄清|来源):\s?(.*)$")
 # slice-2 归一 backfills the 41 legacy notes.
 APPROVED = re.compile(
     r"^- approved: (\d{4}-\d\d-\d\d) gate ([0-9a-f]{7,40})"
-    r" \((single|batch)(?: ((?:%s|G)-?\d+))?: 「(.+)」\)$" % PREFIXES)
+    r" \((single|batch)(?: ((?:Ask-|G)\d+))?: 「(.+)」\)$")
+# ask-id slot = Ask-<n> | G<n> only (review #7: the wider prefix set let a
+# Req-/HLD- id pass (ac) yet fall out of the sweep index — silent drop)
 CHANGE = re.compile(r"^- 变更: (.+) \(M2 ([0-9a-f]{7,40}), ([^)]+)\)$")
 RETIRE = re.compile(r"^- 退役: (.+) \(M2 ([0-9a-f]{7,40}), ([^)]+)\)$")
 CLARIFY = re.compile(
