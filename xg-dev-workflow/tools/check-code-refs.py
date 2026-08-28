@@ -48,7 +48,9 @@ COMMENT_PATTERNS = [
     # NNN-qualified ids and the doc-native three-letter forms resolve only inside
     # dev_root — the same leak as a *.md reference (017 part-check evidence)
     (re.compile(r"\b\d{3}\s+[DSRVG]\d{1,3}\b"), "card-qualified ledger id"),
-    (re.compile(r"\b(?:Req|HLD|LLD|Ask|Eff|Fact|Crit|Layer)-\d{1,3}\b"), "doc-native block id"),
+    # Layer-<n> deliberately absent: a real term in networking/ML comments on
+    # product repos — the collision cost outweighs the leak coverage (review #18)
+    (re.compile(r"\b(?:Req|HLD|LLD|Ask|Eff|Fact|Crit)-\d{1,3}\b"), "doc-native block id"),
 ]
 COMMENT_MARK = re.compile(r"(^\s*[*#]|//|/\*|<!--|^\s*--(?!\w))")
 

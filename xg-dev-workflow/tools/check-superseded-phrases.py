@@ -65,6 +65,9 @@ def terms_from_card(card_dir):
     bare prose lines are annotation. A superseding ADR (its Supersedes section names
     an ADR) with no 被取代表述 section is `adr-retired-missing`. Phase-doc Change-log
     entries contribute via an indented sub-list under a 被取代表述-titled list line.
+    Third anchor class (026 Req-31 A4′, review #9): doc-native 退役/变更 annotation
+    lines — each backtick span in the note's why is a retired term (the Change-log
+    carrier retires on doc-native cards; the block notes are its machine successor).
     """
     terms, findings, exemptions = [], [], []
     for f in sorted(glob.glob(os.path.join(card_dir, 'adr', '*.md'))):
@@ -102,8 +105,10 @@ def terms_from_card(card_dir):
             exemptions.append(('carrier-missing',
                                'phase doc missing, anchors not harvested'))
             continue
-        clog = _section(pathlib.Path(p).read_text(errors='replace'),
-                        r'Change log|Change notes')
+        doc_text = pathlib.Path(p).read_text(errors='replace')
+        for m in re.finditer(r'^- (?:退役|变更): (.+?) \(M2 [0-9a-f]{7,40},', doc_text, re.M):
+            terms += TERM.findall(m.group(1))   # third anchor class (026 A4′)
+        clog = _section(doc_text, r'Change log|Change notes')
         if not clog.strip():
             exemptions.append(('carrier-missing',
                                'no Change-log section / 被取代表述 sub-list'))

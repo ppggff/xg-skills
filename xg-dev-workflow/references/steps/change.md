@@ -45,7 +45,10 @@ design are allowed to change, so the design stays stable while the plan flexes.
      one grouped line (count + ids). The human judges substance in the proposed blocks; the
      touch-list is **never persisted as a file** (an analysis note that *precedes* an M2 —
      a reboundary proposal, a design probe — stays a legal note; the list itself is not one).
-   - **The touch-list carries a 分型 field (026 Req-38), self-reported per proposal**:
+   - **The touch-list carries a 分型 field (026 Req-38), self-reported per proposal**
+     — and the executed 变更/退役 annotation's why NAMES it (`M2 分型 = 机械传播型/
+     语义引入型`), so the typing survives the chat-only touch-list into the audit
+     trail (review #16: 3/50 named it before this clause):
      **机械传播型** (propagating an already-made decision — rides the current flow) vs
      **语义引入型** (introduces a new cause/mechanism/trade-off — MUST pass a grill round +
      a lens pass **before** any text lands). The human may reclassify on the spot; Claude
