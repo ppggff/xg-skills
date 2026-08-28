@@ -4,6 +4,24 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-28 — card 028 (block-statement expressiveness)
+
+- **Load-bearing prose home convention (载重散文不进单行格).** New single-owner section in
+  `references/doc-conventions.md`: slots (table cells / single-line fields) hold one
+  self-contained short sentence; full text lives at its home (indented block-field
+  continuation — already parsed and anchored — / same-section prose / grill-log navigation
+  layer). Lead line (导语行) opens every 陈述 (digest extraction source); indent pinned at
+  2 spaces; clause-vs-enumeration split; navigation-layer `resolved →` backtick guard.
+  Five templates + five steps now carry pointers/exemplars only (no rule restatement).
+  Why: 026-era practice compressed statements into single dense lines (user feedback;
+  19/41 + 14/14 measured) — the grammar already supported anchored rich forms, the gap
+  was convention + exemplars.
+- **New `--check` (ag) long-cell hint.** Over-long load-bearing slots (>120 chars via
+  len(), cells + single-line block fields) emit report-only hints on the skips stream
+  ((k) precedent — visible, never gates); per-file created-date cutoff 2026-08-29
+  (landing+1: grill rows are history, never backfilled). (af) stays reserved for the 027
+  plan tick-monotonicity candidate.
+
 ## 2026-08-28 — retro (card 026)
 
 - Slice-grouped plans must declare part completion at checkpoints (plan step), and that
