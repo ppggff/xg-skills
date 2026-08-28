@@ -4,6 +4,30 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-28 — doc-native decisions (card 026)
+
+- **Governance collapses to single-track `doc-native` for new cards**: decisions are
+  phase-doc blocks with machine-read annotations (approved/变更/退役/澄清/来源); decisions.md
+  retires for new cards (ledger/doc-gate/legacy 存量 keep their semantics end to end);
+  templates/SKILL Layout/steps carry the mode branches, carrier lists are pointers to
+  `CARD_CARRIERS`.
+- **New tooling**: `tools/block_parse.py` (the single block-grammar parser); checks (ac)
+  block format/annotation core (incl. derived-status, 代际链 pending-reapproval, ask-id
+  time boundary), (ad) git anchor (explicit baseline, three failure classes, same-batch
+  state exemption, ancestor check), (ae) citations/Effect coverage/generated-index/dep
+  cycles/dead-cites; (y) v2 ask-id-keyed sweep + nine-column grill contract (tier/round,
+  per-file cutoff 2026-08-27); diff guard on docs commits (`--allow-approved-edit`
+  override books log.md); `--digest` gate-ask skeleton, `--manifest` check registry,
+  `--write-index`; trace family dual-notation (R<n>/Req-<n>).
+- **Ask routing (two-lane) ships**: `references/ask-routing-core.md` synced pair is the
+  SoT; grill/gate-digest/change/critic/review/retro carry the hook sentences; WIP cap
+  (GRILL_WIP_CAP=12) + unsure-group rules; M2 proposals carry a 分型 field and the
+  executed 变更 note names it.
+- Why: the 2026-08-25 ledger-mode audit — projection tax (doc↔ledger double-write) and
+  approval fidelity; close-out review (2026-08-28) injection-tested the anchor/guard pair
+  and its 21 findings are folded in (5 High mechanical holes closed same-day).
+
+
 ## 2026-08-21 — 030: verify the candidate set's shared premise before listing options
 
 - **`evidence.md`「三种最容易漏标的载重断言」gains a fourth item** — 「这几个方案各有代价」——

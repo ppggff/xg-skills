@@ -137,7 +137,8 @@ it via annotations; on ledger 存量卡 it is `decisions.md` (mechanics: `templa
       requirement.md               # 需求 (created by `new`)
       decisions.md                 # 决策账本 — ledger 存量卡 only (doc-native cards: none — blocks
                                     #   in the phase docs are the ledger, 026)
-      facts.md                     # 卡级事实层 F<n> (lazily; cited as [F<n>] from phase docs)
+      facts.md                     # 卡级事实层 (lazily; doc-native: Fact-<n> heads, cited [Fact-n]
+                                    #   — [F<n>] stays the存量/transported alias)
       design.md                    # 设计 (概设/HLD) — FROZEN once approved
       adr/NNNN-slug.md             # decision records (adr/ created on first ADR)
       detail.md                    # 详设 (LLD) — BASELINE; optional, skip for XS/S

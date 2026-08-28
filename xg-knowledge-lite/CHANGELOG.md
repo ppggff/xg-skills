@@ -4,6 +4,13 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-28 — ask-routing shared core (card 026)
+
+- New synced pair `references/ask-routing-core.md` (two-lane routing SoT, byte-identical
+  with xg-dev-workflow); lint.md's report-only bucket presents per the routing tiers
+  (照案 batch rows / 真判 solo asks). FORMAT.md untouched.
+
+
 ## 2026-08-21 (via xg-dev-workflow retro 027)
 
 - **`diagram-gotchas.md` gains the `[` `]` trap** (synced pair with xg-dev-workflow): an unquoted

@@ -23,7 +23,9 @@ created: YYYY-MM-DD
 > never reads — that reader split is what lets this file stay small. (See SKILL.md「Two zones」.)
 >
 > **Keep it a current-state snapshot, roughly constant size:**
-> - **Link, don't restate.** Reusable findings live in the KB (`[[wiki/…]]`/`[[raw/…]]`),
+> - **Link, don't restate.** Decision state lives in its mode's carrier (doc-native:
+>   the phase-doc blocks; ledger 存量: decisions.md; doc-gate: the docs — SKILL.md「Ledger」),
+>   never restated here. Reusable findings live in the KB (`[[wiki/…]]`/`[[raw/…]]`),
 >   decisions in `design.md`/ADRs — reference them with one line, don't copy their content here.
 >   Pending/approved decision state lives in `decisions.md` (the ledger; doc-gate cards: the
 >   phase docs' own sections +「提议变更」) — never mirror it here. A doc-gate card's open
