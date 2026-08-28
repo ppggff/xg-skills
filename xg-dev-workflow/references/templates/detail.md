@@ -34,6 +34,9 @@ holds the concrete schema.)
 |---|---|---|
 | … | … | … |
 
+（定义/为什么列 cell 短形——名字+一句;完整结构定义用表下代码块，论证放同节 prose——
+doc-conventions「载重散文的归宿」，028。）
+
 ## 关键机制 / 算法 (mechanisms / algorithms)
 
 For each key operation:
@@ -61,6 +64,8 @@ The concrete code `design.md` deferred — keep consistent with the design's con
 - Actual SQL / DDL.
 
 ## 边界与错误矩阵 (boundary & error matrix)
+
+（行为列 cell 短形——一句 safe-direction;机制细节放「关键机制」节——doc-conventions「载重散文的归宿」。）
 
 | 情形 | 行为 (safe direction) |
 |---|---|

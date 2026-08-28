@@ -33,7 +33,9 @@ created: YYYY-MM-DD
 > <尾注>)` · `- 澄清: …(凭据)` · `- 来源: …` for transported blocks. No decisions.md; facts
 > cite `[Fact-n]` (`facts.md` stays, Req-41); the 条目节首 index is a generated view
 > (workflow-status render_index — never hand-edit); the approved-block compare face is guarded
-> by the diff guard + git anchor checks ((ac)/(ad)).
+> by the diff guard + git anchor checks ((ac)/(ad)). **陈述/why take indented rich forms**
+> (multi-paragraph / nested lists / tables / code / mermaid; 2-space indent) opened by a
+> one-sentence **lead line (导语行)** — rules: doc-conventions「载重散文的归宿」(028).
 
 ## Context (背景)
 
@@ -64,6 +66,12 @@ it tests. E.g. 条目 `R1: 同一时刻至多一个 coordinator 运行 autovacuu
 | ID | 需求条目 (one atomic statement) | 类型 (功能/约束/非功能) | provenance (evidence / 推断 / 假设) |
 |----|--------------------------------|------------------------|-------------------------------------|
 | R1 | … | … | `func()` in `file.c` / `[[wiki/…]]` / 假设 |
+
+（存量表格形如上;doc-native block 的 陈述 写法——contrast pair（示意）:
+✗ `- 陈述: 照案行沿既有义务(recommendation+trade-off,自含措辞引旧卡不重述),新增仅两点:evidence 锚必填、一行说不清→升真判。`——单行密句
+✓ `- 陈述: 照案行新增两点义务。`——导语行(一句白话,句号收尾 ≤80 字)
+✓ `  - evidence 锚必填;一行说不清 → 升真判(其余沿既有)。`——缩进续行,富格式随内容
+rules: doc-conventions「载重散文的归宿」。）
 
 ## Scope (范围)
 

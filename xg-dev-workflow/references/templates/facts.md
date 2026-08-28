@@ -25,7 +25,7 @@ claim about an external tool/runtime reaches VERIFIED only by running it (eviden
 -->
 
 ### F1 [VERIFIED]
-- 事实: <one sentence — what is true>
+- 事实: <lead sentence（导语行）; indented rich continuation allowed — doc-conventions「载重散文的归宿」(028)>
 - 来源: `func()` in `file.c` / `[[wiki/<project>/<slug>]]` / <how it was verified>
 
 ### F2 [推断]

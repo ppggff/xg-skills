@@ -120,7 +120,8 @@ inputs / outputs / semantics, plus the contract invariants
 
 e.g.（示意）`acquire | node-id | granted/denied | 请求成为 active；幂等重入 | 至多一个
 granted；holder 崩溃后 lease 过期自愈`——语义列写**含义与顺序约束**，不变量列写**跨操作
-恒成立的性质**，两列都不是签名。
+恒成立的性质**，两列都不是签名。载重列（语义/不变量/输入示例）cell 短形——一句话，完整
+契约放同节 prose（doc-conventions「载重散文的归宿」，028）。
 
 Vocabulary follows the `codebase-design` skill: an **interface** = everything a caller must know
 (the signature **plus** invariants, ordering, error modes, perf); aim for a **deep** module (small
@@ -158,6 +159,8 @@ the split invisible to them.
 |------|--------------|---|----------------------|---------------------------------------------|
 | … | … | R<n>, R<m> | … | … |
 
+（seam 列 cell 短形——一句话+指针，细节放 Interface/contract 与同节 prose——doc-conventions「载重散文的归宿」。）
+
 **Omit this section entirely for an un-split design — nothing else changes** (M3 does not require
 it). If 联调 later disproves a frozen seam contract, that's an architecture change → route through
 M2 (`change.md` `seam-contract-disproved`), never a silent `plan.md` edit.
@@ -192,6 +195,8 @@ mechanism-level boundary behavior — its 边界与错误矩阵, not test cases)
 | R-id / Effect 项 | E2E 场景 (最短的端到端证明路径) | 观测点 (设计提供的) | 备注 / gap 决策 |
 |---|---|---|---|
 | [R1](./requirement.md) | … | … | … |
+
+（场景/观测点/备注列 cell 短形——一句话，细节放同节 prose——doc-conventions「载重散文的归宿」。）
 
 e.g.（示意）一行填法：`[R1] | 起双 coordinator，kill active，观察接管 | pg_stat_activity 中
 launcher 计数 ≤1 | 5s 内接管；复用既有视图，无新观测点`——场景是**动作序列**，观测点是**设计
@@ -258,6 +263,8 @@ a new card), never a silent default.
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | … | H/M/L | … |
+
+（Mitigation 列 cell 短形——一句话+指针，机制细节放其归宿节——doc-conventions「载重散文的归宿」。）
 
 ## Open questions
 

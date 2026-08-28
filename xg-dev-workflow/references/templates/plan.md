@@ -63,6 +63,8 @@ One paragraph: what this plan builds, against which design.
 |------|--------|------------|
 | … | H/M/L | … |
 
+（Mitigation 列 cell 短形——一句话+指针（doc-conventions「载重散文的归宿」，028）。）
+
 ## Open questions (optional — free list)
 
 - …
