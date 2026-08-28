@@ -45,7 +45,8 @@ algorithms whose correctness depends on the details.
   its alternatives*; `detail.md` holds the *full concrete spec*. For a call that already has an
   ADR, **reference it** ("medium = local table, see ADR-0001") and don't re-argue it. For the
   many small-but-load-bearing choices that don't each merit an ADR (a column's type, the PK,
-  hash-load vs point-query, an error path's direction), **justify them here in one line each**.
+  hash-load vs point-query, an error path's direction), **justify each with a lead sentence** (indented
+  rich continuation when it earns it — doc-conventions「载重散文的归宿」, 028).
 
 ## Procedure
 

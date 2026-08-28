@@ -290,7 +290,10 @@ keeps it current; in chat, re-expand each codename on first use per session ("�
 
 **Density**: the round verdict may fold into the round heading (`## Round N — T3 …（收敛判定:
 继续——…）`) instead of a standalone line; decision rows never drop columns, and receipts
-blocks stay whole.
+blocks stay whole. **Cell short-form (028)**: long question/recommended/why content goes to
+the round's navigation-layer prose — the cell keeps one short sentence (+ id gloss); that
+prose never carries a bare `resolved →` (backtick it when quoting) — doc-conventions
+「载重散文的归宿」.
 
 Entry format — **append-only**: never edit/delete a past row; a correction is a *new* row.
 Status values: `resolved` / `open` / `superseded` / `deferred` (an information gap left

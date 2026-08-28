@@ -105,7 +105,8 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    step 2 (each round's consensus lands in its section at round end, grill.md write cadence),
    not a stage after all topics close — **at module altitude** (see Altitude — sections fill
    only from consensus, gaps per grill.md's transcription invariant): modules
-   + responsibilities, boundaries, contracts, invariants. **Required elements**: a
+   + responsibilities, boundaries, contracts, invariants. HLD block 陈述 follow the
+   lead-line + indented-rich form (doc-conventions「载重散文的归宿」, 028). **Required elements**: a
    **思路** up top — the single core strategy in **≤2 plain sentences** (name the one
    method + its punchline; **no** mechanism/perf/alternatives detail — see template's good/bad
    example); the **diagrams** (module-interaction + data-flow); and — when the design introduces a

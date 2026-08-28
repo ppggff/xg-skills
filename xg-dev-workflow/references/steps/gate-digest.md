@@ -176,7 +176,9 @@ The scaled-digest rules above apply with the blocks as the row source:
 - **§2 cards come from the pending (proposed) block set**; `workflow-status.py --digest
   <project>/<card>` generates the seven-section skeleton (verbatim-prefix rows, fold rule,
   the four-line 真判 card slots) — the author promotes 真判/拿不准 items and fills judgment
-  content on top. The digest **quotes block原文, never rewrites** (Req-28).
+  content on top. The digest **quotes block原文, never rewrites** (Req-28); a card's 陈述 line
+  quotes the block's **lead line (导语行)** — itself a self-contained 复述, details ride the
+  锚点 (doc-conventions「载重散文的归宿」, 028).
 - **On go — per-block approve transcription**: header state `proposed → approved` + append
   `- approved: <date> gate <receipts-commit short hash> (single|batch Ask-<n>: 「原话」)`
   (date = that commit's author date — the (ac) date check; ask-id mandatory from the

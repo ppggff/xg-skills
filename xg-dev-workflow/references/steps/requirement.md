@@ -114,6 +114,8 @@ not transcribe the words.
    statement each (a "X and Y" item is two). This is the canonical list; Scope/Effect and every
    downstream doc reference the IDs, so a later change localises to one `R`. Mark each item's
    **provenance** (evidence-cited / 推断 / 假设) per M1. Don't renumber; retire an item with a note.
+   **Block 陈述 form (028)**: a one-sentence lead line (导语行) + indented rich continuation
+   as the content warrants — rules: doc-conventions「载重散文的归宿」.
    **Each R item also enters the ledger** as a proposed `decisions.md` block (grill.md
    「逐条入账」) — the confirm gate approves those rows, not the doc text. **Doc-gate cards**:
    no ledger — the 需求条目 table itself is the decision carrier and the confirm gate approves
