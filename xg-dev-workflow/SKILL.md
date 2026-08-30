@@ -173,9 +173,10 @@ initialized on the first commit (`tools/commit-data-repos.py`).
 - **Commit at each gate / doc boundary** (semantic, not per keystroke): whenever a verb finishes
   writing — gates, implement tasks, notes, grill-round checkpoints. Run M3 first, then commit.
   Message: `<project>/NNN-slug: <verb> — <one line>`.
-- **Gate commits are scoped to the acting project**: `tools/commit-data-repos.py --project <name>`
-  (or an equivalently scoped `add`/`commit`) — a parallel session's uncommitted docs in another
-  project must never ride along.
+- **Gate commits are scoped to the acting card**: `tools/commit-data-repos.py --card
+  <project>/<NNN>` (docs = the card dir + the project's index/roadmap; KB stays
+  project-level) — a parallel session's uncommitted docs,同项目他卡 included, must never
+  ride along (027). `--project <name>` stays for project-level writes (learn/improve).
 - **Autonomous local commit; `push` stays human-gated;** history append-only (no amend/rebase).
 - An implement task yields **two** commits — product code → its own repo, docs → the dev_root repo.
   Don't cross them.

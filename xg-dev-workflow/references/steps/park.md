@@ -64,8 +64,10 @@ The four beats (numbering matches the frozen design's 四拍契约):
    - At a gate stop (between phases) the state is already gate-committed — park degrades to
      confirmation + the closing reply.
 3. **M3, then a scoped dev_root commit** — run the omission check first, then
-   `commit-data-repos.py --project <name>` (SKILL.md「Versioning」discipline, parallel
-   sessions' docs never ride along); nothing to land → skip the empty commit.
+   `commit-data-repos.py --card <project>/<NNN>` (SKILL.md「Versioning」discipline —
+   card scope keeps a parallel session's docs out, 同项目他卡 included, 027; a park
+   sweeping non-card project files may fall back to `--project <name>`); nothing to
+   land → skip the empty commit.
 4. **Closing reply = receipts + start line** (Stop-at-gate「Ask with receipts」applies to a
    verb-run-closing reply): name the touched docs + the commit, and end with one paste-ready
    line — `xg-dev-workflow resume <slug>` — plus, when the card sits in the execution zone, an

@@ -459,3 +459,72 @@ class DiffGuardReviewFixes(unittest.TestCase):
         lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
         # requirement.md's tamper still caught; design.md degrades alone
         self.assertTrue(any("requirement.md Req-1" in l for l in lines), lines)
+
+
+class CardScope(unittest.TestCase):
+    """027 HLD-6: --card = card dir + project board files (docs); KB project-level;
+    zero/multiple matches loud-fail; --project/sweep untouched."""
+
+    def _docs(self):
+        return init_repo({
+            "proj/027-alpha/requirement.md": "a\n",
+            "proj/028-beta/requirement.md": "b\n",
+            "proj/index.md": "board\n",
+            "proj/roadmap.md": "map\n",
+        })
+
+    def _dirty(self, d):
+        Path(d, "proj/027-alpha/plan.md").write_text("p\n", encoding="utf-8")
+        Path(d, "proj/028-beta/plan.md").write_text("q\n", encoding="utf-8")
+        Path(d, "proj/index.md").write_text("board v2\n", encoding="utf-8")
+
+    def test_card_commit_excludes_sibling_card(self):
+        d = self._docs()
+        self._dirty(d)
+        lines = cdr.commit_repo(Path(d), "docs", "docs", "msg (027 T6)", card="proj/027")
+        self.assertTrue(any("committed" in ln for ln in lines), lines)
+        shown = subprocess.run(["git", "-C", d, "show", "--stat", "--name-only",
+                                "--format=", "HEAD"], capture_output=True, text=True,
+                               env=GIT_ENV).stdout
+        self.assertIn("proj/027-alpha/plan.md", shown)     # 反向：本卡路径全入列
+        self.assertIn("proj/index.md", shown)              # 共享文件搭车（显式接受）
+        self.assertNotIn("028-beta", shown)                # 他卡文档永不入列
+        self.assertTrue(any("left uncommitted" in ln and "028-beta" in ln
+                            for ln in lines), lines)
+
+    def test_card_no_match_loud(self):
+        d = self._docs()
+        self._dirty(d)
+        lines = cdr.commit_repo(Path(d), "docs", "docs", "msg", card="proj/099")
+        self.assertTrue(any("命中 0 个" in ln for ln in lines), lines)
+        log = subprocess.run(["git", "-C", d, "log", "--oneline"], capture_output=True,
+                             text=True, env=GIT_ENV).stdout
+        self.assertNotIn("msg", log)
+
+    def test_card_multi_match_loud(self):
+        d = self._docs()
+        Path(d, "proj/027-dup").mkdir()
+        Path(d, "proj/027-dup/x.md").write_text("x\n", encoding="utf-8")
+        lines = cdr.commit_repo(Path(d), "docs", "docs", "msg", card="proj/027")
+        self.assertTrue(any("命中 2 个" in ln for ln in lines), lines)
+
+    def test_card_kb_half_project_level(self):
+        kb = init_repo({"raw/proj/n.md": "n\n", "wiki/proj/c.md": "c\n",
+                        "raw/other/o.md": "o\n"})
+        Path(kb, "raw/proj/n.md").write_text("n2\n", encoding="utf-8")
+        Path(kb, "raw/other/o.md").write_text("o2\n", encoding="utf-8")
+        lines = cdr.commit_repo(Path(kb), "kb", "kb", "msg", card="proj/027")
+        self.assertTrue(any("committed" in ln for ln in lines), lines)
+        shown = subprocess.run(["git", "-C", kb, "show", "--name-only", "--format=",
+                                "HEAD"], capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("raw/proj/n.md", shown)
+        self.assertNotIn("raw/other", shown)
+
+    def test_project_mode_regression_unchanged(self):
+        d = self._docs()
+        self._dirty(d)
+        lines = cdr.commit_repo(Path(d), "docs", "docs", "msg", project="proj")
+        shown = subprocess.run(["git", "-C", d, "show", "--name-only", "--format=",
+                                "HEAD"], capture_output=True, text=True, env=GIT_ENV).stdout
+        self.assertIn("027-alpha/plan.md", shown)
+        self.assertIn("028-beta/plan.md", shown)   # project 级仍全量（既有语义不动）

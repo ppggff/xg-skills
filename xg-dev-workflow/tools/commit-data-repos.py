@@ -12,8 +12,8 @@ Reads the shared config (~/.config/xg-knowledge-wiki/config.yaml):
 For each existing dir: lazily `git init` (+ a minimal .gitignore) if it isn't a repo yet.
 `--project NAME` commits only that project's paths (>=1 commit per repo); without it,
 dirty paths are grouped by project and committed one group per commit (message suffixed
-` [<group>]`), so one call never mixes two projects' — or two parallel sessions' — files
-into the same commit. **Never pushes, never amends/rebases** (push + history-rewrite stay
+` [<group>]`), so one call never mixes two projects' files into the same commit
+(same-project parallel sessions need `--card` — project scope can't separate them, 027). **Never pushes, never amends/rebases** (push + history-rewrite stay
 human-gated, per global Git & MR Safety).
 
 NOT a byte-identical synced script — it lives only here (xg-dev-workflow/tools/).
@@ -24,10 +24,13 @@ compare-face change without a same-batch 变更/退役 annotation blocks the com
 line per card. The (ad) anchor check is the after-the-fact backstop.
 
 Usage:
-  commit-data-repos.py [--message MSG] [--reason TEXT] [--only kb|docs] [--project NAME]
-`--project NAME` scopes the commit to that project's paths only (both repos) — the
-gate-commit mode; paths outside NAME stay uncommitted (warned, not lost). Omit it for
-the sweep safety net.
+  commit-data-repos.py [--message MSG] [--reason TEXT] [--only kb|docs]
+                       [--project NAME | --card PROJECT/NNN]
+`--card PROJECT/NNN` is the gate-commit / single-card park mode (027): docs scope =
+the card dir + the project's index.md/roadmap.md (shared-file row-level ride-along is
+accepted), KB scope stays project-level; zero/multiple card-dir matches报错不静默.
+`--project NAME` scopes to a whole project (learn/improve 等项目级写入); paths outside
+scope stay uncommitted (warned, not lost). Omit both for the sweep safety net.
 Exit 0 always (a commit failure on one repo is reported, doesn't abort the other).
 """
 import argparse
@@ -296,13 +299,17 @@ def _add_commit(repo: Path, pathspecs: list, message: str) -> subprocess.Complet
 
 
 def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str, inited: bool,
-                   allow: bool = False) -> list:
-    """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit."""
-    pathspecs = existing_pathspecs(repo, scoped_pathspecs(kind, project))
+                   allow: bool = False, spec_override: list = None,
+                   scope_desc: str = None) -> list:
+    """`--project` mode (R1/R3/R4): commit only `project`'s pathspecs, ≤1 commit.
+    `--card` mode (027 HLD-6) reuses this with an explicit pathspec list."""
+    scope_desc = scope_desc or f"--project {project}"
+    pathspecs = existing_pathspecs(repo, spec_override if spec_override is not None
+                                   else scoped_pathspecs(kind, project))
     if inited:
         pathspecs = pathspecs + [".gitignore"]  # D3: never lost to scoping
     if not pathspecs:
-        return [f"{label}: nothing to commit for project {project}"]
+        return [f"{label}: nothing to commit for {scope_desc}"]
     guard = diff_guard(repo, kind, pathspecs, allow)
     if guard:
         return ([f"{label}: BLOCKED — LLD-8 diff guard (pass --allow-approved-edit to override):"]
@@ -310,14 +317,14 @@ def _commit_scoped(repo: Path, label: str, kind: str, message: str, project: str
     msg = ("init: " + label + " repo\n\n" + message) if inited else message
     res = _add_commit(repo, pathspecs, msg)
     if res.returncode != 0:
-        return [f"{label}: nothing committed for project {project} "
+        return [f"{label}: nothing committed for {scope_desc} "
                 f"({res.stdout.strip() or res.stderr.strip()})"]
     head = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()
-    lines = [f"{label}: committed {head} (project {project}){' (initialized)' if inited else ''}"]
+    lines = [f"{label}: committed {head} ({scope_desc}){' (initialized)' if inited else ''}"]
     leftover = parse_porcelain_z(git(repo, "status", "--porcelain", "-uall", "-z").stdout)
     if leftover:
         lines.append(f"{label}: {len(leftover)} path(s) left uncommitted "
-                      f"(out of scope for --project {project}): " + ", ".join(leftover))
+                      f"(out of scope for {scope_desc}): " + ", ".join(leftover))
     return lines
 
 
@@ -360,8 +367,24 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool,
     return lines or [f"{label}: clean — nothing to commit"]
 
 
+def card_pathspecs(docs: Path, card: str):
+    """`<project>/<NNN>` -> (project, docs pathspecs) by literal glob
+    `<project>/<NNN>-*` (027 HLD-6): no fuzzy match; zero or multiple hits报错不静默
+    (resolve_card's SystemExit would be swallowed by the exit-0 contract — panel F14).
+    Scope = the card dir + the project's shared board files."""
+    project, _, nnn = card.partition("/")
+    if not project or not re.fullmatch(r"\d{3}", nnn or ""):
+        return None, [f"--card 参数须为 <project>/<NNN>（收到 {card!r}）— 未提交"]
+    hits = sorted(d.name for d in (docs / project).glob(nnn + "-*") if d.is_dir()) \
+        if (docs / project).is_dir() else []
+    if len(hits) != 1:
+        return None, [f"--card {card}: 卡目录命中 {len(hits)} 个"
+                      f"（{', '.join(hits) or '无'}）— 响亮报错，未提交"]
+    return project, [f"{project}/{hits[0]}", f"{project}/index.md", f"{project}/roadmap.md"]
+
+
 def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None,
-                allow: bool = False) -> list:
+                card: str = None, allow: bool = False) -> list:
     if not repo.exists():
         return [f"{label}: {repo} does not exist — skipped"]
     inited = False
@@ -373,6 +396,16 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
             gi.write_text(GITIGNORE, encoding="utf-8")
         inited = True
 
+    if card is not None:
+        if kind == "docs":
+            cproj, specs = card_pathspecs(repo, card)
+            if cproj is None:
+                return [f"{label}: " + ln for ln in specs]
+            return _commit_scoped(repo, label, kind, message, cproj, inited, allow,
+                                  spec_override=specs, scope_desc=f"--card {card}")
+        # KB 仓无卡目录：--card 时 KB 半保持 project 级（027 HLD-6/F6）
+        return _commit_scoped(repo, label, kind, message, card.partition("/")[0],
+                              inited, allow, scope_desc=f"--card {card} (KB project 级)")
     if project is not None:
         return _commit_scoped(repo, label, kind, message, project, inited, allow)
     return _commit_sweep(repo, label, kind, message, inited, allow)
@@ -385,11 +418,18 @@ def main():
     ap.add_argument("--only", choices=["kb", "docs"], default=None)
     ap.add_argument("--project", default=None,
                     help="scoped mode (R3): commit only this project's paths, "
-                         "in both repos (R4). Omit for the sweep safety net.")
+                         "in both repos (R4) — learn/improve 等项目级写入用。")
+    ap.add_argument("--card", default=None, metavar="PROJECT/NNN",
+                    help="card scope (027 HLD-6): docs = the card dir + the project's "
+                         "index.md/roadmap.md; KB stays project-level. Gate commits "
+                         "and single-card park close-outs use this.")
     ap.add_argument("--allow-approved-edit", action="store_true",
                     help="override the LLD-8 diff guard: commit approved-block "
                          "compare-face changes and book a log.md line per card.")
     a = ap.parse_args()
+    if a.card and a.project:
+        print("--card 与 --project 互斥 — 未提交")
+        sys.exit(0)
 
     cp = config_path()
     text = cp.read_text(encoding="utf-8") if cp.exists() else ""
@@ -409,7 +449,7 @@ def main():
 
     for repo, label, kind in targets:
         for line in commit_repo(repo, label, kind, default_msg, project=a.project,
-                                allow=a.allow_approved_edit):
+                                card=a.card, allow=a.allow_approved_edit):
             print(line)
     sys.exit(0)
 
