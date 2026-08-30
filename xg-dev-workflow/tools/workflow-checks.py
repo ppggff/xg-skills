@@ -2069,6 +2069,68 @@ def _long_table_cells(text):
     return hits
 
 
+CHECKBOX_MONO_CUTOFF = "2026-08-31"   # (af) 027 landing +1 — pre-gate family (created-only)
+CHECKPOINT_HEAD = re.compile(r"^###\s+Checkpoint\b[^\n]*", re.M | re.I)
+BOX_STATE = re.compile(r"^\s*-\s*`?\[([ x!])\]`?", re.M)
+
+
+def check_checkbox_monotonic(card_dir, ws):
+    """(af) 027 HLD-5 — two deterministic implications, zero assertion-word parsing:
+    A1 plan.md: a `### Checkpoint` heading block with any checked item while an
+    EARLIER task block still holds `[ ]`/`[!]` acceptance; A2 test.md: a checked
+    conclusion in `## Results` (backticked cells count) while `### 回归` (level 3)
+    holds unchecked rows. Pre-gate activation (created ≥ cutoff only — the 026
+    evidence hit during implementation, gate-scoped would be too late). No
+    Checkpoint block = not-yet-due (legal shape, the (h) un-split precedent); an
+    existing test.md missing either section = carrier-missing (expected carrier
+    absent — 023 vocabulary); plan.md/test.md absent = not-yet-due (their absence
+    is other checks' concern)."""
+    created = _card_created(card_dir, ws)
+    if not created:
+        return [], [], [("carrier-missing", "no created date")]
+    if created < CHECKBOX_MONO_CUTOFF:
+        return [], [], [("grandfathered", "pre-%s card" % CHECKBOX_MONO_CUTOFF)]
+    findings, exs = [], []
+    plan = ws._read(os.path.join(card_dir, "plan.md"))
+    if plan:
+        heads = list(ws.TASK_HEAD.finditer(plan))
+        cps = list(CHECKPOINT_HEAD.finditer(plan))
+        if not cps:
+            exs.append(("not-yet-due", "plan has no Checkpoint block"))
+        for cp in cps:
+            block = plan[cp.end():]
+            nxt = re.search(r"^###\s", block, re.M)
+            block = block[:nxt.start()] if nxt else block
+            if "x" not in BOX_STATE.findall(block):
+                continue
+            for h in heads:
+                if h.start() > cp.start():
+                    continue
+                tblock = plan[h.end():]
+                tnxt = re.search(r"^###\s", tblock, re.M)
+                tblock = tblock[:tnxt.start()] if tnxt else tblock
+                bad = [b for b in BOX_STATE.findall(tblock) if b in (" ", "!")]
+                if bad:
+                    findings.append("plan-checkpoint-premature: %s 已勾而先序 %s 存在未勾/失败验收"
+                                    % (cp.group(0).strip("# ").strip(), h.group(1)))
+    else:
+        exs.append(("not-yet-due", "plan.md absent"))
+    test = ws._read(os.path.join(card_dir, "test.md"))
+    if test:
+        results = ws._section(test, r"Results")
+        regress = ws._section(test, r"回归", level=3)
+        if not results:
+            exs.append(("carrier-missing", "test.md without Results section"))
+        if not regress:
+            exs.append(("carrier-missing", "test.md without 回归 section"))
+        if results and regress and "[x]" in results and \
+                re.search(r"^\s*-\s*\[ \]", regress, re.M):
+            findings.append("test-results-vs-regression: Results 已勾结论而回归节存在未勾行")
+    else:
+        exs.append(("not-yet-due", "test.md absent"))
+    return findings, [], exs
+
+
 def check_long_cells(card_dir, ws):
     """(ag) 028: over-long load-bearing slots — report-only hints on the skips
     stream (visible, never gates; the (k) gloss-hint precedent). Faces: table
@@ -2181,8 +2243,11 @@ CARD_CHECKS = (
     ("block-views", lambda p, c, ws: check_block_views(c, ws),
      _m("(ae)", "引用解析/Effect 覆盖/生成索引一致/环/死引（(c3)(c5)(c7) 升格 + (a)(c) 等价）",
         "doc-native 卡", "026 T14", misfire="DocNativeBlockViews")),
+    ("checkbox-monotonic", lambda p, c, ws: check_checkbox_monotonic(c, ws),
+     _m("(af)", "plan Checkpoint/test Results 勾选单调核（两蕴含式，零断言词解析）",
+        "cutoff 后卡（created-only，pre-gate 族）", "card 027", misfire="CheckboxMonotonic")),
     ("long-cell", lambda p, c, ws: check_long_cells(c, ws),
-     _m("(ag)", "载重格位超长单行 hint（表格 cell/block 单行字段 >120 字符；skips 流不 gate；(af) 留给 plan 勾选单调核候选）",
+     _m("(ag)", "载重格位超长单行 hint（表格 cell/block 单行字段 >120 字符；skips 流不 gate）",
         "cutoff 后文件（created-only）", "card 028", misfire="LongCellHint")),
 )
 

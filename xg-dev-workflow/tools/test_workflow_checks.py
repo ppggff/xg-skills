@@ -1423,6 +1423,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", GF, "pre-2026-08-19 card"),
             ("grill-signature", GF, "pre-2026-08-19 card"),
+            ("checkbox-monotonic", GF, "pre-2026-08-31 card"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
             ("long-cell", CM, "requirement.md: created date unknown, long-cell era unjudged"),
@@ -1459,6 +1460,7 @@ class EmissionTableConsistency(unittest.TestCase):
             ("adr-hygiene", CM, "no adr dir or empty"),
             ("ledger-rows", ND, "doc-gate card, ledger is a forbidden carrier"),
             ("grill-signature", CM, "no grill-log, signatures not checkable"),
+            ("checkbox-monotonic", "grandfathered", "pre-2026-08-31 card"),
             ("home-pointer", CM, "design.md missing"),
             ("req-handoff", CM, "no 需求条目 table"),
             ("long-cell", CM, "requirement.md: created date unknown, long-cell era unjudged"),
@@ -2159,3 +2161,55 @@ class DeadBlockDepsNotReferences(unittest.TestCase):
                "### R3 [requirement] retired\n- 陈述: 也死。\n- depends-on: —\n")
         findings, _, _ = wc.check_ledger(d, ws)
         self.assertFalse([f for f in findings if "superseded-ref" in f], findings)
+
+
+class CheckboxMonotonic(unittest.TestCase):
+    """(af) 027 HLD-5: two implications + boundary classifications."""
+
+    PLAN_BAD = ("---\nid: 915\n---\n### T1: one\n- **Acceptance:**\n  - [ ] pending\n\n"
+                "### Checkpoint: after T1\n- [x] all green so far\n")
+    PLAN_OK = ("---\nid: 915\n---\n### T1: one\n- **Acceptance:**\n  - [x] done\n\n"
+               "### Checkpoint: after T1\n- [x] all green so far\n")
+    TEST_BAD = ("## Test plan\n### 回归 (regression)\n- [ ] behavior kept\n\n"
+                "## Results\n| case | result |\n|---|---|\n| suite | `[x]` pass |\n")
+
+    def _card(self, created="2026-09-01", plan=None, test=None):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md", "---\nid: 915\ncreated: %s\n---\n" % created)
+        if plan:
+            _write(d, "plan.md", plan)
+        if test:
+            _write(d, "test.md", test)
+        return d
+
+    def test_a1_premature_checkpoint_fires(self):
+        f, _, _ = wc.check_checkbox_monotonic(self._card(plan=self.PLAN_BAD), ws)
+        self.assertTrue(any("plan-checkpoint-premature" in x and "T1" in x for x in f), f)
+
+    def test_a1_clean_checkpoint_silent(self):
+        f, _, _ = wc.check_checkbox_monotonic(self._card(plan=self.PLAN_OK), ws)
+        self.assertEqual(f, [])
+
+    def test_a2_results_vs_regression_fires(self):
+        f, _, _ = wc.check_checkbox_monotonic(self._card(test=self.TEST_BAD), ws)
+        self.assertTrue(any("test-results-vs-regression" in x for x in f), f)
+
+    def test_boundary_no_checkpoint_not_yet_due(self):
+        plan = "---\nid: 915\n---\n### T1: one\n- **Acceptance:**\n  - [ ] pending\n"
+        f, _, exs = wc.check_checkbox_monotonic(self._card(plan=plan), ws)
+        self.assertEqual(f, [])
+        self.assertIn(("not-yet-due", "plan has no Checkpoint block"), exs)
+
+    def test_boundary_missing_sections_carrier_missing(self):
+        test = "## Test plan\nno sections here\n"
+        f, _, exs = wc.check_checkbox_monotonic(self._card(test=test), ws)
+        self.assertEqual(f, [])
+        kinds = [e[1] for e in exs if e[0] == "carrier-missing"]
+        self.assertTrue(any("Results" in k for k in kinds), exs)
+        self.assertTrue(any("回归" in k for k in kinds), exs)
+
+    def test_pre_cutoff_grandfathered(self):
+        f, _, exs = wc.check_checkbox_monotonic(
+            self._card(created="2026-08-01", plan=self.PLAN_BAD), ws)
+        self.assertEqual(f, [])
+        self.assertEqual(exs[0][0], "grandfathered")
