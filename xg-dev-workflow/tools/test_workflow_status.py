@@ -1373,3 +1373,26 @@ class CardCreatedMoved(unittest.TestCase):
         (Path(d) / "requirement.md").write_text(
             "---\nid: 913\ncreated: 2026-8-30\n---\n", encoding="utf-8")
         self.assertEqual(ws.card_created(d), "")
+
+
+class RetirementWordShapes(unittest.TestCase):
+    """027 HLD-7/[Fact-11]: word alternation + word inside the FIRST struck span;
+    superseded-ref-style compounds stay live."""
+
+    def test_strike_inner_superseded(self):        # the 014 idiom
+        self.assertTrue(ws.RETIRE_MARK.match("~~superseded 2026-07-31 → R8/R9/R10~~（拆分）"))
+
+    def test_word_after_strike(self):              # the classic form
+        self.assertTrue(ws.RETIRE_MARK.match("~~旧陈述~~ retired (2026-01-01: why)"))
+        self.assertTrue(ws.RETIRE_MARK.match("~~旧陈述~~ superseded → R6"))
+
+    def test_bare_words(self):
+        self.assertTrue(ws.RETIRE_MARK.match("retired (2026-01-01)"))
+        self.assertTrue(ws.RETIRE_MARK.match("superseded → R6"))
+
+    def test_compound_word_stays_live(self):
+        self.assertFalse(ws.RETIRE_MARK.match("superseded-ref 两形分治的陈述"))
+        self.assertFalse(ws.RETIRE_ID.search(" R3 消除 superseded-ref 张力去掉词 "))
+
+    def test_mid_prose_not_accounting(self):
+        self.assertFalse(ws.RETIRE_MARK.match("该行为已在 R6 中 superseded 处理"))

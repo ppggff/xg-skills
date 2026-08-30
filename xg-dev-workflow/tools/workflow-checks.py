@@ -214,7 +214,10 @@ def _referenced_ids(card_dir, ws):
     for t in ws.trace_plan(card_dir).values():
         refs |= set(t["rids"])
     for b in ws.parse_ledger(card_dir)[0]:
-        refs |= set(b["deps"])
+        # a dead block's fields are no longer 载重 — its deps don't revive as
+        # references (027 T2: R5[retired]→R3 kept a false superseded-ref alive)
+        if b["state"] in ws.ACTIVE_STATES:
+            refs |= set(b["deps"])
     return refs
 
 

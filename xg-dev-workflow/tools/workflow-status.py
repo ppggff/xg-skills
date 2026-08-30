@@ -371,14 +371,16 @@ def _strip_xcard(text):
 
 
 # Retirement accounting (M2 撤销 keeps the id and marks the row; templates/requirement.md
-# pins the recognized forms): the id cell struck (`~~R9~~`) or itself carrying `retired`,
-# or the first content cell beginning `retired …` / `~~…~~ retired …`. Deliberately
-# cell-scoped — a live row merely mentioning "retired" mid-prose stays a reference, so
-# superseded-ref/dangling-id still fire on live rows citing dead ids.
-RETIRE_ID = re.compile(r"~~|retired\b", re.I)
-# struck span(s) + optional separator punctuation (— · : …), then `retired`; callers
-# strip `**` first. Must anchor at cell start — mid-prose "retired" is not accounting.
-RETIRE_MARK = re.compile(r"^\s*(?:~~[^~]*~~[^\w~]*)*retired\b", re.I)
+# pins the recognized forms): the id cell struck (`~~R9~~`) or itself carrying `retired`/
+# `superseded`, or the first content cell beginning `retired …` / `~~…~~ retired …` /
+# `~~superseded … → …~~`（027 HLD-7: word alternation + the word inside the FIRST struck
+# span — the 014 idiom; [Fact-11]）. Deliberately cell-scoped — a live row merely
+# mentioning the words mid-prose stays a reference, so superseded-ref/dangling-id still
+# fire on live rows citing dead ids. `(?!-)` keeps "superseded-ref"-style compounds out.
+RETIRE_ID = re.compile(r"~~|(?:retired|superseded)\b(?!-)", re.I)
+# optional opening strike, struck span(s) + optional separator punctuation, then the
+# retirement word; callers strip `**` first. Anchored at cell start.
+RETIRE_MARK = re.compile(r"^\s*(?:~~\s*)?(?:[^~]*~~[^\w~]*)*(?:retired|superseded)\b(?!-)", re.I)
 
 # Narrow table-row id harvest (027 HLD-1/HLD-3): cards created on/after this cutoff take
 # ids only from id-bearing cells on the trace display and (q) paths; earlier cards keep

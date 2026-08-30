@@ -2141,3 +2141,21 @@ class DocNativeReviewFixesC(unittest.TestCase):
                + "\n| ID | 条目 |\n|---|---|\n| Req-1 | t |\n")
         f, _, _ = wc.check_r_trace("p", d, ws)
         self.assertTrue(any(x.startswith("trace: Eff-5 no-coverage-row") for x in f), f)
+
+
+class DeadBlockDepsNotReferences(unittest.TestCase):
+    """027 T2: a dead (superseded/retired) block's depends-on lines are not live
+    references — no superseded-ref from dead→dead citation."""
+
+    def test_dead_dep_no_superseded_ref(self):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md",
+               "---\nid: 914\nstatus: confirmed\ngovernance: ledger\ncreated: 2026-08-01\n---\n"
+               "## 需求条目\n| ID | 需求条目 |\n|---|---|\n| R1 | 活条目 |\n")
+        _write(d, "decisions.md",
+               "# 决策账本\n\n### R1 [requirement] approved\n- 陈述: 活。\n- depends-on: —\n"
+               "- approved: 2026-08-02 gate abc1234\n\n"
+               "### R2 [requirement] superseded\n- 陈述: 死。\n- depends-on: R3\n\n"
+               "### R3 [requirement] retired\n- 陈述: 也死。\n- depends-on: —\n")
+        findings, _, _ = wc.check_ledger(d, ws)
+        self.assertFalse([f for f in findings if "superseded-ref" in f], findings)
