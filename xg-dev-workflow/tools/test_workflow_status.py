@@ -1437,3 +1437,28 @@ class XcardAttributionForms(unittest.TestCase):
                     "document the gitweb companion (T6)",
                     "status viewer T2-T6 shell"):
             self.assertFalse(ws.XCARD_TAIL.search(msg), msg)
+
+
+class ReviewFixParsing(unittest.TestCase):
+    """027 review fixes #1/#2/#15/#16."""
+
+    def test_trailing_blank_no_phantom_cell(self):          # #1
+        rows = list(ws.table_rows("| S1 | R3 |   \n"))
+        self.assertEqual(len(rows[0]["cells"]), 2)
+
+    def test_retire_mark_prose_before_strike_stays_live(self):   # #2
+        for cell in ("把 ~~旧口径~~ superseded 的说法改掉",
+                     "见 ~~注~~ retired 词形的定义",
+                     "承接 ~~014 R5~~ — superseded 由 Req-9 顶替"):
+            self.assertFalse(ws.RETIRE_MARK.match(cell), cell)
+
+    def test_idcol_head_tightened(self):                     # #15
+        self.assertFalse(ws.IDCOL_HEAD.match("R-idea 的讨论"))
+        self.assertTrue(ws.IDCOL_HEAD.match("R-id / Effect 项"))
+
+    def test_idcols_reset_between_tables(self):              # #16
+        sect = ("| Part | R |\n|---|---|\n| a | R1 |\n\n"
+                "| R7 走这 | x |\n")
+        rows = list(ws.table_rows(sect))
+        self.assertEqual(rows[0]["idcols"], [1])
+        self.assertEqual(rows[1]["idcols"], [0])   # second headerless table falls back

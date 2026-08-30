@@ -380,7 +380,8 @@ def _strip_xcard(text):
 RETIRE_ID = re.compile(r"~~|(?:retired|superseded)\b(?!-)", re.I)
 # optional opening strike, struck span(s) + optional separator punctuation, then the
 # retirement word; callers strip `**` first. Anchored at cell start.
-RETIRE_MARK = re.compile(r"^\s*(?:~~\s*)?(?:[^~]*~~[^\w~]*)*(?:retired|superseded)\b(?!-)", re.I)
+RETIRE_MARK = re.compile(
+    r"^\s*(?:(?:~~[^~]*~~[^\w~]*)*|~~\s*)(?:retired|superseded)\b(?!-)", re.I)
 
 # Narrow table-row id harvest (027 HLD-1/HLD-3): cards created on/after this cutoff take
 # ids only from id-bearing cells on the trace display and (q) paths; earlier cards keep
@@ -389,7 +390,7 @@ REQ7_NARROW_CUTOFF = "2026-08-31"
 
 # id-bearing column headers (`**`-stripped): the R/R-id/ID family plus the section-local
 # variants the templates use. Data cells like "R1"/"Req-3" never match (digits break it).
-IDCOL_HEAD = re.compile(r"^(R|Req|ID|R[-– ]?id.*|需求条目|Effect ?项)$", re.I)
+IDCOL_HEAD = re.compile(r"^(R|Req|ID|R[-– ]?id\b.*|需求条目|Effect ?项)$", re.I)
 
 
 def card_created(card_dir):
@@ -407,8 +408,11 @@ def table_rows(sect):
     own id regex and cell choice. Yields {cells, idcols, retired, line}."""
     idcols = [0]
     for line in sect.splitlines():
-        ls = line.lstrip()
-        if not ls.startswith("|") or set(line.strip()) <= set("|-: "):
+        ls = line.strip()   # both ends — a trailing blank would mint a phantom cell
+        if not ls.startswith("|"):
+            idcols = [0]    # table ended — the next table re-resolves or falls back
+            continue
+        if set(ls) <= set("|-: "):
             continue
         cells = [c.strip() for c in ls.strip("|").split("|")]
         stripped = [c.replace("**", "").strip() for c in cells]
