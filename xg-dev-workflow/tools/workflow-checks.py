@@ -249,8 +249,9 @@ def _dep_cycles(graph):
 
 
 APPROVE_NOTE = re.compile(r"^-\s*approved:\s*\d{4}-\d{2}-\d{2}\s+gate\s+\S+", re.M)
-ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved",
-                  "superseded": "superseded", "deprecated": "retired"}
+ADR_STATUS_MAP = {"proposed": "proposed", "accepted": "approved", "approved": "approved",
+                  "superseded": "superseded", "deprecated": "retired",
+                  "rejected": "retired"}   # rejected = 证伪留档，账本侧同 retired（027 review #8）
 
 
 def check_card(project, card_dir, ws):
@@ -1392,7 +1393,9 @@ def check_adr_hygiene(project, card_dir, ws):
         n = text.count("\n") + 1
         if n > ADR_BODY_CAP:
             findings.append("adr-over-cap: %s %d lines (cap %d)" % (base, n, ADR_BODY_CAP))
-        sw = re.search(r"^Status:\s*(\w+)", text, re.M)
+        sw = re.search(r"^Status:\s*\**(\w+)", text, re.M | re.I)
+        if not sw:
+            exs.append(("carrier-missing", "adr without parsable Status line (%s)" % base))
         if sw and ADR_STATUS_MAP.get(sw.group(1).lower()) is None:
             # 迁自 (b-ADR)（027 HLD-4(b)）：不可解析状态让 ADR 逃逸后续核——mode-agnostic 宿主
             if created >= ADR_UNPARSABLE_CUTOFF:
@@ -1400,7 +1403,7 @@ def check_adr_hygiene(project, card_dir, ws):
             else:
                 exs.append(("grandfathered", "pre-%s adr-status-unparsable (%s)"
                             % (ADR_UNPARSABLE_CUTOFF, base)))
-        m = re.search(r"^Status:\s*superseded\s*(?:by\s*(ADR-\d{4}))?", text, re.M | re.I)
+        m = re.search(r"^Status:\s*\**superseded\**\s*(?:by\s*\[?(ADR-\d{4}))?", text, re.M | re.I)
         if m and not m.group(1):
             if created >= ADR_NOBY_CUTOFF:
                 findings.append("adr-superseded-no-by: %s" % base)

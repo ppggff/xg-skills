@@ -2313,3 +2313,35 @@ class CheckboxMonotonicReviewFixes(unittest.TestCase):
         f, _, _ = wc.check_checkbox_monotonic(self._card(plan=plan), ws)
         self.assertEqual(len(f), 1)
         self.assertIn("T1, T2", f[0])
+
+
+class AdrStatusReviewFixes(unittest.TestCase):
+    """027 review fixes #7/#8/#10."""
+
+    def _card(self, adr, created="2026-09-01"):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md", "---\nid: 918\ncreated: %s\n---\n" % created)
+        _write(d, "adr/0001-x.md", adr)
+        return d
+
+    def test_lowercase_status_parsed(self):                  # #7
+        f, _, _ = wc.check_adr_hygiene("p", self._card("# a\nstatus: 待定\n"), ws)
+        self.assertTrue(any("adr-status-unparsable" in x for x in f), f)
+
+    def test_bold_status_parsed(self):                       # #7
+        f, _, _ = wc.check_adr_hygiene("p", self._card("# a\nStatus: **superseded** by ADR-0003\n"), ws)
+        self.assertEqual([x for x in f if "no-by" in x or "unparsable" in x], [], f)
+
+    def test_no_status_line_exempted(self):                  # #7
+        f, _, exs = wc.check_adr_hygiene("p", self._card("# a\n无状态行。\n"), ws)
+        self.assertTrue(any("without parsable Status line" in e[1] for e in exs), exs)
+
+    def test_approved_rejected_parseable(self):              # #8
+        for w in ("approved", "rejected"):
+            f, _, _ = wc.check_adr_hygiene("p", self._card("# a\nStatus: %s\n" % w), ws)
+            self.assertEqual([x for x in f if "unparsable" in x], [], (w, f))
+
+    def test_markdown_link_by_pointer_accepted(self):        # #10
+        f, _, _ = wc.check_adr_hygiene(
+            "p", self._card("# a\nStatus: superseded by [ADR-0007](./0007-x.md)\n"), ws)
+        self.assertEqual([x for x in f if "no-by" in x], [], f)
