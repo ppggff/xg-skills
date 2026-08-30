@@ -48,6 +48,11 @@ priorities and tactics (see "Phase-specific layers").
   **Presentation-side extension (026 Req-3):** a general reply (「其他按推荐」类) covers only
   the 照案 rows this round's ask listed; the 拿不准 group closes only per-row, or by an
   explicit release naming the group (ask-routing-core.md「Value-rewrite direction」).
+  **A Tier 2 真判 row never shares a message with a 照案 batch asking for one blanket
+  reply** — the presenter's duty is to not manufacture the mixed message at all: a solo
+  ask gets its own message and its own answer word; enumerating 真判 rows inside a batch
+  message and accepting the batch word as their answer is the bundling breach itself
+  (the transcription rule above then can't save it).
   **Turn-side extension (026 Req-14):** the reply turn to a human's solo challenge carries no
   new substantive ask — the round-end go ask stays exempt (the three-ask-shapes rule above
   is unchanged); the challenge-reply turn is the highest-value round shape and stays clean.
@@ -415,6 +420,11 @@ they never close the criterion or relabel its coverage ("收敛到只有 X"). A 
 only through its declared table, every row filled. (The archetype: a writer-axis criterion
 closed by a 5-DDL probe in the requirement grill itself — the confirmed doc then carried both
 the instruction and the false "done", and design faithfully inherited it.)
+
+**Fold-in ripple grep.** A round that changes a block/decision also greps the WHOLE phase
+doc (closing sections included — 验证策略 / 影响面 / contract tables / 速览) for the changed
+id and its key phrases, and updates stale wording in the same batch — "block 内改、收口节
+未扫" is a recurring shape (class-to-constraint).
 
 When a round's verdict lands in the phase doc, **fold the correction into the live text**:
 rewrite the affected sentences/sections so the body reads as if written today. Process history

@@ -4,6 +4,23 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-30 — M6 retro (post-027 session)
+
+- **grill.md**: Tier 2 真判 rows must not share a message with a 照案 batch soliciting one
+  blanket reply — the presenter's duty, on top of the existing transcription-side rule.
+  Incident: 027 requirement rounds 2/4 — one「照案」/「按推荐」each got transcribed as 3
+  and 4 真判 approvals; lens 4's verbatim pack caught it, 5 items re-confirmed at the gate.
+- **grill.md**: fold-in ripple grep — a round changing a block also greps the whole phase
+  doc (closing sections included) for the changed id/phrases. Incident: 027 design — Ask-45
+  and Ask-41 folds left stale 五形/契约表/qualities wording twice (lens 4 反向漏记 both).
+- **Dropped as sediment** (pruning pass): a prose reminder about strict annotation grammar —
+  the (ac) annotation core already rejects deviations cheaply (two quick rework loops in 027,
+  both mechanically caught; a reminder line adds no behavior).
+- **Deferred → roadmap**: no-grill-log 升 finding for discussion-first decision-zone cards —
+  another session (2026-08-30, devenv) opened three confirm gates with zero receipts while
+  the visible skip was ignored six times; rules exist, the skip tier didn't bite. Needs its
+  own 独立裁 (check-semantics change).
+
 ## 2026-08-30 — card 027 (checks & tooling hardening batch)
 
 Seven deterministic-layer faces hardened in one batch (precedent: 024's clause batch):
