@@ -2213,3 +2213,53 @@ class CheckboxMonotonic(unittest.TestCase):
             self._card(created="2026-08-01", plan=self.PLAN_BAD), ws)
         self.assertEqual(f, [])
         self.assertEqual(exs[0][0], "grandfathered")
+
+
+class CarrierPresentPromotions(unittest.TestCase):
+    """027 T5 (HLD-4): four present-but-silent shapes are findings from their
+    per-concern cutoffs; pre-cutoff classifies grandfathered."""
+
+    def _card(self, created="2026-09-01", facts=None, adr=None, grill=None,
+              gov="ledger"):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md",
+               "---\nid: 916\nstatus: confirmed\ngovernance: %s\ncreated: %s\n---\n"
+               % (gov, created))
+        if facts:
+            _write(d, "facts.md", facts)
+        if adr:
+            _write(d, "adr/0001-x.md", adr)
+        if grill:
+            _write(d, "notes/grill-design.md", grill)
+            _write(d, "design.md", "---\nstatus: frozen\n---\n## How it meets\n")
+        return d
+
+    def test_fact_no_source_fires_post_cutoff(self):
+        f, _, _ = wc.check_fact_markers(
+            self._card(facts="### Fact-1 [VERIFIED]\n- 事实: x。\n"), ws)
+        self.assertTrue(any("fact-no-source: Fact-1" in x for x in f), f)
+
+    def test_fact_no_source_pre_cutoff_stays_exempt(self):
+        f, _, exs = wc.check_fact_markers(
+            self._card(created="2026-08-01",
+                       facts="### Fact-1 [VERIFIED]\n- 事实: x。\n"), ws)
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "VERIFIED block without 来源 field"), exs)
+
+    def test_adr_status_unparsable_fires(self):
+        f, _, _ = wc.check_adr_hygiene("p", self._card(
+            adr="# a\nStatus: 待定\n"), ws)
+        self.assertTrue(any("adr-status-unparsable" in x and "待定" in x for x in f), f)
+
+    def test_adr_superseded_no_by_fires_and_grandfathers(self):
+        adr = "# a\nStatus: superseded\n"
+        f, _, _ = wc.check_adr_hygiene("p", self._card(adr=adr), ws)
+        self.assertTrue(any("adr-superseded-no-by" in x for x in f), f)
+        f2, _, exs2 = wc.check_adr_hygiene("p", self._card(created="2026-08-01", adr=adr), ws)
+        self.assertEqual([x for x in f2 if "no-by" in x], [])
+        self.assertTrue(any(e[0] == "grandfathered" and "no-by" in e[1] for e in exs2), exs2)
+
+    def test_receipt_near_form_fires_post_cutoff(self):
+        grill = "# log\n\n**Panel receipt: round = 9 · lenses = 1**\n"  # 冒号在闭 ** 前 = 近似形
+        f, _, _ = wc.check_panel_receipts("p", self._card(grill=grill), ws)
+        self.assertTrue(any("receipt-near-form" in x for x in f), f)

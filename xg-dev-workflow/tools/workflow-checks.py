@@ -21,7 +21,11 @@ silently returning; each emission point states its class and reason in place:
 - carrier-missing: an expected carrier is absent, or a present carrier is
   structurally undecidable (missing doc/section/anchor) — a real coverage hole;
   default output: already-visible skip lines stay verbatim, previously-silent paths
-  fold into the counting line (bucket 2).
+  fold into the counting line (bucket 2). 027 carve-out: four present-but-silent
+  shapes are FINDINGS from their per-concern cutoffs (fact-no-source /
+  adr-status-unparsable / adr-superseded-no-by / receipt-near-form); pre-cutoff
+  instances classify grandfathered — new present-carrier gaps default to findings,
+  CM stays for true absence or unpromoted undecidables.
 
 Lives only in xg-dev-workflow/tools/ (not a synced copy).
 """
@@ -102,7 +106,10 @@ def check_fact_markers(card_dir, ws):
         body = text[m.end(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
         src = FACT_SOURCE.search(body)
         if not src:
-            exs.append(("carrier-missing", "VERIFIED block without 来源 field"))
+            if _card_created(card_dir, ws) >= FACT_NOSOURCE_CUTOFF:
+                findings.append("fact-no-source: %s VERIFIED 无来源 field" % m.group(1))
+            else:
+                exs.append(("carrier-missing", "VERIFIED block without 来源 field"))
             continue
         src = src.group(1)
         hit = FACT_SELF_INFER.search(src)
@@ -335,8 +342,8 @@ def check_ledger(card_dir, ws):
             exs.append(("carrier-missing", "(b-ADR) ADR without active ledger block"))
             continue
         word = ADR_STATUS_MAP.get(m.group(1).lower())
-        if word is None:
-            exs.append(("carrier-missing", "(b-ADR) ADR status value unparsable"))
+        # unparsable status 迁 (t) 判（027 HLD-4(b)——本家族 ledger 卡门造成 doc-native
+        # 不可达 [Fact-7]）；此处仅在可解析词上继续状态镜像核
         if word == "approved" and any(b["state"] == "proposed" for b in act):
             findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
         elif word == "proposed" and all(b["state"] == "approved" for b in act):
@@ -363,6 +370,11 @@ TRANSCRIPTION_MARKER = "（落纸补充）"
 DISCUSSION_FIRST_CUTOFF = "2026-08-11"   # 019: grill-log mandatory-persist start
 RECEIPT_STRUCT_CUTOFF = "2026-08-17"     # 021 landing: structural anchor required from here
 GRILL_SHAPE_CUTOFF = "2026-08-18"        # 022 landing: canonical-shape finding era (gated cards)
+# 027 升档 cutoffs — per-concern named (the six-step ladder precedent), same landing value
+FACT_NOSOURCE_CUTOFF = "2026-08-31"     # (g) VERIFIED-无来源 → finding
+ADR_UNPARSABLE_CUTOFF = "2026-08-31"    # 原 (b-ADR) unparsable，迁 (t) 升 finding
+ADR_NOBY_CUTOFF = "2026-08-31"          # (t) superseded-无-by → finding
+RECEIPT_NEARFORM_CUTOFF = "2026-08-31"  # (l) 近似锚 → finding（∧ 既有 shape-era）
 GRILL_CANON_COLS = ("id", "question", "recommended", "chosen", "why", "depends-on", "status")
 RECEIPT_ANCHOR = re.compile(r"^(?:#{2,4}\s+Panel receipt|\*\*Panel receipt)", re.M | re.I)
 RECEIPT_LOOSE = re.compile(r"receipt", re.I)
@@ -732,9 +744,13 @@ def check_panel_receipts(project, card_dir, ws):
                         for ln in text.splitlines()):
             # near-form anchor passed the presence gate but yields zero blocks —
             # the block core silently checks nothing there
-            exs.append(("carrier-missing",
-                        "receipt anchor near-form, block core off (%s)"
-                        % os.path.basename(f)))
+            if created >= RECEIPT_NEARFORM_CUTOFF:
+                findings.append("receipt-near-form: %s 锚近似形，块核空转"
+                                % os.path.basename(f))
+            else:
+                exs.append(("carrier-missing",
+                            "receipt anchor near-form, block core off (%s)"
+                            % os.path.basename(f)))
         findings += _receipt_block_findings(os.path.basename(f), text,
                                             created >= RECEIPT_PREMISE_CUTOFF)
     return findings, [], exs
@@ -1367,6 +1383,7 @@ def check_adr_hygiene(project, card_dir, ws):
     if not adr_files:
         return [], [], [("carrier-missing", "no adr dir or empty")]
     findings, exs = [], []
+    created = _card_created(card_dir, ws)
     for f in adr_files:
         base = "adr/" + os.path.basename(f)
         text = ws._read(f)
@@ -1375,10 +1392,21 @@ def check_adr_hygiene(project, card_dir, ws):
         n = text.count("\n") + 1
         if n > ADR_BODY_CAP:
             findings.append("adr-over-cap: %s %d lines (cap %d)" % (base, n, ADR_BODY_CAP))
+        sw = re.search(r"^Status:\s*(\w+)", text, re.M)
+        if sw and ADR_STATUS_MAP.get(sw.group(1).lower()) is None:
+            # 迁自 (b-ADR)（027 HLD-4(b)）：不可解析状态让 ADR 逃逸后续核——mode-agnostic 宿主
+            if created >= ADR_UNPARSABLE_CUTOFF:
+                findings.append("adr-status-unparsable: %s '%s'" % (base, sw.group(1)))
+            else:
+                exs.append(("grandfathered", "pre-%s adr-status-unparsable (%s)"
+                            % (ADR_UNPARSABLE_CUTOFF, base)))
         m = re.search(r"^Status:\s*superseded\s*(?:by\s*(ADR-\d{4}))?", text, re.M | re.I)
         if m and not m.group(1):
-            exs.append(("carrier-missing",
-                        "superseded without 'by ADR-NNNN' pointer"))
+            if created >= ADR_NOBY_CUTOFF:
+                findings.append("adr-superseded-no-by: %s" % base)
+            else:
+                exs.append(("grandfathered", "pre-%s superseded-no-by (%s)"
+                            % (ADR_NOBY_CUTOFF, base)))
         if m and m.group(1):
             refs = sum(1 for ln in text.splitlines() if m.group(1) in ln)
             if refs > 2:
@@ -2191,7 +2219,7 @@ CARD_CHECKS = (
     ("design-sections", lambda p, c, ws: check_design_sections(c, ws),
      _m("(f)", "design.md 必备节在场", "design 在场", "011")),
     ("fact-markers", lambda p, c, ws: check_fact_markers(c, ws),
-     _m("(g)", "facts VERIFIED 标注↔来源一致（Fact-/F 双记法）", "facts.md 在场", "010/026")),
+     _m("(g)", "facts VERIFIED 标注↔来源一致（Fact-/F 双记法）+ 无来源升 finding（cutoff 后卡）", "facts.md 在场", "010/026/027")),
     ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws),
      _m("(h)", "plan Part 值 ⊆ design Parts 表", "新格式 Parts 表在场", "015")),
     ("governance", lambda p, c, ws: check_governance(c, ws),
@@ -2204,7 +2232,7 @@ CARD_CHECKS = (
     ("grill-reverse", check_grill_reverse,
      _m("(k)", "grill 表形/notation + resolved 反向存在", "022 cutoff 后", "022")),
     ("panel-receipts", check_panel_receipts,
-     _m("(l)", "receipt 块在场 + 结构核（premises/suspicions）", "gate 过卡", "021/024")),
+     _m("(l)", "receipt 块在场 + 结构核（premises/suspicions）+ 近似锚升 finding（shape-era ∧ cutoff）", "gate 过卡", "021/024/027")),
     ("docgate-gateline", check_docgate_gateline,
      _m("(m)", "doc-gate 卡 gate 行", "doc-gate 卡", "017")),
     ("supersede-residue", check_supersede_residue,
@@ -2221,7 +2249,7 @@ CARD_CHECKS = (
     ("progress-cap", check_progress_cap,
      _m("(s)", "progress 行数帽（活卡）", "活卡", "021")),
     ("adr-hygiene", check_adr_hygiene,
-     _m("(t)", "ADR Status 词/Supersedes 形", "adr/ 在场", "021")),
+     _m("(t)", "ADR Status 词/Supersedes 形 + unparsable/superseded-无-by 升 finding（cutoff 后卡，unparsable 迁自 (b)）", "adr/ 在场", "021/027")),
     ("ledger-rows", check_ledger_rows,
      _m("(x)", "doc↔账本行级一致（双写比对）", "ledger 存量卡",
         "024", disp="存量保留（doc-native 单写面无此税——结构性消解）")),
@@ -2276,10 +2304,10 @@ EXTRA_MANIFEST = (
     ("APPROVE_NOTE 正则", "存量保留（check_ledger (d) 用）；doc-native 域由 block_parse 文法接管"),
     ("护栏 2 手工 digest", "退役 → --digest 生成器（026 T7）"),
     ("roadmap: check-code-refs ledger-id 缺口", "落地（COMMENT_PATTERNS += 卡上下文 id 引用，026 T14）"),
-    ("roadmap: trace loose 匹配收紧", "显式回退——观察困扰频次（roadmap 原判据，无表决面）"),
-    ("roadmap: R-id 整行扫描并入括号 id", "显式回退——随 loose 收紧同判观察"),
-    ("roadmap: 存量账本 findings 语义张力", "化解——doc-native 单写面下无双写张力（新轨结构性消解）"),
-    ("roadmap: 载体在但契约不判 5 处升 finding", "显式回退——升 finding 需独立裁（023 R5/Out 禁动判定逻辑）"),
+    ("roadmap: trace loose 匹配收紧", "已落地 027 T3——loose 剔他卡紧邻归属形，残余带 ?"),
+    ("roadmap: R-id 整行扫描并入括号 id", "已落地 027 T1——cutoff 后卡表格行窄采（table_rows 单点）"),
+    ("roadmap: 存量账本 findings 语义张力", "已化解 027 T2——词形放宽 + 死块 deps 不算引用，存量 18 条消噪"),
+    ("roadmap: 载体在但契约不判 5 处升 finding", "已裁并落地 027 T5——四形升档（per-concern cutoff），(d) 撤档（Ask-45：doc-native 无前向对象）"),
     ("roadmap: M3 脚本化", "落地——(a)-(ae) 检查族 + --manifest 即其形（026）"),
 )
 
