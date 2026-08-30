@@ -374,12 +374,12 @@ def card_pathspecs(docs: Path, card: str):
     Scope = the card dir + the project's shared board files."""
     project, _, nnn = card.partition("/")
     if not project or not re.fullmatch(r"\d{3}", nnn or ""):
-        return None, [f"--card 参数须为 <project>/<NNN>（收到 {card!r}）— 未提交"]
+        return None, [f"--card expects <project>/<NNN> (got {card!r}) — nothing committed"]
     hits = sorted(d.name for d in (docs / project).glob(nnn + "-*") if d.is_dir()) \
         if (docs / project).is_dir() else []
     if len(hits) != 1:
-        return None, [f"--card {card}: 卡目录命中 {len(hits)} 个"
-                      f"（{', '.join(hits) or '无'}）— 响亮报错，未提交"]
+        return None, [f"--card {card}: {len(hits)} card dirs match "
+                      f"({', '.join(hits) or 'none'}) — loud fail, nothing committed"]
     return project, [f"{project}/{hits[0]}", f"{project}/index.md", f"{project}/roadmap.md"]
 
 
@@ -428,7 +428,7 @@ def main():
                          "compare-face changes and book a log.md line per card.")
     a = ap.parse_args()
     if a.card and a.project:
-        print("--card 与 --project 互斥 — 未提交")
+        print("--card and --project are mutually exclusive — nothing committed")
         sys.exit(0)
 
     cp = config_path()

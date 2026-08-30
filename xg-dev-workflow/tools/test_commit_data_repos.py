@@ -496,7 +496,7 @@ class CardScope(unittest.TestCase):
         d = self._docs()
         self._dirty(d)
         lines = cdr.commit_repo(Path(d), "docs", "docs", "msg", card="proj/099")
-        self.assertTrue(any("命中 0 个" in ln for ln in lines), lines)
+        self.assertTrue(any("0 card dirs match" in ln for ln in lines), lines)
         log = subprocess.run(["git", "-C", d, "log", "--oneline"], capture_output=True,
                              text=True, env=GIT_ENV).stdout
         self.assertNotIn("msg", log)
@@ -506,7 +506,7 @@ class CardScope(unittest.TestCase):
         Path(d, "proj/027-dup").mkdir()
         Path(d, "proj/027-dup/x.md").write_text("x\n", encoding="utf-8")
         lines = cdr.commit_repo(Path(d), "docs", "docs", "msg", card="proj/027")
-        self.assertTrue(any("命中 2 个" in ln for ln in lines), lines)
+        self.assertTrue(any("2 card dirs match" in ln for ln in lines), lines)
 
     def test_card_kb_half_project_level(self):
         kb = init_repo({"raw/proj/n.md": "n\n", "wiki/proj/c.md": "c\n",
