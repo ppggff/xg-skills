@@ -185,16 +185,14 @@ def _id_level(i):
 
 def _id_cells(text, title_pat, cell_picks, ws, skip_retired=False):
     """Ledger ids from a table section, taken ONLY from the id-bearing cells (a prose
-    mention in any other column is never a reference). skip_retired drops
-    retirement-accounting rows (RETIRE_ID on the id cell / RETIRE_MARK on the next)."""
+    mention in any other column is never a reference). Row parsing + retirement
+    detection come from the parsing layer's table_rows() (027 HLD-1 single point);
+    cell choice stays the designated cell_picks and the id grammar stays LEDGER_ID."""
     refs = set()
-    for line in ws._section(text, title_pat).splitlines():
-        if not line.lstrip().startswith("|") or set(line.strip()) <= set("|-: "):
+    for row in ws.table_rows(ws._section(text, title_pat)):
+        if skip_retired and row["retired"]:
             continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if skip_retired and cells and (ws.RETIRE_ID.search(cells[0]) or
-                (len(cells) > 1 and ws.RETIRE_MARK.match(cells[1].replace("**", "")))):
-            continue
+        cells = row["cells"]
         for pick in cell_picks:
             if -len(cells) <= pick < len(cells):
                 refs |= {m.group(1)
@@ -382,12 +380,9 @@ def _gated_docs(card_dir, ws):
 
 
 def _card_created(card_dir, ws):
-    """Card created date, format-guarded like (i2): malformed values normalize to ""
-    so every caller's no-created-date branch owns them — a bare string compare on a
-    malformed date (e.g. "2026-8-1") would otherwise mis-bucket the card around its
-    cutoff."""
-    created = str(ws.frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
-    return created if re.match(r"\d{4}-\d{2}-\d{2}", created) else ""
+    """Card created date — delegate to the parsing layer's card_created() (moved
+    there in 027: the trace path consumes it too; the format guard lives with it)."""
+    return ws.card_created(card_dir)
 
 
 def _grill_logs(card_dir):

@@ -1304,3 +1304,72 @@ class ProseHomeGating(unittest.TestCase):
         self.assertNotIn("R9", legacy)
         dn = ws.trace_design(self._card("doc-native"))[0]
         self.assertIn("Req-9", dn)
+
+
+class TableRowsHelper(unittest.TestCase):
+    """027 HLD-1: cell-pick single definition point — column resolution, fallback,
+    retirement detection; consumers keep their own id regex."""
+
+    SECT = ("| Part | 含哪些 | R | seam |\n"
+            "|---|---|---|---|\n"
+            "| db-control | binding | R31, R32 | 上表 |\n"
+            "| ~~R9~~ | retired (2026-01-01) | — | — |\n")
+
+    def test_header_keyed_id_column(self):
+        rows = list(ws.table_rows(self.SECT))
+        self.assertEqual(rows[0]["idcols"], [2])
+        self.assertIn("R32", rows[0]["cells"][2])
+
+    def test_first_cell_fallback_without_idcol_header(self):
+        rows = list(ws.table_rows("| 操作 | 语义 |\n|---|---|\n| R1 走这 | x |\n"))
+        self.assertEqual(rows[0]["idcols"], [0])
+
+    def test_headerless_table_defaults_first_cell(self):
+        rows = list(ws.table_rows("| R1 | 陈述 |\n"))
+        self.assertEqual(rows[0]["idcols"], [0])
+
+    def test_retirement_detection(self):
+        rows = list(ws.table_rows(self.SECT))
+        self.assertFalse(rows[0]["retired"])
+        self.assertTrue(rows[1]["retired"])
+
+
+class NarrowHarvest(unittest.TestCase):
+    """027 HLD-1/HLD-3: narrow table harvest gated by REQ7_NARROW_CUTOFF; doc-native
+    prose face untouched (E7 double-face fixture, lens4 G2)."""
+
+    def _card(self, created, gov="doc-native"):
+        d = tempfile.mkdtemp()
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 912\ngovernance: %s\ncreated: %s\n---\n" % (gov, created),
+            encoding="utf-8")
+        (Path(d) / "design.md").write_text(
+            "---\nid: 912\nstatus: frozen\n---\n## How it meets\n"
+            "| Req | 归宿 |\n|---|---|\n| Req-1 | 模块甲（另见 Req-2 的行） |\n\n"
+            "Part B 散文映射:[Req-3] → 模块乙。\n", encoding="utf-8")
+        return d
+
+    def test_post_cutoff_table_narrow_prose_whole(self):
+        home = ws.trace_design(self._card("2026-09-01"))[0]
+        self.assertIn("Req-1", home)          # id cell harvested
+        self.assertNotIn("Req-2", home)       # non-id-cell prose mention dropped
+        self.assertIn("Req-3", home)          # prose face untouched (doc-native)
+
+    def test_pre_cutoff_whole_line_kept(self):
+        home = ws.trace_design(self._card("2026-08-01"))[0]
+        self.assertIn("Req-2", home)          # legacy whole-line harvest
+
+    def test_malformed_created_stays_legacy(self):
+        home = ws.trace_design(self._card("2026-9-1"))[0]
+        self.assertIn("Req-2", home)
+
+
+class CardCreatedMoved(unittest.TestCase):
+    def test_guard_and_value(self):
+        d = tempfile.mkdtemp()
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 913\ncreated: 2026-08-30\n---\n", encoding="utf-8")
+        self.assertEqual(ws.card_created(d), "2026-08-30")
+        (Path(d) / "requirement.md").write_text(
+            "---\nid: 913\ncreated: 2026-8-30\n---\n", encoding="utf-8")
+        self.assertEqual(ws.card_created(d), "")

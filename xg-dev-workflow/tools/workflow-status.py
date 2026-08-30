@@ -380,6 +380,43 @@ RETIRE_ID = re.compile(r"~~|retired\b", re.I)
 # strip `**` first. Must anchor at cell start — mid-prose "retired" is not accounting.
 RETIRE_MARK = re.compile(r"^\s*(?:~~[^~]*~~[^\w~]*)*retired\b", re.I)
 
+# Narrow table-row id harvest (027 HLD-1/HLD-3): cards created on/after this cutoff take
+# ids only from id-bearing cells on the trace display and (q) paths; earlier cards keep
+# the whole-line harvest (forward-only — the one pre-cutoff flip stays grandfathered).
+REQ7_NARROW_CUTOFF = "2026-08-31"
+
+# id-bearing column headers (`**`-stripped): the R/R-id/ID family plus the section-local
+# variants the templates use. Data cells like "R1"/"Req-3" never match (digits break it).
+IDCOL_HEAD = re.compile(r"^(R|Req|ID|R[-– ]?id.*|需求条目|Effect ?项)$", re.I)
+
+
+def card_created(card_dir):
+    """Card created date, format-guarded: malformed values normalize to "" so every
+    caller's no-created-date branch owns them (moved from workflow-checks.py, 027 —
+    the parsing layer consumes it too; checks keep reading it via ws)."""
+    created = str(frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
+    return created if re.match(r"\d{4}-\d{2}-\d{2}", created) else ""
+
+
+def table_rows(sect):
+    """Markdown-table row records for id harvesting — the cell-pick single definition
+    point (027 HLD-1): column resolution (header-keyed id columns, first-cell fallback)
+    and retirement detection (RETIRE_ID / RETIRE_MARK) live here; consumers keep their
+    own id regex and cell choice. Yields {cells, idcols, retired, line}."""
+    idcols = [0]
+    for line in sect.splitlines():
+        ls = line.lstrip()
+        if not ls.startswith("|") or set(line.strip()) <= set("|-: "):
+            continue
+        cells = [c.strip() for c in ls.strip("|").split("|")]
+        stripped = [c.replace("**", "").strip() for c in cells]
+        if any(IDCOL_HEAD.match(c) for c in stripped):
+            idcols = [i for i, c in enumerate(stripped) if IDCOL_HEAD.match(c)] or [0]
+            continue
+        retired = bool(cells and (RETIRE_ID.search(cells[0]) or
+                       (len(cells) > 1 and RETIRE_MARK.match(cells[1].replace("**", "")))))
+        yield {"cells": cells, "idcols": idcols, "retired": retired, "line": line}
+
 
 def _read(path):
     try:
@@ -429,17 +466,29 @@ def _retired_req_ids(card_dir):
     return out
 
 
-def _rows_by_rid(sect, prose=False):
+def _rows_by_rid(sect, prose=False, narrow=False):
     """R-id → its carrying line in the section. Table rows always count; prose
     lines count only when `prose` (doc-native cards — their How-it-meets Part
     B/C mapping is prose with [Req-n] arrows). 存量 cards keep the table-only
     harvest: widening them re-judged old docs and regressed the grandfather
-    promise (005/013 sweep hits, close-out fix round)."""
+    promise (005/013 sweep hits, close-out fix round). `narrow` (027 HLD-1,
+    cards created ≥ REQ7_NARROW_CUTOFF) takes table ids from id-bearing cells
+    only via table_rows(); prose lines stay whole-line either way."""
     out = {}
+    if narrow:
+        for row in table_rows(sect):
+            for i in row["idcols"]:
+                if i < len(row["cells"]):
+                    for m in RID.finditer(_expand_rid_ranges(_strip_xcard(row["cells"][i]))):
+                        out.setdefault(m.group(0),
+                                       re.sub(r"\s*\|\s*", " · ", row["line"]).strip(" ·"))
     for line in sect.splitlines():
         if set(line.strip()) <= set("|-: ") or line.startswith("#"):
             continue
-        if not prose and not line.lstrip().startswith("|"):
+        is_table = line.lstrip().startswith("|")
+        if is_table and narrow:
+            continue
+        if not is_table and not prose:
             continue
         for m in RID.finditer(_expand_rid_ranges(_strip_xcard(line))):
             out.setdefault(m.group(0), re.sub(r"\s*\|\s*", " · ", line).strip(" ·"))
@@ -450,8 +499,9 @@ def trace_design(card):
     """R-id → its How-it-meets row (design home) and its 验证策略 row."""
     text = _read(os.path.join(card, "design.md"))
     prose = card_mode(card) in DOC_NATIVE_MODES
-    return (_rows_by_rid(_section(text, r"How it meets|如何满足"), prose),
-            _rows_by_rid(_section(text, r"验证策略|Verification strategy"), prose))
+    narrow = card_created(card) >= REQ7_NARROW_CUTOFF
+    return (_rows_by_rid(_section(text, r"How it meets|如何满足"), prose, narrow),
+            _rows_by_rid(_section(text, r"验证策略|Verification strategy"), prose, narrow))
 
 
 def trace_parts(card):
