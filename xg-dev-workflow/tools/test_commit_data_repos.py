@@ -528,3 +528,35 @@ class CardScope(unittest.TestCase):
                                 "HEAD"], capture_output=True, text=True, env=GIT_ENV).stdout
         self.assertIn("027-alpha/plan.md", shown)
         self.assertIn("028-beta/plan.md", shown)   # project 级仍全量（既有语义不动）
+
+
+class CardScopeReviewFixes(unittest.TestCase):
+    """027 review fix #3: --card validation guards BOTH repos (main-level)."""
+
+    def test_main_prevalidation_blocks_kb_half(self):
+        import io, sys as _sys
+        docs = init_repo({"proj/027-a/requirement.md": "r\n"})
+        kb = init_repo({"raw/proj/n.md": "n\n"})
+        Path(kb, "raw/proj/n.md").write_text("n2\n", encoding="utf-8")
+        cfg = tempfile.mkdtemp()
+        cfgfile = Path(cfg, "config.yaml")
+        cfgfile.write_text("root: %s\ndev_root: %s\n" % (kb, docs), encoding="utf-8")
+        orig_cp, orig_argv = cdr.config_path, _sys.argv
+        cdr.config_path = lambda: cfgfile
+        _sys.argv = ["commit-data-repos.py", "--card", "proj/099", "-m", "should-not-land"]
+        out = io.StringIO()
+        try:
+            _stdout = _sys.stdout
+            _sys.stdout = out
+            try:
+                cdr.main()
+            except SystemExit:
+                pass
+            finally:
+                _sys.stdout = _stdout
+        finally:
+            cdr.config_path, _sys.argv = orig_cp, orig_argv
+        self.assertIn("0 card dirs match", out.getvalue())
+        log = subprocess.run(["git", "-C", kb, "log", "--oneline"], capture_output=True,
+                             text=True, env=GIT_ENV).stdout
+        self.assertNotIn("should-not-land", log)   # KB 半未提交

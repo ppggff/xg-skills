@@ -28,7 +28,7 @@ Usage:
                        [--project NAME | --card PROJECT/NNN]
 `--card PROJECT/NNN` is the gate-commit / single-card park mode (027): docs scope =
 the card dir + the project's index.md/roadmap.md (shared-file row-level ride-along is
-accepted), KB scope stays project-level; zero/multiple card-dir matches报错不静默.
+accepted), KB scope stays project-level; zero/multiple card-dir matches 报错不静默.
 `--project NAME` scopes to a whole project (learn/improve 等项目级写入); paths outside
 scope stay uncommitted (warned, not lost). Omit both for the sweep safety net.
 Exit 0 always (a commit failure on one repo is reported, doesn't abort the other).
@@ -369,7 +369,7 @@ def _commit_sweep(repo: Path, label: str, kind: str, message: str, inited: bool,
 
 def card_pathspecs(docs: Path, card: str):
     """`<project>/<NNN>` -> (project, docs pathspecs) by literal glob
-    `<project>/<NNN>-*` (027 HLD-6): no fuzzy match; zero or multiple hits报错不静默
+    `<project>/<NNN>-*` (027 HLD-6): no fuzzy match; zero or multiple hits 报错不静默
     (resolve_card's SystemExit would be swallowed by the exit-0 contract — panel F14).
     Scope = the card dir + the project's shared board files."""
     project, _, nnn = card.partition("/")
@@ -435,6 +435,14 @@ def main():
     text = cp.read_text(encoding="utf-8") if cp.exists() else ""
     kb = Path(os.path.expanduser(parse_key(text, "root", DEFAULTS["root"])))
     docs = Path(os.path.expanduser(parse_key(text, "dev_root", DEFAULTS["dev_root"])))
+
+    if a.card:   # validate ONCE before touching either repo — the KB half must not
+                 # commit ahead of a docs-side resolve failure (027 review #3)
+        cproj, err = card_pathspecs(docs, a.card)
+        if cproj is None:
+            for ln in err:
+                print(ln)
+            sys.exit(0)
 
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     default_msg = a.message or f"auto: data snapshot {stamp}"
