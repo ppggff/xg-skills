@@ -42,9 +42,12 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   (last 变更 hash, else the approved gate hash) — 文本被改 / 历史不可达 / 基线处块缺席
   (ad) · doc-native citations & generated views, doc-native cards only: bracket-cite
   resolution (block/Fact/alias/Eff domains; Ask prune-legal) + Effect coverage per active
-  block + generated-index byte-consistency (ae) · over-long load-bearing slots hint
-  ((ag), 028 — report-only on the skips stream, per-file cutoff created ≥ landing+1;
-  (af) reserved for the plan tick-monotonicity candidate). Exit 1 =
+  block + generated-index byte-consistency (ae) · checkbox monotonicity ((af), 027 —
+  two deterministic implications: a checked `### Checkpoint` block while an earlier
+  task holds unchecked acceptance; a checked Results conclusion while `### 回归`
+  holds unchecked rows; pre-gate created-cutoff, no-Checkpoint = not-yet-due,
+  missing Results/回归 section = carrier-missing) · over-long load-bearing slots hint
+  ((ag), 028 — report-only on the skips stream, per-file cutoff created ≥ landing+1). Exit 1 =
   findings; not-applicable paths emit classified exemptions and never gate — the
   three-way taxonomy (not-yet-due / grandfathered / carrier-missing) and its criteria
   live in workflow-checks.py's module docstring (the single source, 023). Visible

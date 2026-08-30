@@ -44,6 +44,9 @@ agenda negotiation. The classes are open — add one when a problem doesn't fit:
 - **Data/state-driven** → data model / state machine leads; modules follow data boundaries.
 - **Constraint-driven** (compat, ordering, resource caps) → constraint topics lead; they cut
   away candidate splits first.
+- **Stakes-driven** (027) → when one decision's cost clearly dominates the rest, it leads:
+  judge the 不可逆 / 高扇出 decision first (the ask-routing Tier 2 vocabulary — same words,
+  agenda timing instead of per-ask timing) and order the remaining topics around its outcome.
 - **No dominant axis** (common on XS/S) → default order = the library's row order, or the
   negotiation picks directly.
 

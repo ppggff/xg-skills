@@ -4,6 +4,40 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-08-30 — card 027 (checks & tooling hardening batch)
+
+Seven deterministic-layer faces hardened in one batch (precedent: 024's clause batch):
+
+- **(af) checkbox monotonicity** — new card check, two deterministic implications
+  (a checked `### Checkpoint` block while an earlier task holds unchecked acceptance;
+  a checked test.md Results conclusion while `### 回归` holds unchecked rows); pre-gate
+  created-cutoff, zero assertion-word parsing. Why: 026's close-out caught both shapes
+  only by human review.
+- **Trace loose tightened** — commits explicitly attributed to another card (a 3-digit
+  card number immediately before `T<n>`, any position) leave the loose tier; residue
+  keeps the `?`. Why: 014's trace carried 42 cross-card rows; 4 truly un-attributable
+  remain.
+- **cell-pick single point** — table-row id harvesting (header-keyed id-column
+  resolution + retirement detection) moved to one parsing-layer helper consumed by both
+  the trace display and checks' `_id_cells`; narrow harvest binds cards created ≥
+  2026-08-31 (forward-only). `_card_created` moved to the parsing layer with it.
+- **Retirement word-shape widened** — `superseded` accepted alongside `retired`,
+  including inside the first struck span (the 014 idiom); a dead block's `depends-on`
+  no longer counts as a live reference. Why: 18 standing false findings across three
+  projects dissolved; the true drift on hashdata/008 was repaired in-data per its own
+  recorded M2.
+- **Four present-but-silent skip shapes promoted to findings** (per-concern cutoffs):
+  fact-no-source, adr-status-unparsable (migrated out of the ledger-gated host that made
+  it unreachable on doc-native cards), adr-superseded-no-by, receipt-near-form. The
+  fifth (detail Change-notes fallback) was withdrawn — doc-native detail legitimately
+  omits that section (026 Req-31), so it has no forward object.
+- **`--card` commit scope** — gate commits and single-card park close-outs scope to the
+  card dir + the project's board files (KB stays project-level; loud error on 0/多 card
+  matches). Why: `--project` couldn't separate same-project parallel sessions (021 #20).
+- **Stakes-driven agenda class** — design-agenda's driving axis gains a class: when one
+  decision's cost dominates, judge the 不可逆/高扇出 decision first (ask-routing Tier 2
+  vocabulary, agenda timing).
+
 ## 2026-08-28 — card 028 (block-statement expressiveness)
 
 - **Load-bearing prose home convention (载重散文不进单行格).** New single-owner section in
