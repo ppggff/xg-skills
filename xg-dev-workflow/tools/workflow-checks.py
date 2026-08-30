@@ -2099,7 +2099,6 @@ def _long_table_cells(text):
 
 CHECKBOX_MONO_CUTOFF = "2026-08-31"   # (af) 027 landing +1 — pre-gate family (created-only)
 CHECKPOINT_HEAD = re.compile(r"^###\s+Checkpoint\b[^\n]*", re.M | re.I)
-BOX_STATE = re.compile(r"^\s*-\s*`?\[([ x!])\]`?", re.M)
 
 
 def check_checkbox_monotonic(card_dir, ws):
@@ -2119,6 +2118,13 @@ def check_checkbox_monotonic(card_dir, ws):
     if created < CHECKBOX_MONO_CUTOFF:
         return [], [], [("grandfathered", "pre-%s card" % CHECKBOX_MONO_CUTOFF)]
     findings, exs = [], []
+    stop = r"^#{2,3}\s"   # a `##` section must terminate a block too (review #4;
+                           # workflow-status._section's docstring records this trap)
+
+    def _cut(text, pos):
+        nxt = re.search(stop, text[pos:], re.M)
+        return text[pos:pos + nxt.start()] if nxt else text[pos:]
+
     plan = ws._read(os.path.join(card_dir, "plan.md"))
     if plan:
         heads = list(ws.TASK_HEAD.finditer(plan))
@@ -2126,34 +2132,36 @@ def check_checkbox_monotonic(card_dir, ws):
         if not cps:
             exs.append(("not-yet-due", "plan has no Checkpoint block"))
         for cp in cps:
-            block = plan[cp.end():]
-            nxt = re.search(r"^###\s", block, re.M)
-            block = block[:nxt.start()] if nxt else block
-            if "x" not in BOX_STATE.findall(block):
+            if "x" not in ws.BOX_STATE.findall(_cut(plan, cp.end())):
                 continue
-            for h in heads:
-                if h.start() > cp.start():
-                    continue
-                tblock = plan[h.end():]
-                tnxt = re.search(r"^###\s", tblock, re.M)
-                tblock = tblock[:tnxt.start()] if tnxt else tblock
-                bad = [b for b in BOX_STATE.findall(tblock) if b in (" ", "!")]
-                if bad:
-                    findings.append("plan-checkpoint-premature: %s 已勾而先序 %s 存在未勾/失败验收"
-                                    % (cp.group(0).strip("# ").strip(), h.group(1)))
+            bad = ["T" + h.group(1) for h in heads if h.start() < cp.start()
+                   and any(b in (" ", "!")
+                           for b in ws.BOX_STATE.findall(_cut(plan, h.end())))]
+            if bad:
+                findings.append("plan-checkpoint-premature: %s 已勾而先序 %s 存在未勾/失败验收"
+                                % (cp.group(0).strip("# ").strip(), ", ".join(bad)))
     else:
         exs.append(("not-yet-due", "plan.md absent"))
     test = ws._read(os.path.join(card_dir, "test.md"))
     if test:
+        # A2 fires only on a closed-out test doc (review #5 — pre-close the doc is
+        # legitimately half-filled and the substring face would stay red for weeks)
+        if str(ws.frontmatter(os.path.join(card_dir, "test.md")).get("status", "")) \
+                not in ("passing", "described"):
+            exs.append(("not-yet-due", "test.md not closed out"))
+            return findings, [], exs
         results = ws._section(test, r"Results")
         regress = ws._section(test, r"回归", level=3)
         if not results:
             exs.append(("carrier-missing", "test.md without Results section"))
         if not regress:
             exs.append(("carrier-missing", "test.md without 回归 section"))
-        if results and regress and "[x]" in results and \
-                re.search(r"^\s*-\s*\[ \]", regress, re.M):
-            findings.append("test-results-vs-regression: Results 已勾结论而回归节存在未勾行")
+        if results and regress:
+            toks = re.findall(r"\[([ x!])\]", regress)   # list rows AND table cells (review #6)
+            if not toks:
+                exs.append(("carrier-missing", "回归节无可解析勾选行"))
+            elif "[x]" in results and " " in toks:
+                findings.append("test-results-vs-regression: Results 已勾结论而回归节存在未勾行")
     else:
         exs.append(("not-yet-due", "test.md absent"))
     return findings, [], exs

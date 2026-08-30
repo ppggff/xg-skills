@@ -2170,7 +2170,8 @@ class CheckboxMonotonic(unittest.TestCase):
                 "### Checkpoint: after T1\n- [x] all green so far\n")
     PLAN_OK = ("---\nid: 915\n---\n### T1: one\n- **Acceptance:**\n  - [x] done\n\n"
                "### Checkpoint: after T1\n- [x] all green so far\n")
-    TEST_BAD = ("## Test plan\n### 回归 (regression)\n- [ ] behavior kept\n\n"
+    TEST_BAD = ("---\nstatus: passing\n---\n"
+                "## Test plan\n### 回归 (regression)\n- [ ] behavior kept\n\n"
                 "## Results\n| case | result |\n|---|---|\n| suite | `[x]` pass |\n")
 
     def _card(self, created="2026-09-01", plan=None, test=None):
@@ -2201,7 +2202,7 @@ class CheckboxMonotonic(unittest.TestCase):
         self.assertIn(("not-yet-due", "plan has no Checkpoint block"), exs)
 
     def test_boundary_missing_sections_carrier_missing(self):
-        test = "## Test plan\nno sections here\n"
+        test = "---\nstatus: passing\n---\n## Test plan\nno sections here\n"
         f, _, exs = wc.check_checkbox_monotonic(self._card(test=test), ws)
         self.assertEqual(f, [])
         kinds = [e[1] for e in exs if e[0] == "carrier-missing"]
@@ -2263,3 +2264,52 @@ class CarrierPresentPromotions(unittest.TestCase):
         grill = "# log\n\n**Panel receipt: round = 9 · lenses = 1**\n"  # 冒号在闭 ** 前 = 近似形
         f, _, _ = wc.check_panel_receipts("p", self._card(grill=grill), ws)
         self.assertTrue(any("receipt-near-form" in x for x in f), f)
+
+
+class CheckboxMonotonicReviewFixes(unittest.TestCase):
+    """027 review fixes #4/#5/#6/#13."""
+
+    def _card(self, plan=None, test=None):
+        d = tempfile.mkdtemp()
+        _write(d, "requirement.md", "---\nid: 917\ncreated: 2026-09-01\n---\n")
+        if plan:
+            _write(d, "plan.md", plan)
+        if test:
+            _write(d, "test.md", test)
+        return d
+
+    def test_h2_section_does_not_leak_into_blocks(self):     # #4
+        plan = ("### T1: a\n- **Acceptance:**\n  - [ ] 未验收\n\n"
+                "### Checkpoint: after T1\n- [ ] builds green\n\n"
+                "## Open questions\n- [x] 已确认某事\n")
+        f, _, _ = wc.check_checkbox_monotonic(self._card(plan=plan), ws)
+        self.assertEqual(f, [])
+
+    def test_open_test_doc_not_yet_due(self):                # #5
+        test = ("---\nstatus: planned\n---\n## Test plan\n### 回归\n- [ ] x\n\n"
+                "## Results\n| a | `[x]` |\n")
+        f, _, exs = wc.check_checkbox_monotonic(self._card(test=test), ws)
+        self.assertEqual(f, [])
+        self.assertIn(("not-yet-due", "test.md not closed out"), exs)
+
+    def test_table_form_regression_rows_parsed(self):        # #6
+        test = ("---\nstatus: passing\n---\n## Test plan\n"
+                "### 回归\n| 行为 | 态 |\n|---|---|\n| kept | `[ ]` |\n\n"
+                "## Results\n| a | `[x]` |\n")
+        f, _, _ = wc.check_checkbox_monotonic(self._card(test=test), ws)
+        self.assertTrue(any("test-results-vs-regression" in x for x in f), f)
+
+    def test_regression_zero_parseable_rows_carrier_missing(self):   # #6
+        test = ("---\nstatus: passing\n---\n## Test plan\n### 回归\n纯散文无勾选。\n\n"
+                "## Results\n| a | `[x]` |\n")
+        f, _, exs = wc.check_checkbox_monotonic(self._card(test=test), ws)
+        self.assertEqual(f, [])
+        self.assertIn(("carrier-missing", "回归节无可解析勾选行"), exs)
+
+    def test_a1_one_finding_per_checkpoint_with_tids(self):  # #13
+        plan = ("### T1: a\n- **Acceptance:**\n  - [ ] x\n\n"
+                "### T2: b\n- **Acceptance:**\n  - [!] y\n\n"
+                "### Checkpoint: after T1–T2\n- [x] green\n")
+        f, _, _ = wc.check_checkbox_monotonic(self._card(plan=plan), ws)
+        self.assertEqual(len(f), 1)
+        self.assertIn("T1, T2", f[0])

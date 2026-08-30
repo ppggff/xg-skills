@@ -388,6 +388,10 @@ RETIRE_MARK = re.compile(
 # the whole-line harvest (forward-only — the one pre-cutoff flip stays grandfathered).
 REQ7_NARROW_CUTOFF = "2026-08-31"
 
+# acceptance checkbox state — the single box-state grammar (backtick-tolerant), shared
+# by trace_plan and checks' (af) (027 review #14: two same-semantics regexes drifted)
+BOX_STATE = re.compile(r"^\s*-\s*`?\[([ x!])\]`?", re.M)
+
 # id-bearing column headers (`**`-stripped): the R/R-id/ID family plus the section-local
 # variants the templates use. Data cells like "R1"/"Req-3" never match (digits break it).
 IDCOL_HEAD = re.compile(r"^(R|Req|ID|R[-– ]?id\b.*|需求条目|Effect ?项)$", re.I)
@@ -554,7 +558,7 @@ def trace_plan(card):
         # list must not silently drop its tail rids
         imp = re.search(r"\*\*Implements:?\*\*[::]?\s*(.+(?:\n[ \t]+\S[^\n]*)*)", block)
         part = re.search(r"\*\*Part:?\*\*[::]?\s*(.+)", block)
-        boxes = re.findall(r"^\s*-\s*\[([ x!])\]", block, re.M)
+        boxes = BOX_STATE.findall(block)
         tasks[m.group(1)] = {
             "title": m.group(2).strip(),
             "rids": [m.group(0) for m in RID.finditer(imp.group(1))] if imp else [],
