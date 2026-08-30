@@ -403,7 +403,8 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
                 return [f"{label}: " + ln for ln in specs]
             return _commit_scoped(repo, label, kind, message, cproj, inited, allow,
                                   spec_override=specs, scope_desc=f"--card {card}")
-        # KB 仓无卡目录：--card 时 KB 半保持 project 级（027 HLD-6/F6）
+        # the KB repo has no card dirs — --card keeps its KB half at project
+        # scope (027 HLD-6/F6)
         return _commit_scoped(repo, label, kind, message, card.partition("/")[0],
                               inited, allow, scope_desc=f"--card {card} (KB project 级)")
     if project is not None:

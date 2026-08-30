@@ -78,7 +78,8 @@ class TaskCommits(unittest.TestCase):
         self.assertEqual(len(lines), 1)
 
     def test_own_commit_with_foreign_tail_excluded_fixed_expectation(self):
-        # Ask-40 角例（显式接受）：本卡提交不含本卡 NNN 却括注他卡尾注 → 被剔
+        # Ask-40 corner case (explicitly accepted): an own-card commit that lacks
+        # the card NNN yet cites another card's anchored tail gets excluded
         repo = self._repo_with(["port helper from sibling (005 T2)"])  # actually ours
         lines, _ = ws.task_commits(repo, "2", "006")
         self.assertEqual(lines, [])

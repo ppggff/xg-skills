@@ -658,6 +658,9 @@ def task_commits(repo, tid, nnn=None):
         if strict:
             return strict, "strict"
 
+        # NOTE: own-NNN lines can't reach here — the strict branch above returned
+        # on any of them, so `all(t != nnn)` below never fires on an own tail; the
+        # E2 no-self-exclusion guarantee lives in that ordering, not in this test
         def other_card(ln):
             msg = ln.split(" ", 1)[1] if " " in ln else ""
             tails = XCARD_TAIL.findall(msg)

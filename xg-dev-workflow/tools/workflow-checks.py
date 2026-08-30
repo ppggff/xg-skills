@@ -23,9 +23,12 @@ silently returning; each emission point states its class and reason in place:
   default output: already-visible skip lines stay verbatim, previously-silent paths
   fold into the counting line (bucket 2). 027 carve-out: four present-but-silent
   shapes are FINDINGS from their per-concern cutoffs (fact-no-source /
-  adr-status-unparsable / adr-superseded-no-by / receipt-near-form); pre-cutoff
-  instances classify grandfathered — new present-carrier gaps default to findings,
-  CM stays for true absence or unpromoted undecidables.
+  adr-status-unparsable / adr-superseded-no-by / receipt-near-form). Pre-cutoff
+  instances: the (t) pair classifies grandfathered (their exemption IS the cutoff);
+  fact-no-source / receipt-near-form keep their pre-existing carrier-missing rows
+  (023 table #5/#38 — the hole predates the cutoff and stays visible as one). New
+  present-carrier gaps default to findings; CM stays for true absence or unpromoted
+  undecidables.
 
 Lives only in xg-dev-workflow/tools/ (not a synced copy).
 """
@@ -343,8 +346,9 @@ def check_ledger(card_dir, ws):
             exs.append(("carrier-missing", "(b-ADR) ADR without active ledger block"))
             continue
         word = ADR_STATUS_MAP.get(m.group(1).lower())
-        # unparsable status 迁 (t) 判（027 HLD-4(b)——本家族 ledger 卡门造成 doc-native
-        # 不可达 [Fact-7]）；此处仅在可解析词上继续状态镜像核
+        # unparsable status is judged in (t) now (027 HLD-4(b) — this family's
+        # decisions.md gate made it unreachable on doc-native cards [Fact-7]);
+        # here only parseable words continue into the state-mirror checks
         if word == "approved" and any(b["state"] == "proposed" for b in act):
             findings.append(f"status-mismatch: {os.path.basename(f)} accepted vs pending rows")
         elif word == "proposed" and all(b["state"] == "approved" for b in act):
@@ -1397,7 +1401,8 @@ def check_adr_hygiene(project, card_dir, ws):
         if not sw:
             exs.append(("carrier-missing", "adr without parsable Status line (%s)" % base))
         if sw and ADR_STATUS_MAP.get(sw.group(1).lower()) is None:
-            # 迁自 (b-ADR)（027 HLD-4(b)）：不可解析状态让 ADR 逃逸后续核——mode-agnostic 宿主
+            # migrated from (b-ADR) (027 HLD-4(b)): an unparsable status lets the
+            # ADR escape every later check — this host is mode-agnostic
             if created >= ADR_UNPARSABLE_CUTOFF:
                 findings.append("adr-status-unparsable: %s '%s'" % (base, sw.group(1)))
             else:
