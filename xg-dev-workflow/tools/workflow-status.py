@@ -621,12 +621,21 @@ def card_in_message(nnn, oneline):
     return nnn in msg
 
 
+# anchored cross-card attribution: a 3-digit card number IMMEDIATELY before T<n> —
+# `(NNN T<n>)` tails, `NNN T<n> —` prefixes, `<proj>/NNN T<n>:` forms all match; a bare
+# 3-digit number elsewhere in the message never does (adjacency IS the convention;
+# panel F10's naive-substring trap avoided)
+XCARD_TAIL = re.compile(r"\b(\d{3})\s+T(?:ask ?)?\d+[a-z]?\b")
+
+
 def task_commits(repo, tid, nnn=None):
     """Product commits citing T<n>/Task <n> (implement.md commit convention); best-effort.
 
     Two tiers: commits also naming the card NNN are strict hits (the card-qualified
     convention); bare T<n> hits are loose — cross-card T-ids collide, so they render
-    with a ? marker. Returns (lines, "strict"|"loose").
+    with a ? marker. Loose hits explicitly attributed to ANOTHER card by an anchored
+    `(NNN T<n>)` tail are excluded (027 HLD-2); un-attributable residue keeps the ?.
+    Returns (lines, "strict"|"loose").
     """
     import subprocess
     pat = r"(^|[^A-Za-z0-9])T(ask ?)?%s([^0-9]|$)" % tid
@@ -640,6 +649,12 @@ def task_commits(repo, tid, nnn=None):
         strict = [ln for ln in lines if card_in_message(nnn, ln)]
         if strict:
             return strict, "strict"
+
+        def other_card(ln):
+            msg = ln.split(" ", 1)[1] if " " in ln else ""
+            tails = XCARD_TAIL.findall(msg)
+            return bool(tails) and all(t != nnn for t in tails)
+        lines = [ln for ln in lines if not other_card(ln)]
     return lines, "loose"
 
 

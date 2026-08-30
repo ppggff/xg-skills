@@ -58,11 +58,36 @@ class TaskCommits(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn("(006 T2)", lines[0])
 
-    def test_loose_when_no_card_qualified_hit(self):
+    def test_loose_excludes_other_card_anchored_tail(self):
+        # 027 HLD-2: an anchored `(005 T2)` tail is explicit attribution — excluded
         repo = self._repo_with(["viewer: collapse rework (005 T2)"])
         lines, tier = ws.task_commits(repo, "2", "006")
         self.assertEqual(tier, "loose")
+        self.assertEqual(lines, [])
+
+    def test_loose_keeps_unattributable_bare_hit(self):
+        repo = self._repo_with(["viewer: T2 groundwork, no tail"])
+        lines, tier = ws.task_commits(repo, "2", "006")
+        self.assertEqual(tier, "loose")
         self.assertEqual(len(lines), 1)
+
+    def test_loose_bare_number_is_not_attribution(self):
+        # a bare 3-digit number is not an anchored tail — must NOT be excluded
+        repo = self._repo_with(["fix batch of 100 files touching T2 path"])
+        lines, tier = ws.task_commits(repo, "2", "006")
+        self.assertEqual(len(lines), 1)
+
+    def test_own_commit_with_foreign_tail_excluded_fixed_expectation(self):
+        # Ask-40 角例（显式接受）：本卡提交不含本卡 NNN 却括注他卡尾注 → 被剔
+        repo = self._repo_with(["port helper from sibling (005 T2)"])  # actually ours
+        lines, _ = ws.task_commits(repo, "2", "006")
+        self.assertEqual(lines, [])
+
+    def test_strict_set_unchanged_by_exclusion(self):
+        repo = self._repo_with(["viewer: band fix (006 T2)",
+                                "viewer: collapse rework (005 T2)"])
+        lines, tier = ws.task_commits(repo, "2", "006")
+        self.assertEqual((tier, len(lines)), ("strict", 1))
 
 
 def make_card(root, project, dirname, repo=None, plan=True):
@@ -1396,3 +1421,19 @@ class RetirementWordShapes(unittest.TestCase):
 
     def test_mid_prose_not_accounting(self):
         self.assertFalse(ws.RETIRE_MARK.match("该行为已在 R6 中 superseded 处理"))
+
+
+class XcardAttributionForms(unittest.TestCase):
+    """027 T3 refinement: attribution = NNN adjacent to T<n>, any position."""
+
+    def test_prefix_and_dash_forms_excluded(self):
+        for msg in ("xg-skills/016 T6: hit navigation",
+                    "xg-dev-workflow: 011 T6 — check executors wired",
+                    "viewer: band fix (006 T2)"):
+            self.assertTrue(ws.XCARD_TAIL.search(msg), msg)
+
+    def test_bare_number_and_bare_tid_not_attribution(self):
+        for msg in ("fix batch of 100 files touching T2 path",
+                    "document the gitweb companion (T6)",
+                    "status viewer T2-T6 shell"):
+            self.assertFalse(ws.XCARD_TAIL.search(msg), msg)
