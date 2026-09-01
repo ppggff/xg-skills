@@ -2489,3 +2489,52 @@ class ReverseCore(DocNativeBlockChecks):
                text + "- 澄清: 补一句(人工「可」, 2026-09-01)\n")
         f, _, _ = wc.check_block_anchor(card, ws)
         self.assertEqual([x for x in f if "Req-1" in x], [])
+
+
+class ExtrasHint(DocNativeBlockChecks):
+    """029 T5 (HLD-7): extras drift vs anchor baseline — report-only hint."""
+
+    WITH_EXTRAS = ("### Req-1 proposed — 样例\n- 陈述: 原文\n- 类型: 功能\n- why: w\n"
+                   "- provenance: p\n- depends-on: 无\n附注:合法附注一行\n")
+
+    def _hinted_repo(self):
+        import subprocess
+        keep, self.PROPOSED = self.PROPOSED, self.WITH_EXTRAS
+        root, card = self._repo()
+        self.PROPOSED = keep
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        return root, card, text
+
+    def test_extras_change_hints_not_finds(self):
+        root, card, text = self._hinted_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("附注:合法附注一行", "附注:被改的附注"))
+        f, hints, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual([x for x in f if "Req-1" in x], [])
+        self.assertTrue(any(h.startswith("extras-hint: Req-1") for h in hints), hints)
+
+    def test_extras_addition_hints(self):
+        root, card, text = self._hinted_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("附注:合法附注一行", "附注:合法附注一行\n附注:新增第二行"))
+        f, hints, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any(h.startswith("extras-hint: Req-1") for h in hints), hints)
+
+    def test_extras_reflow_silent(self):
+        root, card, text = self._hinted_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("附注:合法附注一行", "附注:合法附注一行   "))
+        f, hints, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual([h for h in hints if "extras-hint" in h], [])
+
+    def test_hint_rides_skip_slot_only(self):
+        # exit-code semantics ride the runner's existing contract (findings
+        # slot alone sets exit 1); the hint must never leak into slot 1
+        root, card, text = self._hinted_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("附注:合法附注一行", "附注:被改的附注"))
+        f, hints, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])
+        self.assertTrue(all(h.startswith("extras-hint:") for h in hints), hints)

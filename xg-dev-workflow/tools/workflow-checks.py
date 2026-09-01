@@ -2028,7 +2028,7 @@ def check_block_anchor(card_dir, ws):
     top = os.path.realpath(probe.stdout.strip())   # macOS /var symlink alias
     bp = ws._block_parse()
     blocks, _ = bp.card_blocks(card_dir)   # parse findings are (ac)'s
-    findings, exs, cache, ancestry = [], [], {}, {}
+    findings, hints, exs, cache, ancestry = [], [], [], {}, {}
     for bid, b in blocks.items():
         approved = [a for a in b["annotations"] if a["kind"] == "approved"]
         if not approved:
@@ -2066,6 +2066,11 @@ def check_block_anchor(card_dir, ws):
         for f in bp.face_diffs(old, b):
             findings.append("文本被改: %s field %s vs baseline %s"
                             % (bid, f, base[:12]))
+        if bp.norm_extras(old) != bp.norm_extras(b):
+            # 029 T5 (HLD-7): report-only — extras tolerate legal 附注, so a
+            # change is surfaced, never judged; normalization strips reflow
+            hints.append("extras-hint: %s extras 相对基线 %s 有变动"
+                         % (bid, base[:12]))
         if old["state"] != b["state"]:
             # review #1: the exemption is SAME-BATCH — the state-change event's
             # own 变更/退役 note must be the block's LAST annotation; a stale
@@ -2116,7 +2121,7 @@ def check_block_anchor(card_dir, ws):
             if sid not in blocks and sid not in absent:
                 findings.append("反向缺席: %s 已批块不在工作树 (基线 %s)" % (sid, base[:12]))
                 absent.add(sid)
-    return findings, [], exs
+    return findings, hints, exs
 
 
 # ---- long-cell hint (ag, 028): load-bearing slot length, report-only ----
