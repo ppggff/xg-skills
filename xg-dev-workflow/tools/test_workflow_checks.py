@@ -2345,3 +2345,63 @@ class AdrStatusReviewFixes(unittest.TestCase):
         f, _, _ = wc.check_adr_hygiene(
             "p", self._card("# a\nStatus: superseded by [ADR-0007](./0007-x.md)\n"), ws)
         self.assertEqual([x for x in f if "no-by" in x], [], f)
+
+
+class FaceExtension(DocNativeBlockChecks):
+    """029 T2: (ad) face widened to title + clauses via block_parse.face_diffs
+    (shape grandfather: baseline without a title exempts the title face)."""
+
+    def _approved_repo(self, proposed=None):
+        import subprocess
+        if proposed is not None:
+            self.PROPOSED, keep = proposed, self.PROPOSED
+        root, card = self._repo()
+        if proposed is not None:
+            self.PROPOSED = keep
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        return root, card, text
+
+    def test_title_drift_flagged(self):
+        root, card, text = self._approved_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("— 样例", "— 被改标题"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("文本被改: Req-1 field title" in x for x in f))
+
+    def test_title_shape_grandfather(self):
+        # baseline block has NO title (backfilled-title存量形) → title face exempt
+        bare = self.PROPOSED.replace(" — 样例", "")
+        root, card, text = self._approved_repo(proposed=bare)
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("### Req-1 approved", "### Req-1 approved — 补的标题"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual([x for x in f if "title" in x], [])
+
+    def test_clause_drift_flagged(self):
+        with_clause = self.PROPOSED + "- (a) 子句甲\n"
+        root, card, text = self._approved_repo(proposed=with_clause)
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("- (a) 子句甲", "- (a) 子句被改"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("文本被改: Req-1 field clauses" in x for x in f))
+
+    def test_clause_to_extras_flip_flagged(self):
+        with_clause = self.PROPOSED + "- (a) 子句甲\n"
+        root, card, text = self._approved_repo(proposed=with_clause)
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("- (a) 子句甲", "顶格附注化的原子句"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("文本被改: Req-1 field clauses" in x for x in f))
+
+    def test_legal_change_note_covers_title_and_clause(self):
+        with_clause = self.PROPOSED + "- (a) 子句甲\n"
+        root, card, text = self._approved_repo(proposed=with_clause)
+        edited = text.replace("— 样例", "— 新标题").replace("子句甲", "子句乙")
+        _write(root, "900-block-fixture/requirement.md", edited)
+        h2 = self._commit(root, "M2 landing")
+        edited += "- 变更: 标题与子句改写 (M2 %s, %s)\n" % (h2, self.DATE)
+        _write(root, "900-block-fixture/requirement.md", edited)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual(f, [])

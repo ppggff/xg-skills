@@ -560,3 +560,37 @@ class CardScopeReviewFixes(unittest.TestCase):
         log = subprocess.run(["git", "-C", kb, "log", "--oneline"], capture_output=True,
                              text=True, env=GIT_ENV).stdout
         self.assertNotIn("should-not-land", log)   # KB 半未提交
+
+
+class DiffGuardFace(unittest.TestCase):
+    """029 T2: guard face widened to title + clauses (block_parse.face_diffs)."""
+
+    BLOCK_CL = BLOCK_OK.replace("- approved:", "- (a) 子句甲\n- approved:", 1)
+
+    def _repo(self):
+        return init_repo({"proj/900-x/requirement.md": FM_DN + self.BLOCK_CL})
+
+    def test_title_edit_blocked(self):
+        repo = self._repo()
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + self.BLOCK_CL.replace("— 样例", "— 被改标题"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("approved-block-touched" in l and "title" in l
+                            for l in lines), lines)
+
+    def test_clause_edit_blocked(self):
+        repo = self._repo()
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + self.BLOCK_CL.replace("子句甲", "子句被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("approved-block-touched" in l and "clauses" in l
+                            for l in lines), lines)
+
+    def test_title_clause_edit_with_note_passes(self):
+        repo = self._repo()
+        edited = (self.BLOCK_CL.replace("— 样例", "— 新标题")
+                  .replace("子句甲", "子句乙")
+                  + "- 变更: 标题子句改写 (M2 1234567, 2026-09-01)\n")
+        dirty(repo, "proj/900-x/requirement.md", FM_DN + edited)
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)

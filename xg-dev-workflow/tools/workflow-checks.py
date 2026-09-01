@@ -416,14 +416,13 @@ def check_transcription_markers(project, card_dir, ws):
     an approved block's own text carries zero markers regardless of doc status
     (partial approve keeps the doc pre-gate while blocks are already binding)."""
     if ws.card_mode(card_dir) in DOC_NATIVE_MODES:
-        blocks, _ = ws._block_parse().card_blocks(card_dir)
+        bpm = ws._block_parse()
+        blocks, _ = bpm.card_blocks(card_dir)
         findings = []
         for bid, b in blocks.items():
             if b["state"] != "approved":
                 continue
-            body = "\n".join([b["title"]] + list(b["fields"].values())
-                             + [c[1] for c in b["clauses"]])
-            n = body.count(TRANSCRIPTION_MARKER)
+            n = bpm.face_text(b).count(TRANSCRIPTION_MARKER)
             if n:
                 findings.append("stray-marker: %s %d×%s in approved block"
                                 % (bid, n, TRANSCRIPTION_MARKER))
@@ -1700,7 +1699,9 @@ def check_board_monotonic(project, project_dir, ws):
 # ---- doc-native block checks (026 slice 1): format core (ac) + git anchor (ad) ----
 
 DOC_NATIVE_MODES = ("doc-native-pilot", "doc-native")   # pilot = 026 self-host; doc-native = post-collapse single track
-ANCHOR_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+# compare face lives in block_parse.FACE_FIELDS / face_diffs (029 T2 — the
+# retired ANCHOR_FIELDS constant's single-source successor, shared with the
+# write-side diff guard)
 # 026 slice 2 (T9): ask-id becomes mandatory by TIME BOUNDARY — a note whose gate
 # date is on/after the cutoff must carry the ask-id slot (the pre-cutoff存量 stays
 # optional; the carrier-existence predicate was refuted as a self-report escape
@@ -2001,10 +2002,12 @@ def check_block_anchor(card_dir, ws):
     approved annotation's gate hash (first-approval receipts snapshots carry
     the approved text in proposed state — hence the proposed→approved state
     exemption; any other state change needs a same-batch 变更/退役 note).
-    Compare face = the five load-bearing fields, field-by-field, working tree
-    vs `git show <baseline>:<doc>` parsed in locate mode (titles optional in
-    the HEAD grammar). Titles and annotation lines never compare. Failures:
-    文本被改 / 历史不可达 / 基线处块缺席. One git show per (baseline, doc)."""
+    Compare face = block_parse.face_diffs (029 T2): five fields + clause list
+    + title (title only when the baseline block has one — the backfilled-title
+    shape grandfather), working tree vs `git show <baseline>:<doc>` parsed in
+    locate mode. Annotation lines never enter this face (their HEAD-prefix
+    core is separate). Failures: 文本被改 / 历史不可达 / 基线处块缺席.
+    One git show per (baseline, doc)."""
     skip = _dn_gate(card_dir, ws)
     if skip:
         return [], [], skip
@@ -2049,10 +2052,9 @@ def check_block_anchor(card_dir, ws):
             # is not a legal baseline — forged-branch shape
             findings.append("历史不可达: %s baseline %s 非 HEAD 祖先" % (bid, base[:12]))
             continue
-        for f in ANCHOR_FIELDS:
-            if old["fields"].get(f, "") != b["fields"].get(f, ""):
-                findings.append("文本被改: %s field %s vs baseline %s"
-                                % (bid, f, base[:12]))
+        for f in bp.face_diffs(old, b):
+            findings.append("文本被改: %s field %s vs baseline %s"
+                            % (bid, f, base[:12]))
         if old["state"] != b["state"]:
             # review #1: the exemption is SAME-BATCH — the state-change event's
             # own 变更/退役 note must be the block's LAST annotation; a stale

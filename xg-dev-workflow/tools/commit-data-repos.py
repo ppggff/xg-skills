@@ -47,7 +47,8 @@ GITIGNORE = ".DS_Store\n*.swp\n*.swo\n*~\n__pycache__/\n"
 # ---- doc-native diff guard (026 LLD-8) ----
 PHASE_DOC = re.compile(r"^(?P<card>[^/]+/\d{3}-[^/]+)/(?P<doc>requirement|design|detail)\.md$")
 DOC_NATIVE_MODES = ("doc-native-pilot", "doc-native")
-GUARD_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+# compare face lives in block_parse.face_diffs (029 T2 — the retired
+# GUARD_FIELDS constant's single-source successor, shared with the (ad) core)
 _BP = None
 
 
@@ -81,9 +82,10 @@ def _card_governance(repo: Path, card_rel: str) -> str:
 
 def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> list:
     """Write-time guard (026 LLD-8), docs repo only: an approved doc-native
-    block whose compare face (the five load-bearing fields, or the state word)
-    differs from HEAD without a same-batch 变更/退役 annotation blocks the
-    commit (`approved-block-touched`). Proposed blocks, annotation appends and
+    block whose compare face (block_parse.face_diffs — five fields + title +
+    clauses, 029 T2 — or the state word) differs from HEAD without a
+    same-batch 变更/退役 annotation blocks the commit
+    (`approved-block-touched`). Proposed blocks, annotation appends and
     legal M2 (fresh 变更/退役 note in the same diff) pass. `allow` (the
     --allow-approved-edit flag) lets findings through and books one log.md
     line per card. Guard errors fail open with a warning — the (ad) anchor
@@ -133,8 +135,7 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
                     fresh_note = (
                         len([a for a in nb["annotations"] if a["kind"] in ("变更", "退役")])
                         > len([a for a in ob["annotations"] if a["kind"] in ("变更", "退役")]))
-                    diffs = [f for f in GUARD_FIELDS
-                             if ob["fields"].get(f, "") != nb["fields"].get(f, "")]
+                    diffs = bp.face_diffs(ob, nb)
                     if ob["state"] != nb["state"]:
                         diffs.append("state")
                     if diffs and not fresh_note:
