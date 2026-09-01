@@ -120,8 +120,16 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
                     wt = (repo / path).read_text(encoding="utf-8")
                 except (OSError, UnicodeDecodeError):
                     wt = ""
-                old_blocks, _ = bp.parse_doc_blocks(head.stdout)
-                new_blocks, _ = bp.parse_doc_blocks(wt)
+                old_blocks, old_pf = bp.parse_doc_blocks(head.stdout)
+                new_blocks, new_pf = bp.parse_doc_blocks(wt)
+                # parse-class injections (a second `- 陈述:` line, a forged
+                # duplicate id, a near-miss header) render but fall out of the
+                # compare face — block the NEW ones at write time (029 review #2)
+                for pf in new_pf:
+                    if pf not in old_pf and pf.startswith(
+                            ("duplicate-id", "duplicate-field", "bad-header")):
+                        findings.append("parse-injection: %s %s" % (path, pf))
+                        by_card.setdefault(card_rel, []).append(pf)
                 new_by = {}
                 for b in new_blocks:
                     new_by.setdefault("%s-%s" % (b["prefix"], b["num"]), b)
@@ -139,6 +147,17 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
                     fresh_note = (
                         len([a for a in nb["annotations"] if a["kind"] in ("变更", "退役")])
                         > len([a for a in ob["annotations"] if a["kind"] in ("变更", "退役")]))
+                    if not bp.annots_prefix(ob, nb):
+                        # the gate receipt itself (029 review #1): rewriting an
+                        # approved note through the normal commit path must not
+                        # reach HEAD — appends pass, rewrites never do, and a
+                        # fresh 变更 note cannot launder a rewrite (it is
+                        # itself an append; only --allow-approved-edit books
+                        # one through)
+                        findings.append(
+                            "approved-block-touched: %s %s (annotations 非前缀)"
+                            % (path, bid))
+                        by_card.setdefault(card_rel, []).append(bid)
                     diffs = bp.face_diffs(ob, nb)
                     if ob["state"] != nb["state"]:
                         diffs.append("state")

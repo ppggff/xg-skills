@@ -349,8 +349,6 @@ class CLIIntegration(unittest.TestCase):
         self.assertEqual(res.stderr, "")
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=1)
 
 
 FM_DN = "---\nid: 900\ngovernance: doc-native-pilot\nstatus: drafting\n---\n\n"
@@ -630,3 +628,43 @@ class DiffGuardModeProbe(unittest.TestCase):
         lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
         self.assertTrue(any("approved-block-touched" in l and "state" in l
                             for l in lines), lines)
+
+
+class DiffGuardReviewRound(unittest.TestCase):
+    """029 review #1/#2: annotation-prefix face + parse-injection interception."""
+
+    def test_annotation_rewrite_blocked(self):
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK})
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK.replace("「go」", "「我没批准」"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("annotations 非前缀" in l for l in lines), lines)
+
+    def test_annotation_rewrite_not_laundered_by_change_note(self):
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK})
+        tampered = (BLOCK_OK.replace("「go」", "「我没批准」")
+                    + "- 变更: 想洗白 (M2 1234567, 2026-09-01)\n")
+        dirty(repo, "proj/900-x/requirement.md", FM_DN + tampered)
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("annotations 非前缀" in l for l in lines), lines)
+
+    def test_duplicate_field_injection_blocked(self):
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK})
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + BLOCK_OK.replace("- 类型: 功能",
+                                       "- 类型: 功能\n- 陈述: 含义相反的第二行"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("parse-injection" in l and "duplicate-field" in l
+                            for l in lines), lines)
+
+    def test_preexisting_parse_finding_not_blocking(self):
+        dup = BLOCK_OK + "\n### Req-1 proposed — 撞名\n- 陈述: 旧疾\n"
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + dup})
+        dirty(repo, "proj/900-x/requirement.md",
+              FM_DN + dup + "\n（无害追加散文）\n")
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("committed" in l for l in lines), lines)
+
+
+if __name__ == "__main__":
+    unittest.main()
