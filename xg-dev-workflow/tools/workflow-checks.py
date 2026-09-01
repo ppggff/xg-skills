@@ -2007,7 +2007,18 @@ def check_block_anchor(card_dir, ws):
     shape grandfather), working tree vs `git show <baseline>:<doc>` parsed in
     locate mode. Annotation lines never enter this face (their HEAD-prefix
     core is separate). Failures: 文本被改 / 历史不可达 / 基线处块缺席.
-    One git show per (baseline, doc)."""
+    One git show per (baseline, doc).
+    029 T4 adds the reverse core, dual-sourced: the HEAD arm (per phase doc,
+    one `git show HEAD:` each) guards the uncommitted window — a HEAD-side
+    guarded block (is_guarded union) must exist in the worktree, keep its
+    state (or carry a same-batch 变更/退役 note), and extend HEAD's
+    annotations as a prefix (append-only, HLD-4 — the baseline can't serve
+    here: first-approval snapshots hold zero notes); the baseline arm reuses
+    the snapshots already cached above to spot a committed single-block
+    deletion (a sibling's baseline still lists it). A doc absent from HEAD is
+    first-landing, not 历史不可达 (not-yet-due). Findings wear distinct
+    labels (反向缺席/回退/注记前缀被改) so the baseline family stays
+    unambiguous."""
     skip = _dn_gate(card_dir, ws)
     if skip:
         return [], [], skip
@@ -2065,6 +2076,46 @@ def check_block_anchor(card_dir, ws):
             if not legal:
                 findings.append("文本被改: %s state %s→%s without同批 变更/退役 note"
                                 % (bid, old["state"], b["state"]))
+    absent = set()
+    # HEAD arm — uncommitted window (deletion / regression / annotation rewrite)
+    for doc in bp.CARD_DOCS:
+        rel = os.path.relpath(
+            os.path.realpath(os.path.join(card_dir, doc)), top)
+        out = _git(card_dir, "show", "HEAD:%s" % rel)
+        if out is None or out.returncode != 0:
+            exs.append(("not-yet-due", "head-core: %s not in HEAD (first landing)" % doc))
+            continue
+        head_blocks, _f = bp.parse_doc_blocks(out.stdout, doc=doc)
+        for hb in head_blocks:
+            if not bp.is_guarded(hb):
+                continue
+            hid = "%s-%s" % (hb["prefix"], hb["num"])
+            nb = blocks.get(hid)
+            if nb is None:
+                findings.append("反向缺席: %s 已批块不在工作树 (HEAD:%s)" % (hid, doc))
+                absent.add(hid)
+                continue
+            fresh_note = (
+                len([a for a in nb["annotations"] if a["kind"] in ("变更", "退役")])
+                > len([a for a in hb["annotations"] if a["kind"] in ("变更", "退役")]))
+            if hb["state"] != nb["state"] and not fresh_note:
+                findings.append("反向回退: %s state %s→%s 无同批 变更/退役 注记 (vs HEAD)"
+                                % (hid, hb["state"], nb["state"]))
+            if not bp.annots_prefix(hb, nb):
+                findings.append("注记前缀被改: %s annotations 非 HEAD 前缀" % hid)
+    # baseline arm — committed single-block deletion via sibling snapshots.
+    # Unconditional on snapshot state: first-approval baselines hold every
+    # block in proposed state (the receipts-snapshot shape), so a guardedness
+    # condition here would blind the arm exactly where it matters; blocks are
+    # never legally deleted (retire keeps them), so any snapshot id missing
+    # from the worktree is a finding.
+    for (base, rel), snap in cache.items():
+        if not snap:
+            continue
+        for sid in snap:
+            if sid not in blocks and sid not in absent:
+                findings.append("反向缺席: %s 已批块不在工作树 (基线 %s)" % (sid, base[:12]))
+                absent.add(sid)
     return findings, [], exs
 
 

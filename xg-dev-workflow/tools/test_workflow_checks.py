@@ -2405,3 +2405,87 @@ class FaceExtension(DocNativeBlockChecks):
         _write(root, "900-block-fixture/requirement.md", edited)
         f, _, _ = wc.check_block_anchor(card, ws)
         self.assertEqual(f, [])
+
+
+class ReverseCore(DocNativeBlockChecks):
+    """029 T4: (ad) HEAD-prefix annotation core + dual-source reverse core."""
+
+    def _gated_repo(self):
+        """approve committed → HEAD holds the approved block + its note."""
+        import subprocess
+        root, card = self._repo()
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)   # _approve commits the gate
+        return root, card, text
+
+    def test_annotation_rewrite_flagged(self):
+        root, card, text = self._gated_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("「go」", "「ok」"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("注记前缀被改: Req-1" in x for x in f), f)
+
+    def test_unapprove_plus_note_delete_combo(self):
+        root, card, text = self._gated_repo()
+        tampered = "\n".join(l for l in text.splitlines()
+                             if not l.startswith("- approved:")) + "\n"
+        tampered = tampered.replace("### Req-1 approved", "### Req-1 proposed")
+        _write(root, "900-block-fixture/requirement.md", tampered)
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("反向回退: Req-1 state approved→proposed" in x
+                            for x in f), f)
+        self.assertTrue(any("注记前缀被改: Req-1" in x for x in f), f)
+
+    def test_committed_deletion_baseline_arm(self):
+        import subprocess
+        root, card = self._repo()
+        two = (self.PROPOSED
+               + "\n### Req-2 proposed — 次样例\n- 陈述: 次原文\n- 类型: 功能\n"
+                 "- why: w2\n- provenance: p2\n- depends-on: 无\n")
+        _write(root, "900-block-fixture/requirement.md", self.FM + two)
+        h = self._commit(root, "receipts2")
+        text = (self.FM + two.replace("Req-1 proposed", "Req-1 approved")
+                             .replace("Req-2 proposed", "Req-2 approved"))
+        text += ("- approved: %s gate %s (single: 「go」)\n" % (self.DATE, h))
+        _write(root, "900-block-fixture/requirement.md", text)
+        self._commit(root, "gate")
+        # commit a deletion of Req-2 (guard bypassed by direct git) — HEAD
+        # no longer holds it; Req-1's baseline snapshot still does
+        gone = (self.FM + two.split("\n### Req-2")[0].replace(
+            "Req-1 proposed", "Req-1 approved")
+            + "- approved: %s gate %s (single: 「go」)\n" % (self.DATE, h))
+        _write(root, "900-block-fixture/requirement.md", gone)
+        self._commit(root, "tamper: drop Req-2")
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any(x.startswith("反向缺席: Req-2") and "基线" in x
+                            for x in f), f)
+
+    def test_whole_doc_delete_head_arm(self):
+        root, card, text = self._gated_repo()
+        _write(root, "900-block-fixture/design.md",
+               "---\nstatus: drafting\n---\n\n### HLD-1 approved — 设\n"
+               "- 陈述: d\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n"
+               "- approved: %s gate 1234567 (single: 「go」)\n" % self.DATE)
+        self._commit(root, "design landed")
+        os.remove(os.path.join(card, "design.md"))
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("反向缺席: HLD-1" in x and "HEAD:design.md" in x
+                            for x in f), f)
+
+    def test_new_doc_first_landing_not_flagged(self):
+        root, card, text = self._gated_repo()
+        _write(root, "900-block-fixture/design.md",
+               "---\nstatus: drafting\n---\n\n### HLD-1 proposed — 设\n"
+               "- 陈述: d\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n")
+        f, _, exs = wc.check_block_anchor(card, ws)
+        self.assertFalse(any("历史不可达" in x and "design" in x for x in f), f)
+        self.assertTrue(any("first landing" in e[1] and "design.md" in e[1]
+                            for e in exs), exs)
+
+    def test_legal_clarify_append_passes(self):
+        root, card, text = self._gated_repo()
+        _write(root, "900-block-fixture/requirement.md",
+               text + "- 澄清: 补一句(人工「可」, 2026-09-01)\n")
+        f, _, _ = wc.check_block_anchor(card, ws)
+        self.assertEqual([x for x in f if "Req-1" in x], [])
