@@ -4,7 +4,11 @@
 Check implementations behind `workflow-status.py --check`: the ledger checks (a)-(e),
 design required sections (f), fact markers (g), part consistency (h), governance
 mode (i), the gate-adjacent/trace family (j)-(ab), and the doc-native block family
-(ac) format core / (ad) git anchor / (ae) citations & generated views (026). workflow-status.py remains the parsing
+(ac) format core / (ad) git anchor + reverse cores / (ae) citations & generated
+views (026; 029 widens the freeze face to title+clauses via block_parse.FACE_FIELDS,
+adds the HEAD-prefix annotation core, the dual-source reverse core, the extras
+hint, the blocks-without-log finding in (k), the forward derived-status branch,
+and the governed created guard in (i)). workflow-status.py remains the parsing
 layer + CLI entry and lazy-loads this module; every public function takes `ws` = a
 live view of the workflow-status module (one-way dependency: checks read the parsing
 layer, never the reverse — block_parse.py joins on the parsing side).
@@ -2326,14 +2330,14 @@ CARD_CHECKS = (
     ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws),
      _m("(h)", "plan Part 值 ⊆ design Parts 表", "新格式 Parts 表在场", "015")),
     ("governance", lambda p, c, ws: check_governance(c, ws),
-     _m("(i)", "governance 字段值域/级联", "cutoff 后卡", "017/026")),
+     _m("(i)", "governance 字段值域/级联 + governed 卡 created 缺失/畸形升 finding", "cutoff 后卡", "017/026/029")),
     ("ledger", lambda p, c, ws: check_ledger(c, ws),
      _m("(a)-(e)", "账本 id/派生状态/环/注记形/单活块", "ledger 存量卡",
         "010", disp="存量保留（doc-native 无账本，(ac)/(ad) 接棒）")),
     ("transcription-marker", check_transcription_markers,
      _m("(j)", "落纸补充 marker 过 gate 清零", "gate 后 doc", "021")),
     ("grill-reverse", check_grill_reverse,
-     _m("(k)", "grill 表形/notation + resolved 反向存在", "022 cutoff 后", "022")),
+     _m("(k)", "grill 表形/notation + resolved 反向存在 + blocks-无-log 升 finding（pre-gate 族）", "022/029 cutoff 后", "022/029")),
     ("panel-receipts", check_panel_receipts,
      _m("(l)", "receipt 块在场 + 结构核（premises/suspicions）+ 近似锚升 finding（shape-era ∧ cutoff）", "gate 过卡", "021/024/027")),
     ("docgate-gateline", check_docgate_gateline,
@@ -2366,11 +2370,12 @@ CARD_CHECKS = (
     ("detail-disposition", check_detail_disposition,
      _m("(ab)", "设计 freeze 后详设处置在案", "frozen 在卡", "029")),
     ("block-format", lambda p, c, ws: check_block_format(c, ws),
-     _m("(ac)", "block 文法/注记五类/E10 在场/日期核/ask-id 时间界/字段在场/derived-status/代际链（(c2)(c6)(c8) 升格）",
+     _m("(ac)", "block 文法/注记五类/E10 在场/日期核/ask-id 时间界/字段在场/derived-status 双向（029 正向支）/代际链（(c2)(c6)(c8) 升格）",
         "doc-native 卡", "026 LLD-2", misfire="DocNativeBlockChecks/ReviewFixes")),
     ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws),
-     _m("(ad)", "已批块显式基线锚定核（三分类 + 同批豁免 + 祖先判）", "doc-native 卡",
-        "026 LLD-4", misfire="DocNativeReviewFixes（注入五景）")),
+     _m("(ad)", "已批块基线锚定核（face=五字段+title+clauses，三分类 + 同批豁免 + 祖先判）"
+        "+ HEAD 注记前缀核 + 双源反向核（缺席/回退）+ extras hint", "doc-native 卡",
+        "026 LLD-4/029", misfire="DocNativeReviewFixes（注入五景）/ReverseCore/ExtrasHint")),
     ("block-views", lambda p, c, ws: check_block_views(c, ws),
      _m("(ae)", "引用解析/Effect 覆盖/生成索引一致/环/死引（(c3)(c5)(c7) 升格 + (a)(c) 等价）",
         "doc-native 卡", "026 T14", misfire="DocNativeBlockViews")),

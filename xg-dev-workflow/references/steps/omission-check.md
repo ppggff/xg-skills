@@ -17,13 +17,17 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
   gate (j) · grill-log resolved→ledger reverse existence + canonical-shape/notation
   findings from the 022 shape cutoff, plus the question-gloss report-only hint (bare R/G id
-  in a question cell with no 括注) from its own 024 cutoff (k) ·
+  in a question cell with no 括注) from its own 024 cutoff, plus blocks-without-log as a
+  finding from the 029 cutoff (pre-gate family: 条目 block present ∧ no grill-log, the
+  CARD_CARRIERS-declared expectation; every non-firing branch keeps its raw skip) (k) ·
   panel-receipt presence + per-block structure core from the 022 shape cutoff, plus the
   `premises =`/`suspicions =` keys (premises with value-domain core) from the 024
   receipt-premise cutoff (l) ·
   doc-gate `（gate <hash>）` line (m) ·
   retired-phrasing resident sweep (n) · link/wikilink resolution incl. KB aliases (o) ·
-  frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
+  frontmatter `status` presence (p), with governance mode (i) additionally flagging a
+  governed card whose `created` is missing/malformed (029 — the cutoff-suspension
+  escape; legacy cards keep their exemption) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
   ways (u) · project-root strays (v) · board monotonic machine subset (w) · doc↔ledger
   row-level consistency from the 024 cutoff, pre-gate: approved-block-no-row state-tiered
@@ -37,10 +41,17 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   `detail.md` nor a 详设 disposition recorded in `progress.md` (ab) · doc-native block
   format core, doc-native cards only: parse-class findings (bad-header / duplicate-id /
   bad-annotation) + approved-state blocks carry a valid approved annotation (E10) + note
-  date == gate commit author date (ac) · doc-native git anchor, doc-native cards only:
-  per approved block, the five load-bearing fields vs the explicit baseline snapshot
-  (last 变更 hash, else the approved gate hash) — 文本被改 / 历史不可达 / 基线处块缺席
-  (ad) · doc-native citations & generated views, doc-native cards only: bracket-cite
+  date == gate commit author date (ac), whose derived-status core is bidirectional from
+  029 (reverse: proposed block under a binding doc; forward: active blocks all approved
+  while status never advanced) · doc-native git anchor, doc-native cards only:
+  per guarded block (approved state ∨ approved note — the union predicate), the freeze
+  face (five fields + clause list + title, title exempt when the baseline block has
+  none) vs the explicit baseline snapshot (last 变更 hash, else the approved gate hash)
+  — 文本被改 / 历史不可达 / 基线处块缺席 — plus the 029 reverse core: annotations must
+  extend HEAD's as a prefix (注记前缀被改), HEAD/baseline-listed blocks must exist in
+  the worktree (反向缺席, dual-source), state regressions need a same-batch 变更/退役
+  note (反向回退), and extras drift vs baseline emits a report-only hint on the skips
+  stream (ad) · doc-native citations & generated views, doc-native cards only: bracket-cite
   resolution (block/Fact/alias/Eff domains; Ask prune-legal) + Effect coverage per active
   block + generated-index byte-consistency (ae) · checkbox monotonicity ((af), 027 —
   two deterministic implications: a checked `### Checkpoint` block while an earlier
