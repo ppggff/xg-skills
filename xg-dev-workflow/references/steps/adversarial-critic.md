@@ -145,6 +145,9 @@ a decision-level checkpoint with no receipt means the panel didn't run, and the 
 presentable (gate-digest.md). This is enforcement, not bookkeeping: a full requirement + design
 cycle once ran with zero dispatches while this file prescribed them, and both gates passed on
 self-certified work.
+**Finding citation form:** cite a panel finding as `panel <phase-round> #<n>` — never a bare
+`F<n>`, which collides with the facts-alias `[F<n>]` citation domain (two panels' own F-numbers
+also collide across phases; the round qualifier is what disambiguates).
 **Cite-side duty:** a later doc/phase citing a panel finding names a **locatable** receipt
 (grill-log line / round-closing message); a panel reference that cannot be located is an
 unverified claim (M1), not evidence — treat it as such before building on it.

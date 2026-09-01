@@ -57,7 +57,10 @@ Per task slice: **Implement → Test → Verify → record → commit → next**
 
 **Binary verify (both modes)** — acceptance is `[x]` (a test was **observed** passing) / `[!]`
 (failed) / `[ ]` (unverified — includes "written but not yet run" in test-after mode). **No
-subjective `[x]`**: a criterion has an observed-passing test or it doesn't.
+subjective `[x]`**: a criterion has an observed-passing test or it doesn't. **A criterion
+naming N sites/artifacts is walked per named site before ticking** — partial edits over a
+multi-site criterion are the self-tick trap the close-out review otherwise has to catch (the
+plan-acceptance sibling of the requirement Effect enumeration-criterion rule).
 
 ## Autonomy (this phase runs without per-task gates)
 Once the human says go on an approved plan, **roll through the slices autonomously — don't stop to

@@ -4,6 +4,27 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-01 — retro (post-029): multi-site acceptance walk · round column = presentation round · panel finding citation form
+
+- **implement.md Binary verify**: a criterion naming N sites/artifacts is walked per named
+  site before ticking. Incident: 029 T8 acceptance「判据文本三处」ticked with the module
+  docstring's 023 taxonomy paragraph unedited — self-certified partial completion; caught by
+  the close-out Spec axis (review 2026-09-01 #4/S1), fixed in the review round.
+- **grill.md Canonical shape**: pinned that the nine-column `round` value is the ask's
+  presentation round, so adjudication-time booking (建档即时) ahead of a later batch ask never
+  shares a round with a solo 真判 row. Incident: 029 requirement R3 booked Ask-5 (solo) and
+  Ask-6..15 (queued batch) under one round; `--check` (y) batch-round-tier2 fired twice before
+  the presentation-round semantics were inferred (2026-08-31).
+- **adversarial-critic.md Receipts**: panel findings are cited `panel <phase-round> #<n>`,
+  never bare `F<n>` — the bare form collided with the facts alias `[F<n>]` and with the second
+  panel's own numbering on 029 (facts.md needed a 需求期/design disambiguation gloss; lens 4
+  flagged the ambiguity 2026-08-31).
+- Pruned before landing: two candidates rejected by the duplication test — prose restating the
+  (ac) single-line-annotation grammar and the pending-reapproval protocol adds nothing over the
+  deterministic checks' own messages (both fired self-explanatorily on 029, cost ≈1 min each).
+- Calibration note: plan-gate lens 4 dispatched at sonnet on 029 caught one real key-mismatch
+  (regression-line narrowing) — one data point for the model-tiering table, not yet a rule.
+
 ## 2026-08-30 — M6 retro (post-027 session)
 
 - **grill.md**: Tier 2 真判 rows must not share a message with a 照案 batch soliciting one

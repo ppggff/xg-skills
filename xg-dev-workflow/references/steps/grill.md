@@ -333,7 +333,10 @@ on/after its shape cutoff and gated (earlier cards keep their old skip behavior)
 doc-native (y) v2 core (ask-id sweep · tier vocab · batch-table/真判 exclusion · 拿不准 round
 cap); the Density
 rule above stands unchanged — verdicts may fold into round headings, decision rows never drop
-columns.
+columns. **The `round` column carries the ask's PRESENTATION round**: rows booked at an
+adjudication ahead of their ask (建档即时) take the round they will be presented in — the
+batch-table/真判 exclusion keys on this column, so a solo row and its queued batch must not
+share a round value.
 
 **Lifecycle:** the grill-log is `notes/` **scratch — the *path*, not the durable output**. Once the
 phase doc converges (requirement `confirmed` / design `frozen`), it may be pruned or archived (like
