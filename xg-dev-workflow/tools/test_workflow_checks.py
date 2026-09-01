@@ -2538,3 +2538,54 @@ class ExtrasHint(DocNativeBlockChecks):
         f, hints, _ = wc.check_block_anchor(card, ws)
         self.assertEqual(f, [])
         self.assertTrue(all(h.startswith("extras-hint:") for h in hints), hints)
+
+
+class NoGrillLogUpgrade(unittest.TestCase):
+    """029 T6 (HLD-2/HLD-3): blocks-without-log = finding from the cutoff on;
+    every non-firing branch keeps the raw skip verbatim."""
+
+    BLOCK = ("### Req-1 proposed — 样例\n- 陈述: 主句。\n- 类型: 功能\n- why: w\n"
+             "- provenance: p\n- depends-on: 无\n")
+
+    def _card(self, created, body, governance="doc-native"):
+        root = tempfile.mkdtemp()
+        fm = "---\nid: 900\ngovernance: %s\nstatus: drafting\ncreated: %s\n---\n\n" % (
+            governance, created)
+        _write(root, "900-x/requirement.md", fm + body)
+        return os.path.join(root, "900-x")
+
+    def test_blocks_without_log_finds(self):
+        card = self._card("2026-09-02", self.BLOCK)
+        f, s, _ = wc.check_grill_reverse("proj", card, ws)
+        self.assertTrue(any(x.startswith("no-grill-log:") for x in f), (f, s))
+        self.assertEqual(s, [])
+
+    def test_scaffold_keeps_verbatim_skip(self):
+        card = self._card("2026-09-02", "（背景散文,无条目 block)\n")
+        f, s, _ = wc.check_grill_reverse("proj", card, ws)
+        self.assertEqual(f, [])
+        self.assertIn("grill-reverse: no-grill-log", s)
+
+    def test_pre_cutoff_keeps_verbatim_skip(self):
+        card = self._card("2026-09-01", self.BLOCK)
+        f, s, _ = wc.check_grill_reverse("proj", card, ws)
+        self.assertEqual(f, [])
+        self.assertIn("grill-reverse: no-grill-log", s)
+
+    def test_non_docnative_mode_keeps_skip(self):
+        card = self._card("2026-09-02", self.BLOCK, governance="doc-gate")
+        f, s, _ = wc.check_grill_reverse("proj", card, ws)
+        self.assertEqual(f, [])
+        self.assertIn("grill-reverse: no-grill-log", s)
+
+    def test_log_present_no_finding(self):
+        card = self._card("2026-09-02", self.BLOCK)
+        _write(os.path.dirname(card), "900-x/notes/grill-requirement.md", "# log\n")
+        f, s, _ = wc.check_grill_reverse("proj", card, ws)
+        self.assertFalse(any(x.startswith("no-grill-log:") for x in f))
+
+    def test_l_receipts_skip_untouched(self):
+        card = self._card("2026-09-02", self.BLOCK)
+        f, s, _ = wc.check_panel_receipts("proj", card, ws)
+        # (l) keeps its own verbatim skip — the finding is (k)'s alone
+        self.assertEqual(f, [])

@@ -375,6 +375,7 @@ TRANSCRIPTION_MARKER = "（落纸补充）"
 DISCUSSION_FIRST_CUTOFF = "2026-08-11"   # 019: grill-log mandatory-persist start
 RECEIPT_STRUCT_CUTOFF = "2026-08-17"     # 021 landing: structural anchor required from here
 GRILL_SHAPE_CUTOFF = "2026-08-18"        # 022 landing: canonical-shape finding era (gated cards)
+NO_GRILL_LOG_CUTOFF = "2026-09-02"       # 029 landing+1: blocks-without-log finding era (pre-gate family)
 # 027 升档 cutoffs — per-concern named (the six-step ladder precedent), same landing value
 FACT_NOSOURCE_CUTOFF = "2026-08-31"     # (g) VERIFIED-无来源 → finding
 ADR_UNPARSABLE_CUTOFF = "2026-08-31"    # 原 (b-ADR) unparsable，迁 (t) 升 finding
@@ -596,6 +597,20 @@ def check_grill_reverse(project, card_dir, ws):
                          "pre-%s card" % DISCUSSION_FIRST_CUTOFF)]
     logs = _grill_logs(card_dir)
     if not logs:
+        # 029 T6 (HLD-2): pre-gate finding — blocks only transcribe from
+        # discussion rounds, so blocks-without-log breaks 019's round-1
+        # persist rule. The expectation is CARD_CARRIERS' declared grill-log
+        # row (read via ws.card_carriers — single source, doc-native only);
+        # every non-firing branch keeps the raw skip line verbatim (023).
+        if created >= NO_GRILL_LOG_CUTOFF:
+            expected = any(e["name"] == "notes/grill-*.md" and e["expected"]
+                           and not e["exists"]
+                           for e in ws.card_carriers(card_dir))
+            if expected:
+                blocks, _ = ws._block_parse().card_blocks(card_dir)
+                if blocks:
+                    return (["no-grill-log: %d 个条目 block 已在场而 grill-log 缺失"
+                             % len(blocks)], [], [])
         return [], ["grill-reverse: no-grill-log"], []
     shape_era = _grill_shape_era(card_dir, ws)
     exs = []
