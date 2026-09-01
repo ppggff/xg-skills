@@ -1607,8 +1607,6 @@ class ExemptionRendering(unittest.TestCase):
         self.assertEqual((int(m.group(1)), int(m.group(2))), (vg, vc))
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class DocNativeBlockChecks(unittest.TestCase):
@@ -2609,8 +2607,6 @@ class DerivedStatusForwardAndCreatedGuard(unittest.TestCase):
         return os.path.join(root, "900-x")
 
     def _blocks(self, card):
-        import importlib.util
-        from pathlib import Path as _P
         return ws._block_parse().card_blocks(card)[0]
 
     def test_forward_all_approved_status_stalled(self):
@@ -2652,3 +2648,74 @@ class DerivedStatusForwardAndCreatedGuard(unittest.TestCase):
         f, _, exs = wc.check_governance(os.path.join(root, "900-x"), ws)
         self.assertFalse(any("created-missing" in x for x in f), f)
         self.assertTrue(any("(i2)" in e[1] for e in exs))
+
+
+class ReviewRoundFixes(DocNativeBlockChecks):
+    """029 review #3/#6/#14: committed-deletion label, forward union +
+    transported exemption, retired-only quiet."""
+
+    def test_committed_doc_deletion_is_finding_not_first_landing(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        self._approve(root, card, h)
+        _write(root, "900-block-fixture/design.md",
+               "---\nstatus: drafting\n---\n\n### HLD-1 approved — 设\n"
+               "- 陈述: d\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n"
+               "- approved: %s gate 1234567 (single: 「go」)\n" % self.DATE)
+        self._commit(root, "design landed")
+        os.remove(os.path.join(card, "design.md"))
+        self._commit(root, "tamper: drop design.md")
+        f, _, exs = wc.check_block_anchor(card, ws)
+        self.assertTrue(any("反向缺席: design.md 曾入库" in x for x in f), f)
+        self.assertFalse(any("first landing" in e[1] and "design" in e[1]
+                             for e in exs), exs)
+
+    APPROVED_NOTE = "- approved: 2026-09-01 gate 1234567 (single: 「go」)\n"
+
+    def _fw_card(self, body, status="drafting"):
+        root = tempfile.mkdtemp()
+        fm = ("---\nid: 900\ngovernance: doc-native\nstatus: %s\n"
+              "created: 2026-09-01\n---\n\n" % status)
+        _write(root, "900-x/requirement.md", fm + body)
+        card = os.path.join(root, "900-x")
+        return card, ws._block_parse().card_blocks(card)[0]
+
+    def test_forward_union_catches_note_without_state(self):
+        body = ("### Req-1 proposed — 样例\n- 陈述: s\n- 类型: 功能\n- why: w\n"
+                "- provenance: p\n- depends-on: 无\n" + self.APPROVED_NOTE)
+        card, blocks = self._fw_card(body)
+        f = wc._derived_status_findings(card, ws, blocks)
+        self.assertTrue(any("derived-status-forward" in x for x in f), f)
+
+    def test_forward_transported_shape_exempt(self):
+        body = ("### Req-1 approved — 搬运\n- 陈述: s\n- 类型: 功能\n- why: w\n"
+                "- provenance: p\n- depends-on: 无\n"
+                "- 来源: 025 R1 approved 2026-08-20 gate 13fed19 — verbatim\n"
+                + self.APPROVED_NOTE)
+        card, blocks = self._fw_card(body)
+        f = wc._derived_status_findings(card, ws, blocks)
+        self.assertFalse(any("forward" in x for x in f), f)
+
+    def test_forward_retired_only_quiet(self):
+        body = ("### Req-1 retired — 退\n- 陈述: s\n- 类型: 功能\n- why: w\n"
+                "- provenance: p\n- depends-on: 无\n")
+        card, blocks = self._fw_card(body)
+        f = wc._derived_status_findings(card, ws, blocks)
+        self.assertFalse(any("forward" in x for x in f), f)
+
+    def test_marker_in_extras_caught_by_j(self):
+        root, card = self._repo()
+        import subprocess
+        h = subprocess.run(["git", "-C", root, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True).stdout.strip()
+        text = self._approve(root, card, h)
+        _write(root, "900-block-fixture/requirement.md",
+               text.replace("- approved:", "（落纸补充）藏在附注行\n- approved:", 1))
+        f, _, _ = wc.check_transcription_markers("proj", card, ws)
+        self.assertTrue(any("stray-marker: Req-1" in x for x in f), f)
+
+
+if __name__ == "__main__":
+    unittest.main()

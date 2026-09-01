@@ -14,7 +14,9 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   Checks (a)–(ag): ledger (a)–(e) (id-reference integrity · derived-status mappings
   (SKILL.md「Ledger」) · depends-on acyclicity · approve-note format · single-active-block) ·
   design.md unconditional sections (f; pre-2026-07-31 grandfathered) · facts.md marker
-  integrity (g) · part consistency (h) · governance mode (i) ·（落纸补充）marker-clear at
+  integrity (g) · part consistency (h) · governance mode, plus from 029 the governed
+  created guard (created missing/malformed on a card with a governance field →
+  finding; legacy cards keep their exemption) (i) ·（落纸补充）marker-clear at
   gate (j) · grill-log resolved→ledger reverse existence + canonical-shape/notation
   findings from the 022 shape cutoff, plus the question-gloss report-only hint (bare R/G id
   in a question cell with no 括注) from its own 024 cutoff, plus blocks-without-log as a
@@ -25,9 +27,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   receipt-premise cutoff (l) ·
   doc-gate `（gate <hash>）` line (m) ·
   retired-phrasing resident sweep (n) · link/wikilink resolution incl. KB aliases (o) ·
-  frontmatter `status` presence (p), with governance mode (i) additionally flagging a
-  governed card whose `created` is missing/malformed (029 — the cutoff-suspension
-  escape; legacy cards keep their exemption) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
+  frontmatter `status` presence (p) · R-id trace existence (q) · `[F<n>]`/`[NNN:F<n>]`
   citation resolution (r) · progress line cap (s) · ADR hygiene (t) · board rows both
   ways (u) · project-root strays (v) · board monotonic machine subset (w) · doc↔ledger
   row-level consistency from the 024 cutoff, pre-gate: approved-block-no-row state-tiered
@@ -42,15 +42,19 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
   format core, doc-native cards only: parse-class findings (bad-header / duplicate-id /
   bad-annotation) + approved-state blocks carry a valid approved annotation (E10) + note
   date == gate commit author date (ac), whose derived-status core is bidirectional from
-  029 (reverse: proposed block under a binding doc; forward: active blocks all approved
-  while status never advanced) · doc-native git anchor, doc-native cards only:
-  per guarded block (approved state ∨ approved note — the union predicate), the freeze
-  face (five fields + clause list + title, title exempt when the baseline block has
-  none) vs the explicit baseline snapshot (last 变更 hash, else the approved gate hash)
-  — 文本被改 / 历史不可达 / 基线处块缺席 — plus the 029 reverse core: annotations must
-  extend HEAD's as a prefix (注记前缀被改), HEAD/baseline-listed blocks must exist in
-  the worktree (反向缺席, dual-source), state regressions need a same-batch 变更/退役
-  note (反向回退), and extras drift vs baseline emits a report-only hint on the skips
+  029 (reverse: proposed block under a binding doc; forward: active blocks all guarded
+  — the union predicate, transported all-来源 shape exempt — while status never
+  advanced) · doc-native git anchor, doc-native cards only — two arms with distinct
+  selection (029 review #5): the **baseline core** stays note-selected (per block with
+  an approved annotation, HLD-6), comparing the freeze face (five fields + clause list
+  + title, title exempt when the baseline block has none) vs the explicit baseline
+  snapshot (last 变更 hash, else the approved gate hash) — 文本被改 / 历史不可达 /
+  基线处块缺席; the **HEAD reverse arm** selects by the union predicate (approved
+  state ∨ approved note): annotations must extend HEAD's as a prefix (注记前缀被改),
+  HEAD/baseline-listed blocks must exist in the worktree (反向缺席, dual-source; a
+  path with git history that left HEAD is a finding, only a never-committed doc is
+  first-landing), state regressions need a same-batch 变更/退役 note (反向回退), and
+  extras drift vs baseline emits a report-only hint on the skips
   stream (ad) · doc-native citations & generated views, doc-native cards only: bracket-cite
   resolution (block/Fact/alias/Eff domains; Ask prune-legal) + Effect coverage per active
   block + generated-index byte-consistency (ae) · checkbox monotonicity ((af), 027 —

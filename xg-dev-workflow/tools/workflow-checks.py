@@ -32,7 +32,10 @@ silently returning; each emission point states its class and reason in place:
   fact-no-source / receipt-near-form keep their pre-existing carrier-missing rows
   (023 table #5/#38 — the hole predates the cutoff and stays visible as one). New
   present-carrier gaps default to findings; CM stays for true absence or unpromoted
-  undecidables.
+  undecidables. 029 promotes two true-absence shapes to findings from their own
+  cutoffs/predicates — no-grill-log while 条目 blocks exist (k), and created
+  missing/malformed on a governed card (i) — their non-firing branches keep the
+  verbatim skip lines.
 
 Lives only in xg-dev-workflow/tools/ (not a synced copy).
 """
@@ -432,7 +435,10 @@ def check_transcription_markers(project, card_dir, ws):
         for bid, b in blocks.items():
             if b["state"] != "approved":
                 continue
-            n = bpm.face_text(b).count(TRANSCRIPTION_MARKER)
+            # extras join the marker scan (029 review #11): a marker parked in
+            # a tolerated 附注 line must not outlive the gate either
+            n = (bpm.face_text(b) + "\n"
+                 + "\n".join(bpm.norm_extras(b))).count(TRANSCRIPTION_MARKER)
             if n:
                 findings.append("stray-marker: %s %d×%s in approved block"
                                 % (bid, n, TRANSCRIPTION_MARKER))
@@ -1824,11 +1830,19 @@ def _derived_status_findings(card_dir, ws, blocks):
         path = os.path.join(card_dir, doc)
         status = ws.frontmatter(path).get("status", "").split("#")[0].strip()
         if status not in binding:
+            bpm = ws._block_parse()
             active = [b for bid, b in blocks.items() if b["doc"] == doc
                       and b["state"] not in ("retired", "superseded")]
-            if active and all(b["state"] == "approved" for b in active):
+            # union predicate (029 review #6): a note-added/state-stale block
+            # counts — same escape the (ad)/guard union closes elsewhere.
+            # Transported shape exempt: every active block carrying a 来源
+            # note is the legal pre-ratify window (026 Part A form) — the
+            # receiving card's own gate is what advances status.
+            if active and all(bpm.is_guarded(b) for b in active) \
+                    and not all(any(a["kind"] == "来源" for a in b["annotations"])
+                                for b in active):
                 findings.append(
-                    "derived-status-forward: %s blocks 全 approved 而 status '%s'"
+                    "derived-status-forward: %s blocks 全批而 status '%s'"
                     % (doc, status or "缺失"))
             continue
         text = ws._read(path)
@@ -2121,7 +2135,15 @@ def check_block_anchor(card_dir, ws):
             os.path.realpath(os.path.join(card_dir, doc)), top)
         out = _git(card_dir, "show", "HEAD:%s" % rel)
         if out is None or out.returncode != 0:
-            exs.append(("not-yet-due", "head-core: %s not in HEAD (first landing)" % doc))
+            # first landing means the path NEVER hit history — a committed
+            # deletion / rename / untrack all leave a git-log trace and must
+            # not wear the first-landing label (029 review #3)
+            if _file_created(card_dir, doc):
+                findings.append("反向缺席: %s 曾入库而 HEAD 无此路径(删除/改名/untrack)"
+                                % doc)
+            else:
+                exs.append(("not-yet-due",
+                            "head-core: %s not in HEAD (first landing)" % doc))
             continue
         head_blocks, _f = bp.parse_doc_blocks(out.stdout, doc=doc)
         for hb in head_blocks:
@@ -2152,7 +2174,8 @@ def check_block_anchor(card_dir, ws):
             continue
         for sid in snap:
             if sid not in blocks and sid not in absent:
-                findings.append("反向缺席: %s 已批块不在工作树 (基线 %s)" % (sid, base[:12]))
+                findings.append("反向缺席: %s 基线快照 %s 有此块而工作树缺席"
+                                % (sid, base[:12]))
                 absent.add(sid)
     return findings, hints, exs
 
@@ -2330,14 +2353,16 @@ CARD_CHECKS = (
     ("part-consistency", lambda p, c, ws: check_part_consistency(c, ws),
      _m("(h)", "plan Part 值 ⊆ design Parts 表", "新格式 Parts 表在场", "015")),
     ("governance", lambda p, c, ws: check_governance(c, ws),
-     _m("(i)", "governance 字段值域/级联 + governed 卡 created 缺失/畸形升 finding", "cutoff 后卡", "017/026/029")),
+     _m("(i)", "governance 字段值域/级联 + governed 卡 created 缺失/畸形升 finding", "cutoff 后卡", "017/026/029",
+        misfire="DerivedStatusForwardAndCreatedGuard")),
     ("ledger", lambda p, c, ws: check_ledger(c, ws),
      _m("(a)-(e)", "账本 id/派生状态/环/注记形/单活块", "ledger 存量卡",
         "010", disp="存量保留（doc-native 无账本，(ac)/(ad) 接棒）")),
     ("transcription-marker", check_transcription_markers,
      _m("(j)", "落纸补充 marker 过 gate 清零", "gate 后 doc", "021")),
     ("grill-reverse", check_grill_reverse,
-     _m("(k)", "grill 表形/notation + resolved 反向存在 + blocks-无-log 升 finding（pre-gate 族）", "022/029 cutoff 后", "022/029")),
+     _m("(k)", "grill 表形/notation + resolved 反向存在 + blocks-无-log 升 finding（pre-gate 族）", "022/029 cutoff 后", "022/029",
+        misfire="NoGrillLogUpgrade")),
     ("panel-receipts", check_panel_receipts,
      _m("(l)", "receipt 块在场 + 结构核（premises/suspicions）+ 近似锚升 finding（shape-era ∧ cutoff）", "gate 过卡", "021/024/027")),
     ("docgate-gateline", check_docgate_gateline,
@@ -2375,7 +2400,7 @@ CARD_CHECKS = (
     ("block-anchor", lambda p, c, ws: check_block_anchor(c, ws),
      _m("(ad)", "已批块基线锚定核（face=五字段+title+clauses，三分类 + 同批豁免 + 祖先判）"
         "+ HEAD 注记前缀核 + 双源反向核（缺席/回退）+ extras hint", "doc-native 卡",
-        "026 LLD-4/029", misfire="DocNativeReviewFixes（注入五景）/ReverseCore/ExtrasHint")),
+        "026 LLD-4/029", misfire="DocNativeReviewFixes（注入五景）/FaceExtension/ReverseCore/ExtrasHint")),
     ("block-views", lambda p, c, ws: check_block_views(c, ws),
      _m("(ae)", "引用解析/Effect 覆盖/生成索引一致/环/死引（(c3)(c5)(c7) 升格 + (a)(c) 等价）",
         "doc-native 卡", "026 T14", misfire="DocNativeBlockViews")),
