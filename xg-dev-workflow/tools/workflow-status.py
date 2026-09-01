@@ -880,8 +880,12 @@ GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot", "doc-native")
 
 
 def card_mode(card_dir):
-    """'ledger' | 'doc-gate' | 'legacy' (existence axis rules) | 'invalid'."""
+    """'ledger' | 'doc-gate' | 'legacy' (existence axis rules) | 'invalid'.
+    Surrounding quotes are a YAML artifact, not a value — stripped here and in
+    the write-side guard's mode probe alike (029 T3: the quoted form used to
+    read as invalid check-side while silently switching the guard off)."""
     gov = frontmatter(os.path.join(card_dir, "requirement.md")).get("governance", "")
+    gov = gov.strip("\"'")
     if not gov:
         return "legacy"
     return gov if gov in GOVERNANCE_VALUES else "invalid"

@@ -76,7 +76,9 @@ def _card_governance(repo: Path, card_rel: str) -> str:
             text = (repo / card_rel / "requirement.md").read_text(encoding="utf-8")
         except OSError:
             return ""
-    m = re.search(r"^governance:\s*([\w-]+)", text, re.M)
+    # quote-tolerant, same value normalization as card_mode (029 T3) — the
+    # quoted form used to switch the guard off silently
+    m = re.search(r"^governance:\s*['\"]?([\w-]+)", text, re.M)
     return m.group(1) if m else ""
 
 
@@ -124,7 +126,9 @@ def diff_guard(repo: Path, kind: str, pathspecs: list, allow: bool = False) -> l
                 for b in new_blocks:
                     new_by.setdefault("%s-%s" % (b["prefix"], b["num"]), b)
                 for ob in old_blocks:
-                    if ob["state"] != "approved":
+                    # union selection predicate (029 T3, block_parse.is_guarded):
+                    # a HEAD-side state rewrite alone must not drop the block
+                    if not bp.is_guarded(ob):
                         continue
                     bid = "%s-%s" % (ob["prefix"], ob["num"])
                     nb = new_by.get(bid)

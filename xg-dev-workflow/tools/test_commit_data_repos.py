@@ -594,3 +594,39 @@ class DiffGuardFace(unittest.TestCase):
         dirty(repo, "proj/900-x/requirement.md", FM_DN + edited)
         lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
         self.assertTrue(any("committed" in l for l in lines), lines)
+
+
+class DiffGuardModeProbe(unittest.TestCase):
+    """029 T3: quote-tolerant mode probe, judged identically to check-side
+    card_mode; write-side selection = is_guarded union."""
+
+    FM_Q = '---\nid: 900\ngovernance: "doc-native"\nstatus: drafting\n---\n\n'
+
+    def test_quoted_governance_guard_on(self):
+        repo = init_repo({"proj/900-x/requirement.md": self.FM_Q + BLOCK_OK})
+        dirty(repo, "proj/900-x/requirement.md",
+              self.FM_Q + BLOCK_OK.replace("- 陈述: 原文", "- 陈述: 被改"))
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("approved-block-touched" in l for l in lines), lines)
+
+    def test_quoted_governance_both_sides_agree(self):
+        repo = init_repo({"proj/900-x/requirement.md": self.FM_Q + BLOCK_OK})
+        import importlib.util
+        from pathlib import Path as _P
+        spec = importlib.util.spec_from_file_location(
+            "ws_probe", str(_P(__file__).resolve().parent / "workflow-status.py"))
+        ws2 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ws2)
+        self.assertEqual(ws2.card_mode(str(repo / "proj/900-x")), "doc-native")
+        self.assertEqual(cdr._card_governance(repo, "proj/900-x"), "doc-native")
+
+    def test_state_rewrite_still_guarded_union_arm(self):
+        # HEAD block approved(+note); worktree rewrites the state word AND the
+        # 陈述 — old-state predicate would drop it, the union arm keeps it
+        repo = init_repo({"proj/900-x/requirement.md": FM_DN + BLOCK_OK})
+        tampered = (BLOCK_OK.replace("### Req-1 approved", "### Req-1 proposed")
+                    .replace("- 陈述: 原文", "- 陈述: 被改"))
+        dirty(repo, "proj/900-x/requirement.md", FM_DN + tampered)
+        lines = cdr.commit_repo(repo, "docs", "docs", "m", project="proj")
+        self.assertTrue(any("approved-block-touched" in l and "state" in l
+                            for l in lines), lines)
