@@ -169,6 +169,11 @@ def check_governance(card_dir, ws):
             findings.append("missing-governance-field")
     else:
         exs.append(("not-yet-due", "(i2) governed card, field check off"))
+        # 029 T7 (HLD-9): a governed card (governance field present) without a
+        # parseable created date suspends every cutoff-gated check — finding,
+        # not exemption; legacy cards keep the branch above untouched.
+        if not ws.card_created(card_dir):
+            findings.append("created-missing: governed card, created 缺失/畸形")
     # real cards annotate status inline ("confirmed # 2026-07-11 human confirm") — strip it
     status = fm.get("status", "").split("#")[0].strip()
     if mode != "ledger":
@@ -1806,12 +1811,21 @@ def _derived_status_findings(card_dir, ws, blocks):
     """Review #2 (HLD-13(2) + the error-matrix hard-red row): on a doc whose
     frontmatter status carries binding force, a proposed block outside a
     「提议变更」section is a derived-status regression — the un-approve/rewrite
-    shape the injection test proved invisible."""
+    shape the injection test proved invisible.
+    029 T7 adds the forward direction: active (non-retired/superseded) blocks
+    all approved while the doc's status never advanced — the "don't write
+    status" escape that switches every gate-scoped check off."""
     findings = []
     for doc, binding in BINDING_STATUS.items():
         path = os.path.join(card_dir, doc)
         status = ws.frontmatter(path).get("status", "").split("#")[0].strip()
         if status not in binding:
+            active = [b for bid, b in blocks.items() if b["doc"] == doc
+                      and b["state"] not in ("retired", "superseded")]
+            if active and all(b["state"] == "approved" for b in active):
+                findings.append(
+                    "derived-status-forward: %s blocks 全 approved 而 status '%s'"
+                    % (doc, status or "缺失"))
             continue
         text = ws._read(path)
         spans = []

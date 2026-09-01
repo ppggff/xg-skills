@@ -1648,6 +1648,10 @@ class DocNativeBlockChecks(unittest.TestCase):
     def _approve(self, root, card, h, date=None):
         text = open(os.path.join(card, "requirement.md"), encoding="utf-8").read()
         text = text.replace("### Req-1 proposed", "### Req-1 approved")
+        # transcription protocol is atomic: block flips AND doc status advance
+        # in the same gate commit (the forward derived-status core, 029 T7,
+        # flags the split shape)
+        text = text.replace("status: drafting", "status: confirmed")
         text += "- approved: %s gate %s (single: 「go」)\n" % (date or self.DATE, h)
         _write(root, "900-block-fixture/requirement.md", text)
         self._commit(root, "gate")
@@ -2589,3 +2593,62 @@ class NoGrillLogUpgrade(unittest.TestCase):
         f, s, _ = wc.check_panel_receipts("proj", card, ws)
         # (l) keeps its own verbatim skip — the finding is (k)'s alone
         self.assertEqual(f, [])
+
+
+class DerivedStatusForwardAndCreatedGuard(unittest.TestCase):
+    """029 T7 (HLD-8/HLD-9): forward derived-status + governed created guard."""
+
+    APPROVED = ("### Req-1 approved — 样例\n- 陈述: 主句。\n- 类型: 功能\n- why: w\n"
+                "- provenance: p\n- depends-on: 无\n"
+                "- approved: 2026-09-01 gate 1234567 (single: 「go」)\n")
+
+    def _card(self, fm_extra, body):
+        root = tempfile.mkdtemp()
+        fm = "---\nid: 900\ngovernance: doc-native\n%s---\n\n" % fm_extra
+        _write(root, "900-x/requirement.md", fm + body)
+        return os.path.join(root, "900-x")
+
+    def _blocks(self, card):
+        import importlib.util
+        from pathlib import Path as _P
+        return ws._block_parse().card_blocks(card)[0]
+
+    def test_forward_all_approved_status_stalled(self):
+        card = self._card("status: drafting\ncreated: 2026-09-01\n", self.APPROVED)
+        f = wc._derived_status_findings(card, ws, self._blocks(card))
+        self.assertTrue(any(x.startswith("derived-status-forward: requirement.md")
+                            for x in f), f)
+
+    def test_forward_quiet_with_proposed_block(self):
+        body = self.APPROVED + "\n### Req-2 proposed — 次\n- 陈述: s\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n"
+        card = self._card("status: drafting\ncreated: 2026-09-01\n", body)
+        f = wc._derived_status_findings(card, ws, self._blocks(card))
+        self.assertFalse(any("forward" in x for x in f), f)
+
+    def test_forward_quiet_when_status_binding(self):
+        card = self._card("status: confirmed\ncreated: 2026-09-01\n", self.APPROVED)
+        f = wc._derived_status_findings(card, ws, self._blocks(card))
+        self.assertFalse(any("forward" in x for x in f), f)
+
+    def test_forward_retired_blocks_dont_block_or_fire_alone(self):
+        body = self.APPROVED + "\n### Req-2 retired — 退\n- 陈述: s\n- 类型: 功能\n- why: w\n- provenance: p\n- depends-on: 无\n"
+        card = self._card("status: drafting\ncreated: 2026-09-01\n", body)
+        f = wc._derived_status_findings(card, ws, self._blocks(card))
+        self.assertTrue(any("forward" in x for x in f), f)
+
+    def test_created_missing_on_governed_finds(self):
+        card = self._card("status: drafting\n", "散文。\n")
+        f, _, _ = wc.check_governance(card, ws)
+        self.assertTrue(any(x.startswith("created-missing:") for x in f), f)
+
+    def test_created_malformed_on_governed_finds(self):
+        card = self._card("status: drafting\ncreated: 09/01/2026\n", "散文。\n")
+        f, _, _ = wc.check_governance(card, ws)
+        self.assertTrue(any(x.startswith("created-missing:") for x in f), f)
+
+    def test_legacy_card_untouched(self):
+        root = tempfile.mkdtemp()
+        _write(root, "900-x/requirement.md", "无 frontmatter 的 legacy 卡\n")
+        f, _, exs = wc.check_governance(os.path.join(root, "900-x"), ws)
+        self.assertFalse(any("created-missing" in x for x in f), f)
+        self.assertTrue(any("(i2)" in e[1] for e in exs))
