@@ -2,10 +2,14 @@
 """Doc-native decision-block parser (026 LLD-1..3/6): the single parser every
 downstream consumer (checks, generated views, digest) goes through.
 
-Public surface (three functions, LLD-6): parse_doc_blocks(text, doc="") /
-card_blocks(card_dir) / deps_graph(blocks). Pure parsing, no findings are ever
-silently dropped; anchor verification and format checks consume this output and
-live in workflow-checks.py. Underscore module name keeps `import block_parse`
+Public surface: parse_doc_blocks(text, doc="") / card_blocks(card_dir) /
+deps_graph(blocks) (LLD-6), plus the freeze-guard face family (029 HLD-1/HLD-6):
+FACE_FIELDS / block_face(b) / face_text(b) / face_diffs(old, new) /
+is_guarded(b) / norm_extras(b) / annots_prefix(old, new) — the single source
+both defense lines ((ad) audit core in workflow-checks.py, diff_guard write
+side in commit-data-repos.py) and (j)'s approved-text face compare against.
+Pure parsing, no findings are ever silently dropped; anchor verification and
+format checks consume this output and live in workflow-checks.py. Underscore module name keeps `import block_parse`
 possible for sibling tools and tests (tools/ scripts are hyphen-named and load
 via importlib; a library module is the stated reason for the new naming form).
 Not in sync-manifest — xg-dev-workflow only.
@@ -184,6 +188,62 @@ def card_blocks(card_dir):
             else:
                 out[bid] = b
     return out, findings
+
+
+# Freeze-guard compare face (029 HLD-1): the five load-bearing fields plus
+# title and the clause list. Replaces the retired per-side ANCHOR_FIELDS /
+# GUARD_FIELDS constants.
+FACE_FIELDS = ("陈述", "类型", "why", "provenance", "depends-on")
+
+
+def block_face(b):
+    """The comparable freeze-guard face of one block: fields dict restricted
+    to FACE_FIELDS + title + clause list."""
+    return {"fields": {f: b["fields"].get(f, "") for f in FACE_FIELDS},
+            "title": b["title"],
+            "clauses": list(b["clauses"])}
+
+
+def face_text(b):
+    """The face as one text blob ((j)'s marker-scan body)."""
+    face = block_face(b)
+    return "\n".join([face["title"]] + list(face["fields"].values())
+                     + [c[1] for c in face["clauses"]])
+
+
+def face_diffs(old, new):
+    """Field-level diff labels between two blocks' faces. Title compares only
+    when the OLD (baseline/HEAD) block has one — the shape grandfather for
+    pre-归一 blocks whose titles were backfilled after approval (029 HLD-1)."""
+    fo, fn = block_face(old), block_face(new)
+    diffs = [f for f in FACE_FIELDS if fo["fields"][f] != fn["fields"][f]]
+    if fo["title"] and fo["title"] != fn["title"]:
+        diffs.append("title")
+    if fo["clauses"] != fn["clauses"]:
+        diffs.append("clauses")
+    return diffs
+
+
+def is_guarded(b):
+    """Union selection predicate (029 HLD-6): a block enters freeze guarding
+    when its state word says approved OR it carries an approved annotation —
+    either alone must not drop it from the guarded set."""
+    return b["state"] == "approved" or any(
+        a["kind"] == "approved" for a in b["annotations"])
+
+
+def norm_extras(b):
+    """extras normalized for hint comparison (029 HLD-7): per-line strip,
+    blank lines dropped — reflow/indent churn never reads as a change."""
+    return [ln.strip() for ln in b["extras"] if ln.strip()]
+
+
+def annots_prefix(old, new):
+    """append-only annotation discipline as a machine predicate (029 HLD-4):
+    old block's (kind, text) sequence is a prefix of new's."""
+    o = [(a["kind"], a["text"]) for a in old["annotations"]]
+    n = [(a["kind"], a["text"]) for a in new["annotations"]]
+    return n[:len(o)] == o
 
 
 def expand_ranges(clause):

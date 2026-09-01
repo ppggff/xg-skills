@@ -249,3 +249,80 @@ class RenderIndex(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
+
+
+class FaceFamily(unittest.TestCase):
+    """029 T1: freeze-guard face family — block_face/face_text/face_diffs/
+    is_guarded/norm_extras/annots_prefix."""
+
+    def _blk(self, text):
+        blocks, _ = bp.parse_doc_blocks(text)
+        return blocks[0]
+
+    BASE = """\
+### Req-1 approved — 标题甲
+- 陈述: 主句。
+- 类型: 功能
+- why: 理由。
+- provenance: 锚
+- depends-on: —
+- (a) 子句甲
+- approved: 2026-08-31 gate 0123abc (batch Ask-1: 「go」)
+附注行一
+"""
+
+    def test_face_field_diff(self):
+        new = self._blk(self.BASE.replace("主句。", "被改的主句。"))
+        self.assertEqual(bp.face_diffs(self._blk(self.BASE), new), ["陈述"])
+
+    def test_face_title_diff_and_shape_grandfather(self):
+        old, new = self._blk(self.BASE), self._blk(self.BASE.replace("标题甲", "标题乙"))
+        self.assertIn("title", bp.face_diffs(old, new))
+        # baseline without a title: title face exempt (backfilled-title shape)
+        bare = self._blk(self.BASE.replace(" — 标题甲", ""))
+        self.assertNotIn("title", bp.face_diffs(bare, new))
+
+    def test_face_clause_diff_covers_lexical_flip(self):
+        old = self._blk(self.BASE)
+        gone = self._blk(self.BASE.replace("- (a) 子句甲\n", "  - (a) 子句甲\n"))
+        self.assertIn("clauses", bp.face_diffs(old, gone))
+        edited = self._blk(self.BASE.replace("子句甲", "子句乙"))
+        self.assertIn("clauses", bp.face_diffs(old, edited))
+
+    def test_face_text_matches_j_body(self):
+        b = self._blk(self.BASE)
+        body = "\n".join([b["title"]] + list(b["fields"].values())
+                         + [c[1] for c in b["clauses"]])
+        self.assertEqual(bp.face_text(b), body)
+
+    def test_is_guarded_union_arms(self):
+        state_only = self._blk(self.BASE.replace(
+            "- approved: 2026-08-31 gate 0123abc (batch Ask-1: 「go」)\n", ""))
+        self.assertTrue(bp.is_guarded(state_only))
+        note_only = self._blk(self.BASE.replace("Req-1 approved", "Req-1 proposed"))
+        self.assertTrue(bp.is_guarded(note_only))
+        neither = self._blk(self.BASE.replace("Req-1 approved", "Req-1 proposed")
+                            .replace("- approved: 2026-08-31 gate 0123abc"
+                                     " (batch Ask-1: 「go」)\n", ""))
+        self.assertFalse(bp.is_guarded(neither))
+
+    def test_norm_extras_reflow_stable(self):
+        a = self._blk(self.BASE)
+        # trailing whitespace + extra blank line = reflow churn, not a change
+        # (a LEADING indent would legally re-bucket the line as the open
+        # annotation's continuation — parser semantics, not hint noise)
+        b = self._blk(self.BASE.replace("附注行一", "附注行一   ") + "\n")
+        self.assertEqual(bp.norm_extras(a), bp.norm_extras(b))
+        c = self._blk(self.BASE.replace("附注行一", "附注行二"))
+        self.assertNotEqual(bp.norm_extras(a), bp.norm_extras(c))
+
+    def test_annots_prefix(self):
+        old = self._blk(self.BASE)
+        appended = self._blk(self.BASE +
+                             "- 澄清: 补一句(人工「可」, 2026-09-01)\n")
+        self.assertTrue(bp.annots_prefix(old, appended))
+        rewritten = self._blk(self.BASE.replace("「go」", "「ok」"))
+        self.assertFalse(bp.annots_prefix(old, rewritten))
+        deleted = self._blk(self.BASE.replace(
+            "- approved: 2026-08-31 gate 0123abc (batch Ask-1: 「go」)\n", ""))
+        self.assertFalse(bp.annots_prefix(old, deleted))
