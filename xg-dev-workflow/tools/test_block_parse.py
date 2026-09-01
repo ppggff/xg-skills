@@ -247,8 +247,6 @@ class RenderIndex(unittest.TestCase):
         self.assertNotIn("HLD-1", out)
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=1)
 
 
 class FaceFamily(unittest.TestCase):
@@ -326,3 +324,7 @@ class FaceFamily(unittest.TestCase):
         deleted = self._blk(self.BASE.replace(
             "- approved: 2026-08-31 gate 0123abc (batch Ask-1: 「go」)\n", ""))
         self.assertFalse(bp.annots_prefix(old, deleted))
+
+
+if __name__ == "__main__":
+    unittest.main()

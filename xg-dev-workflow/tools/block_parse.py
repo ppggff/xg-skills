@@ -3,15 +3,16 @@
 downstream consumer (checks, generated views, digest) goes through.
 
 Public surface: parse_doc_blocks(text, doc="") / card_blocks(card_dir) /
-deps_graph(blocks) (LLD-6), plus the freeze-guard face family (029 HLD-1/HLD-6):
+deps_graph(blocks) (LLD-6), plus the freeze-guard face family (029):
 FACE_FIELDS / block_face(b) / face_text(b) / face_diffs(old, new) /
 is_guarded(b) / norm_extras(b) / annots_prefix(old, new) — the single source
 both defense lines ((ad) audit core in workflow-checks.py, diff_guard write
 side in commit-data-repos.py) and (j)'s approved-text face compare against.
 Pure parsing, no findings are ever silently dropped; anchor verification and
-format checks consume this output and live in workflow-checks.py. Underscore module name keeps `import block_parse`
-possible for sibling tools and tests (tools/ scripts are hyphen-named and load
-via importlib; a library module is the stated reason for the new naming form).
+format checks consume this output and live in workflow-checks.py. Underscore
+module name keeps `import block_parse` possible for sibling tools and tests
+(tools/ scripts are hyphen-named and load via importlib; a library module is
+the stated reason for the new naming form).
 Not in sync-manifest — xg-dev-workflow only.
 
 Block: {prefix, num, state, title, fields: {陈述/类型/why/provenance/depends-on},
