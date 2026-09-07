@@ -401,7 +401,7 @@ def card_created(card_dir):
     """Card created date, format-guarded: malformed values normalize to "" so every
     caller's no-created-date branch owns them (moved from workflow-checks.py, 027 —
     the parsing layer consumes it too; checks keep reading it via ws)."""
-    created = str(frontmatter(os.path.join(card_dir, "requirement.md")).get("created", ""))
+    created = str(frontmatter(_mode_doc(card_dir)).get("created", ""))
     return created if re.match(r"\d{4}-\d{2}-\d{2}", created) else ""
 
 
@@ -876,7 +876,7 @@ def card_decisions(card_dir):
 # "doc-native-pilot": card 026's self-hosted trial mode — decisions live in the phase docs,
 # no decisions.md/facts.md (mode-specific checks treat it as non-ledger; full semantics land
 # via card 026, until then its cards are guarded by their card-local crosscheck).
-GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot", "doc-native")
+GOVERNANCE_VALUES = ("ledger", "doc-gate", "doc-native-pilot", "doc-native", "lite")
 
 
 def card_mode(card_dir):
@@ -884,11 +884,19 @@ def card_mode(card_dir):
     Surrounding quotes are a YAML artifact, not a value — stripped here and in
     the write-side guard's mode probe alike (029 T3: the quoted form used to
     read as invalid check-side while silently switching the guard off)."""
-    gov = frontmatter(os.path.join(card_dir, "requirement.md")).get("governance", "")
+    gov = frontmatter(_mode_doc(card_dir)).get("governance", "")
     gov = gov.strip("\"'")
     if not gov:
         return "legacy"
     return gov if gov in GOVERNANCE_VALUES else "invalid"
+
+
+def _mode_doc(card_dir):
+    """The frontmatter carrier for mode/created: requirement.md, or design.md only
+    when requirement.md is absent (lite cards have no requirement.md; a card that
+    has one keeps its pre-lite reading byte for byte)."""
+    req = os.path.join(card_dir, "requirement.md")
+    return req if os.path.exists(req) else os.path.join(card_dir, "design.md")
 
 
 # 021 G7/L2-2: SKILL.md「Layout」's project-root half, same single-mirror-home discipline

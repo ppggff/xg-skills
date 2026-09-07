@@ -888,6 +888,47 @@ class PartConsistency(unittest.TestCase):
         self.assertIn("R99", wc._referenced_ids(card, ws._L1))
 
 
+class LiteMode(unittest.TestCase):
+    """Lite trial mode (steps/lite.md): a design.md-only card reads mode and created
+    date from design.md; check_card runs the mode-free subset and books one exemption."""
+
+    def card(self, design_fm=None, req_fm=None):
+        root = tempfile.mkdtemp()
+        card = os.path.join(root, "proj", "001-x")
+        os.makedirs(card)
+        if design_fm is not None:
+            open(os.path.join(card, "design.md"), "w").write(
+                design_fm + "\n# 001\n\n## 当前摘要\nx\n")
+        if req_fm is not None:
+            open(os.path.join(card, "requirement.md"), "w").write(req_fm + "\n# 需求 001\n")
+        return card
+
+    def test_design_only_card_reads_lite(self):
+        card = self.card("---\ngovernance: lite\nstatus: draft\ncreated: 2026-09-07\n---")
+        self.assertEqual(ws.card_mode(card), "lite")
+        self.assertEqual(ws.card_created(card), "2026-09-07")
+        self.assertEqual(ws.check_card("proj", card), [])          # compat aggregate
+        self.assertEqual(wc.check_card_all("proj", card, ws._L1)[0], [])
+
+    def test_lite_skips_phase_shape_checks(self):
+        # past every cutoff, a legacy card would fire design-sections / governance / grill
+        card = self.card("---\ngovernance: lite\nstatus: executing\ncreated: 2099-01-01\n---")
+        findings, _, exs = wc.check_card_all("proj", card, ws._L1)
+        self.assertEqual(findings, [])
+        self.assertTrue(any(e.check == "lite" and e.cls == "not-yet-due" for e in exs))
+
+    def test_lite_still_runs_status_field(self):
+        card = self.card("---\ngovernance: lite\ncreated: 2026-09-07\n---")
+        self.assertIn("missing-status: design.md", wc.check_card_all("proj", card, ws._L1)[0])
+
+    def test_requirement_present_never_falls_back(self):
+        # a card WITH requirement.md keeps its pre-lite reading — existing cards byte-identical
+        card = self.card("---\ngovernance: lite\nstatus: draft\ncreated: 2099-01-01\n---",
+                         req_fm="---\nid: 001\ncreated: 2026-01-01\n---")
+        self.assertEqual(ws.card_mode(card), "legacy")
+        self.assertEqual(ws.card_created(card), "2026-01-01")
+
+
 class GovernanceMode(unittest.TestCase):
     """017 D1/S1/S2: two-level cascade mode reading + the four unconditional checks."""
 

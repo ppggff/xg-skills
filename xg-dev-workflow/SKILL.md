@@ -42,6 +42,18 @@ containers, reasoning-shown, reader-aware). **Read both before writing any workf
   module/part naming, and the downstream→upstream mapping rule — in `references/id-schemes.md`; a
   new scheme picks an unused letter and lands there.
 
+## Lite route (trial — decide this before reading anything below)
+
+A card whose `design.md` frontmatter says `governance: lite` (it has no `requirement.md`) is a
+**lite card**: follow `references/steps/lite.md` **exclusively**. The Stop-at-gate rule, Two
+zones, Ledger, the five phases, the six mechanisms and the phase verbs (`requirement` / `design` /
+`detail` / `plan` / `test` / `change` / `check`) do not apply to it. Shared: Config & project
+resolution, Versioning (`commit-data-repos.py --card`), Usage logging (`--action lite`), the
+read-only verbs (`investigate` / `diagnose` / `review` / `improve` / `learn`) and the KB boundary.
+Opening a lite card is manual (lite.md「Open a card」) — `new` still scaffolds doc-native.
+Existing cards keep their mode; nothing migrates. Tooling models lite as an enumeration stub only
+(`--check` runs the mode-free subset; board phase steps / Next are five-phase artifacts).
+
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 
 The **hard stops** are the decision-zone gates — 需求 confirm · 设计 freeze · 详设 baseline — plus the

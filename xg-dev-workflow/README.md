@@ -55,6 +55,10 @@ config xg-knowledge-lite uses, so project names line up.
   pre-017 cards keep their original semantics end to end). Upgrading doc-gate→ledger is a
   one-time explicit M2 action — past decisions stay anchored to their gate lines, never
   backfilled; the reverse is forbidden.
+- **Lite — trial mode (2026-09).** `governance: lite` in `design.md` (no requirement.md): one
+  working draft, explicitly confirmed commitments, one go, continuous execution; follows
+  `references/steps/lite.md` only (SKILL.md「Lite route」). Tooling knows it as an enumeration
+  stub; opening a lite card is manual.
 - **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
   audience line: requirement/design/detail are **human-first** (you read & approve them);
   plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).

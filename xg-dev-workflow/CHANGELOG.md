@@ -4,6 +4,31 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-07 — lite trial mode: manual entry + enumeration stub
+
+- **`references/steps/lite.md` (new, ≤150 lines)** — the manual entry for `governance: lite`
+  cards: one working draft (`design.md`), commitments as `### Req-n <状态词>` blocks, one go
+  with a written 授权记录, continuous execution with three come-back-to-the-human cases,
+  operation carve-outs, verification/close-out rules, three replay probes, five observation
+  items. Design record: the lite-form v4 proposal note and its 2026-09-07 review (dev_root
+  xg-skills notes; the v4.1 edits landed there). Motivation: the complexity recheck (2026-09-03) — the
+  governance layer, not the two-zone skeleton, carries the cost, and 21/29 xg-skills cards were
+  governance cards; the phase-split note — freeze at the wrong granularity turns expected
+  implementation-time discoveries into M2 events.
+- **SKILL.md「Lite route」** placed before the Stop-at-gate rule (Codex review #6: a lite
+  pointer after the old global stop rule would still fire that rule first).
+- **Tools stub, zero lite semantics**: `GOVERNANCE_VALUES` += `lite`; `card_mode` /
+  `card_created` read `design.md` only when `requirement.md` is absent (every existing card has
+  one → nine-project `--check` / `--json` / board output byte-identical, verified); a lite card's
+  `--check` runs links · status-field · progress-cap and books one `not-yet-due` exemption.
+  Without the stub a design.md-only card is judged `legacy` and, once it carries `created:`,
+  fires 6 findings on every M3 run — the "fix the card to satisfy the checker" ratchet the
+  recheck note (F6) describes. Board steps / Next stay five-phase for lite (deferred with the
+  formal integration).
+- **log-usage KNOWN_ACTIONS += `lite`** (three synced copies).
+- Not done on purpose: `new --lite`, board three-state, viewer, implement/review lite variants,
+  026 Req-32 M2 reopen — all listed for the formal integration (v4 §10) after the S/M trials.
+
 ## 2026-09-01 — retro (post-029): multi-site acceptance walk · round column = presentation round · panel finding citation form
 
 - **implement.md Binary verify**: a criterion naming N sites/artifacts is walked per named

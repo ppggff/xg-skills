@@ -39,7 +39,7 @@ KNOWN_ACTIONS = {
     "xg-dev-workflow": {
         "new", "requirement", "design", "detail", "plan", "test", "investigate",
         "diagnose", "review", "improve", "learn", "change", "resume", "park", "check",
-        "retro", "status",
+        "retro", "status", "lite",
     },
     "xg-knowledge-lite": {"write", "compile", "query", "orient", "lint"},
 }

@@ -274,7 +274,9 @@ def check_card(project, card_dir, ws):
     design sections (f) + fact markers (g) + part consistency (h) + governance (i)
     + ledger (a)–(e), in the pre-split order. New code goes through check_card_all
     (per-check isolation + skips); this stays the findings-only surface tests and
-    docs cite."""
+    docs cite. A lite card has none of these five carriers' semantics → []."""
+    if ws.card_mode(card_dir) == "lite":
+        return []
     return (check_design_sections(card_dir, ws)[0] + check_fact_markers(card_dir, ws)[0]
             + check_part_consistency(card_dir, ws)[0] + check_governance(card_dir, ws)[0]
             + check_ledger(card_dir, ws)[0])
@@ -2470,11 +2472,21 @@ def _run_entries(entries, args, ws):
     return findings, skips, exemptions
 
 
+LITE_CHECKS = ("links", "status-field", "progress-cap")   # the mode-free subset a lite card runs
+
+
 def check_card_all(project, card_dir, ws):
     """All card-scoped checks, per-check isolated. Returns (findings, skips,
     exemptions); card attribution rides the record's fields, never a string
-    prefix (the skips stream keeps its prefix behavior)."""
-    findings, skips, raw = _run_entries(CARD_CHECKS, (project, card_dir), ws)
+    prefix (the skips stream keeps its prefix behavior). A lite card (trial
+    mode, steps/lite.md) runs only LITE_CHECKS — every phase-shape check is
+    built on the five-phase docs it does not have — and books one exemption."""
+    entries = CARD_CHECKS
+    if ws.card_mode(card_dir) == "lite":
+        entries = tuple(e for e in CARD_CHECKS if e[0] in LITE_CHECKS)
+    findings, skips, raw = _run_entries(entries, (project, card_dir), ws)
+    if entries is not CARD_CHECKS:
+        raw = raw + [("not-yet-due", "lite", "lite card: mode checks not applicable")]
     base = os.path.basename(card_dir.rstrip("/"))
     gated = any(True for _ in _gated_docs(card_dir, ws))
     exemptions = [Exemption(cls, check, reason, "card", base, gated)
