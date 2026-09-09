@@ -6,6 +6,7 @@ Date: YYYY-MM-DD
 <!-- On a ledger card the Status line is a display snapshot derived from `decisions.md`
 (the ADR's rows there are the approval authority; word map in steps/adr.md) — update it
 when transcribing, never hand-flip it ahead of the ledger. -->
+<!-- On a lite card (steps/lite.md) there is no ledger: the executor maintains the Status line by hand. -->
 
 <!--
 Reader = human (decision zone): the approver now, the future maintainer later — prose

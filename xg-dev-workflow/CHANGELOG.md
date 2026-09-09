@@ -4,6 +4,30 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-09 — lite v5: eight rules from the first lite card, by-size table, reference routing
+
+- **lite.md**: eight rules the first lite card (hashdata/009, S) ran without — a 收敛行 in the go
+  ask (settled / open / unexplored · grill rounds or why not); close-out review by size with any
+  skip written down; a simplify pass when the change exceeds ~150 lines or adds files; diagrams
+  by trigger (two interacting components or a decision branch; M+ two) instead of "when it
+  helps"; product commits carry `(NNN Req-n)`; 陈述 is free-form, not a one-line cell; 方案优先
+  restored as a pre-draft obligation (hack ↔ 补丁 ↔ 推翻重来 spectrum, four cost axes, a hack or
+  patch is a recorded debt decision; S = 1+1, XS one sentence); design.md gets a fixed 测试与验证
+  section (done / not testable in one run / plan table / results) with 任务 split out. Plus a
+  by-size table (grill required at M with a documents-only handoff check; L splits first via
+  split-isolate). The gate-digest「判断分工」lines moved in; that file is no longer cited. Still
+  150 lines: Model, Card files, Executing and Verification prose compressed to pay for it.
+  Incidents: the human's six questions after 009 closed (no grill/convergence statement, no
+  review or simplify, no diagrams, table-like statements, where do long-run tests live) and the
+  follow-up that 方案优先 had been a mandatory legacy rule v4 demoted to optional.
+- **SKILL.md「Lite route」** now enumerates the shared files, the sections cited by name, and the
+  files never loaded for a lite card; resume/park on a lite card follow lite.md.
+- **review.md**: a lite branch — fixes are ordinary execution unless they touch a commitment; the
+  context pack and the test-adequacy lens read design.md's Req blocks. **templates/adr.md**: one
+  comment line — on a lite card the Status line is hand-maintained.
+- Not done (per the lite v5 proposal in dev_root xg-skills notes): grill / design-grill /
+  adversarial-critic core extraction, board three-state, `new --lite`, legacy folding — Phase 1.
+
 ## 2026-09-07 — lite trial mode: manual entry + enumeration stub
 
 - **`references/steps/lite.md` (new, ≤150 lines)** — the manual entry for `governance: lite`

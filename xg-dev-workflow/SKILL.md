@@ -46,13 +46,27 @@ containers, reasoning-shown, reader-aware). **Read both before writing any workf
 
 A card whose `design.md` frontmatter says `governance: lite` (it has no `requirement.md`) is a
 **lite card**: follow `references/steps/lite.md` **exclusively**. The Stop-at-gate rule, Two
-zones, Ledger, the five phases, the six mechanisms and the phase verbs (`requirement` / `design` /
-`detail` / `plan` / `test` / `change` / `check`) do not apply to it. Shared: Config & project
-resolution, Versioning (`commit-data-repos.py --card`), Usage logging (`--action lite`), the
-read-only verbs (`investigate` / `diagnose` / `review` / `improve` / `learn`) and the KB boundary.
-Opening a lite card is manual (lite.md「Open a card」) — `new` still scaffolds doc-native.
-Existing cards keep their mode; nothing migrates. Tooling models lite as an enumeration stub only
-(`--check` runs the mode-free subset; board phase steps / Next are five-phase artifacts).
+zones, Ledger, the five phases, the six mechanisms' machinery and the phase verbs (`requirement` /
+`design` / `detail` / `plan` / `test` / `change` / `check`) do not apply; `resume` / `park` on a
+lite card follow lite.md「Park / resume」, not resume.md / park.md. Opening a lite card is manual
+(lite.md「Open a card」) — `new` still scaffolds doc-native. Existing cards keep their mode;
+nothing migrates.
+
+- **Shared, read as-is**: this file's Conventions paragraph (conventions-core · doc-conventions ·
+  diagram-gotchas · provenance), Config & project resolution, Versioning
+  (`commit-data-repos.py --card`), Usage logging (`--action lite`), the KB boundary; steps
+  understand · evidence · investigate · diagnose · review (its lite branch) · review-deep ·
+  improve · learn; simplify-checks · model-tiering; templates adr · facts · log · index · roadmap;
+  implement.md only for Environment recon · Test mode · Commit cadence · Comment & artifact hygiene.
+- **Cited by section only**: grill.md「Protocol」「Convergence」· design-grill.md「方案优先」
+  「Understanding statement」· design-agenda.md topic library (M) · ask-routing-core.md 真判四行 ·
+  split-isolate.md A↔B 判定 + 拆出五步 (L).
+- **Never loaded for a lite card**: requirement.md · design-grill.md beyond those sections ·
+  detail.md · plan.md · test.md · change.md · omission-check.md · gate-digest.md · implement.md's
+  other sections · templates requirement / design / detail / plan / test / decisions.
+- **Tooling is an enumeration stub**: `--check` runs links · status-field · progress-cap and books
+  one exemption; the board reads `governance: lite` but its phase steps / Next line are
+  five-phase artifacts — design.md `status:` is the truth; `--trace` does not apply.
 
 ## Stop-at-gate rule (READ FIRST — overrides momentum)
 
