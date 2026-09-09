@@ -12,8 +12,8 @@ Each entry says *what changed* and *why*, not the raw diff.
 - **lite.md go ask — what counts as go**: a reply that settles every 待你判 item and raises no new
   question is a go (name it in 授权记录); an unanswered item is asked for by itself, never
   "please say go". Incident: 009's go was the human's answers to four decisions, taken as an
-  explicit equivalent without a rule saying so (2026-09-08). Landed on Claude's recommendation;
-  the human may flip it to "the word only".
+  explicit equivalent without a rule saying so (2026-09-08). Landed on Claude's recommendation,
+  confirmed by the human 2026-09-09.
 - **lite.md observation note** gains "quality steps skipped and why". Incident: the five
   observation items recorded at 009's close-out caught none of the six gaps the human raised
   afterwards (grill/convergence, review, simplify, diagrams, statement form, test section) —
