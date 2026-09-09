@@ -4,6 +4,25 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-09 — short retro after the first lite card (hashdata/009)
+
+- **Pruning pass on lite.md's new text**: the S/XS candidate scaling and the review tiers were
+  stated twice (prose + By-size table) — each now lives once (candidates: table; review tiers:
+  Close-out). Replay probes stay until the first M card, then retire.
+- **lite.md go ask — what counts as go**: a reply that settles every 待你判 item and raises no new
+  question is a go (name it in 授权记录); an unanswered item is asked for by itself, never
+  "please say go". Incident: 009's go was the human's answers to four decisions, taken as an
+  explicit equivalent without a rule saying so (2026-09-08). Landed on Claude's recommendation;
+  the human may flip it to "the word only".
+- **lite.md observation note** gains "quality steps skipped and why". Incident: the five
+  observation items recorded at 009's close-out caught none of the six gaps the human raised
+  afterwards (grill/convergence, review, simplify, diagrams, statement form, test section) —
+  they measured interruptions and sync cost, not skipped quality actions.
+- **Usage log**: the 4 logged at 009's close-out was optimistic; a corrective 2 booked (the
+  human surfaced six skipped steps after the fact).
+- **体量行** (anti-ratchet trend start): lite.md 150 · SKILL.md「Lite route」26 · SKILL.md 442 ·
+  lite `--check` items 3.
+
 ## 2026-09-09 — lite v5: eight rules from the first lite card, by-size table, reference routing
 
 - **lite.md**: eight rules the first lite card (hashdata/009, S) ran without — a 收敛行 in the go

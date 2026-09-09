@@ -69,10 +69,9 @@ Explore, investigate (`investigate.md`, M1), compare, negotiate — freely; the 
 Spikes stay within standing permissions, local and reversible. **Candidates first (方案优先)**:
 before drafting the approach, put ≥2 candidates side by side — one-line 思路 · position on the
 hack ↔ 补丁 ↔ 推翻重来 spectrum · cost (工期 / 技术债 / 影响面 / 可维护性) · provenance; a hack or
-patch is a recorded debt decision, never a default. S: 1+1 (pick + one-line rejected alt); XS
-with an obvious single solution: one sentence. "Enough basis" for go: key feasibility rests on
-code, a derivation or a spike; thin evidence is stated; a question that could sink the approach
-gets a bounded investigation or narrows the ask. Claude compiles the commitment blocks.
+patch is a recorded debt decision, never a default (depth by size:「By size」). "Enough basis"
+for go: key feasibility rests on code, a derivation or a spike; thin evidence is stated; a
+question that could sink the approach gets a bounded investigation or narrows the ask.
 
 ## The go ask (one message, receipts first)
 
@@ -82,8 +81,10 @@ risks and thin evidence · what the authorization includes and excludes · the *
 `已定 n 项 · 待定 <…> · 未探索 <…> · grill: k 轮 / 未做（原因）` · the judgment split: **已验证**
 (Claude checked — say how) vs **待你判** (only the human can decide — each as 问题 · 选项与代价 ·
 推荐 · 不决的后果, plain language, ids only in brackets). A partial go names the Req ids covered;
-the rest stay as「讨论中」. On `go` (or an equally explicit equivalent): the 授权记录 line and each
-covered block's `确认:` line, `status: executing`, `go:`, commit again (a tag is a pointer, not the approval).
+the rest stay as「讨论中」. **What counts as go**: the word, or a reply that settles every 待你判
+item and raises no new question — name that reply in the 授权记录; an unanswered item gets asked
+for by itself, never "please say go". On go: the 授权记录 line and each covered block's `确认:` line,
+`status: executing`, `go:`, commit again (a tag is a pointer, not the approval).
 
 ## Executing (after go)
 
@@ -126,10 +127,10 @@ into the doc; M: `review` verb standard tier (test-adequacy lens over the Req �
 — **skipping any step is written down with its reason**; (3) per commitment: met / scope of the
 result / unverified / residual risk — a task that promised only a plan closes on that, never
 claiming a run; a promised run that cannot happen is a blocker or a negotiated cut; (4) `status:
-done`, board `done`, KB triage, usage log `--action lite`, and the **observation note** (five
-lines): places synced per ordinary change · needless interruptions · doc time and lines read at
-go · missed commitments / unauthorized changes / verification gaps · handoff gaps. Asking about a
-real doc gap is not a failure.
+done`, board `done`, KB triage, usage log `--action lite`, and the **observation note**: places
+synced per ordinary change · needless interruptions · doc time and lines read at go · missed
+commitments / unauthorized changes / verification gaps · **quality steps skipped and why** ·
+handoff gaps. Asking about a real doc gap is not a failure.
 
 ## By size
 
@@ -137,8 +138,8 @@ real doc gap is not a failure.
 |---|---|---|---|---|
 | grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (grill.md「Protocol」「Convergence」, design-grill.md「方案优先」) | as M, per card |
 | candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / two diagrams | as M |
-| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments) — fresh-context, one agent each, adjudicate before reporting | as M + deep review |
-| files / execution | design only | + progress at park; light self-review | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; standard review; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
+| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments) — fresh-context, one agent each, adjudicate before reporting | as M |
+| files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 
 ## Replay probes (once per trial card; a replay is labelled as one)
 
