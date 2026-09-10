@@ -16,8 +16,8 @@ discipline, and M3's test-consistency check only fires if you actually run it af
 
 **Lite cards (`governance: lite`, steps/lite.md):** fixes are ordinary execution — apply and
 commit them without a further go unless a fix touches a commitment (then lite's three-case ask);
-the context pack is `design.md`'s 承诺 blocks + 当前方案 (no requirement.md / test.md), and the
-test-adequacy lens's target list is the Req blocks' 验证 lines.
+the context pack is `design.md`'s 承诺 blocks + 当前方案 (its 契约与不变量 rows feed the invariant
+lens; no requirement.md / test.md), and the test-adequacy lens's target list is the Req blocks' 验证 lines.
 
 **Two ways it runs:** (1) **ad-hoc** — invoked any time on any diff/PR (standalone); (2) **the
 standard close-out gate** for an M-or-larger requirement — run after 测试, before the card goes

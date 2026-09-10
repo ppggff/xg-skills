@@ -1,9 +1,7 @@
 # Step: lite (trial governance mode — one draft, one go, continuous execution)
 
-Trial path. A card whose `design.md` frontmatter says `governance: lite` follows this file
-**exclusively** — SKILL.md's Stop-at-gate rule, Two zones, Ledger, five phases, M2/M3 and phase
-verbs do not apply. SKILL.md「Lite route」lists the shared files, the sections cited by name and
-the files never loaded for a lite card.
+Trial path for cards whose `design.md` frontmatter says `governance: lite` — followed
+**exclusively**; SKILL.md「Lite route」names what else is shared, cited by section, or never loaded.
 
 ## Model
 
@@ -26,8 +24,9 @@ inside the authorization — only three kinds of change come back to the human (
 Start from `design.md`; create the others when their content appears, never as empty containers:
 `progress.md` (park / handoff) · `facts.md` (many load-bearing facts) · `adr/` (a trade-off worth
 its reason; `templates/adr.md`) · `plan.md` (tasks crowd the doc) · `log.md` (history outgrows the
-doc) · `notes/` (long output, spikes, reviews). Full content has one home; a summary is
-self-contained; prose states the present — history is git plus the 变更 lines.
+doc) · `notes/` (long output, spikes, reviews; `human-messages.md` — the human's messages verbatim,
+one line each, appended as they arrive). Full content has one home; a summary is self-contained;
+prose states the present — history is git plus the 变更 lines.
 
 ## Open a card (manual — do not run `new`; it scaffolds a doc-native requirement.md)
 
@@ -35,7 +34,7 @@ self-contained; prose states the present — history is git plus the 变更 line
 2. `mkdir <dev_root>/<project>/NNN-slug/`; write `design.md` from the skeleton below.
 3. Board row in `index.md`: `| NNN | lite | todo | — | [NNN-slug](./NNN-slug/) |` — 整体状态 takes
    only the canonical words (`todo` drafting · `active` go → close-out · `done` / `dropped`).
-Ids: `Req-n` · `Fact-n` · `ADR-NNNN` · `Task-n` (with plan.md); two-form citation per `id-schemes.md`.
+Ids: `Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n` (with plan.md); two-form citation per `id-schemes.md`.
 
 ## design.md skeleton
 
@@ -53,7 +52,8 @@ go:                # at go: the dev_root commit (tag optional) of the authorizat
 - 陈述: free-form — paragraphs, nested lists, (a)(b) clauses, an `alt:` line; not a one-line cell
 - 验证: <how> → <result + evidence pointer>; the detail lives in 测试与验证
 - why / 来源 · 变更 (mandatory when a commitment changes) · 确认 (go and every re-confirmation)
-## 当前方案        candidates · chosen path · impact forecast · contracts · trade-offs · feasibility evidence
+## 当前方案        candidates · chosen path · impact forecast · trade-offs · feasibility evidence
+### 契约与不变量   | Inv-n | 不变量 | 归宿 | — M+ or any new contract; the close-out review walks each row
 ## 待解问题与证据  still to check · found so far (long material → facts.md / notes/)
 ## 任务            next steps · remaining work (→ plan.md when it crowds the doc)
 ## 测试与验证      已做 (layer · what · result) · 单次测不到的 · 计划表 (阶段 · 做什么 · 验证什么 · 判据 · 前置) · 结果与未验证项
@@ -66,6 +66,9 @@ or a decision branch → at least one Mermaid diagram; M+ → two (module intera
 ## Drafting (before go)
 
 Explore, investigate (`investigate.md`, M1), compare, negotiate — freely; the doc is a draft.
+Shape or environment clauses in the ask (「是个 Linux 服务器」) are constraint commitments — quote
+them into a Req block, never leave them as background. A redo card imports the old card's
+`notes/human-messages*.md` and the roadmap's 裁定 lines even when its other docs stay unread.
 Spikes stay within standing permissions, local and reversible. **Candidates first (方案优先)**:
 before drafting the approach, put ≥2 candidates side by side — one-line 思路 · position on the
 hack ↔ 补丁 ↔ 推翻重来 spectrum · cost (工期 / 技术债 / 影响面 / 可维护性) · provenance; a hack or
@@ -106,7 +109,10 @@ blockers are not approvals: investigate what code can answer, ask promptly for w
 **Operation carve-outs**: destructive operations on shared/live environments, publish, push,
 range deletes / truncate / schema / cluster-level writes — verify scope, target-version behavior
 and restore conditions first; without authorization present reviewable information and wait. A
-go on tasks never covers these. File-scope checks are not operation permission.
+go on tasks never covers these. File-scope checks are not operation permission. **Worktree and
+running-job safety**: commit pending work before anything that rewrites the worktree (`reset
+--hard` · `checkout --` · `clean`; test non-fast-forward with `reset --soft`); while a background
+job runs, edit only files it never reads (bash reads a script as it runs) or wait.
 
 **Park / resume**: park = `progress.md` to the resume floor (now · next · blockers · build/verify
 entry) + commit; resume = progress (if any) → design.md 摘要 → 承诺 → 当前方案 → evidence and code
@@ -114,15 +120,15 @@ as needed; reading scope is unrestricted — the summary is the entry, not the c
 
 ## Verification and close-out
 
-A result names object, method, actual outcome and code version / environment. A test name is not
-a run; a link is not support. When code, approach or environment changes, re-judge old evidence;
-stale → 待重验 with reason. Refuted (counter-example) and unverified (thin evidence) stay distinct
-— the latter is never a negative conclusion (M1). Review depth follows impact, reversibility,
-invariants and verifiability, not task size.
+A result names object, method, actual outcome and code version / environment — concurrent load
+included. A test name is not a run; a link is not support. When code, approach or environment
+changes, re-judge old evidence; stale → 待重验 with reason. Refuted (counter-example) and
+unverified (thin evidence) stay distinct — the latter is never a negative conclusion (M1). Review
+depth follows impact, reversibility, invariants and verifiability, not task size.
 
 Close-out, in order: (1) **simplify** once when the change exceeds ~150 lines or adds files
 (`simplify-checks.md`, behavior-preserving), result noted; (2) **review by size** — S: light
-self-review (diff walk · each commitment against the code · each test against its claim) written
+self-review (diff walk · each commitment and Inv row against the code · each test against its claim) written
 into the doc; M: `review` verb standard tier (test-adequacy lens over the Req 验证 lines); L: deep
 — **skipping any step is written down with its reason**; (3) per commitment: met / scope of the
 result / unverified / residual risk — a task that promised only a plan closes on that, never
@@ -138,13 +144,7 @@ handoff gaps. Asking about a real doc gap is not a failure.
 |---|---|---|---|---|
 | grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (grill.md「Protocol」「Convergence」, design-grill.md「方案优先」) | as M, per card |
 | candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / two diagrams | as M |
-| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments) — fresh-context, one agent each, adjudicate before reporting | as M |
+| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting | as M |
 | files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
-
-## Replay probes (once per trial card; a replay is labelled as one)
-
-P1 ordinary approach change → A→B walk, one reason line, no ask, affected 已验证 → 待重验. P2 B cannot
-meet Req-n → 待确认 proposal, three-part ask, dependent work paused. P3 only the human knows X → a
-prompt question, no silent narrowing of the acceptance, the gap recorded.
 
 Caps (anti-ratchet): this file ≤150 lines, SKILL.md「Lite route」≤40 lines; retro records both.

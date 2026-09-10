@@ -4,6 +4,57 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-10 — retro after the first M-size lite card (devenv/002): old sections judged for re-entry, pits → rules
+
+Inputs: 002's `notes/observations.md` (16 dated observations + the close-out summary),
+`notes/vs-001-comparison.md`, `notes/human-messages.md`, the usage log (lite: 6 records, avg 3.67).
+
+- **Old-flow sections judged one by one against an actual 002 failure** (the human's standing
+  instruction from 2026-09-09). Re-entered: **契约与不变量** as a skeleton sub-section under 当前方案
+  (`Inv-n` · 不变量 · 归宿; M+ or any new contract; the close-out review walks each row; `Inv-<n>`
+  registered in id-schemes.md, 002's `I<n>` is the 存量 form). Incident: the human asked
+  「现在文档里还记录不变量么？」 mid-card; the close-out review's invariant axis then produced the four
+  most severe findings (silent remote/local divergence, daily-command hang) with I1–I7 as its input,
+  three of which the author's own deep read had missed. **人类原话包** as `notes/human-messages.md`
+  (verbatim, one line per message, appended as they arrive). Incident: 002 had none and
+  reconstructed 21 messages for this retro; 001 had one. Not re-entered — no failure traced to the
+  absence: 影响面 (the impact forecast plus review caught the missed callers #12/#13), Effect 判据表
+  (the V table + Req 验证 lines carried residuals explicitly), Constraints 节 (the failure was a
+  lifting failure, fixed as a rule below), Future (roadmap fed directly), Open questions
+  (待解问题与证据), grill-log 表 (变更 lines + 收敛行), Design qualities / 存储足迹 (lens #8 caught the
+  storage-placement issue before go).
+- **Drafting rule — shape/environment clauses in the ask are constraint commitments.** Incident:
+  「远端是个 linux 服务器」 in the opening ask was read as background; the ssh target was taken to be
+  the mac for three rounds (anchored on the verified fact that colima mounts `~`) until the human
+  pulled back (「为啥之前会理解为用mac」).
+- **Drafting rule — a redo imports the old card's verbatim pack and the roadmap's 裁定 lines; the
+  coverage lens reads the same two sources.** Incident: 002 opened under 「不要读其中的文档」; three of
+  the human's 001 rulings (cbcloud configurable and co-existing, remote in-place build, ssh straight
+  to the Linux VM) were re-decided differently and recovered only by the post-go comparison; 9 of
+  001's items were missing, 5 adopted once the human read the comparison.
+- **Executing rule — worktree and running-job safety.** Incidents: a test's `git reset --hard HEAD~1`
+  on the product worktree wiped ~40 minutes of uncommitted review fixes (replayed from a patch script
+  still in context); cb3x was edited twice while a background run was reading it (bash reads a script
+  as it runs → syntax error mid-run).
+- **Verification — environment includes concurrent load.** Incident: `sh` latency measured at 4–13s
+  during a parallel image push + cluster deploy and blamed on the script; idle it was 0.7s.
+- **diagnose.md Phase 1 — signal source for a wrapped tool.** Incident: the deploy failure's root
+  cause (`Master open file limit is 1024 should be >= 65535`) sat in the tool's own `gpAdminLogs/`
+  while the agent grepped the wrapper's output and stopped at a WARN; the human found it in one read.
+- **Replay probes retired** (scheduled at v5: "until the first M card"): all three fired on 002 —
+  P1 sync semantics rewritten twice (lens F2 → ADR-0002 v2; review → tar stream) with reason lines
+  and no ask; P2 the uid ownership model (J4) came back as a three-part ask with dependent work
+  paused; P3 VM sizing (J1) and V9 asked as prompt questions.
+- **lite.md header collapsed** to a pointer — it restated SKILL.md「Lite route」's do-not-apply list.
+- **Confirmed, unchanged**: M-size review is not skippable (22 findings, 4 severe, all from the
+  fresh-context axes); "what counts as go" held (the human's J1–J3 answers came with a new ask → not
+  taken as go; explicit 「go」 four messages later). The speed difference vs 001 (3h vs 4 days to the
+  same gate) came from a probe-able remote, early candidates and lenses on concrete mechanisms, not
+  from fewer docs (vs-001 §4).
+- **体量行**: lite.md 150 · SKILL.md「Lite route」27 · SKILL.md 442 · lite `--check` items 3 ·
+  002 at done: design.md 466 / facts 50 / ADR 4 / the go-ask read surface one screen / ~10.5h over
+  two days, ~3h of it container-layer environment work.
+
 ## 2026-09-09 — short retro after the first lite card (hashdata/009)
 
 - **Pruning pass on lite.md's new text**: the S/XS candidate scaling and the review tiers were

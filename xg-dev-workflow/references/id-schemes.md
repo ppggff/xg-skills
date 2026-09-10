@@ -12,7 +12,8 @@ letter forms below stay the 存量 notation, dual-recognized by the tools):**
 (tools still parse `T<n>` heads) · `Ask-<n>` grill rows (`G<n>` = transitional 存量 form in
 approved-note ask-id slots) · `Fact-<n>` fact entries (`[F<n>]` stays legal as the transitional
 alias on transported text) · `Eff-<n>` Effect criteria · `Crit-<n>` verification-criteria
-definitions (V 存量) · `Layer-<n>` abstraction layers (L 存量). Case-sensitive strict, no
+definitions (V 存量) · `Layer-<n>` abstraction layers (L 存量) · `Inv-<n>` 契约与不变量 rows (lite
+`design.md`「当前方案」, walked by the close-out review; `I<n>` = 存量 form). Case-sensitive strict, no
 zero-padding. **Unchanged set**: `MS` · `ADR-NNNN` · `#<n>` (report-local) · `NNN` · `M1`–`M6` ·
 P-rules · lens 1–4 · Tier 0–2. Two-form rule (Req-30): definition site bare (the structural
 position is the anchor), prose citations bracketed `[Req-1]`; **clause exception (W-10)**: a

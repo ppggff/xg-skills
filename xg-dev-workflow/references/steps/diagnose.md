@@ -32,6 +32,8 @@ structured loop).
 
 - **Trap rule:** catching yourself reading code to build a theory before this command exists —
   **stop**.
+- **Signal source for a wrapped tool:** read the tool's own log directory (its per-run files)
+  before the wrapper's stdout or a FATAL grep — the wrapper sees only the summary.
 - **Tighten it:** faster (cache setup, skip unrelated init), sharper (assert the specific
   symptom, not "didn't crash"), deterministic (pin time, seed RNG, isolate fs/network). A
   2-second deterministic loop is a debugging superpower; a 30-second flaky one barely beats none.
