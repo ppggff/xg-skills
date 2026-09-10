@@ -173,7 +173,9 @@ def lite_status_word(card_dir):
     """design.md `status` of a lite card with any inline `# …` comment stripped (the
     design-lite template invites one); "?" when design.md or the key is missing."""
     des = frontmatter(os.path.join(card_dir, "design.md"))
-    return des.get("status", "?").split("#", 1)[0].strip() or "?" if des else "?"
+    if not des:
+        return "?"
+    return des.get("status", "?").split("#", 1)[0].strip() or "?"
 
 
 def lite_status(card_dir):

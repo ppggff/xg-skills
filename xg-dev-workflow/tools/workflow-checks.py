@@ -2533,8 +2533,8 @@ def check_card_all(project, card_dir, ws):
     mode, steps/lite.md) runs only LITE_CHECKS — every phase-shape check is
     built on the five-phase docs it does not have — and books one exemption."""
     lite = ws.card_mode(card_dir) == "lite"
-    entries = tuple(e for e in CARD_CHECKS
-                    if ((e[0] in LITE_CHECKS) if lite else (e[0] not in LITE_ONLY_CHECKS)))
+    keep = (lambda cid: cid in LITE_CHECKS) if lite else (lambda cid: cid not in LITE_ONLY_CHECKS)
+    entries = tuple(e for e in CARD_CHECKS if keep(e[0]))
     findings, skips, raw = _run_entries(entries, (project, card_dir), ws)
     if lite:
         raw = raw + [("not-yet-due", "lite", "lite card: mode checks not applicable")]
