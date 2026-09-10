@@ -1,137 +1,89 @@
 # xg-dev-workflow
 
-A design-centric development workflow skill. One requirement = one directory holding all of its
-docs, organized per project under a config-driven root. The spine is five phases plus a close-out
-gate:
+A lite, design-centric development workflow skill. One card = one directory of docs, organized per
+project under a config-driven root. The spine is one continuously updated working draft:
 
-需求 (requirement) → 设计 (design, HLD) → 详设 (detail, LLD — optional) → 实现 (plan + implement) → 测试
-(test) → 评审 (close-out review, M+)
+understand ⇄ investigate ⇄ compare ⇄ negotiate → **go** → continuous execution → close-out (simplify · review by size · observation note)
 
-The point of the skill is to **emphasize design** (not jump from a need straight to an
-implementation plan, nor from a frozen architecture straight to a task list) and to keep
-**everything in docs** so any session — including a brand-new one — can resume from files alone.
+Requirement, design and detail are angles of thought in the draft, not gated phases. The human confirms
+**commitments** (goals, constraints, acceptance conditions) and gives one **go**; after that Claude runs
+autonomously and comes back only for a changed goal or boundary, work beyond the authorization, or an
+operation that needs its own authorization. Everything lands in docs, so any session — including a
+brand-new one — resumes from files alone.
 
 ## What it is / isn't
 
-- It **is** an orchestrator + a set of doc templates + per-step procedures. The five phases have
-  stable *contracts*; each step's *implementation* is a vendored copy of a well-known skill that you
-  can override at runtime or edit anytime.
+- It **is** a routing `SKILL.md` + one procedure (`references/steps/lite.md`, ≤150 lines) + its companions
+  (`steps/discuss.md` for the pre-go conversation and lens dispatch, `templates/design-lite.md`,
+  `constraints.md`) + shared steps (investigate · diagnose · review · improve · learn · retro) + a few
+  Python tools.
 - It **isn't** the knowledge base. Reusable module knowledge lives in `xg-knowledge-lite`
   (`~/knowledge`), referenced from here via `[[wiki/<project>/<slug>]]` wikilinks.
+- **存量 cards** (frontmatter `governance` ≠ `lite`, 2026-09 and earlier) still run the old five-phase flow,
+  frozen verbatim in `references/legacy/SKILL.md` and loaded only for them; new cards are always lite.
 
 ## Layout
 
 ```
-<dev_root>/<project>/index.md (card kanban) · roadmap.md · investigations/ · reviews/ · notes/ · legacy/ · NNN-slug/{requirement,design,detail,plan,progress,log,test}.md + adr/ + notes/
+<dev_root>/<project>/index.md (card board) · roadmap.md · investigations/ · reviews/ · notes/ · legacy/ · NNN-slug/design.md (+ facts.md · adr/ · plan.md · progress.md · log.md · notes/ as content appears)
 ```
 
 `dev_root` and the `projects:` map come from `~/.config/xg-knowledge-wiki/config.yaml` — the same
-config xg-knowledge-lite uses, so project names line up.
+config xg-knowledge-lite uses, so project names line up. Hard rules (layout, config, dev_root versioning,
+usage logging, KB boundary): `references/constraints.md`.
 
 ## Key rules
 
-- **Decision-zone phases run discussion-first.** Requirement/design consensus forms in
-  discussion rounds (understanding statement → candidate spread → agenda negotiation → agenda
-  topics, ordered by a driving axis); the phase doc starts as a skeleton and only *transcribes*
-  consensus (`references/steps/grill.md`「Discussion-first flow」; data — topic library,
-  driving axis, round-type checks, XS/S scaling — in `references/design-agenda.md`).
-- **Design freezes on approval.** Changing it requires the change-management flow; the
-  implementation plan, by contrast, is freely mutable (but dropping a task is logged). An M+
-  design also fixes its **验证策略** (per-R E2E scenario + observation point) — verifiability is
-  decided at design time, and the test phase inherits it as the coverage skeleton.
-- **Decision ledger — for `governance: ledger` (M+) cards.** Gate approval's unit is the
-  decision, not the document: each card's
-  `decisions.md` holds every human-judgment decision's status (proposed/approved/superseded/
-  retired); gates approve pending rows via the digest, docs become rewritable views that must
-  not contradict approved decisions (`workflow-status.py --check` verifies the mechanical
-  subset — checks (a)–(y) since 024, spanning ledger/doc integrity, gate-adjacent
-  transcription·receipt·gate-line anchors, links, traces, board shape and doc↔ledger
-  row-level/grill-signature consistency; card scope
-  `--check <project>/<card>`, project full sweep `--check <project>`; implementations in
-  `tools/workflow-checks.py`), and M2 shrinks to reopening a row (proposed blocks first,
-  then a 修改列表 touch-list). **XS/S cards run `doc-gate` instead** (017): document-level gates — a scaled
-  digest, no ledger/facts files, audit anchor = the doc's Change log gate line; the mode is a
-  frontmatter field pre-filled at `new` and ratified at the 需求 gate (no field = legacy,
-  pre-017 cards keep their original semantics end to end). Upgrading doc-gate→ledger is a
-  one-time explicit M2 action — past decisions stay anchored to their gate lines, never
-  backfilled; the reverse is forbidden.
-- **Lite — trial mode (2026-09).** `governance: lite` in `design.md` (no requirement.md): one
-  working draft, explicitly confirmed commitments, one go, continuous execution; follows
-  `references/steps/lite.md` only (SKILL.md「Lite route」). Tooling knows it as an enumeration
-  stub; opening a lite card is manual.
-- **Two zones, one boundary.** The 设计/详设 freeze is *both* the last binding human gate *and* the
-  audience line: requirement/design/detail are **human-first** (you read & approve them);
-  plan/progress/test are **Claude-first** (run autonomously, written terse for execution + resume).
-  The human re-enters post-freeze work only at `log.md` (audit), the close-out review
-  (decision), and a proposed `decisions.md` row escalated via M2 (a design fork or a
-  split proposal). Every gate asks via a **decision digest** (load-bearing decisions + least-confident
-  spots + open questions) so approving doesn't require re-reading the whole doc; small work can
-  opt into **merged gates** (XS: 需求+设计 · M: 详设+执行授权 — sizing rules).
-- **需求条目 are the traceability spine.** The requirement is an itemized list with stable `R-id`s;
-  design / detail / plan / test reference the IDs, so a change localises and coverage holes surface;
-  `tools/workflow-status.py --trace <project>/<card>` renders the derived
-  R→design→task→test→commit matrix.
-- **Evidence only, with provenance.** No guessing, no 望文生义 — every load-bearing claim cites code or
-  a doc, marked evidence / 推断 / 假设; doubts are investigated by a subagent. Investigation means
-  **logical/causal analysis** (trace the running path, build the mechanism), not a grep-hit list.
-- **Commit cadence.** In the execution zone, commit locally after each completed task (runnable
-  checks green) and each review fix (one concern per commit); `push` stays human-gated.
-- **Split & isolate when work grows.** A design can name **parts** joined at **seams** whose
-  contracts freeze with the design (a seam contract disproved in 联调 is an architecture change →
-  change-management, never a silent plan edit); a requirement that outgrows one card splits into
-  several — the per-project `index.md` is a **kanban** of cards (Phase + 整体状态 + Deps) and
-  `roadmap.md` holds not-yet-card work (next-up / themes / someday; items graduate via `new`).
-- **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** — lazily init'd,
-  with autonomous **local** commits at every gate / doc boundary (KB: per Write/Compile/Lint),
-  scoped to the acting card (`--card <project>/<NNN>` — the card dir plus the project's
-  index/roadmap; KB stays project-level) so a parallel session's uncommitted work,
-  same-project sibling cards included, never rides along (`--project <name>` remains for
-  project-level writes like learn/improve). `push` stays manual. An optional session-end hook sweeps
-  any leftovers — without `--project` it groups dirty paths by project and commits one group at a
-  time (message suffixed ` [<group>]`), so the safety net can't mix projects either. Wire it in
-  `settings.json`:
+- **One draft, explicit commitments, one go.** `design.md` carries the problem, the commitments as
+  `### Req-n <状态词>` blocks, the candidates and chosen approach, contracts and invariants (`Inv-n`),
+  open questions, tasks and the verification plan. A commitment is whatever the human asked for or
+  confirmed and has not released — not copying it into the doc is no authorization to drop it.
+- **Candidates first, evidence before go.** Two or more candidates on the hack ↔ 补丁 ↔ 推翻重来 spectrum
+  with costs; key feasibility rests on code, a derivation or a spike; thin evidence is stated. Shape or
+  environment clauses in the ask are constraint commitments; a redo imports the old card's verbatim human
+  messages and the roadmap's rulings.
+- **The go ask is one message with receipts**: commit first, then 摘要 · commitments · scope · impact forecast
+  · risks · what the authorization includes and excludes · the 收敛行 · the split between what Claude
+  verified and what only the human can decide. A reply that settles every open judgment and raises no new
+  question is a go.
+- **Execution is continuous.** Approach changes, added tests, reordering and review fixes are ordinary work
+  (an A→B walk with one reason line); only three kinds of change come back to the human. Destructive or
+  outward operations (live environments, push, range deletes) always need their own authorization.
+- **Verification names object, method, outcome and environment** (concurrent load included); a test name
+  is not a run. Close-out: simplify when the change is large, review by size (S self-review · M `review`
+  standard tier · L deep), per-commitment result, and an observation note that records skipped steps.
+- **Evidence only, with provenance.** No guessing, no 望文生义 — every load-bearing claim cites code or a doc,
+  marked evidence / 推断 / 假设; doubts are investigated by a subagent (`investigate` is the front door).
+- **By size.** XS/S stay light; M requires a grill to convergence, two fresh-context lenses (falsifier +
+  commitment coverage), `plan.md`, `facts.md`, ADRs as earned and two diagrams; L splits first
+  (`references/split-isolate.md`).
+- **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** with autonomous **local**
+  commits at every doc boundary, scoped to the acting card (`--card <project>/<NNN>`); `push` stays
+  manual. An optional session-end hook sweeps leftovers per project:
 
   ```json
   {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 <path-to-skill>/tools/commit-data-repos.py"}]}]}}
   ```
-- **Per-slice tests, two modes by project.** Implementation tests each vertical slice — **TDD**
-  (test-first red-green) where tests run, **test-after** (write/describe, defer the run) for
-  "describe, don't run" projects like cbdb. `test.md` is **skeleton-first**: seeded at plan
-  authorization (coverage from the design's 验证策略, regression rows from 影响面), grown one
-  Unit-registry line per slice; 测试 is the **close-out** phase (cross-slice tests + full run +
-  results), not where unit tests are first written or inventoried from memory.
-- **Code earns a test doc and a review doc.** M+ requirements run the `review` close-out gate before
-  `done`.
-- **Check after every edit.** Cross-references, indexes, and downstream docs are reconciled before
-  moving on.
-- **Retro improves the skill itself.** Friction found in a session is folded back into the
-  templates/steps and recorded in `CHANGELOG.md`.
+- **Check after every edit.** `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset
+  (links · status field · progress cap · board ↔ `status` sync); the board shows a lite card as one cell
+  derived from `design.md`'s `status`.
+- **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
+  `CHANGELOG.md` with the 体量行 (SKILL.md ≤120 · lite.md ≤150 · discuss.md ≤100 · lite check items).
 
 ## Usage
 
-`xg-dev-workflow new <slug>` to scaffold, then `requirement` / `design` / `detail` / `plan` / `test`
-to advance (`detail` is the optional LLD step — skip for structure-light XS/S work). `investigate
-<topic>` is the single front door for any code investigation (feasibility/runtime/concurrency) — it
-enforces the evidence discipline and branches on whether a requirement is active. `diagnose
-<symptom>` is the front door for defect localization (bug / crash / perf regression) —
-feedback-loop-first: a tight red-capable repro loop before any theory, ranked falsifiable
-hypotheses, the fix landing via Prove-It. `improve <project> [<region>…]` is the read-only
-deepening scan — friction probes + deletion test over a bounded region, candidates checked
-against the project's approved decisions (negative list) and independently refuted, landing in
-a dev_root report; picked candidates graduate via the roadmap. `learn <card>…` distills
-redo-input from existing cards — read-only over the input cards' full lifecycle docs, a fixed
-ten-section report (facts with staleness marks, non-binding references, execution-zone
-exposure pointers), a chat-stop adoption gate, and post-go backfill (roadmap pointer, board
-note, KB graduation). `resume <slug>` to pick up in a
-new session (`park <slug>` before leaving lands the session's state — containers + progress.md
-+ scoped commit — and prints that resume line), `change` to
-revise a requirement/design, `check` to lint, `status` for the card view (every card's pipeline
-position + next step, computed from the docs by `tools/workflow-status.py`; `python3
-tools/viewer.py` serves the same data as a browsable localhost HTML viewer — board, doc/KB browsing,
-wikilink nav, per-card diff, recent commits, plus an optional co-launched **gitweb companion** for
-browsing the project repos' code, deep-linked from each card's `code` link; needs `lighttpd`,
-disable with `--no-gitweb`), `retro` to improve the workflow. Append `use:<skill>` to any phase verb
-to swap that step's implementation for the run.
+`xg-dev-workflow new <slug>` opens a lite card by hand (directory, `design.md` from
+`templates/design-lite.md`, board row); then draft, ask for go, execute, close out — all per
+`references/steps/lite.md`. `investigate <topic>` is the single front door for any code investigation;
+`diagnose <symptom>` for defect localization (repro loop first, fix via Prove-It); `review <target>` for
+judging new or changed code and for the lite close-out; `improve <project> [<region>…]` for a read-only
+deepening scan whose picks graduate via the roadmap; `learn <card>…` distills redo-input from existing
+cards. `resume <slug>` / `park <slug>` continue or hand off a card; `check` runs the lite checks; `status`
+renders the card view (`python3 tools/viewer.py` serves the same data as a browsable localhost HTML
+viewer — board, doc/KB browsing, wikilink nav, per-card diff, recent commits, plus an optional co-launched
+**gitweb companion**; needs `lighttpd`, disable with `--no-gitweb`); `retro` improves the workflow. The
+legacy phase verbs (`requirement` / `design` / `detail` / `plan` / `test` / `change`) exist only for 存量
+cards and are defined in `references/legacy/SKILL.md`.
 
-See `SKILL.md` for the full contract; `references/steps/` for each step's procedure and what it was
-forked from.
+See `SKILL.md` for the routing contract; `references/steps/lite.md` for the procedure; `CHANGELOG.md` for
+how the skill evolved.
