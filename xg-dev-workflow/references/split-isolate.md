@@ -34,7 +34,7 @@ Part cell 短名即 **canonical part 名**，`R` 列 = 各 part 承载的 R-ids�
 升 B 结论经人拍板后（requirement 拆分审视拍 / design-grill Parts 复核 / detail·implement
 探测句 → M2 提议，任一入口），按序执行——每步指向权威文本，**不另立机制**：
 
-1. **子卡 `new`** —— 走 SKILL.md `new` verb（编号、脚手架、看板行、roadmap graduation 照旧）。
+1. **子卡 `new`** —— 走 SKILL.md `new` verb（lite 三步：编号 · 目录 + design.md 骨架 · 看板行；roadmap 来源的 slug 在 roadmap 里标 graduated）。
 2. **R-id 承接** —— 父卡侧是 **M2 撤销 mode 的一个具名实例**（`change.md` 撤销：retire 留
    ID、注记、永不重编号；父卡已 confirm 时须先走 M2 修改列表）；子卡 requirement 的对应
    条目加一行承接注记（「承接 <父卡> 同名 retired 条目」，002 先例）。**不得在此另写 retire

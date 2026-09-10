@@ -193,7 +193,7 @@ legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
    its provenance (evidence-cited / 推断 / 假设) — an unverified "this wastes X" written as
    fact propagates into later requirements as one.
    Chat reply ≤10 lines pointing at the report — **with receipts**: the report path + the
-   dev_root commit (write first, then reply; SKILL.md Stop-at-gate「Ask with receipts」). The
+   dev_root commit (write first, then reply; lite.md「The go ask」/ legacy/SKILL.md Stop-at-gate「Ask with receipts」). The
    table may be echoed in chat when the human asks to choose.
 
 7. **Log usage** — `--action review` (both contexts; unlike `investigate`, a review

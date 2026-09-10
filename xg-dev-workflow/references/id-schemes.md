@@ -66,7 +66,7 @@ the same glyph in a different scheme, context disambiguates (declared ambiguity,
   skipped): (1) this registry; (2) `workflow-status.py` `LEDGER_HEAD` + `LEDGER_ID` regexes;
   (3) `_id_level()` (an unmapped prefix falls through to design — reference checks then skip
   it on requirement-stage cards); (4) `templates/decisions.md` header id enum; (5) a
-  regression-test group shaped like the existing per-prefix ones; (6) SKILL.md's M3
+  regression-test group shaped like the existing per-prefix ones; (6) the `check` verb (legacy M3)
   deterministic-subset sentence when the prefix adds a check.
 - **Modules and parts are named** (the name carries the meaning); `Mod<n>` / `Part <n> (<名>)`
   only when a table/diagram needs a compact id — never bare `M<n>`/`D<n>`/`P<n>` for them.

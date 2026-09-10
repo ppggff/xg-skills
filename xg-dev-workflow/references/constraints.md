@@ -37,7 +37,7 @@ Same config file: `~/.config/xg-knowledge-wiki/config.yaml`.
 initialized on the first commit (`tools/commit-data-repos.py`).
 
 - **Commit at each gate / doc boundary** (semantic, not per keystroke): whenever a verb finishes
-  writing — gates, implement tasks, notes, grill-round checkpoints. Run M3 first, then commit.
+  writing — gates, implement tasks, notes, grill-round checkpoints. Run `check` first, then commit.
   Message: `<project>/NNN-slug: <verb> — <one line>`.
 - **Gate commits are scoped to the acting card**: `tools/commit-data-repos.py --card
   <project>/<NNN>` (docs = the card dir + the project's index/roadmap; KB stays

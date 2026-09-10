@@ -7,7 +7,7 @@ fixes back into the workflow itself — so the skill compounds.
 ## Inputs
 - This session's `progress.md` "Design iterations" + "Discovered issues".
 - **The usage log** — `tools/log-usage.py report`: low scores and friction notes point at
-  what to fix (this is the mining SKILL.md M6 refers to).
+  what to fix (this is the mining the `retro` verb refers to).
 - Lite cards' close-out **observation notes** (`notes/observations.md`: places synced per change ·
   needless interruptions · skipped quality steps · handoff gaps) — the lite flow's friction record.
 - Where the five phases felt slow, ambiguous, or got skipped (存量 cards).

@@ -28,7 +28,7 @@ doc) · `notes/` (long output, spikes, reviews; `human-messages.md` — the huma
 one line each, appended as they arrive). Full content has one home; a summary is self-contained;
 prose states the present — history is git plus the 变更 lines.
 
-## Open a card (manual — do not run `new`; it scaffolds a doc-native requirement.md)
+## Open a card (this is SKILL.md's `new` verb — by hand, no script)
 
 1. Next `NNN`: scan `<dev_root>/<project>/`, increment.
 2. `mkdir <dev_root>/<project>/NNN-slug/`; write `design.md` from the skeleton below.
@@ -46,7 +46,7 @@ or a decision branch → at least one Mermaid diagram; M+ → two (module intera
 
 ## Drafting (before go)
 
-Explore, investigate (`investigate.md`, M1), compare, negotiate — freely; the doc is a draft.
+Explore, investigate (`investigate.md`, evidence-cited), compare, negotiate — freely; the doc is a draft.
 Shape or environment clauses in the ask (「是个 Linux 服务器」) are constraint commitments — quote
 them into a Req block, never leave them as background. A redo card imports the old card's
 `notes/human-messages*.md` and the roadmap's 裁定 lines even when its other docs stay unread.
@@ -104,7 +104,7 @@ as needed; reading scope is unrestricted — the summary is the entry, not the c
 A result names object, method, actual outcome and code version / environment — concurrent load
 included. A test name is not a run; a link is not support. When code, approach or environment
 changes, re-judge old evidence; stale → 待重验 with reason. Refuted (counter-example) and
-unverified (thin evidence) stay distinct — the latter is never a negative conclusion (M1). Review
+unverified (thin evidence) stay distinct — the latter is never a negative conclusion (`evidence.md`). Review
 depth follows impact, reversibility, invariants and verifiability, not task size.
 
 Close-out, in order: (1) **simplify** once when the change exceeds ~150 lines or adds files
@@ -125,7 +125,7 @@ handoff gaps. Asking about a real doc gap is not a failure.
 |---|---|---|---|---|
 | grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (`discuss.md` §1–§2, §4 topics) | as M, per card |
 | candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / two diagrams | as M |
-| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting | as M |
+| lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting (`discuss.md` §3) | as M |
 | files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 
-Caps (anti-ratchet): SKILL.md ≤120 lines · this file ≤150 · `discuss.md` ≤100; retro records all three.
+Caps (anti-ratchet): SKILL.md ≤120 lines · this file ≤150 · `discuss.md` ≤100 · `constraints.md` ≤60; retro records all four.

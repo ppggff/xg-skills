@@ -2,7 +2,7 @@
 
 Companion to `lite.md`「Drafting」/「The go ask」/「By size」. Four parts: how to ask the human, how to state your
 understanding, how to dispatch a fresh-context lens, and which design topics to walk. Distilled from the
-frozen legacy step files, which stay with `legacy/SKILL.md`.
+frozen legacy step files (the 存量 flow keeps them).
 
 ## 1. One question at a time, to convergence
 

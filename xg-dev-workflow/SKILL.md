@@ -50,10 +50,9 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
 ## Verbs
 
 `xg-dev-workflow <verb> [args]`:
-- `new <slug>` — open a lite card by hand: next `NNN` (scan the project dir, increment) ·
-  `mkdir <dev_root>/<project>/NNN-slug/` · `design.md` from `templates/design-lite.md` · board row
-  `| NNN | lite | todo | — | [NNN-slug](./NNN-slug/) |` · `notes/human-messages.md` at the first human
-  message. Then lite.md「Drafting」.
+- `new <slug>` — open a lite card by hand (next `NNN` · dir · `design.md` copied from
+  `templates/design-lite.md` with id / title / project / created filled · board row ·
+  `notes/human-messages.md` at the first human message): lite.md「Open a card」, then「Drafting」.
 - `resume [<slug>]` · `park [<slug>]` — lite.md「Park / resume」(存量 cards: legacy/SKILL.md).
 - `check [<slug>]` — the lite check subset above (存量 cards: legacy's M3).
 - `investigate <topic>` — the front door for any code-behavior question; KB-first, evidence-cited,

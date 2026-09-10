@@ -1,12 +1,14 @@
-<!-- templates/design-lite.md — the design.md skeleton for a lite card (steps/lite.md「Card files」).
-`new` copies it verbatim, then fills the frontmatter. Section notes after the heading are guidance, delete or keep. -->
-
 ---
-id: NNN            title: <slug>        project: <project>      governance: lite
+id: NNN
+title: <slug>
+project: <project>
+governance: lite
 status: draft      # draft | executing | closing | done — checks read `status`, not `state`
 created: YYYY-MM-DD
 go:                # at go: the dev_root commit (tag optional) of the authorization baseline
 ---
+<!-- templates/design-lite.md — the design.md skeleton for a lite card (steps/lite.md「Card files」).
+`new` copies it verbatim and fills id / title / project / created. Text after a heading is guidance; keep or delete. -->
 # NNN <title>
 ## 当前摘要        problem · approach · key limits · unresolved risks (top; ≤200 字 when long)
 ## 目标与边界      deliver what · not what · the commitment blocks (index table optional, >5 blocks)

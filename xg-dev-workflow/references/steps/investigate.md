@@ -105,7 +105,7 @@ shot:
      here — `notes/` doesn't self-describe; rolls up into `progress.md` Design iterations at
      the end);
      standalone → `<dev_root>/<project>/investigations/<topic>.md` (**no investigation-
-     prefix** — the dir already says it; SKILL.md Layout). A large multi-phase investigation
+     prefix** — the dir already says it; constraints.md「Layout (lite)」/ legacy/SKILL.md「Layout」). A large multi-phase investigation
      graduates to the **campaign dir** form `investigations/<topic>/` — charter + per-phase
      notes + progress — instead of one ever-growing file.
      **Never write scratch into the repo** (repo CLAUDE.md: new work → dev_root + KB only).
@@ -121,5 +121,5 @@ understanding and a recorded evidence trail.
 
 **Receipts (write first, then reply):** the reply that closes a run — or a campaign phase's
 pause-for-confirmation — names the files just written (notes/KB paths + the dev_root/KB commit);
-an answer with no named artifact means the recording step was skipped (SKILL.md Stop-at-gate
+an answer with no named artifact means the recording step was skipped (lite.md「The go ask」receipts rule; legacy/SKILL.md Stop-at-gate
 「Ask with receipts」).

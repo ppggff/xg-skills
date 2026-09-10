@@ -1333,7 +1333,9 @@ class ProjectScoped(unittest.TestCase):
     def test_ah_lite_board_sync(self):
         self._board("| 001 | lite | todo | — | [x](./001-a/) |\n"
                     "| 002 | lite | active | — | [y](./002-b/) |\n"
-                    "| 003 | lite | dropped | — | [z](./003-c/) |\n")
+                    "| 003 | lite | dropped | — | [z](./003-c/) |\n"
+                    "| 005 | lite | todo | — | [d](./005-d/) |\n| 006 | lite | done | — | [e](./006-e/) |\n"
+                    "| 007 | lite | active | — | [f](./007-f/) |\n")
         self._lite_card("proj/001-a", "executing")
         self._lite_card("proj/002-b", "closing")
         self._lite_card("proj/003-c", "draft")
@@ -1341,6 +1343,13 @@ class ProjectScoped(unittest.TestCase):
         self.assertEqual(f, ["lite-board-sync: 001 board 'todo' vs design.md status 'executing' (expect 'active')"])
         self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "002-b"), ws._L1), [])
         self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "003-c"), ws._L1), [])
+        self._lite_card("proj/005-d", "draft")
+        self._lite_card("proj/006-e", "done   # 收口注记")
+        self._lite_card("proj/007-f", "?")
+        self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "005-d"), ws._L1), [])
+        self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "006-e"), ws._L1), [])
+        self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "007-f"), ws._L1),
+                         ["lite-board-sync: 007 design.md status '?' has no board mapping"])
         # runs inside the lite subset, never for another mode
         findings, _, exs = wc.check_card_all("proj", os.path.join(self.proj, "001-a"), ws._L1)
         self.assertTrue(any(x.startswith("lite-board-sync:") for x in findings))
