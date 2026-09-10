@@ -618,6 +618,12 @@ class DiffGuardModeProbe(unittest.TestCase):
         self.assertEqual(ws2.card_mode(str(repo / "proj/900-x")), "doc-native")
         self.assertEqual(cdr._card_governance(repo, "proj/900-x"), "doc-native")
 
+    def test_design_only_card_reads_lite_and_stays_unguarded(self):
+        # 030 Req-4(c): same carrier order as _mode_doc; "lite" is not doc-native → guard off (no behavior change)
+        repo = init_repo({"proj/901-l/design.md": "---\nid: 901\ngovernance: lite\nstatus: draft\n---\n# 901\n"})
+        self.assertEqual(cdr._card_governance(repo, "proj/901-l"), "lite")
+        self.assertEqual(cdr._card_governance(repo, "proj/none"), "")
+
     def test_state_rewrite_still_guarded_union_arm(self):
         # HEAD block approved(+note); worktree rewrites the state word AND the
         # 陈述 — old-state predicate would drop it, the union arm keeps it

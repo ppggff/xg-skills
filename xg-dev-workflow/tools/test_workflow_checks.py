@@ -1310,6 +1310,45 @@ class ProjectScoped(unittest.TestCase):
         f, _, *_x = wc.check_board_monotonic("proj", self.proj, ws._L1)
         self.assertEqual([x for x in f if "dep-cycle" in x], [])
 
+    def _lite_card(self, rel, status, body=""):
+        _write(self.tmp.name, rel + "/design.md",
+               "---\ngovernance: lite\nstatus: %s\ncreated: 2026-09-10\n---\n# x\n%s" % (status, body))
+
+    def test_b5_lite_done_row_uses_lite_clauses(self):
+        # 030 Req-4: a done lite row is judged on design.md status · 测试与验证 · a review record
+        self._board("| 001 | lite | done | — | [x](./001-a/) |\n")
+        self._lite_card("proj/001-a", "done",
+                        "## 测试与验证\n| R2 review（S = light 自审） | diff 走读 | 无缺陷 |\n")
+        f, s, *_x = wc.check_board_monotonic("proj", self.proj, ws._L1)
+        self.assertEqual((f, s), ([], []))          # no test.md skip, no review finding
+
+    def test_b5_lite_done_row_missing_pieces(self):
+        self._board("| 001 | lite | done | — | [x](./001-a/) |\n")
+        self._lite_card("proj/001-a", "executing", "## 任务\n- Task-1\n")
+        f, _, *_x = wc.check_board_monotonic("proj", self.proj, ws._L1)
+        self.assertTrue(any("design.md status 'executing'" in x for x in f))
+        self.assertTrue(any("without 测试与验证" in x for x in f))
+        self.assertTrue(any("without review record" in x for x in f))
+
+    def test_ah_lite_board_sync(self):
+        self._board("| 001 | lite | todo | — | [x](./001-a/) |\n"
+                    "| 002 | lite | active | — | [y](./002-b/) |\n"
+                    "| 003 | lite | dropped | — | [z](./003-c/) |\n")
+        self._lite_card("proj/001-a", "executing")
+        self._lite_card("proj/002-b", "closing")
+        self._lite_card("proj/003-c", "draft")
+        f = wc.check_lite_board_sync("proj", os.path.join(self.proj, "001-a"), ws._L1)
+        self.assertEqual(f, ["lite-board-sync: 001 board 'todo' vs design.md status 'executing' (expect 'active')"])
+        self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "002-b"), ws._L1), [])
+        self.assertEqual(wc.check_lite_board_sync("proj", os.path.join(self.proj, "003-c"), ws._L1), [])
+        # runs inside the lite subset, never for another mode
+        findings, _, exs = wc.check_card_all("proj", os.path.join(self.proj, "001-a"), ws._L1)
+        self.assertTrue(any(x.startswith("lite-board-sync:") for x in findings))
+        _write(self.tmp.name, "proj/004-d/requirement.md", "---\nid: 004\ncreated: 2026-01-01\n---\n")
+        findings, _, exs = wc.check_card_all("proj", os.path.join(self.proj, "004-d"), ws._L1)
+        self.assertFalse(any("lite-board-sync" in x for x in findings))
+        self.assertFalse(any(e.check == "lite-board-sync" for e in exs))
+
     def test_b1_project_half_scans_root_docs(self):
         kb = os.path.join(self.tmp.name, "kb")
         os.makedirs(kb)

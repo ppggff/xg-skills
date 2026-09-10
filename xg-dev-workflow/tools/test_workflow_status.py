@@ -921,6 +921,19 @@ class LiteMode(unittest.TestCase):
         card = self.card("---\ngovernance: lite\ncreated: 2026-09-07\n---")
         self.assertIn("missing-status: design.md", wc.check_card_all("proj", card, ws._L1)[0])
 
+    def test_lite_card_status_is_one_cell(self):
+        # 030: steps = one design.md-derived cell; derived next follows lite states, not the five-phase gates
+        card = self.card("---\ngovernance: lite\nstatus: executing\ncreated: 2026-09-10\n---")
+        with open(os.path.join(card, "design.md"), "a") as f:
+            f.write("## 目标与边界\n### Req-1 已验证 — a\n- 陈述: x\n### Req-2 待验证 — b\n- 陈述: y\n")
+        steps, _, nxt = ws.card_status(card)
+        self.assertEqual(steps, ["设计:executing · Req 2 / 已验证 1"])
+        self.assertTrue(nxt.startswith("next: continue"))
+        done = self.card("---\ngovernance: lite\nstatus: done   # 收口注记（模板邀请的行内注释）\ncreated: 2026-09-10\n---")
+        steps, _, nxt = ws.card_status(done)
+        self.assertEqual(steps, ["设计:done · Req 0 / 已验证 0"])
+        self.assertEqual(ws.effective_next("done", {}, nxt), "—")
+
     def test_requirement_present_never_falls_back(self):
         # a card WITH requirement.md keeps its pre-lite reading — existing cards byte-identical
         card = self.card("---\ngovernance: lite\nstatus: draft\ncreated: 2099-01-01\n---",

@@ -165,8 +165,34 @@ def board(project_dir):
     return rows
 
 
+LITE_BOARD_STATE = {"draft": "todo", "executing": "active", "closing": "active", "done": "done"}
+LITE_REQ_HEAD = re.compile(r"^### Req-\d+ (\S+)", re.M)
+
+
+def lite_status_word(card_dir):
+    """design.md `status` of a lite card with any inline `# …` comment stripped (the
+    design-lite template invites one); "?" when design.md or the key is missing."""
+    des = frontmatter(os.path.join(card_dir, "design.md"))
+    return des.get("status", "?").split("#", 1)[0].strip() or "?" if des else "?"
+
+
+def lite_status(card_dir):
+    """A lite card's board face (030): one cell from design.md — `设计:<status> · Req n / 已验证 k`
+    — and a derived next that follows steps/lite.md's states instead of the five-phase gates."""
+    status = lite_status_word(card_dir)
+    words = LITE_REQ_HEAD.findall(_read(os.path.join(card_dir, "design.md")))
+    step = f"设计:{status} · Req {len(words)} / 已验证 {sum(1 for w in words if w == '已验证')}"
+    nxt = {"draft": "next: draft → go ask (lite.md)",
+           "executing": "next: continue — lite.md「Executing」",
+           "closing": "next: close-out — lite.md「Verification and close-out」",
+           "done": "done — nothing pending"}.get(status, "lite status 不明(design.md frontmatter 缺 status)— 看 design.md")
+    return [step], glance(os.path.join(card_dir, "progress.md")), nxt
+
+
 def card_status(card_dir):
     p = lambda name: os.path.join(card_dir, name)
+    if card_mode(card_dir) == "lite":
+        return lite_status(card_dir)
     req = frontmatter(p("requirement.md"))
     des = frontmatter(p("design.md"))
     det = frontmatter(p("detail.md"))

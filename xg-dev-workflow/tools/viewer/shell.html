@@ -857,7 +857,7 @@ var SV = (function () {
   function stepFill(state) {                         // R4: phase state → gate-track node fill (done/doing/pending)
     var s = String(state).toLowerCase().trim();
     if (!s || s === "—" || s === "?" || s === "planned" || s === "not-started") return "pending";
-    if (/^(drafting|draft|active|implementing|in-progress|doing|todo|testing|blocked|failing)/.test(s)) return "doing";
+    if (/^(drafting|draft|active|implementing|in-progress|doing|todo|testing|blocked|failing|executing|closing)/.test(s)) return "doing";
     return "done";
   }
   var STATUS_TONE = { frozen: "done", approved: "done", confirmed: "done", baseline: "done", passing: "done",

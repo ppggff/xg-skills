@@ -69,13 +69,20 @@ def _card_governance(repo: Path, card_rel: str) -> str:
     same-batch governance downgrade switch the guard off; judged at HEAD, the
     downgrade itself is a guarded phase-doc change. New cards (no HEAD copy)
     fall back to the worktree."""
-    head = git(repo, "show", "HEAD:" + card_rel + "/requirement.md")
-    text = head.stdout if head.returncode == 0 else ""
+    text = ""
+    # same carrier order as workflow-status._mode_doc: requirement.md, else design.md (lite)
+    for doc in ("requirement.md", "design.md"):
+        head = git(repo, "show", "HEAD:" + card_rel + "/" + doc)
+        text = head.stdout if head.returncode == 0 else ""
+        if not text:
+            try:
+                text = (repo / card_rel / doc).read_text(encoding="utf-8")
+            except OSError:
+                text = ""
+        if text:
+            break
     if not text:
-        try:
-            text = (repo / card_rel / "requirement.md").read_text(encoding="utf-8")
-        except OSError:
-            return ""
+        return ""
     # quote-tolerant, same value normalization as card_mode (029 T3) — the
     # quoted form used to switch the guard off silently
     m = re.search(r"^governance:\s*['\"]?([\w-]+)", text, re.M)

@@ -1677,6 +1677,50 @@ def _deps_tokens(cell):
     return out
 
 
+LITE_REVIEW_LINE = re.compile(r"(自审|review)", re.I)
+LITE_REVIEW_DONE = re.compile(r"(✓|已做|完成|结果|skip|跳过|无缺陷|findings|条)")
+
+
+def _lite_done_clauses(nnn, card, ws):
+    """(w)'s done-series for a lite row (030 Req-4): done ⇒ design.md `status: done` · a
+    「测试与验证」section · a review record (notes/review-*.md, or a design.md line that names
+    自审/review together with an outcome word)."""
+    text = ws._read(os.path.join(card, "design.md"))
+    status = ws.lite_status_word(card)
+    out = []
+    if status != "done":
+        out.append("board-done: %s done but design.md status '%s'" % (nnn, status))
+    if "## 测试与验证" not in text:
+        out.append("board-done: %s done without 测试与验证 section" % nnn)
+    reviewed = glob.glob(os.path.join(card, "notes", "review-*.md")) or any(
+        LITE_REVIEW_LINE.search(l) and LITE_REVIEW_DONE.search(l) for l in text.splitlines())
+    if not reviewed:
+        out.append("board-done: %s done without review record (notes/review-*.md or a 自审/review outcome line)" % nnn)
+    return out
+
+
+def check_lite_board_sync(project, card_dir, ws):
+    """(ah) lite-board-sync (030 Req-4): a lite card's board row state matches design.md
+    `status` under draft→todo · executing/closing→active · done→done; `dropped` lives on the
+    row only. Non-lite cards never run it (check_card_all gates by mode)."""
+    project_dir = os.path.dirname(card_dir.rstrip("/"))
+    nnn = os.path.basename(card_dir.rstrip("/"))[:3]
+    row = ws.board(project_dir).get(nnn)
+    if row is None:
+        return [], ["lite-board-sync: %s no board row" % nnn]
+    state = row.get("state", "")
+    if state == "dropped":
+        return []
+    status = ws.lite_status_word(card_dir)
+    expect = ws.LITE_BOARD_STATE.get(status)
+    if expect is None:
+        return ["lite-board-sync: %s design.md status '%s' has no board mapping" % (nnn, status)]
+    if state != expect:
+        return ["lite-board-sync: %s board '%s' vs design.md status '%s' (expect '%s')"
+                % (nnn, state, status, expect)]
+    return []
+
+
 def check_board_monotonic(project, project_dir, ws):
     """(w) B5 — the machine-decidable board subset (021 D6): Deps acyclic ·
     整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
@@ -1710,6 +1754,9 @@ def check_board_monotonic(project, project_dir, ws):
             # a done row with no dir is (u)'s board-orphan-row finding — covered-by
             continue
         card = dirs[nnn]
+        if ws.card_mode(card) == "lite":
+            findings += _lite_done_clauses(nnn, card, ws)
+            continue
         reviews = glob.glob(os.path.join(card, "notes", "review-*.md"))
         # whitespace-normalized: the skip-note phrase may wrap across lines
         ptext = " ".join(ws._read(os.path.join(card, "progress.md")).split())
@@ -2412,6 +2459,9 @@ CARD_CHECKS = (
     ("long-cell", lambda p, c, ws: check_long_cells(c, ws),
      _m("(ag)", "载重格位超长单行 hint（表格 cell/block 单行字段 >120 字符；skips 流不 gate）",
         "cutoff 后文件（created-only）", "card 028", misfire="LongCellHint")),
+    ("lite-board-sync", check_lite_board_sync,
+     _m("(ah)", "lite 卡看板行整体状态 ↔ design.md status 映射一致（draft→todo · executing/closing→active · done→done；dropped 只在行上）",
+        "lite 卡（非 lite 卡不跑，输出零变化）", "card 030", misfire="LiteBoardSync")),
 )
 
 PROJECT_CHECKS = (
@@ -2472,7 +2522,8 @@ def _run_entries(entries, args, ws):
     return findings, skips, exemptions
 
 
-LITE_CHECKS = ("links", "status-field", "progress-cap")   # the mode-free subset a lite card runs
+LITE_CHECKS = ("links", "status-field", "progress-cap", "lite-board-sync")   # what a lite card runs
+LITE_ONLY_CHECKS = ("lite-board-sync",)   # never run for other modes — their output stays byte-identical
 
 
 def check_card_all(project, card_dir, ws):
@@ -2481,11 +2532,11 @@ def check_card_all(project, card_dir, ws):
     prefix (the skips stream keeps its prefix behavior). A lite card (trial
     mode, steps/lite.md) runs only LITE_CHECKS — every phase-shape check is
     built on the five-phase docs it does not have — and books one exemption."""
-    entries = CARD_CHECKS
-    if ws.card_mode(card_dir) == "lite":
-        entries = tuple(e for e in CARD_CHECKS if e[0] in LITE_CHECKS)
+    lite = ws.card_mode(card_dir) == "lite"
+    entries = tuple(e for e in CARD_CHECKS
+                    if ((e[0] in LITE_CHECKS) if lite else (e[0] not in LITE_ONLY_CHECKS)))
     findings, skips, raw = _run_entries(entries, (project, card_dir), ws)
-    if entries is not CARD_CHECKS:
+    if lite:
         raw = raw + [("not-yet-due", "lite", "lite card: mode checks not applicable")]
     base = os.path.basename(card_dir.rstrip("/"))
     gated = any(True for _ in _gated_docs(card_dir, ws))
