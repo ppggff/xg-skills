@@ -76,12 +76,12 @@ it. Only **pause and escalate** when:
   the frozen row: propose the row change (M2 / doc-gate 提议变更), don't just fix the code;
 - a slice's findings say **the work outgrows this card** (a「装不下本卡 / 需独立核证」-shaped
   conclusion — an enabling dependency growing into its own deliverable): run the **A↔B 判定**
-  (SKILL.md「拆分与隔离」) and escalate an 升 B verdict through M2 as a proposed row
+  (legacy/SKILL.md「拆分与隔离」) and escalate an 升 B verdict through M2 as a proposed row
   (split-out: `references/split-isolate.md`);
 - you're **blocked** (missing access/decision only the human can give); or
 - a **`push`** is wanted — push is human-gated, so ask (per-task *commits* are autonomous; see Commit cadence).
 Don't stop after each slice **nor** at the implement→test→评审 phase boundaries: this is the
-**execution zone** (SKILL.md「Two zones」 + the Stop-at-gate carve-out), so on the one "go" you flow
+**execution zone** (legacy/SKILL.md「Two zones」+ the Stop-at-gate carve-out), so on the one "go" you flow
 implement → test → produce the M+ close-out review **report**, and your next *scheduled* human touch
 is that report's fix decision — not a per-task or per-phase check-in. The design/详设 freeze was the
 last binding human decision; `plan.md` was the one-time autonomy handoff.

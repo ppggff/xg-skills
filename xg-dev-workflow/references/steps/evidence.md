@@ -119,7 +119,7 @@ Dispatch an **Explore** (or general-purpose) subagent to investigate and return 
 evidence — then record the finding (in the relevant doc, and in the KB if reusable).
 Surface conflicts (docs vs code, source vs source) to the human; don't silently pick.
 
-**Model (cost):** follows SKILL.md「Subagent model assignment」(gather → cheaper `model: sonnet`;
+**Model (cost):** follows SKILL.md「Subagents」(gather → cheaper `model: sonnet`;
 inference → session model capped at opus, safe because the orchestrator re-derives). Evidence-specific
 carve-out: keep the **full session model** (the opus cap waived — its safety argument is the
 orchestrator backstop, absent here) where recall itself is the deliverable with no cheap backstop —

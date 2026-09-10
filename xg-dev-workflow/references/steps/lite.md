@@ -1,7 +1,7 @@
 # Step: lite (trial governance mode — one draft, one go, continuous execution)
 
 Trial path for cards whose `design.md` frontmatter says `governance: lite` — followed
-**exclusively**; SKILL.md「Lite route」names what else is shared, cited by section, or never loaded.
+**exclusively**; SKILL.md「Files on the lite path」names what else is shared or never loaded.
 
 ## Model
 
@@ -38,27 +38,8 @@ Ids: `Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n` (with plan.md); tw
 
 ## design.md skeleton
 
-```markdown
----
-id: NNN            title: <slug>        project: <project>      governance: lite
-status: draft      # draft | executing | closing | done — checks read `status`, not `state`
-created: YYYY-MM-DD
-go:                # at go: the dev_root commit (tag optional) of the authorization baseline
----
-# NNN <title>
-## 当前摘要        problem · approach · key limits · unresolved risks (top; ≤200 字 when long)
-## 目标与边界      deliver what · not what · the commitment blocks (index table optional, >5 blocks)
-### Req-1 待验证 — <标题>        ← 状态词 ∈ 待验证 · 已验证 · 验证失败 · 阻塞 · 仅方案 · 放弃
-- 陈述: free-form — paragraphs, nested lists, (a)(b) clauses, an `alt:` line; not a one-line cell
-- 验证: <how> → <result + evidence pointer>; the detail lives in 测试与验证
-- why / 来源 · 变更 (mandatory when a commitment changes) · 确认 (go and every re-confirmation)
-## 当前方案        candidates · chosen path · impact forecast · trade-offs · feasibility evidence
-### 契约与不变量   | Inv-n | 不变量 | 归宿 | — M+ or any new contract; the close-out review walks each row
-## 待解问题与证据  still to check · found so far (long material → facts.md / notes/)
-## 任务            next steps · remaining work (→ plan.md when it crowds the doc)
-## 测试与验证      已做 (layer · what · result) · 单次测不到的 · 计划表 (阶段 · 做什么 · 验证什么 · 判据 · 前置) · 结果与未验证项
-## 授权记录        one line per go / re-confirmation: date · Req ids · scope & not-in-scope · quote · commit
-```
+Copy `templates/design-lite.md` (the section list, the `### Req-n <状态词>` block form with its 陈述 / 验证 /
+来源 · 变更 · 确认 lines, and the `### 契约与不变量` Inv table; 状态词 ∈ 待验证 · 已验证 · 验证失败 · 阻塞 · 仅方案 · 放弃).
 
 `[x]` anywhere means 已验证 and nothing else. **Diagrams**: two or more interacting components,
 or a decision branch → at least one Mermaid diagram; M+ → two (module interaction + data flow).
@@ -142,9 +123,9 @@ handoff gaps. Asking about a real doc gap is not a failure.
 
 | | XS | S | M | L |
 |---|---|---|---|---|
-| grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (grill.md「Protocol」「Convergence」, design-grill.md「方案优先」) | as M, per card |
+| grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (`discuss.md` §1–§2, §4 topics) | as M, per card |
 | candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / two diagrams | as M |
 | lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting | as M |
 | files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 
-Caps (anti-ratchet): this file ≤150 lines, SKILL.md「Lite route」≤40 lines; retro records both.
+Caps (anti-ratchet): SKILL.md ≤120 lines · this file ≤150 · `discuss.md` ≤100; retro records all three.

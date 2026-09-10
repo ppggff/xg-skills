@@ -1,6 +1,6 @@
 # ID schemes (the full registry)
 
-The workflow's fixed ID prefixes — **one letter, one meaning**. SKILL.md「Conventions」keeps the
+The workflow's fixed ID prefixes — **one letter, one meaning**. legacy/SKILL.md「Conventions」keeps the
 core five resident (`NNN` / `ADR-NNNN` / `R<n>` / `T<n>` / `M1`–`M6`); this file holds the full
 scheme, consulted when naming. A new scheme picks an **unused** letter and lands here.
 

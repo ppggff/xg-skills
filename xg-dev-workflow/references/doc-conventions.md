@@ -68,4 +68,4 @@ not an argument) for doc-native carriers. **This section is the single owner of 
 ## Reader-aware
 
 Write each doc for its primary reader (each template states its Reader); the audience split is
-SKILL.md「Two zones」.
+legacy/SKILL.md「Two zones」(存量 cards; a lite card has no zone split).

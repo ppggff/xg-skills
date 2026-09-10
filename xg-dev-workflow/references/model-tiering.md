@@ -1,6 +1,6 @@
 # Model tiering (cost)
 
-The full rationale behind SKILL.md「Subagent model assignment」— read when assigning a model to
+The full rationale behind SKILL.md「Subagents」— read when assigning a model to
 a subagent dispatch or suggesting a session-model switch.
 
 ## Subagent assignment (the rule, with rationale)

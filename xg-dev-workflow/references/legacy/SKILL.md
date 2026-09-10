@@ -3,7 +3,7 @@ name: xg-dev-workflow
 description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选'); or distills redo-input from existing cards ('learn 001 002' / '从旧卡提炼重做输入' / '提炼这组卡的经验')."
 ---
 > **Frozen 2026-09-10 — legacy five-phase flow, loaded only for 存量 cards (a card whose frontmatter
-> `governance` is not `lite`); bug fixes only. All paths in this file resolve from the skill root `xg-dev-workflow/`.**
+> `governance` is not `lite`); bug fixes only. All paths in this file resolve from the skill root `xg-dev-workflow/`; a `SKILL.md「section」` citation in any legacy step or template means this file.**
 
 # xg-dev-workflow
 

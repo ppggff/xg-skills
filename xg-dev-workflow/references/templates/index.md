@@ -33,7 +33,7 @@ state rebuilds from the card's own docs).
 Card = one full lifecycle unit (需求→…→测试) living in one NNN-slug/ dir. It is the kanban
 ALIAS of the "requirement directory"; the rest of the skill still says "requirement" for this
 unit (scoped homonym — not drift). "Split a requirement" = spawn multiple cards (run `new`
-again) — see SKILL.md「拆分与隔离」.
+again) — see legacy/SKILL.md「拆分与隔离」/ `split-isolate.md`.
 
 Columns:
 - Phase    = furthest phase reached, a CARD-LEVEL summary: 需求/设计/详设/实现/测试/评审

@@ -30,7 +30,7 @@ dropped scenario is a finding. The report carries the per-row verdict (the 核�
 M3 close-out shape check looks for).
 XS/S structure-light work may skip the close-out — then record `XS/S — review skipped` in
 `progress.md`'s `Close-out:` line (the M3 gate is "review doc OR skip note"); see
-SKILL.md「Requirement sizing」.
+legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
 
 ## Procedure
 
@@ -97,7 +97,7 @@ SKILL.md「Requirement sizing」.
    - **standard** (M, ~one-sitting diff) — **three axis agents** (axis shape from the external
      `code-review` skill's two-axis economy + our KB axis; each gets a complete self-contained
      brief — paste the checklist/context pack in full, assume no shared memory; ~400-word cap):
-     **Spec axis** (session model capped at opus — SKILL.md「Subagent model assignment」) —
+     **Spec axis** (session model capped at opus — SKILL.md「Subagents」) —
      does the change do what requirement/design say: R-id trace,
      missing/partial items, scope creep (test: every changed line traces to a requirement /
      design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
@@ -124,7 +124,7 @@ SKILL.md「Requirement sizing」.
 
    **Tier calibration (M6):** like model downgrades, tier choices sit under retro calibration —
    a target class repeatedly reviewed at light/standard whose misses surface later (a deep pass,
-   a shipped bug, a retro) gets its default tier bumped. SKILL.md「Subagent model assignment」
+   a shipped bug, a retro) gets its default tier bumped. SKILL.md「Subagents」
    is the model-side analog.
 
    **Deep tier — you MUST read `references/steps/review-deep.md` before running:** it carries the
@@ -153,7 +153,7 @@ SKILL.md「Requirement sizing」.
    go to a 误报澄清 section — recording why a plausible finding is false is part of
    the deliverable; tag each killed finding with its source lens + model, so the
    per-model survive/die tally (with 5b's confirmed side) is computable at retro
-   time — that tally is what SKILL.md「Subagent model assignment」's M6 calibration
+   time — that tally is what SKILL.md「Subagents」's M6 calibration
    reads. False-positive exemplars (give to agents verbatim): pre-existing
    issues; linter/compiler-catchable; lines the change didn't modify; intentional
    behavior changes tied to the broader change; **designed semantics documented in

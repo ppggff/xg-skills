@@ -30,7 +30,7 @@ named below).
 ### 1. Probe — the coverage skeleton is mechanical
 `workflow-status.py --json` → the card's `governance` + `carriers` (应有载体 × 存在性) **is**
 the coverage-table skeleton. Never hand-derive the carrier list — the closed-list mapping
-lives only in the tool (it mirrors SKILL.md「Layout」). `governance: invalid` → full
+lives only in the tool (it mirrors legacy/SKILL.md「Layout」and constraints.md「Layout (lite)」). `governance: invalid` → full
 enumeration + a warning row in §8; legacy cards arrive as existence-axis inferred set ∪ full
 enumeration — mine what exists, zero "missing governance file" noise.
 
@@ -88,7 +88,7 @@ them); a missing section fails Done-when (and the omission-check judgment item):
   date · `Supersedes: <旧文件名>` (rerun only) · `adopted:` (absent until backfill) ·
   口径槽状态 (人拍/未问) · 输入集外被引用卡 id;
   (b) **blockquote — three declarations**: 非真相源 (the cards' authority stays in their own
-  decision/fact carriers — per mode, SKILL.md「Ledger」; state it in those terms; no template
+  decision/fact carriers — per mode, legacy/SKILL.md「Ledger」; state it in those terms; no template
   carries a canonical wording) · 非状态源、非承载容器 (never on any card's resume path) · 无 `adopted:` 行时仅
   input evidence (conditional sentence; the `adopted: <date>` line is written only by the
   post-go backfill step);

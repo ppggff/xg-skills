@@ -8,7 +8,7 @@ created: YYYY-MM-DD
 # Log NNN: <title> — 变更记录（只增不删 / append-only）
 
 > **Reader: human**（审计/历史）——execution zone 里**唯二**给人读的产物之一（另一个是评审报告）；
-> `resume`/Claude **从不读本文件**。详略按人读者写。参见 SKILL.md「Two zones」。
+> `resume`/Claude **从不读本文件**。详略按人读者写。参见 legacy/SKILL.md「Two zones」（lite 卡无分区；本文件按 lite.md「Card files」懒建）。
 >
 > **追加式**：每条 = 发生了什么变化 + **为什么**。过去的条目**不改不删**；纠错也是
 > **新追加一条**（"先前 X，现改为 Y，因为 Z"），不要回去改旧条目。

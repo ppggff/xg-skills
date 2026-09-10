@@ -1,6 +1,6 @@
 # 拆分与隔离 (split & isolate) — 机制细节
 
-SKILL.md「拆分与隔离」holds the essence + the A↔B 判定; this file holds the field-level
+legacy/SKILL.md「拆分与隔离」holds the essence + the A↔B 判定 (lite cards cite this file from lite.md「By size」L); this file holds the field-level
 mechanics. 两种粒度，互相独立，都可选（够小就不拆，行为与现状一致）。
 
 ## A — 设计内 part 化（单 design.md）
