@@ -8,7 +8,9 @@ fixes back into the workflow itself — so the skill compounds.
 - This session's `progress.md` "Design iterations" + "Discovered issues".
 - **The usage log** — `tools/log-usage.py report`: low scores and friction notes point at
   what to fix (this is the mining SKILL.md M6 refers to).
-- Where the five phases felt slow, ambiguous, or got skipped.
+- Lite cards' close-out **observation notes** (`notes/observations.md`: places synced per change ·
+  needless interruptions · skipped quality steps · handoff gaps) — the lite flow's friction record.
+- Where the five phases felt slow, ambiguous, or got skipped (存量 cards).
 - Any place evidence was guessed, an index drifted, or a frozen design got edited
   improperly (signals the mechanisms need sharpening).
 
@@ -32,7 +34,8 @@ fixes back into the workflow itself — so the skill compounds.
    template/step changed — the cross-file stale-reference grep over `SKILL.md` +
    `references/` of both skills is **mandatory, not advisory** (repo CLAUDE.md
    Cross-file invariant 6; this retro sweep is the backstop — the invariant fires at
-   edit time). Cross-file drift is the most common retro regression (the omission
+   edit time). `references/legacy/**` is excluded from the sweep — its old wording is frozen on
+   purpose and never a stale reference. Cross-file drift is the most common retro regression (the omission
    check alone only covers the doc being edited).
 5. **Record the change history (the skill is git).** When this retro changed skill behavior,
    append a dated, **behavior-level** entry to the skill's `CHANGELOG.md` (what changed + why —

@@ -52,11 +52,12 @@ Two **curated project-global docs** — siblings of `CONTEXT-MAP.md`: **directly
 
 - **architecture** — `wiki/<project>/architecture.md`: the system's **overall design** (layers,
   modules, responsibilities, seams, key data flows) — the big-picture **map** that `See Also`s the
-  detail concepts. xg-dev-workflow's design step links each card's `design.md` to it
-  (`[[wiki/<project>/architecture]]`) and refreshes it **as-built** when a design freezes.
+  detail concepts. xg-dev-workflow's understanding statement (`steps/discuss.md`) links each card's
+  `design.md` to it (`[[wiki/<project>/architecture]]`) and refreshes it **as-built** at the card's
+  close-out (存量 five-phase cards: when a design freezes).
 - **invariant ledgers** — `wiki/<project>/<subsystem>-invariants.md`: one line per established
-  system invariant, **evidence-cited** — the ledger xg-dev-workflow's adversarial-critic **loads &
-  replays**. Append to it whenever an investigation establishes a durable invariant; that is how the
+  system invariant, **evidence-cited** — the ledger xg-dev-workflow's lenses (`steps/discuss.md` §3;
+  存量 cards: adversarial-critic) **load & replay**. Append to it whenever an investigation establishes a durable invariant; that is how the
   next design's starting point gets sharper.
 
 They live in `wiki/<project>/` beside the concepts but are **hand-maintained docs, not concept index
@@ -175,7 +176,7 @@ them instead of re-deriving. The outline already exists as `wiki/index.md` + the
 caches an outline file (that would drift from the index — see Out of scope).
 
 **When:** on demand (`orient me on <project>`, `项目知识大纲`, `warm up the KB`); and as the
-project-scoped front of an investigation / review / new requirement (xg-dev-workflow calls it as its
+project-scoped front of an investigation / review / new card (xg-dev-workflow calls it as its
 "KB first" step; logging for that case: Usage logging below).
 
 1. **Resolve project** (per「Project resolution」). Always pull `common` alongside the resolved

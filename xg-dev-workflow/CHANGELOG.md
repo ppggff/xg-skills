@@ -4,6 +4,40 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-10 — lite becomes the main narrative (card 030, 期 1 主叙翻转)
+
+- **SKILL.md is lite-first** (442 → 92 lines; frontmatter `description` unchanged): the model in one
+  paragraph, an **entry rule** — a single-card operation reads the card's frontmatter `governance`
+  (requirement.md, else design.md; a missing carrier is empty) and follows `steps/lite.md` for `lite`,
+  `references/legacy/SKILL.md` for anything else; read-only and cross-card verbs never load legacy —
+  the lite file tables, the verb table (11 verbs; the six phase verbs live only in legacy), the 自主区
+  list, subagent tiering, references. Trigger phrases follow the card's mode, not a verb name.
+- **The five-phase flow is frozen** as `references/legacy/SKILL.md`: a verbatim copy of the previous
+  SKILL.md differing in exactly three places (two-line frozen header, the removed Lite route section,
+  the `new` bullet reduced to a pointer). Legacy steps and templates keep their paths; a
+  `SKILL.md「section」` citation inside them means the legacy file. Bug fixes only.
+- **`steps/discuss.md`** (80 lines) carries the lite pre-go conversation core — one question at a
+  time to convergence, the understanding statement, fresh-context lens dispatch and adjudication
+  (falsifier + commitment coverage), the design-topic checklist re-homed onto lite design.md sections
+  — distilled against a 29-point semantic list from grill / design-grill / adversarial-critic /
+  design-agenda, which stay legacy. **`templates/design-lite.md`** holds the lite skeleton (moved out
+  of lite.md, 150 → 131). **`references/constraints.md`** (60 lines) holds Config · Versioning · Usage
+  logging moved verbatim from SKILL.md plus the lite layout and the KB boundary — the 期 2 约束维度 seed.
+- **Tools**: a lite card's board face is one cell `设计:<status> · Req n / 已验证 k` with a lite-aware
+  next; the board check (w) judges a done lite row on design.md status · 测试与验证 · a review record
+  (the 009 false positive is gone); new check **lite-board-sync (ah)** keeps the hand-written board
+  row in step with design.md `status` (draft→todo · executing/closing→active · done→done) and runs
+  only for lite cards; `commit-data-repos._card_governance` reads design.md as a fallback (no behavior
+  change); viewer fills executing/closing as doing. Acceptance: nine projects' `--check`/`--json` on a
+  frozen dev_root revision differ only in lite-card lines and the skipped-count line of projects
+  holding one (0 legacy diff lines); 541 py + 127 node tests green.
+- **Same-batch consistency**: README rewritten for the lite model; repo CLAUDE.md describes the flip
+  and excludes `references/legacy/**` from the invariant-6 stale-reference sweep (retro.md step 4
+  carries the same exclusion; its inputs gain lite observation notes); `KNOWN_ACTIONS` deliberately
+  unchanged (verbs moved, not deleted); 026 Req-32「新卡单轨 doc-native」superseded by one 退役 note.
+- **体量行**: SKILL.md 92 · lite.md 131 · discuss.md 80 · constraints.md 60 · lite `--check` items 4
+  (caps: SKILL.md ≤120 · lite.md ≤150 · discuss.md ≤100).
+
 ## 2026-09-10 — retro after the first M-size lite card (devenv/002): old sections judged for re-entry, pits → rules
 
 Inputs: 002's `notes/observations.md` (16 dated observations + the close-out summary),

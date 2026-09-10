@@ -55,4 +55,4 @@ Execution (cost): §2 / §3 / §4 / §6 / §8's grep are deterministic — scrip
 the rest (and any unscripted deterministic item) via one cheaper-model agent (Agent tool
 `model: sonnet`) that returns only the violation list — the orchestrator re-verifies each
 finding, then applies it per the authority split above. (Same principle as xg-dev-workflow's
-「Subagent model assignment」; restated here so this skill stays self-contained.)
+「Subagents」; restated here so this skill stays self-contained.)
