@@ -35,8 +35,17 @@ Each entry says *what changed* and *why*, not the raw diff.
   and excludes `references/legacy/**` from the invariant-6 stale-reference sweep (retro.md step 4
   carries the same exclusion; its inputs gain lite observation notes); `KNOWN_ACTIONS` deliberately
   unchanged (verbs moved, not deleted); 026 Req-32「新卡单轨 doc-native」superseded by one 退役 note.
-- **体量行**: SKILL.md 92 · lite.md 131 · discuss.md 80 · constraints.md 60 · lite `--check` items 4
-  (caps: SKILL.md ≤120 · lite.md ≤150 · discuss.md ≤100).
+- **Close-out review fixes (three axes + falsifier/coverage lenses, 44 findings adjudicated)**: the
+  design-lite template is copy-ready (parsable frontmatter first — the first shape parsed to an empty
+  frontmatter and made every new card legacy); lite.md's Open-a-card is SKILL.md's `new`; the lite
+  status word strips quotes as well as inline comments; new check **governance-carrier-conflict (ai)**
+  fires when requirement.md and design.md both carry `governance` and disagree (a lite card that grows
+  a requirement.md silently changed mode; silent for every 存量 card); the viewer's pending fill
+  matches by prefix so an unknown lite status is not drawn as done; the review-record heuristic drops
+  the over-broad 结果 / 条 tokens; remaining lite-path citations of legacy sections and M-numbers
+  re-pointed.
+- **体量行**: SKILL.md 92 · lite.md 133 · discuss.md 80 · constraints.md 58 · lite `--check` items 5
+  (caps: SKILL.md ≤120 · lite.md ≤150 · discuss.md ≤100 · constraints.md ≤60).
 
 ## 2026-09-10 — retro after the first M-size lite card (devenv/002): old sections judged for re-entry, pits → rules
 

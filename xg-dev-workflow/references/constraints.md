@@ -30,7 +30,6 @@ Same config file: `~/.config/xg-knowledge-wiki/config.yaml`.
   `tools/resolve-project.py [<cwd>]`; on miss, ask once and register via xg-knowledge-lite's
   `tools/register-project.py <name> <path>`. Never auto-pick `common`.
 
-
 ## Versioning the docs (dev_root git)
 
 `dev_root` is its **own git repo** (separate from the product-code and KB repos), lazily
@@ -47,7 +46,6 @@ initialized on the first commit (`tools/commit-data-repos.py`).
 - An implement task yields **two** commits — product code → its own repo, docs → the dev_root repo.
   Don't cross them.
 - Optional safety net: a session-end hook sweeps uncommitted docs via `commit-data-repos.py` (README).
-
 
 ## Usage logging (self-feedback)
 

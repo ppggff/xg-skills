@@ -340,6 +340,7 @@ t("stepFill: unstarted/planned → pending · in-progress/testing/blocked/failin
   assert.equal(SV.stepFill("executing · Req 7 / 已验证 3"), "doing");   // lite one-cell (030)
   assert.equal(SV.stepFill("closing · Req 7 / 已验证 7"), "doing");
   assert.equal(SV.stepFill("done · Req 7 / 已验证 7"), "done");
+  assert.equal(SV.stepFill("? · Req 0 / 已验证 0"), "pending");     // unknown lite status is not "done"
   assert.equal(SV.stepFill("drafting"), "doing");
   assert.equal(SV.stepFill("in-progress"), "doing");
   assert.equal(SV.stepFill("testing"), "doing");           // implement 进行中

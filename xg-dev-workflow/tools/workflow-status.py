@@ -175,7 +175,7 @@ def lite_status_word(card_dir):
     des = frontmatter(os.path.join(card_dir, "design.md"))
     if not des:
         return "?"
-    return des.get("status", "?").split("#", 1)[0].strip() or "?"
+    return des.get("status", "?").split("#", 1)[0].strip().strip("\"'") or "?"
 
 
 def lite_status(card_dir):

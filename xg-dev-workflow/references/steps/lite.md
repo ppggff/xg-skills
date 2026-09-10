@@ -32,7 +32,7 @@ prose states the present — history is git plus the 变更 lines.
 
 1. Next `NNN`: scan `<dev_root>/<project>/`, increment.
 2. `mkdir <dev_root>/<project>/NNN-slug/`; write `design.md` from the skeleton below.
-3. Board row in `index.md`: `| NNN | lite | todo | — | [NNN-slug](./NNN-slug/) |` — 整体状态 takes
+3. Board row in `index.md` (a new project first gets its dir + `templates/index.md`): `| NNN | lite | todo | — | [NNN-slug](./NNN-slug/) |` — 整体状态 takes
    only the canonical words (`todo` drafting · `active` go → close-out · `done` / `dropped`).
 Ids: `Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n` (with plan.md); two-form citation per `id-schemes.md`.
 
@@ -95,7 +95,9 @@ running-job safety**: commit pending work before anything that rewrites the work
 --hard` · `checkout --` · `clean`; test non-fast-forward with `reset --soft`); while a background
 job runs, edit only files it never reads (bash reads a script as it runs) or wait.
 
-**Park / resume**: park = `progress.md` to the resume floor (now · next · blockers · build/verify
+### Park / resume
+
+Park = `progress.md` to the resume floor (now · next · blockers · build/verify
 entry) + commit; resume = progress (if any) → design.md 摘要 → 承诺 → 当前方案 → evidence and code
 as needed; reading scope is unrestricted — the summary is the entry, not the contract.
 

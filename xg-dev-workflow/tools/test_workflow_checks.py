@@ -1322,6 +1322,30 @@ class ProjectScoped(unittest.TestCase):
         f, s, *_x = wc.check_board_monotonic("proj", self.proj, ws._L1)
         self.assertEqual((f, s), ([], []))          # no test.md skip, no review finding
 
+    def test_b5_lite_done_row_review_doc_counts(self):
+        # the review record may be a notes/review-*.md file with no 自审/review line in design.md
+        self._board("| 001 | lite | done | — | [x](./001-a/) |\n")
+        self._lite_card("proj/001-a", "done", "## 测试与验证\n- 已做: x\n")
+        _write(self.tmp.name, "proj/001-a/notes/review-2026-09-10-x.md", "# review\n")
+        self.assertEqual(wc.check_board_monotonic("proj", self.proj, ws._L1)[:2], ([], []))
+
+    def test_ai_governance_carrier_conflict(self):
+        self._board("| 001 | 需求 | active | — | [x](./001-a/) |\n")
+        _write(self.tmp.name, "proj/001-a/requirement.md", "---\nid: 001\ngovernance: doc-native\ncreated: 2026-09-01\n---\n")
+        self._lite_card("proj/001-a", "executing")
+        f = wc.check_governance_carriers("proj", os.path.join(self.proj, "001-a"), ws._L1)
+        self.assertEqual(f, ["governance-carrier-conflict: requirement.md 'doc-native' vs design.md 'lite' (requirement.md wins)"])
+        _write(self.tmp.name, "proj/002-b/requirement.md", "---\nid: 002\ngovernance: doc-native\ncreated: 2026-09-01\n---\n")
+        _write(self.tmp.name, "proj/002-b/design.md", "---\nstatus: drafting\n---\n")
+        self.assertEqual(wc.check_governance_carriers("proj", os.path.join(self.proj, "002-b"), ws._L1), [])
+
+    def test_ah_lite_board_sync_no_row_is_a_visible_skip(self):
+        self._board("")
+        self._lite_card("proj/009-z", "executing")
+        f, s = wc.check_lite_board_sync("proj", os.path.join(self.proj, "009-z"), ws._L1)
+        self.assertEqual(f, [])
+        self.assertTrue(s and s[0].startswith("lite-board-sync: 009 no board row"))
+
     def test_b5_lite_done_row_missing_pieces(self):
         self._board("| 001 | lite | done | — | [x](./001-a/) |\n")
         self._lite_card("proj/001-a", "executing", "## 任务\n- Task-1\n")

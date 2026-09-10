@@ -1678,7 +1678,7 @@ def _deps_tokens(cell):
 
 
 LITE_REVIEW_LINE = re.compile(r"(自审|review)", re.I)
-LITE_REVIEW_DONE = re.compile(r"(✓|已做|完成|结果|skip|跳过|无缺陷|findings|条)")
+LITE_REVIEW_DONE = re.compile(r"(✓|已做|完成|skip|跳过|无缺陷|findings)")
 
 
 def _lite_done_clauses(nnn, card, ws):
@@ -1707,7 +1707,7 @@ def check_lite_board_sync(project, card_dir, ws):
     nnn = os.path.basename(card_dir.rstrip("/"))[:3]
     row = ws.board(project_dir).get(nnn)
     if row is None:
-        return [], ["lite-board-sync: %s no board row" % nnn]
+        return [], ["lite-board-sync: %s no board row (project-level board-rows check covers it)" % nnn]
     state = row.get("state", "")
     if state == "dropped":
         return []
@@ -1718,6 +1718,22 @@ def check_lite_board_sync(project, card_dir, ws):
     if state != expect:
         return ["lite-board-sync: %s board '%s' vs design.md status '%s' (expect '%s')"
                 % (nnn, state, status, expect)]
+    return []
+
+
+def check_governance_carriers(project, card_dir, ws):
+    """(ai) governance-carrier-conflict (030): requirement.md and design.md both carry a
+    `governance` value and disagree — the entry rule and the tools read requirement.md, so a
+    lite card that later grows a requirement.md would silently change mode. Silent when only
+    one carrier has the key (every 存量 card), so their output is unchanged."""
+    vals = {}
+    for doc in ("requirement.md", "design.md"):
+        v = ws.frontmatter(os.path.join(card_dir, doc)).get("governance", "").strip("\"'")
+        if v:
+            vals[doc] = v
+    if len(vals) == 2 and vals["requirement.md"] != vals["design.md"]:
+        return ["governance-carrier-conflict: requirement.md '%s' vs design.md '%s' (requirement.md wins)"
+                % (vals["requirement.md"], vals["design.md"])]
     return []
 
 
@@ -2459,6 +2475,8 @@ CARD_CHECKS = (
     ("long-cell", lambda p, c, ws: check_long_cells(c, ws),
      _m("(ag)", "载重格位超长单行 hint（表格 cell/block 单行字段 >120 字符；skips 流不 gate）",
         "cutoff 后文件（created-only）", "card 028", misfire="LongCellHint")),
+    ("governance-carriers", check_governance_carriers,
+     _m("(ai)", "requirement.md 与 design.md 两载体 governance 同在且不同（requirement.md 胜出）", "两载体都写了字段的卡", "card 030", misfire="GovernanceCarrierConflict")),
     ("lite-board-sync", check_lite_board_sync,
      _m("(ah)", "lite 卡看板行整体状态 ↔ design.md status 映射一致（draft→todo · executing/closing→active · done→done；dropped 只在行上）",
         "lite 卡（非 lite 卡不跑，输出零变化）", "card 030", misfire="LiteBoardSync")),
@@ -2522,7 +2540,7 @@ def _run_entries(entries, args, ws):
     return findings, skips, exemptions
 
 
-LITE_CHECKS = ("links", "status-field", "progress-cap", "lite-board-sync")   # what a lite card runs
+LITE_CHECKS = ("links", "status-field", "progress-cap", "governance-carriers", "lite-board-sync")   # what a lite card runs
 LITE_ONLY_CHECKS = ("lite-board-sync",)   # never run for other modes — their output stays byte-identical
 
 

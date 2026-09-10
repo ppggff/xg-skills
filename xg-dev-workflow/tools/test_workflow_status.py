@@ -933,6 +933,18 @@ class LiteMode(unittest.TestCase):
         steps, _, nxt = ws.card_status(done)
         self.assertEqual(steps, ["设计:done · Req 0 / 已验证 0"])
         self.assertEqual(ws.effective_next("done", {}, nxt), "—")
+        quoted = self.card("---\ngovernance: lite\nstatus: \"done\"\ncreated: 2026-09-10\n---")
+        self.assertEqual(ws.lite_status_word(quoted), "done")
+
+    def test_design_lite_template_instantiates_as_lite(self):
+        # 030 review: `new` copies templates/design-lite.md verbatim — the copy must already read as lite
+        tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "templates", "design-lite.md")
+        text = open(tpl, encoding="utf-8").read().replace("id: NNN", "id: 001").replace("created: YYYY-MM-DD", "created: 2026-09-10")
+        card = self.card(None)
+        open(os.path.join(card, "design.md"), "w").write(text)
+        self.assertEqual(ws.card_mode(card), "lite")
+        self.assertEqual(ws.lite_status_word(card), "draft")
+        self.assertEqual(ws.card_status(card)[0], ["设计:draft · Req 1 / 已验证 0"])
 
     def test_requirement_present_never_falls_back(self):
         # a card WITH requirement.md keeps its pre-lite reading — existing cards byte-identical
