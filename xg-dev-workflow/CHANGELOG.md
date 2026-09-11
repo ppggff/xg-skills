@@ -4,6 +4,29 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-11 — short retro after the first self-hosted lite card (xg-skills/030)
+
+- **lite.md Verification — two sentences.** (1) A "follow the text literally" criterion is run by an
+  agent that does not know the answer; the author's run does not count. Incident: V5 (open a lite card
+  per the `new` text) was run by the author, who split the template's one-line frontmatter keys by
+  hand — the copy-ready defect that made every verbatim copy a legacy card survived until the
+  close-out spec axis re-ran it literally. (2) A check run outside the card lands its result line in
+  plan.md at once; progress.md cites, never asserts. Incident: the documents-only handoff check found
+  progress.md asserting "V5 ✓" with no trace anywhere in the card.
+- **discuss.md §3 — one sentence.** Collect all in-flight lenses / review axes before fixing.
+  Incident: the spec-axis fix commit landed while the invariants and conventions axes were still
+  running; both re-reported the two blocking defects as already fixed.
+- **Not added (judged)**: the cross-card supersede annotation form (legacy-only grammar; it took four
+  rounds and three commits on 026 Req-32 — recorded in that card's log.md, gone with legacy at 期 3);
+  the template inline-comment lesson (already code: `lite_status_word`). Pruning pass on the three
+  sentences: each changes behavior vs default (no-op test), none duplicates an existing line, none adds
+  a per-gate action.
+- **Calibration**: 030 ran open → done in one session — 4 grill rounds, 2 lenses (30 findings), 3
+  review axes + handoff (34), 64 adjudications, 9 skill commits, 0 needless interruptions; two blocking
+  defects and four 应改 came only from fresh-context agents. Two human fact-questions (how `new` used
+  to work; what design-agenda is) each reversed a recommendation before it landed.
+- **体量行**: SKILL.md 92 · lite.md 136 · discuss.md 82 · constraints.md 58 · lite `--check` items 5.
+
 ## 2026-09-10 — lite becomes the main narrative (card 030, 期 1 主叙翻转)
 
 - **SKILL.md is lite-first** (442 → 92 lines; frontmatter `description` unchanged): the model in one

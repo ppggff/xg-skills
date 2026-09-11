@@ -58,7 +58,9 @@ frozen legacy step files (the 存量 flow keeps them).
   card's commitments. Review's four lenses: `review.md`.
 - **Adjudicate before reporting**: re-measure every numeric or enumerative claim; separate a finding's facts
   from its direction / attribution / generalization (those are your own inferences and need their own grounds);
-  record each finding's 裁定 (采纳 · 修正采纳 · 不采纳 · 待人判) and 去向 in `notes/lens-<date>.md`.
+  record each finding's 裁定 (采纳 · 修正采纳 · 不采纳 · 待人判) and 去向 in `notes/lens-<date>.md`. With
+  several lenses or review axes in flight, collect them all before fixing — a fix that lands mid-run makes
+  the later reports re-find what is already gone.
 - Two standing rules need no agent: before designing a new cross-boundary mechanism, grep for an existing
   carrier; test every open concern against the KB's `*-invariants` ledger for the subsystem.
 

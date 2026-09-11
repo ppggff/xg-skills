@@ -107,7 +107,10 @@ A result names object, method, actual outcome and code version / environment —
 included. A test name is not a run; a link is not support. When code, approach or environment
 changes, re-judge old evidence; stale → 待重验 with reason. Refuted (counter-example) and
 unverified (thin evidence) stay distinct — the latter is never a negative conclusion (`evidence.md`). Review
-depth follows impact, reversibility, invariants and verifiability, not task size.
+depth follows impact, reversibility, invariants and verifiability, not task size. A criterion of the form
+"follow the text literally" (copy the template, open a card per the verb) is run by an agent that does not know
+the answer — the author's own run does not count. A check run outside the card (scratch dir, temporary
+dev_root) lands its result line in plan.md at once; progress.md may cite it, never assert it.
 
 Close-out, in order: (1) **simplify** once when the change exceeds ~150 lines or adds files
 (`simplify-checks.md`, behavior-preserving), result noted; (2) **review by size** — S: light
