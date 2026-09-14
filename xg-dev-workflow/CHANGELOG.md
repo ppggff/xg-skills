@@ -4,6 +4,109 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-14 — 期 2 分维度重组 (card xg-skills/031): the lite face reorganized by dimension, legacy isolated
+
+Direction: dev_root `xg-skills/notes/2026-09-07-lite-default-and-skill-decomposition-direction.md` §3–§5; the
+human's rulings: Q1「隔离，按 C2」(legacy scripts are isolated, not retired — the −55% script number belongs to
+期 3) and go with J1 (fork the shared files legacy cites) / J2 (two of the three viewer options). Acceptance
+(§5 期 2): every dimension under its cap · every kept rule names the failure it prevents (table below) ·
+zero 自主区 overreach (a lens check at close-out; the grep pass found only the by-size candidate minimum).
+
+- **legacy** (`references/legacy/`, `tools/legacy/`): the 11 legacy-only steps, 7 templates, design-agenda and
+  provenance moved under `references/legacy/`; the 11 shared steps and 7 shared refs/templates that
+  `legacy/SKILL.md` cites and this card rewrote or deleted (understand · evidence · adr · implement ·
+  review-deep · review · retro · learn · improve · investigate · diagnose · id-schemes · doc-conventions ·
+  model-tiering · frontend-testing · simplify-checks · smell-catalog · split-isolate · templates adr / facts /
+  index / roadmap / log · adversarial-critic) are frozen forks there, so 存量 cards read the text they always
+  read. Every path inside `legacy/**` was rewritten to its new home (normalized diff empty; the freeze header's
+  base is unchanged). Scripts: `workflow-checks.py` split — the lite half keeps the five card checks a lite
+  card runs, the project scope and the shared helpers; the 23 存量-only checks are `tools/legacy/legacy_checks.py`,
+  lazy-loaded only for a non-lite card (`CARD_ORDER` keeps the output order byte-identical — snapshot diff
+  over ten projects: 0 lines; a missing legacy half exits 2 instead of becoming a finding). `block_parse.py`,
+  `check-superseded-phrases.py` and their tests moved beside it. Phase 3 = delete the two directories.
+- **常驻 SKILL.md** (81): the never-loaded list is one sentence (`references/legacy/`), the References section
+  folded into the bullets it duplicated, the tooling bullet names the five lite checks.
+- **流程 `steps/`** (8 files, 744 lines): `investigate.md` absorbs understand and the evidence rule (authority
+  order, claims table, negative results and the birth-certificate rule, consuming a KB negative, the
+  feasibility guard, the narration-shaped assertions and trigger phrases, the spike, anchoring, phases);
+  `lite.md` absorbs implement's slice discipline (recon, test mode by project policy, commit when checks pass,
+  self-review angles, scope, comments, per-part attack) and the simplify sweep's integration-point rule;
+  review / improve / learn / diagnose lose the five-phase vocabulary (learn reads a lite card's carriers from
+  design.md — an empty carrier table is degradation, not an error); `split-isolate.md` is the eighth file in
+  lite form. Two sentences that fixed 自主区 items were removed:「ADRs 0–3」(→ as earned) and「one commit per
+  slice」(→ granularity is the model's call, one concern each).
+- **约束 `constraints.md`** (118): one closed list — Lay · Id · Doc · Adr · Go · Ops · Git · Ver · Cfg · KB · Log ·
+  Sync · Cap — every row tagged S (which check / tool) or H, replacing id-schemes, doc-conventions, provenance
+  and the ADR step on the lite face; the lite and project checks' `--manifest` basis names their row.
+- **模版 `templates/`** (5 files, 122 lines): rules out, skeletons in; `log.md` needs no template.
+- **视角 `lenses.md` + `smell-catalog.md`** (200): the frame every lens prompt shares, adjudication, the two
+  pre-go lenses, the review lenses (three axes, deep menu with per-lens models, sweep, test adequacy,
+  exemplars, saturation verdict), the evidence-gathering agent briefs (the negative-results search checklist
+  that used to sit in evidence.md), the orchestrator's standing rules; discuss.md §3 and review.md keep only
+  dispatch and tier rules.
+- **元 `retro.md`** (75): inputs = lite observation notes + usage log; the pruning pass gains the 自主区 check
+  and the 退役候选 marking; the 体量行 is six dimension numbers + two totals.
+- **Tools**: `--trace` / `--digest` print one 不适用 line for a lite card (text mode); the viewer's card face
+  shows the lite cell's `status · Req n / 已验证 k` (SV.stepFace). Deferred to the roadmap: the lite `branch:`
+  deep-link anchor. Not done on purpose: retiring the legacy checks (期 3), any legacy text edit beyond paths,
+  `~/.claude/CLAUDE.md` (a proposed diff sits in the card: `references/steps/evidence.md` →
+  `investigate.md`「The evidence rule」), deleting any 防失败 rule (only marked below).
+
+**Incidents that used to be inlined in step bodies** (evidence.md · adversarial-critic.md · model-tiering.md):
+- 003 (2026-07): an unsourced「几个月」reached all four lens prompts — hence *premises only from the pack, else
+  UNVERIFIED* (lenses.md frame; 024 R4 tightened it); the same card read a KB 语义边界 sentence as an existence
+  negation and a prescription as a fact — hence *Fact block first, three reading states* (investigate.md; 024 R12).
+- 026 Req-19: a panel's direction / attribution / generalization claims were adopted with its facts — hence
+  *facts vs inference layers* in adjudication (lenses.md「Adjudicate」).
+- Model tiering rationale: checklist / gather work on `model: sonnet`; inference-heavy lenses on the session
+  model capped at opus — safe because a lens mandate is a scoped attack the orchestrator re-derives and
+  adjudicates, at half the per-token cost; deterministic checks are scripted; every downgrade sits under retro
+  calibration (findings that repeatedly die in adjudication revoke it). The session-model switch after go
+  (`/model sonnet` + an opus advisor) stays optional.
+
+**Rule → the failure it prevents (constraints.md rows; 退役候选 = no recurrence recorded since 2026-08 — the
+human decides, nothing was deleted):**
+
+| 规则 | 防的失败 · 来源 | 退役候选 |
+|---|---|---|
+| Lay-1 / Lay-6 | stray files and dangling links in a project root (021 checks (u)(v)(o), 2026-08) — links still break on most cards | 否 |
+| Lay-2 | `status: done   # 注记` copied from a template comment broke the board mapping (030 observation, 009) | 否 |
+| Lay-3 | empty scaffold files created at open (lite v5, 2026-09-09) | 否 |
+| Lay-4 | board row and design.md status drifting apart (030, lite-board-sync) | 否 |
+| Lay-5 | progress.md growing past the resume floor (021, 2026-08-17); no lite card has hit it | **是** |
+| Id-1 / Id-2 | bare ids in prose and renumbering (Req-30 two-form, 026-07) | 否 |
+| Id-3 | facts kept in two containers and lost on rewrite (010, 2026-07-27) | 否 |
+| Doc-1 | a `[x]` ticked on a described, never-run test (hashdata/009 retro, 2026-09-09) | 否 |
+| Doc-2 | KB negatives consumed without scope (003; 024 R12); a tool claim "verified" by reasoning (hashdata/011) | 否 |
+| Doc-3 | load-bearing arguments compressed into table cells (028, 2026-08-28) | 否 |
+| Doc-4 / Doc-5 | commitments changed silently; history rewritten into "the present" (lite v5) | 否 |
+| Doc-6 | ASCII diagrams with CJK labels misaligned (user rule, 2026-07-21) | 否 |
+| Doc-7 | a plan task dropped with no trace, resume unable to tell done from forgotten (026 M2 case B) | 否 |
+| Adr-1 / Adr-2 | ADRs written for every choice; amendment blocks growing into 500-line compounds (design-time rules) | 设计期 |
+| Go-1 | "please say go" loops and asks read as approvals (hashdata/009 retro, 2026-09-09) | 否 |
+| Go-2 | a bundled reply transcribed as N approvals (024 D21; lite v5) | 否 |
+| Go-3 | 4 rounds and 3 commits to annotate a superseded 存量 item (030 observation #1) | 否 |
+| Ops-1 | destructive / outward operations under a task go (global CLAUDE.md carve-outs) | 否 |
+| Ops-2 | `reset --hard` over uncommitted work; editing a script while it runs (devenv/002 retro, 2026-09-10) | 否 |
+| Ops-3 | a spike that needed product-code edits (design-time rule) | 设计期 |
+| Git-1 | private workflow ids in public commit subjects (user ruling 2026-09-14) | 否 |
+| Git-2 | dev_root / KB references leaking into code comments (2026-07-02; checker still hits) | 否 |
+| Ver-1 … Ver-4 | docs outside git; a parallel session's docs riding along in a card commit (027, 2026-08-30) | 否 |
+| Cfg-1 / Cfg-2 · KB-1 · Log-1 | shared config, KB boundary, usage log — structural rules | 设计期 |
+| Sync-1 | synced copies drifting (check-sync, 2026-07) | 否 |
+| Cap-1 | the skill re-growing after a trim (030 anti-ratchet) | 否 |
+
+lite.md / discuss.md rule sentences trace to their own entries: 2026-09-09 (lite v5 eight rules; what counts
+as go) · 2026-09-10 (devenv/002 retro: invariants table, verbatim pack, shape clauses, redo import, worktree
+safety) · 2026-09-11 (030 retro: literal criteria run by a fresh agent, off-card checks land in plan.md,
+collect all lenses before fixing) · 2026-09-14 (size re-judged, baseline run, diagrams by trigger) ·
+2026-09-01 (multi-site acceptance walk).
+
+- **体量行**: SKILL.md 81 · 流程 8 files / 744 · 约束 118 · 模版 5 files / 122 · 视角 2 files / 200 · 元 75 ·
+  lite card checks 5 (+4 project). Totals: lite face 1,447 md lines (from ≈2,870); whole skill 7,616 md lines
+  (legacy 6,169 incl. ask-routing-core); tools 4,073 production lines on the lite half + 2,557 under
+  `tools/legacy/` (from 6,506 in one tree).
+
 ## 2026-09-14 — audit against the GPT-6 Astra「Better skills」criteria + two lessons from recent cards
 
 Source: dev_root `xg-skills/reviews/2026-09-14-astra-better-skills-audit.md` — the article's four criteria

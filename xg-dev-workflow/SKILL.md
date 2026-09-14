@@ -36,7 +36,7 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
   prompt shapes; `smell-catalog.md` is its companion).
 - **Shared verbs, read as-is**: steps investigate (the evidence rule lives there) · diagnose · review (its lite
   branch; L close-out lenses per `lenses.md`) · improve · learn · retro · split-isolate (L cards: A↔B 判定 + 拆出
-  五步); `model-tiering.md`; templates design-lite · adr · facts · index · roadmap. Slice discipline (recon · test mode ·
+  五步); templates design-lite · adr · facts · index · roadmap. Slice discipline (recon · test mode ·
   commit · comments) is lite.md「Executing」.
 - **Never loaded for a lite card**: everything under `references/legacy/` (the frozen five-phase flow —
   `legacy/SKILL.md` with its steps, templates and refs, plus frozen forks of the shared files it cites) and
@@ -78,4 +78,4 @@ of ADRs. A step sentence that fixes one of these for a lite card is out of bound
 
 Checklist / gather / verification work → `model: sonnet`; inference-heavy analysis → the session model
 capped at opus (a fable session dispatches at `model: opus`); deterministic checks are scripted, not
-delegated. Rationale and per-lens application: `references/model-tiering.md`.
+delegated. Per-lens application: `references/lenses.md`; the rationale is in CHANGELOG 2026-09-14 (期 2).

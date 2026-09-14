@@ -14,9 +14,10 @@ brand-new one — resumes from files alone.
 ## What it is / isn't
 
 - It **is** a routing `SKILL.md` + one procedure (`references/steps/lite.md`, ≤150 lines) + its companions
-  (`steps/discuss.md` for the pre-go conversation and lens dispatch, `templates/design-lite.md`,
-  `constraints.md`) + shared steps (investigate · diagnose · review · improve · learn · retro) + a few
-  Python tools.
+  (`steps/discuss.md` for the pre-go conversation, `templates/design-lite.md`, `constraints.md` — the closed
+  list of hard rules — and `lenses.md`, the fresh-context lens prompt shapes) + shared steps (investigate ·
+  diagnose · review · improve · learn · split-isolate · retro) + a few Python tools. Everything the frozen
+  five-phase flow needs lives under `references/legacy/` and `tools/legacy/` (deleted in phase 3).
 - It **isn't** the knowledge base. Reusable module knowledge lives in `xg-knowledge-lite`
   (`~/knowledge`), referenced from here via `[[wiki/<project>/<slug>]]` wikilinks.
 - **存量 cards** (frontmatter `governance` ≠ `lite`, 2026-09 and earlier) still run the old five-phase flow,
@@ -30,7 +31,8 @@ brand-new one — resumes from files alone.
 
 `dev_root` and the `projects:` map come from `~/.config/xg-knowledge-wiki/config.yaml` — the same
 config xg-knowledge-lite uses, so project names line up. Hard rules (layout, config, dev_root versioning,
-usage logging, KB boundary): `references/constraints.md`.
+ids, doc form, ADRs, go, operations, commits, config, KB boundary, usage logging, synced files, caps): `references/constraints.md`,
+each row script- or reader-checkable.
 
 ## Key rules
 
@@ -56,7 +58,7 @@ usage logging, KB boundary): `references/constraints.md`.
   marked evidence / 推断 / 假设; doubts are investigated by a subagent (`investigate` is the front door).
 - **By size.** XS/S stay light; size is re-judged whenever scope grows; M requires a grill to convergence, two
   fresh-context lenses (falsifier + commitment coverage), `plan.md`, `facts.md`, ADRs and diagrams as earned; L splits first
-  (`references/split-isolate.md`).
+  (`references/steps/split-isolate.md`).
 - **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** with autonomous **local**
   commits at every doc boundary, scoped to the acting card (`--card <project>/<NNN>`); `push` stays
   manual. An optional session-end hook sweeps leftovers per project:
@@ -65,10 +67,11 @@ usage logging, KB boundary): `references/constraints.md`.
   {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 <path-to-skill>/tools/commit-data-repos.py"}]}]}}
   ```
 - **Check after every edit.** `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset
-  (links · status field · progress cap · board ↔ `status` sync); the board shows a lite card as one cell
-  derived from `design.md`'s `status`.
+  (links · status field · progress cap · governance carriers · board ↔ `status` sync — each naming its
+  `constraints.md` row in `--manifest`); the board and the viewer show a lite card as one cell derived from
+  `design.md`'s `status`; `--trace` / `--digest` print 不适用 for it.
 - **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
-  `CHANGELOG.md` with the 体量行 (SKILL.md ≤120 · lite.md ≤150 · discuss.md ≤100 · lite check items).
+  `CHANGELOG.md` with the 体量行 by dimension (`constraints.md` Cap-1) plus the lite-face and whole-skill totals.
 
 ## Usage
 

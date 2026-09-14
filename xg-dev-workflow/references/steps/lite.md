@@ -86,8 +86,8 @@ what code can answer, ask promptly for what only the human knows.
   test beside the code, defer the run, list the commands as suggested steps); unknown → ask before slice 1
   and record the answer as the project's standing policy. Both are vertical per slice — never all code, then
   all tests. `[x]` only on an observed pass; a criterion naming N sites is walked per site before ticking.
-- **One commit per slice** once its runnable checks pass (`constraints.md` Git · Ver); verify the staged
-  blob, not the worktree (`git show :<file>` — after a `reset --soft` the old content is what's staged); a
+- **Commit when a slice's runnable checks pass** (`constraints.md` Git · Ver; granularity is your call, one
+  concern each); verify the staged blob, not the worktree (`git show :<file>` — after a `reset --soft` the old content is what's staged); a
   project no-commit policy → checkpoint and ask.
 - **Self-review before a slice is done**, against code not memory: a skip / ignore / optimize-away decision
   is classified safety vs liveness and fails safe · mirrored upstream logic replicates **all** branches at
@@ -143,8 +143,8 @@ sticky; moving to a larger row switches on that row's requirements from that poi
 | | XS | S | M | L |
 |---|---|---|---|---|
 | grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (`discuss.md` §1–§2, §4 topics) | as M, per card |
-| candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / when triggered | as M |
+| candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs as earned / when triggered | as M |
 | lenses | — | by risk | once the approach forms: falsifier + commitment coverage (`lenses.md`; dispatch per `discuss.md` §3) — fresh-context, one agent each, adjudicate before reporting | as M |
-| files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: `split-isolate.md` A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
+| files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; **one documents-only handoff check** | split first: `split-isolate.md` A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 
 Caps (anti-ratchet): `constraints.md`「Caps」(Cap-1); retro re-measures them.
