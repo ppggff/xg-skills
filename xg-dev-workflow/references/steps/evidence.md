@@ -170,11 +170,11 @@ every sentence. An unmarked non-trivial assertion reads as evidence-backed — i
   **共享前提错是整组候选一起作废**,连带已写下的对比与代价评估。)列候选集之前,先把**整组共同
   依赖的那一条**验到 VERIFIED。最常塌的形态是「复用既有机制 X 来做 Y」——
   **第一个动作是查 X 那条路径有没有被接上,不是查 X 存不存在**:grep 到函数定义只证明它存在。
+  三处同看 —— 调用点是否被注释掉 · `switch` 的 `default` 是不是 `panic`(只认枚举内那几种)·
+  它操作的是哪个 manager / keyspace(决定它到底服务哪一类对象)。
 
 （采纳外部 panel/agent finding 时的对应纪律——事实层/推论层分判,泛化、归属、方向主张按
 自家推断待遇给独立依据——见 adversarial-critic.md「Core move」,026 Req-19;此处不重述。）
-  三处同看 —— 调用点是否被注释掉 · `switch` 的 `default` 是不是 `panic`(只认枚举内那几种)·
-  它操作的是哪个 manager / keyspace(决定它到底服务哪一类对象)。
 
 ## Honesty
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.
