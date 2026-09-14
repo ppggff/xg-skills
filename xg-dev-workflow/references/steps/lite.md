@@ -80,8 +80,7 @@ what code can answer, ask promptly for what only the human knows.
 
 ### Slice discipline
 
-- **Recon first**: run the project's build / test baseline before slice 1 and record the exact entry (command ·
-  output · version) in the doc; read every build's warnings (an implicit declaration is a load-time undefined symbol).
+- **Recon first**: run the build / test baseline before slice 1, record the entry (command · output · version); read every build's warnings.
 - **Test mode follows the project's execution policy**: tests run by default → TDD (a failing test observed
   before the code; a bug fix reproduces first); "describe, don't run" → test-after (write or describe the test
   beside the code, defer the run, list the commands as suggested steps); unknown → ask before slice 1 and record
