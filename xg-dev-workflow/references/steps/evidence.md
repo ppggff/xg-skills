@@ -184,7 +184,7 @@ A flagged gap is more useful than false confidence.
 
 A verified load-bearing fact on a ledger card gets an `F<n>` block in the card's `facts.md`
 (grill.md「载重事实入账」) so doc rewrites can't lose it; standalone docs keep a doc-local
-事实清单 (`references/id-schemes.md` F-id scoping).
+事实清单 (`constraints.md` Id-3).
 
 ## Citation form in docs
 - code: `` `TpFrozenShmemGetMin()` in `appserver.c` ``

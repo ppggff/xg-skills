@@ -6,7 +6,7 @@
      Edit one, `cp` to the other. Checked by xg-dev-workflow/tools/check-sync.py
      (declared in tools/sync-manifest.txt). Skill-agnostic rules ONLY — anything that
      references one skill's own artifacts belongs in that skill's supplement
-     (xg-dev-workflow: references/doc-conventions.md; xg-knowledge-lite: SKILL.md
+     (xg-dev-workflow: references/constraints.md; xg-knowledge-lite: SKILL.md
      writing block / FORMAT.md). `diagram-gotchas.md` ships alongside as part of the
      same synced set. -->
 

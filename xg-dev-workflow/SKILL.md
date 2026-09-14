@@ -9,11 +9,10 @@ A lite, design-centric workflow for code work. One card = one directory of docs 
 continuously updated working draft (`design.md`); explicitly confirmed goals and boundaries
 (**commitments**); one execution authorization (**go**); then continuous execution in which only three
 kinds of change come back to the human. The procedure is `references/steps/lite.md` — this file routes.
-Every doc follows `references/conventions-core.md` (shared with xg-knowledge-lite, byte-identical) +
-`references/doc-conventions.md`: load-bearing claims carry provenance (evidence-cited / 推断 / 假设), KB
-cross-references keep the `[[wiki/<project>/<slug>]]` wikilink, diagrams are Mermaid
-(`references/diagram-gotchas.md`). Hard rules — layout, config, dev_root versioning, usage logging, KB
-boundary — live in `references/constraints.md`.
+Every doc follows `references/conventions-core.md` (shared with xg-knowledge-lite, byte-identical) and
+`references/diagram-gotchas.md`; the closed list of hard rules — layout · ids · doc form · ADRs · go ·
+operations · commits · dev_root versioning · config · KB boundary · usage logging · synced files · caps — is
+`references/constraints.md` (every row script- or reader-checkable; everything else is the model's call).
 
 ## Entry — which flow does this card follow?
 
@@ -36,8 +35,7 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
   (the design.md skeleton `new` copies) · `references/constraints.md`.
 - **Shared, read as-is**: steps understand · evidence · investigate · diagnose · review (its lite branch) ·
   review-deep (L close-out; it dispatches `adversarial-critic.md`'s trio — the one legacy file a lite card
-  may reach) · improve · learn · retro; `simplify-checks.md` · `model-tiering.md` · `id-schemes.md`
-  (`Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n`; two-form citation) · `split-isolate.md` (L cards:
+  may reach) · improve · learn · retro; `simplify-checks.md` · `model-tiering.md` · `split-isolate.md` (L cards:
   A↔B 判定 + 拆出五步) · `smell-catalog.md`; templates adr · facts · log · index · roadmap; `steps/implement.md` only for
   Environment recon · Test mode · Commit cadence (minus its card-qualified task tag — lite.md「Executing」
   forbids the tail) · Comment & artifact hygiene.

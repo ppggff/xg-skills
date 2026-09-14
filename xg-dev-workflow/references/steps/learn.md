@@ -101,7 +101,7 @@ them); a missing section fails Done-when (and the omission-check judgment item):
 - **§4 过程教训** — group-specific lessons; generalizable ones appear only as an M6
   pointer line.
 - **§5 事实类资产表** — external key = the source cards' actual F containers, tiered per
-  doc-conventions「Provenance containers」(cite the owner, don't restate); columns: 源 id ·
+  `constraints.md` Id-3 / Doc-5 (cite the owner, don't restate); columns: 源 id ·
   一句复述 · 时效标注 · keep 理由; drop = the one aggregate line.
 - **§6 非事实类参考** — non-binding banner first; 判断 / 机制 / 死路 subsections (rules
   in §2 Mine).

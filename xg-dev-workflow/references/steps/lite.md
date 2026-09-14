@@ -34,7 +34,7 @@ prose states the present — history is git plus the 变更 lines.
 2. `mkdir <dev_root>/<project>/NNN-slug/`; write `design.md` from the skeleton below.
 3. Board row in `index.md` (a new project first gets its dir + `templates/index.md`): `| NNN | lite | todo | — | [NNN-slug](./NNN-slug/) |` — 整体状态 takes
    only the canonical words (`todo` drafting · `active` go → close-out · `done` / `dropped`).
-Ids: `Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n` (with plan.md); two-form citation per `id-schemes.md`.
+Ids and citation form: `constraints.md`「Ids」.
 
 ## design.md skeleton
 
@@ -142,4 +142,4 @@ plan.md · the split check), with one reason line in the doc.
 | lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting (`discuss.md` §3) | as M |
 | files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 
-Caps (anti-ratchet): SKILL.md ≤120 lines · this file ≤150 · `discuss.md` ≤100 · `constraints.md` ≤60; retro records all four.
+Caps (anti-ratchet): `constraints.md`「Caps」(Cap-1); retro re-measures them.
