@@ -138,7 +138,7 @@ Report write failure → retry once, then paste the content into chat (improve �
 3. **Board「参考对象注记」** — required when the trigger is a redo (搬移语义: the report
    becomes the canonical carrier; index/roadmap shrink to one-line pointers); a pure
    经验归纳 run skips this item only. Section form: the registered optional section in
-   templates/index.md.
+   references/legacy/templates/index.md.
 4. **KB Write A+B** (xg-knowledge-lite Write raw + scoped compile) for durable environment
    facts: raw body carries a「来源与时效」section (源卡 F-id + 原实测日期 + 方法 + 未重核) and
    **no dev_root pointer** (KB one-way); topic-cluster granularity (1..k notes); known-refuted
@@ -154,7 +154,7 @@ Report write failure → retry once, then paste the content into chat (improve �
 
 Consumption-side disciplines live at their owners — references/legacy/steps/requirement.md beat 1 (点名合法以
 `adopted:` 行为判 · 轴→节区映射 · 采纳门 · 重核纪律 · 死路 prior-rejection 比对 · 重做冷起
-触发半句) and templates/facts.md 头注 (the cross-card narrow marker-flip); this step only
+触发半句) and references/legacy/templates/facts.md 头注 (the cross-card narrow marker-flip); this step only
 points there.
 
 ### Exceptions (all bind to existing disciplines)

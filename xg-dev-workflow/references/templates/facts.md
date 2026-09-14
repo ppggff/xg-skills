@@ -1,33 +1,15 @@
-<!--
-<card>/facts.md — the card's fact layer (F-id registry): load-bearing facts that decisions
-rest on, kept OUTSIDE the freely-rewritable phase docs so a doc rewrite can never lose them
-(design 010, ADR-0002). Phase docs cite entries as [F<n>] — doc-native cards (026 Req-41,
-归一形): headers `### Fact-<n> [标注]`, citations `[Fact-n]` ([F<n>] stays legal as the
-transitional alias on transported text); the file itself is kept on every mode.
+<!-- <card>/facts.md — the card's fact layer: load-bearing facts the draft rests on, kept outside the
+freely rewritten design.md so a rewrite can never lose them. Docs cite [Fact-n]; the marker and the 来源 line
+must agree (constraints.md Doc-2: [VERIFIED] only with a source that was actually read or run; a claim about
+an external tool / runtime is VERIFIED only by running it). Append-mostly: a correction is a NEW block plus
+the old block's marker flipped to [SUPERSEDED] with a pointer line — never a body edit (the same narrow flip a
+later card applies when its re-verification refutes a fact it reused from here, steps/learn.md). Reusable
+module knowledge still graduates to the KB; this file holds card-local facts. -->
 
-Reader = Claude (both zones — cited evidence base; humans reach it by drill-down from a
-[F<n>] citation, never as a reading assignment). Written by grill/investigate rounds
-(grill.md「载重事实入账」).
+### Fact-1 [VERIFIED]
+- 事实: <lead sentence（导语行）; indented rich continuation allowed — constraints.md Doc-3>
+- 来源: `func()` in `file.c` / `[[wiki/<project>/<slug>]]` / <the command and output that verified it>
 
-Discipline: append-mostly — a correction is a NEW block plus the old block's status flipped
-to superseded; a refinement that narrows (not invalidates) an earlier fact is a new block
-saying so. Reusable cross-card module knowledge still graduates to the KB (xg-knowledge-lite);
-this file holds only card-local facts.
-
-Cross-card narrow flip (learn consumption — steps/learn.md + references/legacy/steps/requirement.md beat 1):
-when a NEW card's re-verification refutes a fact it reused from this file, the consumer flips
-this block's marker to SUPERSEDED + one pointer line in the same batch — marker + pointer
-only, never body edits (the named exception to learn's input-card read-only).
-
-Marker integrity: the marker and 来源 must agree — a block whose 来源 says it was inferred or
-untested cannot be [VERIFIED] (`workflow-status.py --check` (g) enforces this). A feasibility
-claim about an external tool/runtime reaches VERIFIED only by running it (`steps/investigate.md`).
--->
-
-### F1 [VERIFIED]
-- 事实: <lead sentence（导语行）; indented rich continuation allowed — `constraints.md` Doc-3>
-- 来源: `func()` in `file.c` / `[[wiki/<project>/<slug>]]` / <how it was verified>
-
-### F2 [推断]
+### Fact-2 [推断]
 - 事实: <…>
-- 来源: <what it is inferred from; upgrade to VERIFIED when checked>
+- 来源: <what it is inferred from; flip to [VERIFIED] once read or run>

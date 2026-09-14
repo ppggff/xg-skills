@@ -5,7 +5,7 @@ live in this requirement's `adr/` (not a global `docs/decisions/`); numbering is
 requirement; a superseding ADR that reopens a frozen design must link the requirement
 change that justified it (M2).
 
-Output: `adr/NNNN-slug.md` (template: `references/templates/adr.md`).
+Output: `adr/NNNN-slug.md` (template: `references/legacy/templates/adr.md`).
 
 ## When to write one (all three required)
 1. **Hard to reverse** — meaningful cost to change later.

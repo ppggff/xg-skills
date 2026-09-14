@@ -1,44 +1,28 @@
-<!--
-<dev_root>/<project>/roadmap.md — the project's persisted, card-transcending plan: a savable
-todo / someday list that outlives any single card, so deferred work isn't forgotten. Lighter than
-the index.md kanban (which tracks in-flight cards); a roadmap item graduates into a card via
-`new <slug>` (then link it). Kept fed by: cards' Future / Discovered-issues append here; M3 checks
-deferred work landed here; retro scans it. This is a dev_root planning doc — system *knowledge*
-(architecture, invariants) lives in the KB, not here.
-
-Reader = human (planning): scanned when deciding what's next — one line per item, prunable.
--->
+<!-- <dev_root>/<project>/roadmap.md — the project's card-transcending plan: deferred work that outlives
+any single card. Lighter than the board (in-flight cards); an item graduates into a card via `new <slug>`
+(then it moves to Graduated with the NNN). Fed by cards' close-out (deferred items, residual risk),
+`improve` / `learn` picks (their own line forms), and split-isolate's card-or-fog call. System knowledge
+(architecture, invariants) lives in the KB, not here. Reader = human (planning): one line per item, prunable;
+the lenses read the 裁定 lines (lenses.md commitment coverage). -->
 
 # Roadmap — <project>
 
 ## Next up (ordered)
 
-Intended next cards, roughly ordered. An item graduates to a card with `new <slug>` — then move it
-to "Graduated" with the NNN.
+- [ ] <one-line intent> — why / source (card NNN close-out · a discovered issue). → card: —
 
-- [ ] <one-line intent> — why / source (card NNN Future · a discovered issue). → card: —
-
-## Themes / direction
-
-Bigger arcs the project is moving toward (each spawns several cards over time).
+## Themes / direction   <!-- optional: arcs that spawn several cards -->
 
 - <theme> — one line.
 
-## Someday / maybe
-
-Uncommitted ideas; no card yet. Prune when dropped (note why).
+## Someday / maybe   <!-- optional: fog — not yet statable as a card; prune when dropped, note why -->
 
 - <idea> — one line.
 
-## Rejected / won't do
-
-Proposals consciously rejected at requirement level, so they don't return unnoticed — the
-requirement step checks here before drafting (design-level rejections live in ADRs instead).
+## Rejected / won't do   <!-- optional: consciously rejected proposals, so they don't return unnoticed -->
 
 - <proposal> — why rejected (YYYY-MM-DD).
 
-## Graduated / shipped (recent tail)
-
-Items that became cards or shipped — keep a short tail for memory, prune the old.
+## Graduated / shipped (recent tail)   <!-- optional: short memory tail, prune the old -->
 
 - <item> → card NNN (YYYY-MM-DD).

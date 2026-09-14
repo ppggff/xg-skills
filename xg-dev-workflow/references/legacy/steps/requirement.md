@@ -64,7 +64,7 @@ not transcribe the words.
    design-phase input evidence marked 推断/假设. Re-verify discipline (consumption side): a reused fact enters
    the new card's `facts.md` at 最高 `[推断]` (来源 = 源卡 F-id + 原实测日期 + 未重核),
    upgrades on re-verify; a refuted one flips the **source** card's facts.md marker in the
-   same batch (narrow flip — templates/facts.md 头注; only when the source card has a
+   same batch (narrow flip — references/legacy/templates/facts.md 头注; only when the source card has a
    facts.md). §6 dead-end pointers join the prior-rejection scan; requirement-level
    rejections land in roadmap Rejected (write side above). A redo/reframe ask with **no**
    learn report → ask once whether to run `learn` first; declining is recorded as a known gap.

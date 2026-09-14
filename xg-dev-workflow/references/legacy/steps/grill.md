@@ -172,7 +172,7 @@ priorities and tactics (see "Phase-specific layers").
   shape), so a 陈述 that isn't self-contained cannot be repaired at presentation time.
 - **载重事实入账 (facts as you verify).** When a grill/investigate round **verifies a
   load-bearing fact** a decision rests on, append it to the card's `facts.md` as an `F<n>`
-  block right then (`templates/facts.md`; created lazily like `decisions.md`) and cite it as
+  block right then (`references/legacy/templates/facts.md`; created lazily like `decisions.md`) and cite it as
   `[F<n>]` from the phase doc. Boundary with the adversarial-critic **verified-facts pack**:
   the pack is session-state (avoids re-verifying within a grill); `facts.md` is the card's
   persistent layer — only facts that later phases/rewrites will lean on get an F block.
