@@ -1578,3 +1578,36 @@ class LiteTraceDigest(unittest.TestCase):
     def test_legacy_card_untouched(self):
         code, out = self._main("--trace", "proj/002")
         self.assertNotIn("不适用", out)
+
+    def test_checks_module_load_failure_stays_a_finding(self):
+        # 031 review F1: an exception from _checks() itself must become a check-error finding (exit 1),
+        # not escape to the never-crash wrapper (exit 0)
+        import contextlib, io
+        orig = ws._checks
+        def boom():
+            raise RuntimeError("boom-load")
+        ws._checks = boom
+        self.addCleanup(lambda: setattr(ws, "_checks", orig))
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = ws.run_check(self.root, "proj/002")
+        self.assertEqual(code, 1)
+        self.assertIn("check-error: boom-load", buf.getvalue())
+
+    def test_manifest_without_legacy_half_exits_2(self):
+        import contextlib, io
+        wc = ws._checks()
+        orig = wc._legacy
+        def gone():
+            raise wc.LegacyChecksUnavailable("legacy half unavailable (test)")
+        wc._legacy = gone
+        self.addCleanup(lambda: setattr(wc, "_legacy", orig))
+        pinned = wc.__dict__.pop("CARD_CHECKS", None)
+        if pinned is not None:
+            self.addCleanup(lambda: setattr(wc, "CARD_CHECKS", pinned))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code, out = self._main("--manifest")
+        self.assertEqual(code, 2)
+        self.assertIn("legacy half unavailable", err.getvalue())
+        self.assertEqual(out, "")

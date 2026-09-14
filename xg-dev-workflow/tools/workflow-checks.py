@@ -541,7 +541,8 @@ class LegacyChecksUnavailable(RuntimeError):
 
 
 class _SelfView:
-    """Live attribute view over this module's globals, injected into the legacy half as `wc`."""
+    """Live attribute view over this module's globals, injected into the legacy half as `wc` — the same
+    shape as workflow-status._L1View; the one-way import direction forbids sharing one class."""
     def __getattr__(self, name):
         try:
             return globals()[name]

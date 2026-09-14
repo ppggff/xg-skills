@@ -1068,7 +1068,7 @@ def card_carriers(card_dir):
     return entries
 
 
-# ---- doc-native blocks (026): generated views over tools/block_parse.py ----
+# ---- doc-native blocks (026): generated views over tools/legacy/block_parse.py ----
 _BLOCK_PARSE = None
 
 
@@ -1331,10 +1331,10 @@ def run_check(root, arg, verbose_skips=False):
             findings, skips, exemptions = _checks().check_card_all(project, card_dir, _L1)
     except SystemExit:
         raise
-    except _checks().LegacyChecksUnavailable as e:   # the legacy half is missing/broken: fail loudly, never a finding
-        print("check-error: %s" % e, file=sys.stderr)
-        sys.exit(2)
     except Exception as e:
+        if type(e).__name__ == "LegacyChecksUnavailable":   # legacy half missing/broken: fail loudly, never a finding
+            print("check-error: %s" % e, file=sys.stderr)   # (matched by name: _checks() itself may be what failed)
+            sys.exit(2)
         findings, skips, exemptions = ["check-error: %s" % e], [], []
     for f in findings:
         print("⚠ " + f)
@@ -1421,7 +1421,13 @@ def main():
         i += 1
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
     if manifest_flag:
-        print(render_manifest())
+        try:
+            print(render_manifest())
+        except Exception as e:
+            if type(e).__name__ != "LegacyChecksUnavailable":
+                raise
+            print("check-error: %s" % e, file=sys.stderr)   # the manifest reads the whole registry — same exit 2
+            return 2
         return 0
     if (digest_arg or (trace_arg and not as_json)) and \
             card_mode(resolve_card(root, digest_arg or trace_arg)[1]) == "lite":

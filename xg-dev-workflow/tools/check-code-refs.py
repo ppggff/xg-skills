@@ -3,7 +3,7 @@
 
 Code comments must not reference workflow/KB docs — .md files, dev_root /
 ~/knowledge paths, [[wiki/...]] links, ADR-NNNN — or line numbers; they rot
-and leak private paths (implement.md "Comment & artifact hygiene"). Bare
+and leak private paths (lite.md「Slice discipline」comments rule). Bare
 legacy-dir names (plan/, problem/) are NOT matched: too collision-prone with
 real code paths. Issue/ticket refs (#1234, JIRA-42) are fine and not flagged.
 

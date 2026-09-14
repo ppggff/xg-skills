@@ -42,7 +42,7 @@ that belongs in one-time setup) is a *performance* observation, not a Fowler mai
 
 ## Reuse / cohesion (simplify) — when a change adds helpers or abstractions
 
-Shared by the simplify sweep (lite.md「Close-out」) and the review Standards axis; an embedded shared
+Shared by the simplify sweep (lite.md「Verification and close-out」) and the review Standards axis; an embedded shared
 sub-expression evades a whole-function dup scan, so name both checks explicitly.
 
 - **New helper/constant → grep the touched module for the same logic first.** A new `arch→prefix`

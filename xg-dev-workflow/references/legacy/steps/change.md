@@ -105,7 +105,7 @@ design are allowed to change, so the design stays stable while the plan flexes.
      list as an indented sub-list under its Change-log entry** (title line contains
      被取代表述, same line form) — these two anchors are what
      `check-superseded-phrases.py --from-card` and the resident `--check` (n) read (021).
-   - Run `tools/check-superseded-phrases.py <card-dir> --from-card` (add `--terms …` for
+   - Run `tools/legacy/check-superseded-phrases.py <card-dir> --from-card` (add `--terms …` for
      names noticed while editing) across
      requirement/design/detail/plan/test + adr; **every hit resolves one of three ways**:
      rewrite · annotate as 历史表述 (change-log entries and grill/notes history qualify) ·

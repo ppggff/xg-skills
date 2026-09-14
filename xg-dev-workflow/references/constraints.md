@@ -43,7 +43,8 @@ provenance three-class · negative statements · tables vs prose · diagrams · 
 - Doc-3 (H) — a table cell or single-line field holds one plain self-contained sentence (ids as gloss); the full text lives at
   the content's home — a block field's indented continuation (two spaces) or prose in the same section, never the cell.
 - Doc-4 (H) — a `### Req-n <状态词>` block has 陈述 (free-form) · 验证 · 来源 lines; 变更 whenever the commitment changes;
-  确认 at go and every re-confirmation; the 验证 line names method · outcome · evidence pointer (product SHAs included).
+  确认 at go and every re-confirmation; the 验证 line names method · outcome · evidence pointer (commit SHAs included —
+  product, or dev_root for a docs-only card).
 - Doc-5 (H) — prose states the present; history is git plus the 变更 lines; full content has one home and a summary is
   self-contained; an enumeration cites its owner, never restates the count.
 - Doc-6 (H) — diagrams are Mermaid (`diagram-gotchas.md`); KB references keep the wikilink form (load-bearing for recompile).
@@ -114,5 +115,5 @@ provenance three-class · negative statements · tables vs prose · diagrams · 
 
 ## Caps (Cap) — anti-ratchet, re-measured by `retro`
 
-- Cap-1 (S: wc -l) — SKILL.md ≤120 · `steps/lite.md` ≤150 · `steps/discuss.md` ≤100 · this file ≤120 · `steps/` ≤8 files and
-  ≤900 lines in all · `templates/` 5 files ≤250 · lenses ≤200 (one or two files) · `steps/retro.md` ≤100.
+- Cap-1 (S: wc -l) — SKILL.md ≤120 · `steps/lite.md` ≤150 · `steps/discuss.md` ≤100 · this file ≤120 · 流程 = `steps/` minus
+  `retro.md`: ≤8 files, ≤900 lines in all · `templates/` 5 files ≤250 · lenses ≤200 (one or two files) · `steps/retro.md` (元) ≤100.

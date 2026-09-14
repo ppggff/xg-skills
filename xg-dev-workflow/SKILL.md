@@ -30,6 +30,7 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
 
 ## Files on the lite path
 
+Bare `steps/…` and `templates/…` names below and in the steps resolve under `references/`.
 - **lite.md's companions**: `references/steps/discuss.md` (one question at a time · convergence ·
   understanding statement · lens dispatch · design-topic checklist) · `references/templates/design-lite.md`
   (the design.md skeleton `new` copies) · `references/constraints.md` · `references/lenses.md` (fresh-context lens

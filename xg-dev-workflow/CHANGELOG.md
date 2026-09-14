@@ -24,9 +24,9 @@ zero 自主区 overreach (a lens check at close-out; the grep pass found only th
   lazy-loaded only for a non-lite card (`CARD_ORDER` keeps the output order byte-identical — snapshot diff
   over ten projects: 0 lines; a missing legacy half exits 2 instead of becoming a finding). `block_parse.py`,
   `check-superseded-phrases.py` and their tests moved beside it. Phase 3 = delete the two directories.
-- **常驻 SKILL.md** (81): the never-loaded list is one sentence (`references/legacy/`), the References section
+- **常驻 SKILL.md** (84): the never-loaded list is one sentence (`references/legacy/`), the References section
   folded into the bullets it duplicated, the tooling bullet names the five lite checks.
-- **流程 `steps/`** (8 files, 744 lines): `investigate.md` absorbs understand and the evidence rule (authority
+- **流程 `steps/`** (8 files, 743 lines): `investigate.md` absorbs understand and the evidence rule (authority
   order, claims table, negative results and the birth-certificate rule, consuming a KB negative, the
   feasibility guard, the narration-shaped assertions and trigger phrases, the spike, anchoring, phases);
   `lite.md` absorbs implement's slice discipline (recon, test mode by project policy, commit when checks pass,
@@ -35,7 +35,7 @@ zero 自主区 overreach (a lens check at close-out; the grep pass found only th
   design.md — an empty carrier table is degradation, not an error); `split-isolate.md` is the eighth file in
   lite form. Two sentences that fixed 自主区 items were removed:「ADRs 0–3」(→ as earned) and「one commit per
   slice」(→ granularity is the model's call, one concern each).
-- **约束 `constraints.md`** (118): one closed list — Lay · Id · Doc · Adr · Go · Ops · Git · Ver · Cfg · KB · Log ·
+- **约束 `constraints.md`** (119): one closed list — Lay · Id · Doc · Adr · Go · Ops · Git · Ver · Cfg · KB · Log ·
   Sync · Cap — every row tagged S (which check / tool) or H, replacing id-schemes, doc-conventions, provenance
   and the ADR step on the lite face; the lite and project checks' `--manifest` basis names their row.
 - **模版 `templates/`** (5 files, 122 lines): rules out, skeletons in; `log.md` needs no template.
@@ -51,6 +51,12 @@ zero 自主区 overreach (a lens check at close-out; the grep pass found only th
   deep-link anchor. Not done on purpose: retiring the legacy checks (期 3), any legacy text edit beyond paths,
   `~/.claude/CLAUDE.md` (a proposed diff sits in the card: `references/steps/evidence.md` →
   `investigate.md`「The evidence rule」), deleting any 防失败 rule (only marked below).
+- **Close-out review** (deep tier: correctness · adversarial trio · fresh-eyes sweep · conventions/docs/quality; plus a
+  存量-card resume replay, a fresh agent's literal lite walk and the 自主区 lens): 20 findings, all adopted — the load-bearing
+  one was `run_check`'s new `except _checks().LegacyChecksUnavailable` clause, whose expression re-raised when `_checks()`
+  itself failed and let the never-crash wrapper clamp a broken checks module to exit 0 (now matched by type name;
+  `--manifest` gets the same exit 2); a template fork taken after its lite pointers were edited (re-forked from the
+  pre-move source); directory-level and `.py` paths the file-level rewrite missed; two 自主区 overreaches in diagnose.md.
 
 **Incidents that used to be inlined in step bodies** (evidence.md · adversarial-critic.md · model-tiering.md):
 - 003 (2026-07): an unsourced「几个月」reached all four lens prompts — hence *premises only from the pack, else
@@ -102,8 +108,8 @@ safety) · 2026-09-11 (030 retro: literal criteria run by a fresh agent, off-car
 collect all lenses before fixing) · 2026-09-14 (size re-judged, baseline run, diagrams by trigger) ·
 2026-09-01 (multi-site acceptance walk).
 
-- **体量行**: SKILL.md 81 · 流程 8 files / 744 · 约束 118 · 模版 5 files / 122 · 视角 2 files / 200 · 元 75 ·
-  lite card checks 5 (+4 project). Totals: lite face 1,447 md lines (from ≈2,870); whole skill 7,616 md lines
+- **体量行**: SKILL.md 84 · 流程 8 files / 743 · 约束 119 · 模版 5 files / 122 · 视角 2 files / 200 · 元 75 ·
+  lite card checks 5 (+4 project). Totals: lite face 1,450 md lines (from ≈2,870); whole skill 7,619 md lines
   (legacy 6,169 incl. ask-routing-core); tools 4,073 production lines on the lite half + 2,557 under
   `tools/legacy/` (from 6,506 in one tree).
 

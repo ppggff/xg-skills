@@ -2082,3 +2082,15 @@ class ReviewRoundFixes(DocNativeBlockChecks):
                text.replace("- approved:", "（落纸补充）藏在附注行\n- approved:", 1))
         f, _, _ = wc.check_transcription_markers("proj", card, ws)
         self.assertTrue(any("stray-marker: Req-1" in x for x in f), f)
+
+
+class StandaloneLoad(unittest.TestCase):
+    """031: the legacy half can be loaded by path without an injected `wc` — its NameError fallback binds the
+    lite half itself (the branch a debugger or a direct test import takes)."""
+
+    def test_load_by_path_without_injection(self):
+        spec = importlib.util.spec_from_file_location("legacy_checks_standalone", str(TOOLS / "legacy" / "legacy_checks.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(len(mod.ENTRIES), 23)
+        self.assertTrue(callable(mod.wc._strip_code))

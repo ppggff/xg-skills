@@ -230,7 +230,7 @@ Split the checklist by nature (SKILL.md「Subagent model assignment」):
       lazily at their next M3), and append a `log.md` entry when inside a card.
 - [ ] **Superseded phrasing swept（换语义类 change 后）** — if the round included an M2
       mode-变更/撤销（or an ADR that retires phrasings）, the supersede sweep ran
-      (`tools/check-superseded-phrases.py --from-card` — terms auto-read from the ADR
+      (`tools/legacy/check-superseded-phrases.py --from-card` — terms auto-read from the ADR
       被取代表述 section / Change-log sub-list; the resident `--check` (n) keeps watching
       the phase docs afterwards) and every
       hit was rewritten / annotated as 历史表述 / justified; module & term names re-checked

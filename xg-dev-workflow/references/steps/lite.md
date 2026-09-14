@@ -96,7 +96,8 @@ what code can answer, ask promptly for what only the human knows.
   (a pool cap serializes statements, not sequences) · no blocking IO under a lock · deletion test + caller
   audit on every new function (a parameter every caller passes constant is unused generality) · no causal claim
   without the traced mechanism.
-- **Scope**: the simplest *reliable* thing, no abstraction before a second real caller; touch only what the task
+- **Scope**: the simplest *reliable* thing, no abstraction before a second real caller; a Task deleted / merged /
+  deferred or a `[x]` invalidated leaves a one-line note (`constraints.md` Doc-7); touch only what the task
   needs — clean up what your own change orphans, leave pre-existing dead code (note it); don't re-handle
   anomalies the design already eliminated; compilable after every slice; additive and revertable.
 - **Comments**: docstrings · step markers · why-notes for what the code can't show (a load-bearing guard's
@@ -104,8 +105,7 @@ what code can answer, ask promptly for what only the human knows.
   surrounding file's; a comment pass per slice deletes the rest and `tools/check-code-refs.py` runs on the
   diff (`constraints.md` Git-2). Generated test artifacts (`.source`-driven `sql/` + `expected/`) are gitignored.
 - **L cards**: each part's completion gets one fresh-context attack on its diff (`lenses.md` frame; a guard /
-  audit-class mechanism gets the injection mandate — try to bypass it); findings fixed or noted in one line,
-  never a stop. A Task deleted / merged / deferred or a `[x]` invalidated leaves a one-line note (`constraints.md` Doc-7).
+  audit-class mechanism gets the injection mandate — try to bypass it); findings fixed or noted in one line, never a stop.
 
 ### Park / resume
 
@@ -131,7 +131,7 @@ the code · each test against its claim) written into the doc; M: `review` verb 
 **skipping any step is written down with its reason**; (3) per commitment: met / scope of the result /
 unverified / residual risk — a task that promised only a plan closes on that, never claiming a run; a
 promised run that cannot happen is a blocker or a negotiated cut; (4) `status: done`, board `done`, KB
-triage, usage log `--action lite`, and the **observation note**: places synced per ordinary change ·
+triage, usage log `--action lite`, and the **observation note** (`notes/observations.md`): places synced per change ·
 needless interruptions · doc time and lines read at go · missed commitments / unauthorized changes /
 verification gaps · **quality steps skipped and why** · handoff gaps. Asking about a real doc gap is not a failure.
 
