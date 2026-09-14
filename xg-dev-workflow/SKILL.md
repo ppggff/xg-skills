@@ -39,7 +39,8 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
   may reach) · improve · learn · retro; `simplify-checks.md` · `model-tiering.md` · `id-schemes.md`
   (`Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n`; two-form citation) · `split-isolate.md` (L cards:
   A↔B 判定 + 拆出五步); templates adr · facts · log · index · roadmap; `steps/implement.md` only for
-  Environment recon · Test mode · Commit cadence · Comment & artifact hygiene.
+  Environment recon · Test mode · Commit cadence (minus its card-qualified task tag — lite.md「Executing」
+  forbids the tail) · Comment & artifact hygiene.
 - **Never loaded for a lite card**: every other file under `references/steps/` and `references/templates/`
   (requirement · grill · design-grill · gate-digest · detail · plan · test · change · omission-check ·
   resume · park; `references/design-agenda.md` · `references/ask-routing-core.md`; templates requirement /

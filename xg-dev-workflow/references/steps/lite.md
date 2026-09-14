@@ -78,7 +78,9 @@ fix review findings, update prose and evidence — while the commitments hold an
 inside the authorization; a material approach change gets one reason line. **A→B walk**: A's
 problem → does B still meet the commitments? → rewrite 当前方案 → one reason line → re-verify
 what B touches → sync facts / ADR / diagrams if present; B cannot meet a commitment → propose and
-pause the dependent work. Product commits: `<scope>: <what> (NNN Req-n[,m])`, one concern each.
+pause the dependent work. Product commits: `<scope>: <what>`, one concern each, **no card or Req
+tail** — the repo never points into dev_root (the code-comment rule, applied to history); the
+mapping runs the other way: a Req block's 验证 line or the plan.md task row names its commit SHAs.
 
 **Come back to the human only for** (1) changing a goal, weakening acceptance, dropping a
 deliverable, or changing an explicit constraint or boundary; (2) work or a major trade-off beyond

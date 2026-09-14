@@ -4,6 +4,19 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-14 — lite product commits drop the `(NNN Req-n)` tail
+
+- **lite.md「Executing」· SKILL.md「Files on the lite path」· templates/design-lite.md.** Product commits
+  are `<scope>: <what>`, one concern each, with no card or Req tail; a Req block's 验证 line (or the
+  plan.md task row) names the product commit SHAs instead. Why: the tail is a private-workflow
+  reference left in a shared repo's history — the same class the code-comment rule bans (global
+  CLAUDE.md「Code Comments」, `check-code-refs.py`), and the dependency direction is workflow docs →
+  repo, never back. The legacy `(NNN T<n>)` tail was the last link of `workflow-status.py --trace`
+  (R→task→commit); lite inherited it (2026-09-09 v5) without a consumer — the trace tool greps
+  `T<n>` only and never parsed `Req-n`. Legacy cards keep `implement.md`「Commit cadence」 unchanged;
+  SKILL.md now loads that section for lite minus the task-tag bullet.
+- **体量行**: SKILL.md 93 · lite.md 138 · discuss.md 82 · constraints.md 58 · lite `--check` items 5.
+
 ## 2026-09-11 — short retro after the first self-hosted lite card (xg-skills/030)
 
 - **lite.md Verification — two sentences.** (1) A "follow the text literally" criterion is run by an
