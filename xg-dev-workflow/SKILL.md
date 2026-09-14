@@ -38,16 +38,17 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
   review-deep (L close-out; it dispatches `adversarial-critic.md`'s trio — the one legacy file a lite card
   may reach) · improve · learn · retro; `simplify-checks.md` · `model-tiering.md` · `id-schemes.md`
   (`Req-n` · `Fact-n` · `Inv-n` · `ADR-NNNN` · `Task-n`; two-form citation) · `split-isolate.md` (L cards:
-  A↔B 判定 + 拆出五步); templates adr · facts · log · index · roadmap; `steps/implement.md` only for
+  A↔B 判定 + 拆出五步) · `smell-catalog.md`; templates adr · facts · log · index · roadmap; `steps/implement.md` only for
   Environment recon · Test mode · Commit cadence (minus its card-qualified task tag — lite.md「Executing」
   forbids the tail) · Comment & artifact hygiene.
-- **Never loaded for a lite card**: every other file under `references/steps/` and `references/templates/`
-  (requirement · grill · design-grill · gate-digest · detail · plan · test · change · omission-check ·
-  resume · park; `references/design-agenda.md` · `references/ask-routing-core.md`; templates requirement /
-  design / detail / plan / test / decisions / progress) — they belong to `legacy/SKILL.md`.
+- **Never loaded for a lite card**: everything under `references/legacy/` (the frozen five-phase flow —
+  `legacy/SKILL.md` with its steps, templates and refs, plus frozen forks of the shared files it cites) and
+  `references/ask-routing-core.md` (legacy-only, kept at top level as a synced file).
 - **Tooling**: `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset (links · status-field ·
   progress-cap · lite-board-sync); the board renders a lite card as one cell from design.md `status`;
   `--trace` and `--digest` are not meaningful for a lite card (they still print five-phase scaffolding).
+  Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
+  `resolve-project.py`.
 
 ## Verbs
 
@@ -80,14 +81,3 @@ of ADRs. A step sentence that fixes one of these for a lite card is out of bound
 Checklist / gather / verification work → `model: sonnet`; inference-heavy analysis → the session model
 capped at opus (a fable session dispatches at `model: opus`); deterministic checks are scripted, not
 delegated. Rationale and per-lens application: `references/model-tiering.md`.
-
-## References
-
-- `references/steps/lite.md` (≤150 lines) · `references/steps/discuss.md` (≤100) · `references/constraints.md`.
-- `references/legacy/SKILL.md` — the frozen five-phase flow for 存量 cards; its steps and templates keep
-  their paths under `references/steps/` and `references/templates/`.
-- `references/conventions-core.md` · `doc-conventions.md` · `diagram-gotchas.md` — writing rules.
-- `references/id-schemes.md` · `split-isolate.md` · `model-tiering.md` · `simplify-checks.md` ·
-  `smell-catalog.md` · `frontend-testing.md`.
-- `tools/` — `workflow-status.py` (board · `--check` · `--json`) · `viewer.py` · `commit-data-repos.py` ·
-  `check-sync.py` · `check-code-refs.py` · `log-usage.py` · `resolve-project.py`.

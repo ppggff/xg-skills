@@ -2,7 +2,7 @@
 
 Branch-specific test principles for **UI / mobile-facing slices**. Load this only when the
 requirement has a browser or mobile-web surface; backend / DB projects (e.g. cbdb) don't need it.
-These extend the general test principles in `references/steps/test.md`.
+These extend the general test principles in `references/legacy/steps/test.md`.
 
 - **Verify UI/frontend slices in a real browser**, not only headless — Playwright / chrome-devtools
   MCP. A DOM-rendered terminal/output appears in the accessibility snapshot (directly assertable);

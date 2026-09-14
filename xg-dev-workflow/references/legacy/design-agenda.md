@@ -1,9 +1,9 @@
 # Design agenda — data for the discussion-first flow
 
-The static data consumed by `steps/grill.md`「Discussion-first flow」and
+The static data consumed by `references/legacy/steps/grill.md`「Discussion-first flow」and
 `steps/adversarial-critic.md`「When to run」. **Data only** — flow rules stay in `grill.md`;
 contract duties referenced here live in their protocol files (the part topic's A↔B/seam
-duties in `steps/design-grill.md`). Rows are open for accretion: add topics, axes, and round
+duties in `references/legacy/steps/design-grill.md`). Rows are open for accretion: add topics, axes, and round
 types here without touching protocol files.
 
 ## Topic library (agenda topics)

@@ -38,7 +38,7 @@ One paragraph: what this plan builds, against which design.
 - **Description:** what this slice accomplishes.
 - **Implements:** [R1](./requirement.md), [R2](./requirement.md) — the「需求条目」this slice
   delivers (— if purely scaffolding). Cross-file ids link to their home
-  (`references/doc-conventions.md` Links).
+  (`references/legacy/doc-conventions.md` Links).
 - **Part:** <part name> | —   (optional; only when the design is split into parts)
 - **Acceptance:** (binary walk — `[x]` only when its verification test passes; `[!]` if it
   failed; `[ ]` unverified. No subjective `[x]`.)

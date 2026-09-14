@@ -78,7 +78,7 @@ rules: doc-conventions「载重散文的归宿」。）
 - **In scope:** … (by R-id where it sharpens the boundary)
 - **Out of scope:** …
 - **Affected (初步影响面):** modules / callers / consumers likely touched — full analysis in `design.md`「影响面」.
-- **拆分审视:** 拆 / 不拆 — <一句理由>  (the split-review beat's verdict — steps/requirement.md
+- **拆分审视:** 拆 / 不拆 — <一句理由>  (the split-review beat's verdict — references/legacy/steps/requirement.md
   beat 8; recorded even when 不拆, restated in the gate digest)
 
 ## Constraints (约束)
@@ -103,7 +103,7 @@ partial-completion prose, and never via a table keyed differently (探了 5 种 
 ## 人工澄清清单处置 (optional — doc-gate cards consuming an adopted learn report only)
 
 <!-- Fill ONLY when this card is a doc-gate card whose beat 1 consumed an adopted learn
-     report (steps/requirement.md Axis→section mapping, 024 R2): one row per §8b 清单行 —
+     report (references/legacy/steps/requirement.md Axis→section mapping, 024 R2): one row per §8b 清单行 —
      类别 (习惯/意图 vs 事实) · 处置 (续期 / retire / Open) · 去向. All rows complete before
      the confirm gate; the gate line cites this table. Ledger cards use a grill batch round
      instead — leave this section absent there. -->

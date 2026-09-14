@@ -27,7 +27,7 @@ priorities and tactics (see "Phase-specific layers").
 - **One question at a time** (default). Walk the tree **resolving dependencies in order** —
   settle a prerequisite before the choices that hang off it; don't jump around.
 - **Batching admission (one rule, three grounds):** (a) a **panorama** topic (per its
-  topic-library attribute, `references/design-agenda.md`) or a fixed opening beat presents
+  topic-library attribute, `references/legacy/design-agenda.md`) or a fixed opening beat presents
   its full spread in one round — the round IS its decision cluster, item count follows the topic; (b) 2–3 mutually
   **independent sibling** questions — no `depends-on` between them, none gating another's
   framing, **and each answerable in a word (轻量项 only, 026 Req-6)** — a real-weighing
@@ -155,7 +155,7 @@ priorities and tactics (see "Phase-specific layers").
   (`requirement.md` / `design.md`) is the durable output; the grill-log below is the *path* to it.
 - **逐条入账 (ledger as you converge).** When a `G<n>` resolves into a **human-judgment
   decision** (requirement 条目 / design D/ADR decision / 详设 `S<n>` item), append it to the
-  card's `decisions.md` as a **proposed** block right then (`templates/decisions.md`; the file
+  card's `decisions.md` as a **proposed** block right then (`references/legacy/templates/decisions.md`; the file
   is created lazily on the first block, like `adr/`) — the gate digest is generated from these
   pending rows. Claude never writes `approved` (gate-digest.md「Approve transcription」). The
   round's checkpoint commit is what the eventual approve annotation will cite as receipts.
@@ -195,7 +195,7 @@ priorities and tactics (see "Phase-specific layers").
 
 Decision-zone phases run **discussion-first**: consensus forms in discussion rounds; the phase
 doc only *transcribes* it. Generic grills keep the plain protocol; XS/S cards scale per
-`references/design-agenda.md`'s **XS/S items table**.
+`references/legacy/design-agenda.md`'s **XS/S items table**.
 
 - **Fixed opening beats** (each = one round). Design: an **understanding statement** (evidence
   → mechanism → implication + uncertainties + **information gaps**), judged by the human; then

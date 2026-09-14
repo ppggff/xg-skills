@@ -6,7 +6,7 @@ intent) + **grill-with-docs** (update the artifact inline as understanding cryst
 requirement's `requirement.md`; understanding the codebase (M5) is **interleaved** with the
 questioning; the no-望文生义 evidence rule (M1) is enforced; ends with the **confirm gate**.
 
-Output: `requirement.md` (template: `references/templates/requirement.md`).
+Output: `requirement.md` (template: `references/legacy/templates/requirement.md`).
 
 ## Principle
 
@@ -26,7 +26,7 @@ not transcribe the words.
    (性质/动机/语义/范围/约束) — presented as one statement for the human to judge (no candidate
    spread here: the human judges understanding, not options). Then the **boundary spread**
    beat: in / out laid side by side with the deliberate no's, judged as one panorama round.
-   XS may merge the two beats into one spread (`references/design-agenda.md` XS/S table).
+   XS may merge the two beats into one spread (`references/legacy/design-agenda.md` XS/S table).
    Two checks before drafting anything (from `triage`): **(a) redundancy** — search the
    codebase for an existing implementation of the asked-for behavior **by domain concept,
    not the ask's wording**, and report where you looked (already implemented → no card;

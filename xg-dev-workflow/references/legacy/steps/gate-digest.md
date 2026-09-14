@@ -12,7 +12,7 @@ reading assignment.
 
 ## The digest (in the gate-ask chat message)
 
-**Cards are generated from the ledger** (`decisions.md`, templates/decisions.md): each card
+**Cards are generated from the ledger** (`decisions.md`, references/legacy/templates/decisions.md): each card
 restates a pending (proposed) row — 陈述 + why + its `alt:` lines + provenance —
 **never a bare pointer**; present in dependency order (`depends-on`), requirement-level rows
 before design-level. A **doc-gate card** (017 D2 — `governance: doc-gate`, no ledger) uses the
@@ -69,7 +69,7 @@ section 5 (待你判) are a pair — without them the digest says *what* was dec
      are named out of the group, one line each.
 3. **Phase attachments** — as lists: 设计 freeze inlines the `--trace` matrix summary
    (see Rules); the requirement confirm ask restates the **拆分审视 verdict line**
-   (steps/requirement.md beat 8 — one line, 拆/不拆 + 理由); enumeration-criterion tables
+   (references/legacy/steps/requirement.md beat 8 — one line, 拆/不拆 + 理由); enumeration-criterion tables
    follow the paste-the-table rule below; other phases attach what their step prescribes.
 4. **假设 closure sweep** — when the phase step requires it (e.g. design freeze): the doc's
    load-bearing 假设/推断 markers — plus any（落纸补充）transcription additions, listed one by
@@ -185,7 +185,7 @@ The scaled-digest rules above apply with the blocks as the row source:
   2026-08-27 cutoff, the ask's grill row is the id source). **Partial approve is legal
   per block**; doc status is derived (all blocks approved ⇔ confirmed/frozen/baseline).
   No Change log gate line on decision docs (Req-31 — plan.md's execution-authorization
-  line is the one exception, templates/plan.md). Commit immediately (the gate commit).
+  line is the one exception, references/legacy/templates/plan.md). Commit immediately (the gate commit).
 - **Gate-round fold-ins land FIRST**: when the gate round itself produces block changes (a
   人工案 folded in at the ask), commit that content BEFORE writing the notes and cite the
   landing commit — "the receipts snapshot carries the approved text" is made true by

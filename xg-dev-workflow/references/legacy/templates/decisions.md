@@ -5,7 +5,7 @@ execution-zone escalations). Implementation-level decisions stay in log.md.
 LEDGER CARDS ONLY (017 D1): a `governance: doc-gate` card has no decisions.md — its decisions
 live in the phase docs (grill.md doc-gate branches); creating one there is an i4 finding.
 RETIRED FOR DOC-NATIVE CARDS (026 Req-24/25): a doc-native card carries decisions as phase-doc
-blocks with approval annotations (templates/requirement.md 头注); the ledger/index is a
+blocks with approval annotations (references/legacy/templates/requirement.md 头注); the ledger/index is a
 generated view, never this hand-written file. 存量 ledger cards keep theirs end to end.
 
 Reader = human at gates (via the gate digest, generated FROM pending blocks) + tools

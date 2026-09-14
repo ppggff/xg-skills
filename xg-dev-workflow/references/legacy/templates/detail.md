@@ -85,7 +85,7 @@ The concrete code `design.md` deferred — keep consistent with the design's con
 Append a dated line per change after baseline; architecture-implicating changes → M2.
 Doc-gate cards: gate passages land here as `- <date> — <状态>（gate <receipts-commit short
 hash>）` (017 S4 — this section doubles as the doc's Change log).
-Doc-native cards: 详设 decisions are `### LLD-<n> …` blocks (grammar: templates/requirement.md
+Doc-native cards: 详设 decisions are `### LLD-<n> …` blocks (grammar: references/legacy/templates/requirement.md
 头注); the baseline gate lands as block approved annotations, block changes as 变更 annotations
 — **doc-level events go to log.md, not here** (026 Req-31); this section is then omitted.
 

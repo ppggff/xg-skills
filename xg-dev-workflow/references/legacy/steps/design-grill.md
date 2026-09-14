@@ -5,7 +5,7 @@ Forked from **grill-with-docs**. Adjusted: the artifact is this requirement's `d
 **xg-knowledge-lite**, not CONTEXT.md; the no-望文生义 evidence rule (M1) is enforced; ends
 with the **freeze gate**.
 
-Output: `design.md` (template: `references/templates/design.md`) + ADRs via `adr.md` step.
+Output: `design.md` (template: `references/legacy/templates/design.md`) + ADRs via `adr.md` step.
 
 ## Core values (read first — these outrank any single technique)
 
@@ -91,13 +91,13 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
    **Close this step as the understanding statement beat** (grill.md「Discussion-first flow」):
    present evidence → mechanism → implication + uncertainties + information gaps for human
    judgment; the **driving axis** gets its initial call as the beat closes
-   (`references/design-agenda.md`).
+   (`references/legacy/design-agenda.md`).
 2. **Discuss to consensus** (grill.md「Discussion-first flow」) — before any drafting:
    the **candidate spread** (≥2 candidates side by side — the 方案优先 comparison form below,
    now mandatory and pre-draft: per candidate one-line 思路 · class · key trade-off · cost ·
    provenance, plus a rough shape per the granularity guardrail, grill.md) →
    the **agenda negotiation** mini-round (topics + order + rationale from
-   `references/design-agenda.md`'s topic library, ordered by the driving axis; contract-fixed
+   `references/legacy/design-agenda.md`'s topic library, ordered by the driving axis; contract-fixed
    entries cannot be dropped) → the **agenda topics**, one round each, checks dispatched per
    the round-type mapping. The lens texts in step 4 and step 3's Part decomposition segment
    are the topics' duty texts — walked per topic, not saved for a post-draft pass.
@@ -182,7 +182,7 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      (per candidate: one-line 思路 · class · key trade-off · cost · provenance), not sequential
      prose — this IS the candidate spread (step 2); the comparison then lands in design.md
     「Alternatives considered」as the archive. The "which flow is the hard part" question is
-     the flow-facet special case of the **driving axis** (`references/design-agenda.md`).
+     the flow-facet special case of the **driving axis** (`references/legacy/design-agenda.md`).
      **Two axes of alternatives:** this **solution-class** axis (hack/补丁/重做) and — when the
      design introduces a **non-trivial module** — an **interface-shape** axis: optionally run
      `codebase-design`'s **Design-It-Twice** (parallel agents each design a radically different

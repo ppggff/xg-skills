@@ -4,7 +4,7 @@ Forked from **planning-and-task-breakdown**. Adjusted: output is this requiremen
 `plan.md` (explicitly **mutable**, vs the frozen `design.md`); tasks reference design ADRs;
 verification respects the project's test-execution policy (e.g. cbdb's "describe, don't run").
 
-Output: `plan.md` (template: `references/templates/plan.md`).
+Output: `plan.md` (template: `references/legacy/templates/plan.md`).
 
 ## Procedure
 1. **Read-only first** — re-read `design.md` + ADRs + `detail.md` (if the 详设 phase ran);

@@ -21,7 +21,8 @@ The two are siblings: the workflow *orchestrates* code work and links out to the
                      #   xg-knowledge-lite/references/actions/<action>.md = one procedure per action (SKILL.md is the
                      #   router); its constraints.md = the hard rules (config · init · project · git · usage log)
                      #   xg-dev-workflow/references/legacy/SKILL.md = the frozen five-phase flow (存量 cards only);
-                     #   legacy steps/templates keep their paths — SKILL.md and legacy/SKILL.md each list what they load
+                     #   legacy steps/templates/refs live under references/legacy/ (moved 2026-09-14, card 031), with frozen
+                     #   forks of the shared files legacy/SKILL.md cites — SKILL.md and legacy/SKILL.md each list what they load
   tools/             # Python helpers (no deps beyond stdlib; PyYAML used if present, else a fallback parser)
                      #   xg-dev-workflow/tools/ also holds viewer.py + viewer/ (the status HTML
                      #   viewer's shell.html + vendored marked.min.js + LICENSE + its tests) —
@@ -58,7 +59,7 @@ These are the things that break silently if you edit one file and forget the cou
 
 ## xg-dev-workflow: the step-binding model (存量 five-phase flow — frozen in `references/legacy/SKILL.md`)
 
-The five phases have **stable contracts** (input → output doc → gate) that are independent of *how* each step is implemented. Each step resolves to one implementation by priority: (1) runtime override via `use:<skill>` on the verb or a persisted `workflow.bindings:` config entry; (2) the **vendored default** in `references/steps/<step>.md` (a forked copy of a source skill — this is the default and is ours to edit); (3) inline for steps with no third-party source. When changing behavior, edit the vendored step file or rebind — **never change the contract** described in `legacy/SKILL.md` without intent. `references/steps/adversarial-critic.md` is shared by the requirement/design/review steps; its criterion-conformance judge (lens 4) additionally serves every decision-zone gate ask.
+The five phases have **stable contracts** (input → output doc → gate) that are independent of *how* each step is implemented. Each step resolves to one implementation by priority: (1) runtime override via `use:<skill>` on the verb or a persisted `workflow.bindings:` config entry; (2) the **vendored default** in `references/legacy/steps/<step>.md` (a forked copy of a source skill — this is the default and is ours to edit); (3) inline for steps with no third-party source. When changing behavior, edit the vendored step file or rebind — **never change the contract** described in `legacy/SKILL.md` without intent. `references/steps/adversarial-critic.md` is shared by the requirement/design/review steps; its criterion-conformance judge (lens 4) additionally serves every decision-zone gate ask.
 
 In the **decision zone** (需求/设计/详设, plus the one-time execution authorization after `plan.md`) the skill advances **one phase per invocation, then stops at a gate** — design freezes on approval (changes route through the `change`/M2 flow); the implementation plan is freely mutable. Once execution is authorized, the **execution zone** (实现 → 测试 → 评审 report) flows autonomously with **no per-phase stop** (see legacy/SKILL.md「Two zones」). This stop-at-gate discipline is core, not advisory.
 

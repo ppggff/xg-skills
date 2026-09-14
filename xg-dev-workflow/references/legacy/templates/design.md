@@ -18,7 +18,7 @@ created: YYYY-MM-DD
 > verdict + git/grill-log pointer.
 > **Three-class marking:** decisions cite their ledger id (`decisions.md`), facts cite `[F<n>]`
 > (`facts.md`); unmarked prose is synthesis — freely rewritable, must not contradict approved
-> decisions. (Doc-gate cards carry the same three classes in the doc — templates/requirement.md
+> decisions. (Doc-gate cards carry the same three classes in the doc — references/legacy/templates/requirement.md
 > 头注; gate passages land in「Change log」below, 017 S4. **Doc-native cards**: design decisions
 > are `### HLD-<n> <state> — <标题>` blocks, same grammar as requirement 条目 — templates/
 > requirement.md 头注; gate events live in the blocks' approved annotations, no Change log
@@ -48,7 +48,7 @@ evolves, never appended):
   (later table cells may then use them bare — `references/conventions-core.md`「Tables carry facts」
   table rule);
 - **staging vocabularies** — when more than one scheme coexists (build order `MS<n>`,
-  enablement tiers, …), one line stating how they map (`references/id-schemes.md`「Symbol budget」);
+  enablement tiers, …), one line stating how they map (`references/legacy/id-schemes.md`「Symbol budget」);
 - **待拍 gates / agenda** — the open `G<n>` decisions blocking freeze, one-line asks each; in a
   discussion-first run this section renders the live agenda (all open topics in order, grouped
   past one screenful with an overflow link — grill.md Discussion-first flow).
@@ -61,7 +61,7 @@ reusable module knowledge to xg-knowledge-lite rather than restating it here.
 
 **Write it as reasoning, not a fact list**: each point states *why* the cited code leads to the
 design's premise (evidence → mechanism → implication), so the approver can check the logic, not
-just the citations (`references/doc-conventions.md` Reasoning-shown). 示例（示意）：
+just the citations (`references/legacy/doc-conventions.md` Reasoning-shown). 示例（示意）：
 - ✅ 「`launcher_main()` 只在 postmaster 直属进程里跑（evidence）→ serverless 模式无该进程，
   既有调度覆盖不到（mechanism）→ 需要外置触发 seam（implication，引出模块 X）。」
 - ❌ 「`launcher_main()` 在 `autovacuum.c`；serverless 无 postmaster 子进程；存在一个 hook。」
@@ -175,7 +175,7 @@ M2 (`change.md` `seam-contract-disproved`), never a silent `plan.md` edit.
 
 ## How it meets the requirement
 
-Trace by **R-id** (link each id — `[R1](./requirement.md)`; `references/doc-conventions.md` Links)
+Trace by **R-id** (link each id — `[R1](./requirement.md)`; `references/legacy/doc-conventions.md` Links)
 so every requirement has a design home:
 
 - **需求条目** — each `R-id` → which module/contract satisfies it (a small table works well).
@@ -229,7 +229,7 @@ Ground each entry in evidence (`func()` in `file.c` / `[[wiki/…]]`); mark 推�
 **方案优先** — alternatives + their trade-offs are a primary grill target, not an afterthought;
 the chosen approach wins on trade-off. Say which flow drives the design — the **normal flow** or a
 **dominant anomaly flow** (the flow-facet special case of the **driving axis**,
-`references/design-agenda.md`) — **per 层/模块 when positions differ**, plus **what the pick costs
+`references/legacy/design-agenda.md`) — **per 层/模块 when positions differ**, plus **what the pick costs
 the other flow** (an anomaly-driven design still owes the normal path a sentence, and vice versa).
 
 **Span the solution-class spectrum + name each cost.** Don't compare only same-class variants —

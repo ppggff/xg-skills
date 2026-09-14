@@ -72,7 +72,7 @@ The four beats (numbering matches the frozen design's 四拍契约):
    verb-run-closing reply): name the touched docs + the commit, and end with one paste-ready
    line — `xg-dev-workflow resume <slug>` — plus, when the card sits in the execution zone, an
    optional model-switch suggestion (`/model sonnet` + `/advisor opus`,
-   `references/model-tiering.md`).
+   `references/legacy/model-tiering.md`).
 
 ## Contract invariants
 

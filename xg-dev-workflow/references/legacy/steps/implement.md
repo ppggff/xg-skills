@@ -7,7 +7,7 @@ cycles, picked per project (see Test mode). Adjusted: progress is logged to this
 module-local, reversible changes, no ABI/interface changes unless requested, and tests
 "described, not run" by default.
 
-Updates: `progress.md` (template: `references/legacy/templates/progress.md`; 存量 cards only — a lite card writes progress.md free-form); code in the repo.
+Updates: `progress.md` (template: `references/legacy/templates/progress.md`); code in the repo.
 
 ## Environment recon before the first slice
 Before slice 1, establish and **record in `progress.md`'s `Build/test:` line** the exact build/test invocation
@@ -166,7 +166,7 @@ neighbor yet).
 
 - **Dispatch:** 1–2 fresh-context subagents attack the part diff (its tasks' commits). Prompt
   mirrors `review-deep.md`'s lens-agent shape (context pack + verify-against-files + structured
-  findings + word cap + "return empty if none"); model per `references/model-tiering.md`
+  findings + word cap + "return empty if none"); model per `references/legacy/model-tiering.md`
   (inference-heavy → session model capped at opus).
 - **Mandate:** static attack + a hands-on slice **gated by the project's test mode**;
   **guard/audit-class mechanisms (a check, a commit guard, an anchor/audit core) get the

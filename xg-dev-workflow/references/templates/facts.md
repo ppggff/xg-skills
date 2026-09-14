@@ -14,7 +14,7 @@ to superseded; a refinement that narrows (not invalidates) an earlier fact is a 
 saying so. Reusable cross-card module knowledge still graduates to the KB (xg-knowledge-lite);
 this file holds only card-local facts.
 
-Cross-card narrow flip (learn consumption — steps/learn.md + steps/requirement.md beat 1):
+Cross-card narrow flip (learn consumption — steps/learn.md + references/legacy/steps/requirement.md beat 1):
 when a NEW card's re-verification refutes a fact it reused from this file, the consumer flips
 this block's marker to SUPERSEDED + one pointer line in the same batch — marker + pointer
 only, never body edits (the named exception to learn's input-card read-only).

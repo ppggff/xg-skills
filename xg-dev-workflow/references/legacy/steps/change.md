@@ -36,7 +36,7 @@ design are allowed to change, so the design stays stable while the plan flexes.
      why + alt live there, the generalization of step 0's escalation row (appending proposed
      blocks is not "touching" the approved content; approved blocks/rows stay untouched). A
      proposed block may be rewritten in place while under discussion (git keeps history —
-     the supersede-into-new-block rule binds approved blocks only, templates/decisions.md).
+     the supersede-into-new-block rule binds approved blocks only, references/legacy/templates/decisions.md).
      残留/open questions fold into the relevant block's why/alt or a `log.md` line — they
      must survive a session break, not ride the chat.
    - **Present the 修改列表 in chat as a touch-list**: one line per **write op** —

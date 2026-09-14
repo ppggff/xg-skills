@@ -10,7 +10,7 @@ record results. Adjusted: output is this requirement's `test.md`; every test map
 success criterion; honors the project's test-execution policy — e.g. cbdb's "describe, don't run
 by default" (write the plan + the commands; run only when asked).
 
-Output: `test.md` (template: `references/templates/test.md`).
+Output: `test.md` (template: `references/legacy/templates/test.md`).
 
 ## Principles
 - Test **behavior through public interfaces**, not implementation details — a good test
@@ -43,7 +43,7 @@ Output: `test.md` (template: `references/templates/test.md`).
   processes). A `sess, _ := Create(...)` there turns a transient resource failure into a
   nil-deref panic that masquerades as a flaky race under `-count`/`-race` — fail loud with the
   error instead.
-- **UI / mobile-facing slices** → see `references/frontend-testing.md` (browser + real-device testing).
+- **UI / mobile-facing slices** → see `references/legacy/frontend-testing.md` (browser + real-device testing).
 
 ## Procedure
 1. **Audit the Unit registry** — implement appended one line per slice into the skeleton

@@ -249,7 +249,7 @@ notes, the better the starting points — invest there.
   timing and content evidence stay with the round header, human-judged). Interlocks with
   grill.md「Whole-doc rewrite」's rewrite-list discipline.
 - **discussion-first rounds (requirement/design)** — dispatch per the **round-type mapping**
-  in `references/design-agenda.md`. Override relation: the mapping governs in-discussion
+  in `references/legacy/design-agenda.md`. Override relation: the mapping governs in-discussion
   cadence only — ADR-class new/changed-mechanism checkpoints and the pre-freeze pass keep the
   full attack-lens panel (decision-level duties never narrow). Same-class small topics may
   share one end-of-cluster dispatch: the receipt lands no later than the cluster's last
@@ -257,7 +257,7 @@ notes, the better the starting points — invest there.
 - **详设 baseline · execution authorization** — no attack-lens panel of their own (these phases
   run no grill); lens 4 only, before the gate ask, against that gate's criteria — 详设: the
   design decisions/contracts the detail claims covered (porting-type detail adds a
-  comparison dispatch — steps/detail.md's porting exception); plan: the R-id/design↔task
+  comparison dispatch — references/legacy/steps/detail.md's porting exception); plan: the R-id/design↔task
   trace the plan claims complete.
 - **review** — the three attack lenses are fixed members of the lens fan-out (see `review.md`).
 - **implement part-check (017 R5)** — not a grill checkpoint: `implement.md`'s part completion
