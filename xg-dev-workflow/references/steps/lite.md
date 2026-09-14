@@ -16,8 +16,8 @@ inside the authorization — only three kinds of change come back to the human (
   irrelevant; a confirmed Claude proposal is one and Claude cannot withdraw it alone. Not copied
   into the doc ≠ authorization to drop it — backfill and say so, distinct from raising a new ask.
 - **Impact forecast ≠ authorization boundary.** Expected modules/files/tests are a forecast that
-  moves with investigation — no pause when it grows; hard boundaries exist only when the human
-  set them, and are marked as the human's.
+  moves with investigation — no pause when it grows, but the card's size is re-judged (「By size」);
+  hard boundaries exist only when the human set them, and are marked as the human's.
 
 ## Card files
 
@@ -42,7 +42,7 @@ Copy `templates/design-lite.md` (the section list, the `### Req-n <状态词>` b
 来源 · 变更 · 确认 lines, and the `### 契约与不变量` Inv table; 状态词 ∈ 待验证 · 已验证 · 验证失败 · 阻塞 · 仅方案 · 放弃).
 
 `[x]` anywhere means 已验证 and nothing else. **Diagrams**: two or more interacting components,
-or a decision branch → at least one Mermaid diagram; M+ → two (module interaction + data flow).
+or a decision branch → at least one Mermaid diagram; further views are the model's call.
 
 ## Drafting (before go)
 
@@ -50,7 +50,10 @@ Explore, investigate (`investigate.md`, evidence-cited), compare, negotiate — 
 Shape or environment clauses in the ask (「是个 Linux 服务器」) are constraint commitments — quote
 them into a Req block, never leave them as background. A redo card imports the old card's
 `notes/human-messages*.md` and the roadmap's 裁定 lines even when its other docs stay unread.
-Spikes stay within standing permissions, local and reversible. **Candidates first (方案优先)**:
+Spikes stay within standing permissions, local and reversible. Enhancing an existing tool or script
+starts by running it **unchanged in its target environment** (the host or container it actually runs in,
+not the dev box) — that baseline (command · output · version) is the first fact in the doc, and the design
+and later verification are measured against it. **Candidates first (方案优先)**:
 before drafting the approach, put ≥2 candidates side by side — one-line 思路 · position on the
 hack ↔ 补丁 ↔ 推翻重来 spectrum · cost (工期 / 技术债 / 影响面 / 可维护性) · provenance; a hack or
 patch is a recorded debt decision, never a default (depth by size:「By size」). "Enough basis"
@@ -128,10 +131,14 @@ handoff gaps. Asking about a real doc gap is not a failure.
 
 ## By size
 
+Size is judged at open and **re-judged whenever the scope or impact forecast grows** — the opening
+call is not sticky. Moving to a larger row switches on that row's requirements from that point (lenses ·
+plan.md · the split check), with one reason line in the doc.
+
 | | XS | S | M | L |
 |---|---|---|---|---|
 | grill | one round, may share the go ask | as needed — say so in the 收敛行 | **required**: understanding statement · candidates · one question at a time to convergence (`discuss.md` §1–§2, §4 topics) | as M, per card |
-| candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / two diagrams | as M |
+| candidates / diagrams | one sentence / when triggered | 1+1 / when triggered | full spectrum + rejection reasons, ADRs 0–3 / when triggered | as M |
 | lenses | — | by risk | once the approach forms: falsifier (attack load-bearing facts) + commitment coverage (code ↔ commitments, plus the roadmap's 裁定 lines and, on a redo, the old card's commitments) — fresh-context, one agent each, adjudicate before reporting (`discuss.md` §3) | as M |
 | files / execution | design only | + progress at park | + plan.md (Req-tagged, binary tasks) · facts.md · adr/; one commit per slice; **one documents-only handoff check** | split first: split-isolate.md A↔B + five steps; seam contract in 当前方案, 联调 rows in 测试与验证 |
 

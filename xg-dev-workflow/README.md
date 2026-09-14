@@ -54,8 +54,8 @@ usage logging, KB boundary): `references/constraints.md`.
   standard tier · L deep), per-commitment result, and an observation note that records skipped steps.
 - **Evidence only, with provenance.** No guessing, no 望文生义 — every load-bearing claim cites code or a doc,
   marked evidence / 推断 / 假设; doubts are investigated by a subagent (`investigate` is the front door).
-- **By size.** XS/S stay light; M requires a grill to convergence, two fresh-context lenses (falsifier +
-  commitment coverage), `plan.md`, `facts.md`, ADRs as earned and two diagrams; L splits first
+- **By size.** XS/S stay light; size is re-judged whenever scope grows; M requires a grill to convergence, two
+  fresh-context lenses (falsifier + commitment coverage), `plan.md`, `facts.md`, ADRs and diagrams as earned; L splits first
   (`references/split-isolate.md`).
 - **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** with autonomous **local**
   commits at every doc boundary, scoped to the acting card (`--card <project>/<NNN>`); `push` stays
