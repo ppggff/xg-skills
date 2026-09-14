@@ -1529,3 +1529,52 @@ class ReviewFixParsing(unittest.TestCase):
         rows = list(ws.table_rows(sect))
         self.assertEqual(rows[0]["idcols"], [1])
         self.assertEqual(rows[1]["idcols"], [0])   # second headerless table falls back
+
+
+class LiteTraceDigest(unittest.TestCase):
+    """031: --trace / --digest render five-phase scaffolding — on a lite card they print one 不适用 line
+    (text mode only; --trace --json stays data for the viewer); 存量 cards are untouched."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        os.makedirs(os.path.join(self.root, "proj/001-a")); os.makedirs(os.path.join(self.root, "proj/002-b"))
+        open(os.path.join(self.root, "proj/index.md"), "w", encoding="utf-8").write(
+            "| Card | Phase | 整体状态 | Deps | Dir |\n|---|---|---|---|---|\n"
+            "| 001 | lite | active | — | [001-a](./001-a/) |\n| 002 | 需求 | active | — | [002-b](./002-b/) |\n")
+        open(os.path.join(self.root, "proj/001-a/design.md"), "w", encoding="utf-8").write(
+            "---\nid: 001\ntitle: a\nproject: proj\ngovernance: lite\nstatus: executing\ncreated: 2026-09-14\ngo: abc\n---\n"
+            "# 001 a\n### Req-1 已验证 — t\n- 陈述: x\n")
+        open(os.path.join(self.root, "proj/002-b/requirement.md"), "w", encoding="utf-8").write(
+            "---\nstatus: drafting\ngovernance: ledger\ncreated: 2026-09-14\n---\n# 002\n")
+
+    def _main(self, *argv):
+        import contextlib, io, sys
+        old = sys.argv
+        sys.argv = ["workflow-status.py", "--root", self.root] + list(argv)
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                code = ws.main()
+        finally:
+            sys.argv = old
+        return code, buf.getvalue()
+
+    def test_lite_card_trace_and_digest_say_not_applicable(self):
+        for flag in ("--trace", "--digest"):
+            code, out = self._main(flag, "proj/001")
+            self.assertEqual(code, 0)
+            self.assertIn("不适用", out)
+            self.assertEqual(out.count("\n"), 1)
+
+    def test_lite_trace_json_stays_data(self):
+        import json
+        code, out = self._main("--trace", "proj/001", "--json")
+        self.assertEqual(code, 0)
+        self.assertNotIn("不适用", out)
+        json.loads(out)
+
+    def test_legacy_card_untouched(self):
+        code, out = self._main("--trace", "proj/002")
+        self.assertNotIn("不适用", out)

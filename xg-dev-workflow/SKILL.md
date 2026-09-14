@@ -42,8 +42,9 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
   `legacy/SKILL.md` with its steps, templates and refs, plus frozen forks of the shared files it cites) and
   `references/ask-routing-core.md` (legacy-only, kept at top level as a synced file).
 - **Tooling**: `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset (links · status-field ·
-  progress-cap · lite-board-sync); the board renders a lite card as one cell from design.md `status`;
-  `--trace` and `--digest` are not meaningful for a lite card (they still print five-phase scaffolding).
+  progress-cap · governance-carriers · lite-board-sync — each naming its `constraints.md` row in `--manifest`);
+  the board and the viewer render a lite card as one cell from design.md `status` (`status · Req n / 已验证 k`);
+  `--trace` and `--digest` print one 不适用 line for a lite card (they render five-phase scaffolding).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
   `resolve-project.py`.
 

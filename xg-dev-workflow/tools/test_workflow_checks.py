@@ -789,3 +789,18 @@ class LegacySplit(unittest.TestCase):
         self.assertTrue(callable(wc.check_grill_reverse))          # a legacy name resolves through __getattr__
         with self.assertRaises(AttributeError):
             wc.no_such_check_anywhere
+
+
+class ConstraintsBasis(unittest.TestCase):
+    """031 Inv-4: every check a lite card runs (LITE_CHECKS + the project scope) names the constraints.md
+    row it enforces as the first token of its manifest basis."""
+
+    def test_lite_and_project_checks_point_at_a_constraints_row(self):
+        rules = open(os.path.join(TOOLS, "..", "references", "constraints.md"), encoding="utf-8").read()
+        ids = set(re.findall(r"^- ([A-Z][a-z]+-\d+) \(", rules, re.M))
+        self.assertGreater(len(ids), 20)
+        entries = [e for e in wc.CARD_CHECKS if e[0] in wc.LITE_CHECKS] + list(wc.PROJECT_CHECKS)
+        self.assertEqual(len(entries), len(wc.LITE_CHECKS) + len(wc.PROJECT_CHECKS))
+        for cid, _fn, meta in entries:
+            head = meta["basis"].split(" · ")[0]
+            self.assertIn(head, ids, "%s basis %r names no constraints.md row" % (cid, meta["basis"]))

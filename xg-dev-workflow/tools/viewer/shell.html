@@ -1117,6 +1117,10 @@ var SV = (function () {
   // ---- doc-native id anchors (026 T16): block-head parse + bracket-cite grammar ----
   var XID_HEAD = /^(Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-(\d+) (proposed|approved|superseded|retired)(?: — .*)?$/;
   var XID_CITE = /^\[((?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d+)(-[a-z])?\]/;
+  function stepFace(label, state, governance) {   // 031: a lite card's one cell shows its status string on the face
+    if (governance === "lite" && state) return { text: state, title: label + ": " + state };
+    return { text: label, title: label + (state ? ": " + state : "") };
+  }
   function xidHead(text) {
     var m = XID_HEAD.exec((text || "").trim());
     return m ? { id: m[1] + "-" + m[2], state: m[3] } : null;
@@ -1137,7 +1141,7 @@ var SV = (function () {
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
-           xidHead: xidHead, xidCite: xidCite };
+           xidHead: xidHead, xidCite: xidCite, stepFace: stepFace };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1614,8 +1618,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return c.steps.map(function (s) {
       var i = s.indexOf(":"), label = i === -1 ? s : s.slice(0, i), state = i === -1 ? "" : s.slice(i + 1);
       var file = STEP_FILE[label], fill = SV.stepFill(state);
-      var title = esc(label + (state ? ": " + state : ""));
-      var inner = esc(label) + '<span class="pc-m ' + fill + '">' +
+      var face = SV.stepFace(label, state, c.governance), title = esc(face.title);
+      var inner = esc(face.text) + '<span class="pc-m ' + fill + '">' +
         (fill === "done" ? "✓" : fill === "doing" ? "●" : "—") + "</span>";
       return (file && state !== "—")
         ? '<a class="pc" data-nav="doc" data-tree="dev" data-rel="' + esc(base + file) + '" title="' + title + '">' + inner + "</a>"

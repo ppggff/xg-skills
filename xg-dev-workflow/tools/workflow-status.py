@@ -14,7 +14,7 @@ Usage:
   workflow-status.py [<project> ...]   # default: every project under dev_root
   workflow-status.py --root DIR        # override dev_root
   workflow-status.py --json            # machine-readable board ({project: [card…]}); backs the viewer
-  workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix
+  workflow-status.py --trace <project>/<card>   # R→design→task→test→commit trace matrix (lite card: 不适用)
                                        # (<card> = NNN or a slug fragment; a card-dir path works too)
   workflow-status.py --check <project>/<card>   # deterministic checks (a)-(t)+(x)(y), card scope
   workflow-status.py --check <project>          # project scope: (o)(u)(v)(w) + every card
@@ -189,6 +189,10 @@ def lite_status(card_dir):
            "closing": "next: close-out — lite.md「Verification and close-out」",
            "done": "done — nothing pending"}.get(status, "lite status 不明(design.md frontmatter 缺 status)— 看 design.md")
     return [step], glance(os.path.join(card_dir, "progress.md")), nxt
+
+
+LITE_TRACE_DIGEST_NOTE = ("lite 卡（governance: lite）：--trace / --digest 不适用——二者渲染五相脚手架；"
+                          "看 design.md 的 status 与 Req 块（--check / --json 照常）。")
 
 
 def card_status(card_dir):
@@ -1418,6 +1422,10 @@ def main():
     root = os.path.expanduser(root_arg) if root_arg else dev_root()
     if manifest_flag:
         print(render_manifest())
+        return 0
+    if (digest_arg or (trace_arg and not as_json)) and \
+            card_mode(resolve_card(root, digest_arg or trace_arg)[1]) == "lite":
+        print(LITE_TRACE_DIGEST_NOTE)   # 031: both render five-phase scaffolding a lite card does not have
         return 0
     if digest_arg:
         print(digest_text(resolve_card(root, digest_arg)[1]))

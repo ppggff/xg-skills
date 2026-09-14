@@ -462,27 +462,27 @@ CARD_ORDER = (
 # legacy/legacy_checks.py ENTRIES and are assembled into CARD_ORDER by card_entries() / __getattr__.
 LITE_ENTRIES = {
     "links": ("links", check_links,
-     _m("(o)", "链接/wikilink 解析（卡半）", "always", "021")),
+     _m("(o)", "链接/wikilink 解析（卡半）", "always", "Lay-6 · 021")),
     "status-field": ("status-field", check_status_field,
-     _m("(p)", "frontmatter status 在场/值域", "doc 在场", "021")),
+     _m("(p)", "frontmatter status 在场/值域", "doc 在场", "Lay-2 · 021")),
     "progress-cap": ("progress-cap", check_progress_cap,
-     _m("(s)", "progress 行数帽（活卡）", "活卡", "021")),
+     _m("(s)", "progress 行数帽（活卡）", "活卡", "Lay-5 · 021")),
     "governance-carriers": ("governance-carriers", check_governance_carriers,
-     _m("(ai)", "requirement.md 与 design.md 两载体 governance 同在且不同（requirement.md 胜出）", "两载体都写了字段的卡", "card 030", misfire="GovernanceCarrierConflict")),
+     _m("(ai)", "requirement.md 与 design.md 两载体 governance 同在且不同（requirement.md 胜出）", "两载体都写了字段的卡", "Lay-2 · card 030", misfire="GovernanceCarrierConflict")),
     "lite-board-sync": ("lite-board-sync", check_lite_board_sync,
      _m("(ah)", "lite 卡看板行整体状态 ↔ design.md status 映射一致（draft→todo · executing/closing→active · done→done；dropped 只在行上）",
-        "lite 卡（非 lite 卡不跑，输出零变化）", "card 030", misfire="LiteBoardSync")),
+        "lite 卡（非 lite 卡不跑，输出零变化）", "Lay-4 · card 030", misfire="LiteBoardSync")),
 }
 
 PROJECT_CHECKS = (
     ("links", check_project_links,
-     _m("(o)", "链接解析（项目半）", "always", "021")),
+     _m("(o)", "链接解析（项目半）", "always", "Lay-6 · 021")),
     ("board-rows", check_board_rows,
-     _m("(u)", "看板行↔卡目录双向", "always", "021")),
+     _m("(u)", "看板行↔卡目录双向", "always", "Lay-1 · 021")),
     ("root-strays", check_root_strays,
-     _m("(v)", "项目根杂散文件", "always", "021")),
+     _m("(v)", "项目根杂散文件", "always", "Lay-1 · 021")),
     ("board-monotonic", check_board_monotonic,
-     _m("(w)", "看板机器子集（环/状态词/done 系列）", "新格式看板", "021")),
+     _m("(w)", "看板机器子集（环/状态词/done 系列）", "新格式看板", "Lay-4 · 021")),
 )
 
 # Non-registry manifest rows (026 Req-36): the crosscheck family's dispositions +

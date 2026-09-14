@@ -331,6 +331,11 @@ t("stName: canonical pass-through · ?/empty → unknown · non-canonical → ba
   assert.equal(SV.stName(""), "unknown");
   assert.equal(SV.stName("doing"), "backlog");
 });
+t("stepFace: a lite one-cell shows its status string on the face; five-phase cells keep the label", () => {
+  assert.deepEqual(SV.stepFace("设计", "executing · Req 7 / 已验证 3", "lite"), { text: "executing · Req 7 / 已验证 3", title: "设计: executing · Req 7 / 已验证 3" });
+  assert.deepEqual(SV.stepFace("设计", "frozen", "doc-native"), { text: "设计", title: "设计: frozen" });
+  assert.deepEqual(SV.stepFace("评审", "—", "legacy"), { text: "评审", title: "评审: —" });
+});
 t("stepFill: unstarted/planned → pending · in-progress/testing/blocked/failing → doing · settled → done", () => {
   assert.equal(SV.stepFill("—"), "pending");
   assert.equal(SV.stepFill(""), "pending");
