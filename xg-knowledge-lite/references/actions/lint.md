@@ -1,4 +1,4 @@
-# Lint — the checklist (disclosed reference for SKILL.md「Lint」)
+# Lint — minimal health check (the Lint action; SKILL.md「Actions」)
 
 Eight checks, then the authority split and execution notes. Section numbers (§1–§8) are cited
 from elsewhere in the skill — keep them stable.
@@ -56,3 +56,5 @@ the rest (and any unscripted deterministic item) via one cheaper-model agent (Ag
 `model: sonnet`) that returns only the violation list — the orchestrator re-verifies each
 finding, then applies it per the authority split above. (Same principle as xg-dev-workflow's
 「Subagents」; restated here so this skill stays self-contained.)
+
+After a run, append `## [YYYY-MM-DD] lint | <N> issues, <M> fixed` to `wiki/log.md`.

@@ -18,6 +18,8 @@ The two are siblings: the workflow *orchestrates* code work and links out to the
   SKILL.md           # YAML frontmatter (name + description) + the procedure
   README.md          # human-facing overview
   references/        # steps/, templates/, format specs — loaded on demand, not all upfront
+                     #   xg-knowledge-lite/references/actions/<action>.md = one procedure per action (SKILL.md is the
+                     #   router); its constraints.md = the hard rules (config · init · project · git · usage log)
                      #   xg-dev-workflow/references/legacy/SKILL.md = the frozen five-phase flow (存量 cards only);
                      #   legacy steps/templates keep their paths — SKILL.md and legacy/SKILL.md each list what they load
   tools/             # Python helpers (no deps beyond stdlib; PyYAML used if present, else a fallback parser)

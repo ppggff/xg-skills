@@ -35,13 +35,14 @@ A deliberately deferred raw is marked as such in its frontmatter (`compiled_to: 
 - **Write** — record raw from investigation (or update it), then run Compile scoped to the concept(s) that raw touches.
 - **Compile** — the single routine that synthesizes concepts from raw, incrementally (re-synthesize only the in-scope concepts + cascade to materially-affected same-project neighbors). Called scoped by Write, or batch (standalone) to bootstrap from a pile of raw / repair drift. No full rebuild, no hash stamp.
 - **Query** — read concept articles → cite + drill into their Sources raw; grep raw as fallback.
+- **Orient** — a project's knowledge outline for warm-up (index section, `architecture` / `*-invariants` / `CONTEXT-MAP`, uncompiled-raw count); read-only, never writes an outline file.
 - **Lint** — raw↔concept coverage, index consistency, dangling wikilinks, frontmatter (deterministic findings auto-fixed; judgment findings report-only).
 
-See `SKILL.md` for the full workflow, `references/FORMAT.md` (raw) and `references/concept-template.md` (concept) for formats.
+`SKILL.md` is the router; each action's procedure is `references/actions/<action>.md`, the hard rules (config, initialization, project resolution, git, usage logging) are `references/constraints.md`, and the formats are `references/FORMAT.md` (raw) and `references/concept-template.md` (concept).
 
 ## Deliberately out of scope
 
-Glossary, link graph, changes timeline, compile-stamp / hash-based drift tracking, similarity probe, heavy cascade, external-source ingestion, slash commands. If you need those, use the full `xg-knowledge-wiki`.
+Link graph, changes timeline, compile-stamp / hash-based drift tracking, similarity probe, probe/graph-driven or multi-round cascade, external-source ingestion, slash commands, archive pages. If you need those, use the full `xg-knowledge-wiki`.
 
 ## License
 
