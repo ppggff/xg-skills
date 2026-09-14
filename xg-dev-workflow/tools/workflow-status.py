@@ -1069,7 +1069,7 @@ _BLOCK_PARSE = None
 
 
 def _block_parse():
-    """Lazy-load block_parse.py (same dir) — the doc-native block grammar (026)."""
+    """Lazy-load legacy/block_parse.py — the doc-native block grammar (026; under legacy/ since 031)."""
     global _BLOCK_PARSE
     if _BLOCK_PARSE is None:
         try:
@@ -1077,7 +1077,7 @@ def _block_parse():
         except ImportError:
             import importlib.util
             path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "block_parse.py")
+                                "legacy", "block_parse.py")
             spec = importlib.util.spec_from_file_location("block_parse", path)
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
@@ -1312,7 +1312,8 @@ def run_check(root, arg, verbose_skips=False):
     Exit 1 iff findings — a skip/exemption is visible but never gates. The ok tail's
     N counts printed skip lines (counting lines included), not exemption instances.
     Catches its own exceptions — the top-level never-crash wrapper clamps exceptions
-    (only) to exit 0, so an unhandled error here would silently pass the check."""
+    (only) to exit 0, so an unhandled error here would silently pass the check. The one
+    exception that must not be swallowed is a missing legacy check half (031): it exits 2."""
     proj_scope = False
     try:
         if "/" not in arg.rstrip("/") and \
@@ -1326,6 +1327,9 @@ def run_check(root, arg, verbose_skips=False):
             findings, skips, exemptions = _checks().check_card_all(project, card_dir, _L1)
     except SystemExit:
         raise
+    except _checks().LegacyChecksUnavailable as e:   # the legacy half is missing/broken: fail loudly, never a finding
+        print("check-error: %s" % e, file=sys.stderr)
+        sys.exit(2)
     except Exception as e:
         findings, skips, exemptions = ["check-error: %s" % e], [], []
     for f in findings:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for block_parse.py (026) — stdlib unittest, synthetic fixtures only.
 
-Run: python3 tools/test_block_parse.py (or via unittest discover from tools/).
+Run: python3 tools/legacy/test_block_parse.py (or via unittest discover from tools/).
 Golden grammar coverage (all five annotation kinds, fields, clauses,
 continuation), the error-matrix negatives (bad-header, duplicate id, bad
 annotations, cross-doc collision, missing requirement.md), deps_graph cycles,
@@ -14,9 +14,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import block_parse as bp
-
-TOOLS = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent          # tools/legacy/
+TOOLS = HERE.parent
+_bp_spec = importlib.util.spec_from_file_location("block_parse", str(HERE / "block_parse.py"))
+bp = importlib.util.module_from_spec(_bp_spec)
+_bp_spec.loader.exec_module(bp)
 _spec = importlib.util.spec_from_file_location("workflow_status",
                                                str(TOOLS / "workflow-status.py"))
 ws = importlib.util.module_from_spec(_spec)

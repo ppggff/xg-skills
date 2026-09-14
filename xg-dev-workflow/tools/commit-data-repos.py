@@ -56,7 +56,7 @@ def _block_parse():
     global _BP
     if _BP is None:
         import importlib.util
-        path = Path(__file__).resolve().parent / "block_parse.py"
+        path = Path(__file__).resolve().parent / "legacy" / "block_parse.py"
         spec = importlib.util.spec_from_file_location("block_parse", str(path))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
