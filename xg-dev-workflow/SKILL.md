@@ -1,6 +1,6 @@
 ---
 name: xg-dev-workflow
-description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this' / 'resume <slug>' / 'change the design' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选'); or distills redo-input from existing cards ('learn 001 002' / '从旧卡提炼重做输入' / '提炼这组卡的经验')."
+description: "Design-centric dev workflow for code work. Use when the user opens or works a requirement ('new requirement' / '开个需求' / 'design this change' / 'resume <slug>' / 'workflow retro'); parks a session before leaving ('park <slug>' / '交接给新 session' / '收工离场'); investigates code behavior ('investigate X' / '调查 X'); diagnoses a defect ('diagnose' / '定位这个 bug'); reviews new/changed code ('review X' / 'review 这些改动'); scans a region for deepening opportunities ('improve X' / '架构巡检' / '找 deepening 候选'); or distills redo-input from existing cards ('learn 001 002' / '从旧卡提炼重做输入' / '提炼这组卡的经验')."
 ---
 
 # xg-dev-workflow
@@ -26,7 +26,7 @@ change). Read the card's frontmatter `governance` — from `requirement.md` when
 
 New cards are always lite (`governance: lite`). Read-only and cross-card verbs (investigate · diagnose ·
 review · improve · learn · status · retro) never load `legacy/`, whatever card they take as input.
-Trigger phrases ('design this' / 'change the design' / 'new requirement') follow the card's mode, not a
+Trigger phrases ('design this change' / 'change the design' / 'new requirement') follow the card's mode, not a
 verb name: on a lite card or with no card they mean ordinary drafting, an A→B walk, or opening a lite card.
 
 ## Files on the lite path

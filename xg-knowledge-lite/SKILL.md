@@ -1,6 +1,6 @@
 ---
 name: xg-knowledge-lite
-description: "Cross-project code-knowledge base: raw investigation write-ups compiled into concept articles (Karpathy two-layer), per project. Use when recording a finding ('记下来' / 'capture this finding'), updating a note ('update the <X> note'), compiling the wiki ('compile'), querying knowledge ('what do I know about <X>'), orienting on a project ('orient me on <project>' / '项目知识大纲'), or linting the KB."
+description: "Cross-project code-knowledge base: raw investigation write-ups compiled into concept articles, per project. Use when recording a finding ('记下来' / 'capture this finding'), updating a note ('update the <X> note'), compiling the wiki ('compile'), querying knowledge ('what do I know about <X>'), orienting on a project ('orient me on <project>' / '项目知识大纲'), or linting the KB."
 ---
 
 # xg-knowledge-lite
