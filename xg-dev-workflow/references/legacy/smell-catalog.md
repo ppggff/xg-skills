@@ -1,9 +1,9 @@
-# Smell catalog + reuse / cohesion checks (the quality lens's brief — `lenses.md` companion)
+# Smell catalog (Fowler code smells — the no-standard baseline)
 
-A named vocabulary of code smells for the review quality lens and the simplify sweep. The names
-are **leading words**: each recruits the model's pretrained sense of the smell and its refactoring,
-so an agent hooks into that knowledge instead of re-deriving from a custom description. Usable even
-when the repo documents **no** coding standard of its own. Paste this file into the agent's brief.
+A named vocabulary of code smells for the review quality lens. The names are **leading words**:
+each recruits the model's pretrained sense of the smell and its refactoring, so a review agent
+hooks into that knowledge instead of re-deriving from a custom description. Usable even when the
+repo documents **no** coding standard of its own.
 
 ## Binding rules
 
@@ -39,18 +39,3 @@ when the repo documents **no** coding standard of its own. Paste this file into 
 **efficiency-hoist** (side-effect-free/expensive work above the guard that skips it; per-row work
 that belongs in one-time setup) is a *performance* observation, not a Fowler maintainability smell
 — the review quality lens carries it alongside this catalog, not inside it.
-
-## Reuse / cohesion (simplify) — when a change adds helpers or abstractions
-
-Shared by the simplify sweep (lite.md「Close-out」) and the review Standards axis; an embedded shared
-sub-expression evades a whole-function dup scan, so name both checks explicitly.
-
-- **New helper/constant → grep the touched module for the same logic first.** A new `arch→prefix`
-  helper beside an existing one that already computes it is a *merge*, not a new method.
-- **New cross-cutting concern → match the shape of its just-built sibling.** If this change made
-  concern X a backend/interface hook, concern Y of the same shape is a hook too — not an
-  `if type == :foo` special-case in the caller.
-- **New wrapper/layer → deletion test + locality.** Mentally delete the new layer: complexity that
-  merely moves (pass-through) is a Middle Man — collapse it. When a change extracts pure functions
-  for testability, ask where the real bugs will live — the extracted function or the untested
-  orchestration calling it; tested helpers around untested orchestration is a locality smell.

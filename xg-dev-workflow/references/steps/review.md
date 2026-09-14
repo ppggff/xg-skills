@@ -97,17 +97,9 @@ legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
    - **standard** (M, ~one-sitting diff) — **three axis agents** (axis shape from the external
      `code-review` skill's two-axis economy + our KB axis; each gets a complete self-contained
      brief — paste the checklist/context pack in full, assume no shared memory; ~400-word cap):
-     **Spec axis** (session model capped at opus — SKILL.md「Subagents」) —
-     does the change do what requirement/design say: R-id trace,
-     missing/partial items, scope creep (test: every changed line traces to a requirement /
-     design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
-     (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
-     run) + **reuse/cohesion when the change adds helpers/abstractions** — apply the checks in
-     `references/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory).
-     Where the repo documents no convention for a smell, fall back to the **smell catalog** baseline
-     (`references/smell-catalog.md`); skip anything tooling already enforces. **Invariants axis** (session model, same cap) —
-     context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
-     tier; findings carry their axis into adjudication.
+     the three axis briefs — **Spec** · **Standards** · **Invariants** — are `references/lenses.md`「Review
+     lenses」(paste each in full; agents assume no shared memory). No model-diversity sweep at this tier;
+     findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens
      fan-out below + adversarial trio + the standing different-model sweep + saturation repeat
      passes (5b). **Start lean, expand on evidence:** pass 1 dispatches the sharp core
@@ -127,14 +119,10 @@ legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
    a shipped bug, a retro) gets its default tier bumped. SKILL.md「Subagents」
    is the model-side analog.
 
-   **Deep tier — you MUST read `references/steps/review-deep.md` before running:** it carries the
-   lens fan-out menu (incl. per-lens model assignment) and the standing model-diversity sweep,
-   plus the 5b saturation stop-rule. A deep review without it is incomplete.
-   **Test-adequacy lens (026 Req-37, M+ close-out fixed member):** its target list is the
-   approved-block rubric (adversarial-critic.md「Approved-block rubric」) expanded over the
-   card's active approved set — per block: does the verification actually exercise the claim,
-   is it falsifiable, is the coverage row honest? Zero new gates — findings ride the normal
-   修复决策表.
+   **Deep tier — the lens menu, per-lens model assignment, the model-diversity sweep and the saturation
+   stop-rule are `references/lenses.md`「Review lenses」**; a deep review without them is incomplete.
+   **Test-adequacy lens (M+ close-out fixed member):** target list and the four per-block questions are
+   `lenses.md`「Test adequacy」; zero new gates — findings ride the normal 修复决策表.
 
 5. **Adjudicate every finding (non-negotiable).** Before anything enters the report,
    verify it yourself (or via an independent verifier agent) against the actual
@@ -154,14 +142,9 @@ legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
    the deliverable; tag each killed finding with its source lens + model, so the
    per-model survive/die tally (with 5b's confirmed side) is computable at retro
    time — that tally is what SKILL.md「Subagents」's M6 calibration
-   reads. False-positive exemplars (give to agents verbatim): pre-existing
-   issues; linter/compiler-catchable; lines the change didn't modify; intentional
-   behavior changes tied to the broader change; **designed semantics documented in
-   the KB / design docs**.
+   reads. False-positive exemplars: `lenses.md`「Review lenses」(given to agents verbatim).
 
-5b. **Saturation verdict (deep tier) — the "another pass?" stop-rule (overlap-dominant vs
-   singleton-heavy, the standard-tier caveat, dry-stop, and the one-line report verdict) now
-   lives in `references/steps/review-deep.md`; consult it on any deep run.**
+5b. **Saturation verdict (deep tier)** — `lenses.md`「Saturation verdict」; the one-line verdict goes in the report.
 
 6. **Report — lands in dev_root, never the repo.**
    - Requirement active → `<requirement>/notes/review-YYYY-MM-DD-<target>.md` (the `review-`

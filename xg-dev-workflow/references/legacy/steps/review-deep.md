@@ -36,7 +36,7 @@ Menu — skip lenses that obviously don't apply and note the skips:
 - git history (blame, prior fixes and review comments, in-code guidance comments);
 - **quality/simplify (one bundled sonnet agent, deep tier only)** — the review-side backstop
   to implement's simplify sweep, for the low-inference cleanup family a diff-first read catches.
-  Assess the diff against the **Fowler smell catalog** (`references/smell-catalog.md` — paste it
+  Assess the diff against the **Fowler smell catalog** (`references/legacy/smell-catalog.md` — paste it
   into the agent's brief); the families that recur here are **Speculative Generality** (a static-fn
   parameter every caller passes constant/NULL, an unreachable mode — dead code / unused generality),
   **Duplicated Code** (a copy-pasted call shape that wants one helper), **Middle Man** (a

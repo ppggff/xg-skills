@@ -32,11 +32,11 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
 
 - **lite.md's companions**: `references/steps/discuss.md` (one question at a time · convergence ·
   understanding statement · lens dispatch · design-topic checklist) · `references/templates/design-lite.md`
-  (the design.md skeleton `new` copies) · `references/constraints.md`.
-- **Shared, read as-is**: steps understand · evidence · investigate · diagnose · review (its lite branch) ·
-  review-deep (L close-out; it dispatches `adversarial-critic.md`'s trio — the one legacy file a lite card
-  may reach) · improve · learn · retro; `simplify-checks.md` · `model-tiering.md` · `split-isolate.md` (L cards:
-  A↔B 判定 + 拆出五步) · `smell-catalog.md`; templates adr · facts · log · index · roadmap; `steps/implement.md` only for
+  (the design.md skeleton `new` copies) · `references/constraints.md` · `references/lenses.md` (fresh-context lens
+  prompt shapes; `smell-catalog.md` is its companion).
+- **Shared, read as-is**: steps understand · evidence · investigate · diagnose · review (its lite branch; L close-out
+  lenses per `lenses.md`) · improve · learn · retro; `model-tiering.md` · `split-isolate.md` (L cards: A↔B 判定 +
+  拆出五步); templates adr · facts · log · index · roadmap; `steps/implement.md` only for
   Environment recon · Test mode · Commit cadence (minus its card-qualified task tag — lite.md「Executing」
   forbids the tail) · Comment & artifact hygiene.
 - **Never loaded for a lite card**: everything under `references/legacy/` (the frozen five-phase flow —

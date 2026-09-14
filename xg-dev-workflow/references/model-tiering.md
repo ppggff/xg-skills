@@ -13,7 +13,7 @@ synthesis). Safe for the same reason as the sonnet default — a lens mandate is
 and the orchestrator re-derives / adjudicates (M1; review step 5) — at half the per-token cost.
 **Deterministic checks are scripted, not delegated**; every downgrade sits under M6 calibration
 (findings that repeatedly die in adjudication revoke it). Per-lens application: `steps/review.md`
-step 4 and `steps/review-deep.md`.
+step 4 and `references/lenses.md`.
 
 ## Session-model tiering follows the two zones
 

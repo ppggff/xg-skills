@@ -43,26 +43,18 @@ frozen legacy step files (the 存量 flow keeps them).
 
 ## 3. Fresh-context lenses
 
-- **Why fresh**: an agent that does not hold your frame hits the blind spots you cannot. Give it only {the
-  problem + the claim or mechanism under test + a pack of verified facts}; mandate = attack from first
-  principles: what here is unnecessary, what is missing, what already exists. Load-bearing premises come only
-  from the pack (else marked `UNVERIFIED`); a negative result states its query and scope.
-- **One lens, one agent** at M+ (a mixed mandate satisfices on its secondary lens; independent contexts
-  decorrelate); XS/S may fold lenses into one agent. Model: SKILL.md「Subagents」. Report in Chinese with
-  domain terms and ids in English, Mermaid only.
-- **The two lite lenses** (dispatch once the approach forms, and again at any round that produces an
-  expensive-to-redo artifact — an enumeration table, a layering decision): **falsifier** — attack the
-  load-bearing facts and the chosen approach's assumptions; verdict per attack 站不住 / 需补证 / 站得住 with
-  evidence; **commitment coverage** — the human's rulings ↔ the doc, upstream decisions and deferred items ↔
-  a Req or an explicit 不做, Req ↔ Task ↔ V, scope creep, the roadmap's 裁定 lines, and on a redo the old
-  card's commitments. Review's four lenses: `review.md`.
-- **Adjudicate before reporting**: re-measure every numeric or enumerative claim; separate a finding's facts
-  from its direction / attribution / generalization (those are your own inferences and need their own grounds);
-  record each finding's 裁定 (采纳 · 修正采纳 · 不采纳 · 待人判) and 去向 in `notes/lens-<date>.md`. With
-  several lenses or review axes in flight, collect them all before fixing — a fix that lands mid-run makes
-  the later reports re-find what is already gone.
-- Two standing rules need no agent: before designing a new cross-boundary mechanism, grep for an existing
-  carrier; test every open concern against the KB's `*-invariants` ledger for the subsystem.
+- **Why fresh, how to dispatch, the prompt shapes, adjudication**: `references/lenses.md` — one lens, one
+  agent at M+ (XS/S may fold); pack = {problem · claim · verified facts · dead findings}, premises only from
+  the pack; model per SKILL.md「Subagents」; Chinese report, ids in English, Mermaid only.
+- **The two lite lenses** — dispatch once the approach forms, and again at any round that produces an
+  expensive-to-redo artifact (an enumeration table, a layering decision): **falsifier** (attack the
+  load-bearing facts and the approach's assumptions) and **commitment coverage** (rulings ↔ doc · upstream
+  and deferred items ↔ Req or 不做 · Req ↔ Task ↔ V · creep · the roadmap's 裁定 lines · on a redo the
+  old card's commitments). Review's lenses: `review.md` step 4.
+- **Adjudicate before reporting** (`lenses.md`「Adjudicate」): re-measure every number, separate facts
+  from inference, record 裁定 and 去向 in `notes/lens-<date>.md`; collect every lens before fixing.
+- Two standing rules need no agent: grep for an existing carrier before designing a new cross-boundary
+  mechanism; test every open concern against the KB's `*-invariants` ledger.
 
 ## 4. Design topics to walk (M cards; lighter by size)
 

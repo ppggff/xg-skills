@@ -103,9 +103,9 @@ legacy/SKILL.md「Requirement sizing」(lite cards: lite.md「By size」).
      design item; an untraceable line is creep or an unrecorded decision). **Standards axis**
      (`model: sonnet`) — conventions + comment/tests/docs hygiene (incl. the check-code-refs
      run) + **reuse/cohesion when the change adds helpers/abstractions** — apply the checks in
-     `references/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory).
+     `references/legacy/simplify-checks.md` (paste them into the axis brief; it assumes no shared memory).
      Where the repo documents no convention for a smell, fall back to the **smell catalog** baseline
-     (`references/smell-catalog.md`); skip anything tooling already enforces. **Invariants axis** (session model, same cap) —
+     (`references/legacy/smell-catalog.md`); skip anything tooling already enforces. **Invariants axis** (session model, same cap) —
      context-pack invariants, concurrency, fail-safe, security. No model-diversity sweep at this
      tier; findings carry their axis into adjudication.
    - **deep** (L, invariant-heavy, an M+ close-out of such code, or the human asks) — the lens

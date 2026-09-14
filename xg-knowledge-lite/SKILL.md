@@ -53,7 +53,7 @@ first; Query reaches them through Orient, not the concept index.
   understanding statement (`steps/discuss.md`) links each card's `design.md` to `[[wiki/<project>/architecture]]`
   and refreshes it **as-built** at the card's close-out (存量 five-phase cards: when a design freezes).
 - **`<subsystem>-invariants.md`** — one **evidence-cited** line per established system invariant: the
-  ledger xg-dev-workflow's lenses (`steps/discuss.md` §3; 存量 cards: adversarial-critic) **load & replay**.
+  ledger xg-dev-workflow's lenses (`references/lenses.md`; 存量 cards: the legacy adversarial-critic) **load & replay**.
   Append to it whenever an investigation establishes a durable invariant — that is how the next design's
   starting point gets sharper.
 - **`CONTEXT-MAP.md`** — carves the project (or `common`) into **bounded contexts** that scope

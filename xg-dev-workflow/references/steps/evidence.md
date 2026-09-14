@@ -174,7 +174,7 @@ every sentence. An unmarked non-trivial assertion reads as evidence-backed — i
   它操作的是哪个 manager / keyspace(决定它到底服务哪一类对象)。
 
 （采纳外部 panel/agent finding 时的对应纪律——事实层/推论层分判,泛化、归属、方向主张按
-自家推断待遇给独立依据——见 adversarial-critic.md「Core move」,026 Req-19;此处不重述。）
+自家推断待遇给独立依据——见 `references/lenses.md`「Adjudicate」;此处不重述。）
 
 ## Honesty
 If something can't be verified, write `UNVERIFIED: …` explicitly rather than hedging.

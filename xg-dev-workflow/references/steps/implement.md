@@ -165,7 +165,7 @@ Un-split cards skip this entirely; seam 联调 stays in the 测试 phase (the fi
 neighbor yet).
 
 - **Dispatch:** 1–2 fresh-context subagents attack the part diff (its tasks' commits). Prompt
-  mirrors `review-deep.md`'s lens-agent shape (context pack + verify-against-files + structured
+  mirrors `references/lenses.md`'s agent frame (context pack + verify-against-files + structured
   findings + word cap + "return empty if none"); model per `references/model-tiering.md`
   (inference-heavy → session model capped at opus).
 - **Mandate:** static attack + a hands-on slice **gated by the project's test mode**;
@@ -198,7 +198,7 @@ last session's slices. A multi-session card is the trap: sweeping only the lates
 earlier sessions' reuse/dead-code/altitude untouched. `git diff $(git merge-base origin/<main>
 HEAD)..HEAD` is the diff to sweep.
 - **Reuse/cohesion is the sweep's core — a comment pass is not a sweep.** When the change added
-  helpers/abstractions, apply the reuse/cohesion checks in `references/simplify-checks.md`
+  helpers/abstractions, apply the reuse/cohesion checks in `references/smell-catalog.md`「Reuse / cohesion」
   (new helper → grep the module first; new cross-cutting concern → match its just-built sibling;
   new wrapper/layer → deletion test + locality)
   over the whole diff. A comments-only sweep diff on a change that introduced helpers/abstractions

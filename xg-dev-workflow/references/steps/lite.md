@@ -118,7 +118,7 @@ the answer — the author's own run does not count. A check run outside the card
 dev_root) lands its result line in plan.md at once; progress.md may cite it, never assert it.
 
 Close-out, in order: (1) **simplify** once when the change exceeds ~150 lines or adds files
-(`simplify-checks.md`, behavior-preserving), result noted; (2) **review by size** — S: light
+(`smell-catalog.md`「Reuse / cohesion」, behavior-preserving), result noted; (2) **review by size** — S: light
 self-review (diff walk · each commitment and Inv row against the code · each test against its claim) written
 into the doc; M: `review` verb standard tier (test-adequacy lens over the Req 验证 lines); L: deep
 — **skipping any step is written down with its reason**; (3) per commitment: met / scope of the

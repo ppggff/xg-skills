@@ -393,7 +393,7 @@ vendored file to change behavior; the **contract never changes**, only the imple
   one-question-at-a-time + grill-log + rollback + convergence auto-verdict.
 - `references/legacy/design-agenda.md` — discussion-first data: topic library, driving axis,
   round-type check mapping, XS/S items table.
-- `references/steps/adversarial-critic.md` — fresh-context critic panel (three attack lenses +
+- `references/legacy/steps/adversarial-critic.md` — fresh-context critic panel (three attack lenses +
   gate-adjacent criterion-conformance judge) + receipts; used by requirement, design-grill,
   review, and (lens 4 only) the 详设 baseline + execution-authorization gates.
 - `references/legacy/steps/gate-digest.md` — the decision-card gate ask (判断分工: 已验证(勿复核) /
@@ -406,7 +406,7 @@ vendored file to change behavior; the **contract never changes**, only the imple
 - `references/legacy/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).
 - `references/diagram-gotchas.md` — Mermaid pitfalls + ASCII CJK-width alignment.
 - `references/legacy/frontend-testing.md` — browser + mobile real-device testing (UI-facing slices only).
-- `references/simplify-checks.md` — reuse/cohesion checks (implement's sweep + review Standards).
-- `references/smell-catalog.md` — Fowler code-smell names for the review quality lens.
+- `references/legacy/simplify-checks.md` — reuse/cohesion checks (implement's sweep + review Standards).
+- `references/legacy/smell-catalog.md` — Fowler code-smell names for the review quality lens.
 - **`codebase-design`** (external skill) — deep-module vocabulary, Design-It-Twice, the deletion test.
 - `tools/resolve-project.py` — cwd→project and `--dev-root` resolution (reads the shared config).

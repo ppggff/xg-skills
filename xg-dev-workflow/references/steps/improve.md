@@ -1,7 +1,7 @@
 # Step: improve (read-only deepening scan)
 
 Authored inline; composes the `investigate` skeleton (KB-first, read-only, dev_root landing,
-Receipts) + the M1 evidence discipline (`evidence.md`) + the adversarial-critic refutation
+Receipts) + the M1 evidence discipline (`evidence.md`) + the fresh-context lens refutation (`references/lenses.md`)
 pattern. Probe methodology informed by the `improve-codebase-architecture` bare-run
 observations — not a fork. Vocabulary: **deep module** = small interface hiding lots of
 behaviour; **deletion test** = delete it mentally — complexity that vanishes marks a
