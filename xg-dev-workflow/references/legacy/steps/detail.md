@@ -40,7 +40,7 @@ algorithms whose correctness depends on the details.
   enabling dependency growing into its own deliverable — the 005→006 载体 pattern surfaced
   exactly here, post-freeze) forces a run of the **A↔B 判定** (SKILL.md「拆分与隔离」); an
   升 B verdict escalates through M2 as a proposed row (`change.md` A.0), split-out procedure
-  in `references/split-isolate.md` — never absorb it silently into detail scope.
+  in `references/legacy/split-isolate.md` — never absorb it silently into detail scope.
 - **Division of labour with ADRs** — an ADR records a *hard-to-reverse, surprising decision +
   its alternatives*; `detail.md` holds the *full concrete spec*. For a call that already has an
   ADR, **reference it** ("medium = local table, see ADR-0001") and don't re-argue it. For the

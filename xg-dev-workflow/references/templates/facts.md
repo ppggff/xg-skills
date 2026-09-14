@@ -21,7 +21,7 @@ only, never body edits (the named exception to learn's input-card read-only).
 
 Marker integrity: the marker and 来源 must agree — a block whose 来源 says it was inferred or
 untested cannot be [VERIFIED] (`workflow-status.py --check` (g) enforces this). A feasibility
-claim about an external tool/runtime reaches VERIFIED only by running it (evidence.md).
+claim about an external tool/runtime reaches VERIFIED only by running it (`steps/investigate.md`).
 -->
 
 ### F1 [VERIFIED]

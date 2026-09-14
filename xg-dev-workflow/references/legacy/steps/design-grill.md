@@ -123,7 +123,7 @@ Mermaid pitfalls (ASCII `;`, subgraph `direction`) and the CJK-width rules for a
      (SKILL.md「拆分与隔离」) per part: a part hitting an 升 B criterion (independent timeline /
      standalone value / own reviewer / independently freezable; a seam that already reads as a
      named contract is a strong signal) is a **card**, not a part — propose the split-out
-     (`references/split-isolate.md`). Record the per-part verdict (升/不升 + one-line why) in
+     (`references/legacy/split-isolate.md`). Record the per-part verdict (升/不升 + one-line why) in
      the grill-log, 不升 included. Fill the table's **`R` column** (which R-ids each part
      carries — it doubles as the new-format marker tools parse; one R may span several parts).
      A seam disproved later at 联调 → M2 (`seam-contract-disproved`), never a

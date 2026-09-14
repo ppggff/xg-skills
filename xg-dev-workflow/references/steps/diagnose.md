@@ -1,105 +1,84 @@
-# Step: diagnose (the front door for defect localization)
+# Step: diagnose — the front door for defect localization
 
-Forked from **diagnosing-bugs** (feedback-loop-first debugging discipline). Adjusted: KB-first
-entry (M5) + M1 evidence on every causal claim; the fix lands through **Prove-It** as an 实现
-slice, never patched from inside this step; temporary instrumentation is allowed but tagged and
-swept; durable findings route to the KB.
+`investigate` answers "how does existing code behave"; `diagnose` answers "**why is observed behavior
+wrong**" — a bug, a crash, a perf regression. A neutral empirical question with no defect is
+investigate's spike. Forked from **diagnosing-bugs** (feedback-loop-first), with KB-first entry, the
+evidence rule on every causal claim, and the fix landing through Prove-It as an ordinary slice.
 
-`investigate` answers "how does existing code behave"; `diagnose` answers "**why is observed
-behavior wrong**" — a bug, a crash, a perf regression. An empirical question with no defect →
-investigate's Spike; a defect → this step.
-
-**Context branching (same shape as investigate):** active requirement (bug found in 实现/测试)
-→ runs inside the execution zone — the fix is an 实现 slice, findings land in `progress.md`
-Discovered issues; standalone → report + KB capture, and the fix waits for an explicit human go
-(propose the diff, don't apply — the same boundary as investigate). Investigate's anchoring rule
-applies (active only by explicit linkage; default standalone).
+**Context**: on an active card (defect found while executing) the fix is an ordinary slice and the
+findings land in `design.md`「待解问题与证据」/ the plan; standalone → report + KB capture, and the fix
+waits for an explicit go (propose the diff, don't apply). Anchoring as in `investigate.md` step 3.
 
 ## Phase 1 — build the feedback loop (this is the skill)
 
 Before any theory: **one command with a tight pass/fail signal that goes red on *this* bug.**
-Bisection, hypotheses, and instrumentation all just consume it. Spend disproportionate effort
-here — be aggressive and creative, and don't give up on the loop; build the right one and the bug
-is mostly found.
+Bisection, hypotheses and instrumentation all consume it; spend disproportionate effort here and
+don't give up — build the right loop and the bug is mostly found. Menu, roughly in order: a failing
+test at whatever seam reaches the bug → a CLI / HTTP call with a fixture input diffed against known-good
+→ replaying a captured trace / payload through the path in isolation → a throwaway harness (one function
+call) → a property / fuzz loop ("sometimes wrong") → `git bisect run` between two known states → a
+differential loop (same input, old vs new) → a human-in-the-loop script as last resort.
+- **Trap rule**: catching yourself reading code to build a theory before this command exists — stop.
+- A wrapped tool's signal is its own per-run log directory, not the wrapper's stdout or a FATAL grep.
+- **Tighten**: faster (cache setup, skip unrelated init) · sharper (assert the exact symptom, not "didn't
+  crash") · deterministic (pin time, seed RNG, isolate fs / network). A 2-second deterministic loop is a
+  superpower; a 30-second flaky one barely beats none.
+- Non-deterministic bugs: aim for a **higher reproduction rate**, not a clean repro — loop the trigger,
+  parallelize, add stress, narrow timing windows until it is debuggable.
+- Genuinely can't build one → stop and say so: list what you tried; ask for the reproducing
+  environment, a captured artifact (log dump, core, trace) or permission to add temporary
+  instrumentation. Never hypothesize without a loop.
 
-Construction menu, roughly in order: failing test at whatever seam reaches the bug → CLI/HTTP
-invocation with a fixture input, diffed against known-good → replay of a captured trace/payload
-through the code path in isolation → throwaway harness (minimal subset of the system, one
-function call) → property/fuzz loop (for "sometimes wrong output") → bisection harness
-(`git bisect run` between two known states) → differential loop (same input through old vs new
-version, diff outputs) → HITL script as last resort (a human must click → drive *them* with a
-structured loop).
+**Done when** you can name one command, already run at least once (paste invocation + output), that is
+**red-capable** (the user's exact symptom) · **deterministic** (or a pinned-high repro rate) · **fast**
+(seconds) · **agent-runnable**.
 
-- **Trap rule:** catching yourself reading code to build a theory before this command exists —
-  **stop**.
-- **Signal source for a wrapped tool:** read the tool's own log directory (its per-run files)
-  before the wrapper's stdout or a FATAL grep — the wrapper sees only the summary.
-- **Tighten it:** faster (cache setup, skip unrelated init), sharper (assert the specific
-  symptom, not "didn't crash"), deterministic (pin time, seed RNG, isolate fs/network). A
-  2-second deterministic loop is a debugging superpower; a 30-second flaky one barely beats none.
-- **Non-deterministic bugs:** the goal is a *higher reproduction rate*, not a clean repro — loop
-  the trigger, parallelise, add stress, narrow timing windows, until it is debuggable.
-- **Genuinely can't build one → stop and say so:** list what you tried; ask for the reproducing
-  environment, a captured artifact (log dump, core, trace), or permission to add temporary
-  instrumentation. Do not hypothesise without a loop.
+## Phase 2 — reproduce, then minimize
 
-**Done when** you can name one command, already run at least once (paste invocation + output),
-that is: **red-capable** (asserts the user's exact symptom) · **deterministic** (or pinned-high
-repro rate) · **fast** (seconds) · **agent-runnable**.
+Watch the loop go red on the failure **the user described** — a nearby different failure is the wrong
+bug and yields the wrong fix. Then cut inputs / callers / config / data one at a time, re-running after
+each cut, until every remaining element is load-bearing: the minimal repro shrinks the hypothesis space
+and becomes the regression test.
 
-## Phase 2 — reproduce + minimise
+## Phase 3 — hypothesize (3–5, ranked, falsifiable)
 
-Run the loop; watch it go red on the failure mode **the user described** — a nearby different
-failure is the wrong bug and yields the wrong fix. Then shrink to the smallest scenario that
-still goes red: cut inputs/callers/config/data one at a time, re-running after each cut, until
-**every remaining element is load-bearing**. The minimal repro shrinks the hypothesis space and
-becomes the regression test.
-
-## Phase 3 — hypothesise (3–5, ranked, falsifiable)
-
-Generate **3–5 ranked hypotheses** before testing any — single-hypothesis generation anchors on
-the first plausible idea. Each states its prediction: "if X is the cause, changing Y makes the
-bug disappear / Z makes it worse"; no prediction → discard or sharpen (M1: a hypothesis is 假设
-until its prediction is tested). **Show the ranked list to the human** — domain knowledge often
-re-ranks instantly ("we just deployed #3"); don't block on it if they're away.
+Generate 3–5 ranked hypotheses before testing any — a single hypothesis anchors on the first plausible
+idea. Each states its prediction ("if X is the cause, changing Y makes it disappear / Z makes it worse");
+no prediction → discard or sharpen (a hypothesis is 假设 until tested). Show the list to the human — domain
+knowledge re-ranks instantly ("we just deployed #3") — without blocking on them.
 
 ## Phase 4 — instrument
 
-Each probe maps to one prediction; **change one variable at a time**. Prefer debugger/REPL (one
-breakpoint beats ten logs) > targeted logs at the boundaries that distinguish hypotheses; never
-"log everything and grep". **Tag every debug log with one unique prefix** (e.g. `[DBG-a4f2]`)
-so cleanup is a single grep — untagged logs survive. Product-code edits here are **temporary
-instrumentation only** (tagged, swept in Phase 6); anything more escalates to the human.
-
-**Perf branch:** for performance regressions, logs are usually the wrong probe — establish a
-baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix
-second.
+One probe per prediction, **one variable at a time**. Debugger / REPL (one breakpoint beats ten logs) >
+targeted logs at the boundaries that separate hypotheses; never "log everything and grep". Tag every
+debug log with one unique prefix (`[DBG-a4f2]`) so cleanup is a single grep. Product-code edits here are
+temporary instrumentation only — tagged, swept in Phase 6; anything more escalates. **Perf regression**:
+logs are the wrong probe — baseline measurement (timing harness, profiler, query plan), then bisect.
+Two heuristics when a fix isn't landing: after ~2 wrong guesses about a black-box dependency (CSS,
+renderer, library) read its shipped source instead of guessing a third time; a symptom you would pin on
+the platform that also reproduces on the reference engine is your own code — use the reference as the
+forensic oracle and don't change what you can't reproduce.
 
 ## Phase 5 — fix via Prove-It
 
-Write the regression test **before** the fix, at a **correct seam** — one where the test
-exercises the real bug pattern as it occurred at the call site (a too-shallow seam gives false
-confidence). **No correct seam is itself a finding** — record it: the architecture is preventing
-the bug from being locked down (a deepening candidate for the roadmap). Then: failing test →
-fix (an 实现 slice when a card is active; standalone: propose the diff and wait) → test passes →
-re-run the Phase-1 loop on the **original, un-minimised** scenario.
+Regression test **before** the fix, at a **correct seam** — one that exercises the bug pattern as it
+occurred at the call site (a too-shallow seam gives false confidence). No correct seam is itself a
+finding — the architecture prevents locking the bug down — record it as a roadmap candidate. Then:
+failing test → fix (a slice on an active card; standalone: propose and wait) → test passes → re-run the
+Phase-1 loop on the **original, un-minimized** scenario.
 
-## Phase 6 — cleanup + capture
+## Phase 6 — clean up and capture
 
-- [ ] Original repro no longer reproduces (Phase-1 loop green)
-- [ ] Regression test passes (or the no-seam finding is recorded)
-- [ ] All tagged instrumentation removed (grep the prefix); throwaway harnesses deleted
-- [ ] The winning hypothesis stated in the fix's commit message — the next debugger learns
-- [ ] Durable findings (mechanism, invariant, trap) → KB via xg-knowledge-lite Write; card
-      active → `progress.md` Discovered issues row
+- [ ] original repro no longer reproduces (Phase-1 loop green)
+- [ ] regression test passes (or the no-seam finding is recorded)
+- [ ] all tagged instrumentation removed (grep the prefix); throwaway harnesses deleted
+- [ ] the winning hypothesis stated in the fix's commit message — the next debugger learns
+- [ ] durable findings (mechanism · invariant · trap) → KB via xg-knowledge-lite Write; card active →
+      a line in `design.md`「待解问题与证据」
 
-Then ask: what would have prevented this bug? An architectural answer (no good seam, tangled
-callers, hidden coupling) → a roadmap/KB note, written **after** the fix is in — you know more
-now than when you started.
+Then ask what would have prevented this bug; an architectural answer (no good seam, tangled callers,
+hidden coupling) becomes a roadmap / KB note written **after** the fix — you know more now.
 
-## Runtime override
-`diagnose use:diagnosing-bugs` (the source skill) or `use:<your-skill>`.
-
-## Done when
-Phase-6 checklist all checked. Then run the omission check (M3). Log usage `--action diagnose`
-(both contexts — like `review`, a diagnosis inside a requirement is still a diagnosis).
+Runtime override: `diagnose use:diagnosing-bugs` (the source skill) or `use:<your-skill>`.
+Done when the Phase-6 list is all checked. Log `--action diagnose` in both contexts — a diagnosis inside
+a card is still a diagnosis.

@@ -1,125 +1,116 @@
-# Step: investigate (the single front door for any code investigation)
+# Step: investigate — the front door for any code-behavior question
 
-This is the entry point the **global CLAUDE.md** routes *every* investigation to —
-"调查 X", "how does Y behave", a concurrency/runtime/feasibility question, probing an
-Open question. It does not introduce new rules; it **composes** two existing mechanisms
-and branches on whether a requirement is active:
+"调查 X", "how does Y behave", a concurrency / runtime / feasibility question, an open question on a
+card: it all routes here. Read-only on product code, never advances a card; the deliverable is a
+recorded evidence trail plus a **logical analysis** — grep and read gather evidence, they are not the
+answer. Two disciplines compose: the evidence rule below and concept-first understanding.
 
-- **M1 evidence discipline** — `evidence.md` (the whole point of routing here).
-- **M5 code understanding** — `understand.md` (concept-first, layered, KB-first).
+## The evidence rule (non-negotiable)
 
-## The discipline this verb enforces (M1, non-negotiable)
-Base **every** conclusion on verified evidence from the actual code/tests, not from a name. Minimum bar:
-- **runtime values / concurrency behavior** — read the code path that runs, don't reason from a name;
-- **function-pointer / hook / vtable targets** — a current assignment is not a constraint (swappable seam);
-- **`#ifdef` / build gating** — confirm the cited code is live in the target build;
-- **upstream library defaults** — a patched fork (Cloudberry/Greenplum on PostgreSQL) may have changed lock modes, defaults, call paths.
+No guessing, no 望文生义 (inferring behavior from a name). Every non-trivial claim is cited from the
+code / tests / KB or written `UNVERIFIED: …` — a flagged gap beats false confidence. In a patched fork
+(Cloudberry / Greenplum on PostgreSQL) never assume vanilla upstream behavior: lock modes, defaults and
+call paths may differ — read the in-repo path. Minimum bar:
+- runtime values / concurrency → read the code path that actually runs, not the name;
+- function-pointer / hook / vtable targets → a current assignment is a **swappable seam**, not a constraint;
+- `#ifdef` / build gating → confirm the cited code is live in the target build;
+- external tool or runtime behavior ("this flag can't be dropped", "the host lacks X") → **run it once**,
+  never reason from docs or habit; a deduced answer is 推断, never VERIFIED.
 
-Can't verify → write `UNVERIFIED: …` explicitly rather than concluding. The full detail is the
-**canonical M1 discipline in `evidence.md`** — apply it here, don't restate it: the **claims table**
-before any feasibility/runtime verdict (never assert on a GUESS/INFERRED row), the
-**Feasibility-claims** guard, the **Negative-results** rule, the **birth-certificate rule** for a
-negative that justifies new plumbing, and the **swappable-seam** every-site enumeration for a verdict
-resting on a function-pointer/hook.
+**Authority order**: (1) the code itself — `func()` in `file.c`; (2) the KB, `[[wiki/<project>/<slug>]]`
+(rank 2 does not exempt a KB negative from the negative-results rule); (3) official docs / changelog at the
+**detected** dependency version, deep-linked; (4) never Stack Overflow, blogs, AI summaries, training data.
 
-## Analysis, not just grep (logical reasoning is the deliverable)
-grep/read **gather** evidence — they are not the answer. The output of an investigation is a
-**logical analysis**, so you must:
-- **Trace the path that actually runs** (control + data flow) end-to-end, not pattern-match on
-  names: which function really executes at the seam, what value flows in, what each branch does.
-  "N grep hits" is raw material, not a conclusion.
-- **Build the causal chain** — state *why* the behavior happens, mechanism step by step; don't
-  assert "it deadlocks / is safe / can't happen because X" without tracing X to the effect.
-- **Apply the Synthesis lens** (`understand.md`: layer × module × hook × relationship) to fold the
-  scattered facts into one structural judgment — where responsibility actually lives, the
-  chokepoint, how cost/risk propagates.
-- **Reason, then label** in the claims table: an INFERRED row is a *reasoning step* that itself
-  needs checking, not merely a missing citation (re-derive it, per `evidence.md` verify-the-inference).
-If you can only report what you grepped, you searched — you didn't investigate.
+## Analysis, not grep
 
-## Spike — a throwaway probe when reading can't settle it
+- **Layers**: concept → module → file → function; start at the concept, descend only as far as the
+  question needs, name the layer you are at.
+- **Trace the path that runs** (control + data flow) end to end; **build the causal chain** — never
+  "it deadlocks / is safe / can't happen because X" without tracing X to the effect.
+- **Synthesis lens** for a cross-cutting verdict: stack the layers data flows through (property + one-line
+  judgment each) · find the seams where one layer delegates to another (hooks, AM callbacks, RPC) ·
+  ask **where responsibility actually lives** — often not the layer the question names. It surfaces
+  responsibility inversion ("missing coordination here" = centralized elsewhere), the keystone /
+  chokepoint (verify it first), cost / risk propagation across layers, and **collapses the question to a
+  few decisive checks** — name them and stop chasing the rest.
+- **Claims table before any feasibility / runtime / concurrency verdict** — `Claim | Evidence (file:line) |
+  VERIFIED / INFERRED / GUESS`; never assert on an INFERRED or GUESS row (investigate it up or carry the
+  conclusion as `UNVERIFIED:`); an INFERRED row is a reasoning step that itself needs re-deriving. The
+  table is the one place `file:line` is allowed; prose cites `func()` in `file.c`.
+- Load-bearing claims in any doc carry evidence / 推断 / 假设 inline (`constraints.md` Doc-2); only the
+  claims a decision rests on — don't tax every sentence.
 
-Some questions are **empirical**: runtime/planner/API behavior that code-reading alone leaves
-INFERRED (e.g. "is this qual pushed down in a dispatched plan?", "what does this hook receive at
-runtime?"). Instead of parking a 待验/落地前验 row, run a **spike** — throwaway code that answers
-the question (adapted from the `prototype` skill):
+### Assertions that read like narration (mark or verify them on the spot)
 
-1. **Throwaway from day one, outside the product tree** — scratchpad or a clearly-marked
-   disposable path; never committed. This keeps the verb's read-only-on-product-code contract:
-   a probe that requires modifying product code to run is not a spike — that's implementation,
-   escalate to the human.
-2. **One command to run**; no persistence, no polish beyond runnable.
-3. **Surface the observed state** — the probe prints what it saw; the run output is the evidence.
-4. **The answer is the only deliverable**: it upgrades the claims-table row to VERIFIED (evidence
-   = probe + output), lands in the notes/KB via the normal routing, and the probe code is deleted.
+- 「这个机制能抓住 X」— a usage scenario you wrote for a mechanism is a runtime claim: walk it in code.
+- 「这个序列有序 / 已去重 / 稳定」— order, uniqueness, idempotence come only from the producing code.
+- 「这条 alt 做不到，所以否决」— a rejection reason is as load-bearing as the choice and less checked:
+  nothing downstream ever touches a rejected alternative, so an error stays wrong.
+- 「这几个方案各有代价」— then verify the premise they **share** first; the usual collapse is "reuse X
+  for Y" where X exists but its path is not wired: is the call site commented out, does the `switch`
+  `default` panic, which manager / keyspace does it serve.
+- Negative trigger phrases — evidence now or rewrite as an open question: 「只有一个调用方 / 放宽它无连带」
+  (enumerate the callers) · 「这是 X 的私有路径 / 走不到那里」(ownership by registration site, not by
+  name or file) · 「已覆盖 / 这条错误说明它到过 Y」(point at the throwing line and its gate) · 「这条分支也会
+  命中」(reachable after the earlier gates?) · 「不能复用 / 不可行」(the feasibility guard below).
 
-A **defect is not a spike question**: observed-wrong behavior (bug, crash, perf regression)
-routes to the `diagnose` verb (`diagnose.md`, feedback-loop-first localization) — a spike
-answers a neutral empirical question; a diagnosis chases a failure.
+### Negative results and feasibility
+
+- A written negative states **"not found with query Q over scope S"**, never a bare absence; grep the
+  symbol across every file type, wiring (build configs, catalog `.dat`/`.bki`, registration sites) and
+  module before "missing" (the checklist for an agent: `lenses.md`「Evidence-gathering agents」).
+- **Birth-certificate rule**: an absence that justifies new plumbing (a field / pipe / layer to carry X to
+  Y, a guard premised on "X never reaches Y") reaches VERIFIED only by a hop-by-hop trace; can't →
+  `(assumption)` and design as if X might already reach Y.
+- **Consuming a KB negative or qualified conclusion**: land it first as a `Fact-n` (the verbatim sentence
+  + its recorded scope) and cite that; read it in exactly its state — 语义边界 (a path / use limit) ·
+  存在性否定 (doesn't exist / unreachable) · 规范处置 (a should / shouldn't) — never across states.
+- **"Infeasible" is a judgment about mutable code**: before writing it — is the cited code live in the
+  target build? is it the execution context you will touch (a hook runs where the hook runs)? is it a
+  swappable seam (then enumerate **every** assignment / registration site before any verdict)? is the
+  entity the one you think (catalog-service "coordinator" ≠ QD)? re-derive a subagent's leap yourself,
+  not just its cited lines. Say "no ready-made interface today (would need X)"; reserve "infeasible"
+  for a barrier you can name.
+
+## Spike — a throwaway probe when reading cannot settle it
+
+An empirical question (is this qual pushed down in a dispatched plan? what does the hook receive?)
+gets a probe instead of a parked row: throwaway from day one, **outside the product tree**, one command,
+prints the observed state; the run output upgrades the claims row to VERIFIED, lands via the normal
+routing, and the probe is deleted. A probe that needs product-code changes is implementation — escalate.
+A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`.
 
 ## Procedure
-1. **Query the KB first** — open with an `xg-knowledge-lite` **Orient** pass (project-scoped
-   warm-up: `wiki/index.md` section + `CONTEXT-MAP.md` + uncompiled-raw count) so you know which
-   concepts exist, then Query/drill the relevant ones (concept → Sources raw). Prefer KB facts
-   over training-data guesses; don't re-investigate what's already recorded. (Orient here is the
-   warm-up step of this run — covered by this run's log record, not logged separately.)
-2. **Investigate read-only** under full M1 — Explore subagent for targeted grep/read, or Plan
-   Mode for a broader layered survey (see `understand.md` Layers + Synthesis lens). When you
-   dispatch a subagent, put the Negative-results rule **in its prompt**, and re-derive any
-   load-bearing negative/infeasibility yourself.
-3. **Record + log — branches on context:**
 
-   **What counts as "active" (anchoring rule):** a requirement is active **only by
-   explicit linkage** — the human named the requirement (slug/NNN, or its topic unambiguously)
-   in this ask, or this session was entered via `resume <slug>` / a phase verb for it. Mere
-   existence of an in-flight requirement, topical relevance, or recency does **not** make it
-   active — **default to standalone**. Don't retro-anchor: if a standalone finding later matters
-   for a requirement, that requirement's design cites the notes/KB entry with a one-line link.
-   The branch only affects *recording* (where notes land, which doc gets a row, which `--action`
-   is logged) — the investigation itself is identical, so ambiguity never blocks investigating;
-   if genuinely torn, ask one question **at recording time**, not before.
-   (**Deliberately stricter than `review`'s anchoring:** a review target objectively IS some
-   card's implementation — its commits can be checked against the board — so review asks when
-   the match is plain; an investigation topic is merely *about* something a card also touches,
-   and topical auto-anchoring would guess wrong, so investigate defaults standalone.)
+1. **KB first** — an xg-knowledge-lite Orient pass (project section of `wiki/index.md` · `CONTEXT-MAP.md`
+   · uncompiled-raw count), then Query the relevant concepts and drill into their raw sources; don't
+   re-investigate what is recorded. Orient is this run's warm-up, not a separate log record.
+2. **Investigate read-only** — an Explore subagent for targeted grep / read, a broader layered survey for
+   a sprawling question. A dispatched agent gets the negative-results checklist **in its prompt**
+   (`lenses.md`); re-check every load-bearing negative it returns with a broader grep and re-derive any
+   "infeasible". Model: gather → `model: sonnet`; inference → the session model (opus cap) — except
+   where recall itself is the deliverable and nothing backstops it (seam enumeration, a birth-certificate
+   trace): the full session model. Surface source conflicts (docs vs code) to the human; never pick silently.
+3. **Record — branches on anchoring.** A card is **active only by explicit linkage** (the human named it
+   in this ask, or the session entered via `resume`); relevance or recency never anchors — default
+   standalone, and if torn ask one question **at recording time**, never before (the investigation itself
+   is identical). Stricter than `review`'s anchoring on purpose: a review target objectively *is* some
+   card's implementation; an investigation topic is merely *about* something a card also touches.
+   - **Active card** → this is the card's own investigation: verdict + evidence into `design.md`
+     「待解问题与证据」(facts into `facts.md` as `Fact-n`), reusable module truth to the KB via
+     `[[wiki/<project>/<slug>]]` — design.md links it, never duplicates it. No separate usage record
+     (the card's lite events cover it); 存量 cards record per `references/legacy/SKILL.md`.
+   - **Standalone** → reusable findings to the KB (xg-knowledge-lite Write: raw, compile if it shifts a
+     concept); scratch and phase notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix —
+     the dir says it; a multi-phase campaign graduates to `investigations/<topic>/` with charter + phase
+     notes), **never into the repo**. Log `--action investigate`.
+4. **Large question → phases.** Name the phases up front (e.g. 1 registration sites · 2 execution context
+   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file
+   and **pause for the human** before the next; don't pre-conclude across the pause. A single question
+   skips the phasing.
+5. **Receipts — write first, then reply**: the closing reply (or a phase pause) names the notes / KB paths
+   and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped.
 
-   - **A requirement is active** → this **is** that requirement's M5/design step. Anchor it to
-     the requirement dir (scratch in `notes/`), record verdict + evidence in `progress.md` →
-     *Design iterations*, route reusable module truth to the KB (`[[wiki/<project>/<slug>]]`).
-     Log `--action design`. **Stop at the phase boundary** — results inform design; do not roll
-     into writing/freezing `design.md` (Stop-at-gate rule).
-   - **No active requirement (standalone)** → capture reusable findings to the KB via
-     `xg-knowledge-lite` Write (raw → compile if it shifts a concept); answer the human.
-     Any scratch/phase notes go to `<dev_root>/<project>/investigations/` (see Cadence
-     below) — **never into the repo**. Log `--action investigate`. No requirement dir is created.
-
-## Cadence for a large/multi-step investigation
-A broad question (many subsystems, several open sub-questions) is run **in phases**, not in one
-shot:
-1. Split it into named phases up front (e.g. "1 registration sites · 2 execution context · 3 lock
-   path"). State the plan.
-2. After **each** phase, append a concise findings summary — its claims table + verdict-so-far +
-   what's still open — to a notes file, then **pause for the human's confirmation before the next
-   phase**. Notes file:
-   - requirement active → `<requirement>/notes/investigation-<topic>.md` (the prefix stays
-     here — `notes/` doesn't self-describe; rolls up into `progress.md` Design iterations at
-     the end);
-     standalone → `<dev_root>/<project>/investigations/<topic>.md` (**no investigation-
-     prefix** — the dir already says it; constraints.md「Layout (lite)」/ legacy/SKILL.md「Layout」). A large multi-phase investigation
-     graduates to the **campaign dir** form `investigations/<topic>/` — charter + per-phase
-     notes + progress — instead of one ever-growing file.
-     **Never write scratch into the repo** (repo CLAUDE.md: new work → dev_root + KB only).
-     Once findings are durable, compile them to the KB; the scratch may then be kept or removed.
-3. Don't pre-conclude across the pause — each phase's table feeds the next; the final verdict
-   waits until the human says continue and the last phase closes.
-
-A small, single-question investigation skips the phasing — answer it under the discipline above
-and record once. Phase only when the scope genuinely warrants checkpoints.
-
-`investigate` never edits product code and never advances a phase — it only produces
-understanding and a recorded evidence trail.
-
-**Receipts (write first, then reply):** the reply that closes a run — or a campaign phase's
-pause-for-confirmation — names the files just written (notes/KB paths + the dev_root/KB commit);
-an answer with no named artifact means the recording step was skipped (lite.md「The go ask」receipts rule; legacy/SKILL.md Stop-at-gate
-「Ask with receipts」).
+Citation forms in docs: code `` `TpFrozenShmemGetMin()` in `appserver.c` `` · knowledge
+`[[wiki/cbdb/appserver-epoch-shmem]]` · external: full URL with anchor + a one-line quote for a non-obvious
+decision. A verified load-bearing fact persists as `Fact-n` (card) or in the note's 事实清单.

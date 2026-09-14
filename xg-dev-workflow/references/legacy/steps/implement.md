@@ -77,7 +77,7 @@ it. Only **pause and escalate** when:
 - a slice's findings say **the work outgrows this card** (a「装不下本卡 / 需独立核证」-shaped
   conclusion — an enabling dependency growing into its own deliverable): run the **A↔B 判定**
   (legacy/SKILL.md「拆分与隔离」) and escalate an 升 B verdict through M2 as a proposed row
-  (split-out: `references/split-isolate.md`);
+  (split-out: `references/legacy/split-isolate.md`);
 - you're **blocked** (missing access/decision only the human can give); or
 - a **`push`** is wanted — push is human-gated, so ask (per-task *commits* are autonomous; see Commit cadence).
 Don't stop after each slice **nor** at the implement→test→评审 phase boundaries: this is the

@@ -144,7 +144,7 @@ not transcribe the words.
    common case pays one line). The gate digest restates the line as a §3 phase attachment
    (gate-digest.md). **The line must be current at the gate ask**: if the R-list changes after
    this beat ran, re-run it. Verdict = 拆 → follow the split-out procedure
-   (`references/split-isolate.md`).
+   (`references/legacy/split-isolate.md`).
 9. **GATE — hard stop.** Run the **criterion-conformance judge** (adversarial-critic.md lens 4,
    against this requirement's own claimed-closed criteria) and confirm panel receipts are in
    place (gate-digest.md precondition), then present `requirement.md` for confirmation **via the

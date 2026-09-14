@@ -47,6 +47,7 @@ provenance three-class · negative statements · tables vs prose · diagrams · 
 - Doc-5 (H) — prose states the present; history is git plus the 变更 lines; full content has one home and a summary is
   self-contained; an enumeration cites its owner, never restates the count.
 - Doc-6 (H) — diagrams are Mermaid (`diagram-gotchas.md`); KB references keep the wikilink form (load-bearing for recompile).
+- Doc-7 (H) — a Task deleted / merged / deferred, or a `[x]` invalidated, leaves a one-line note (plan.md or a 变更 line) — never a silent edit.
 
 ## ADRs (Adr)
 

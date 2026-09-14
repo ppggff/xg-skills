@@ -277,7 +277,7 @@ sizing」. Step: `references/legacy/steps/review.md`.
 drafting。质量判据（单向必要）：seam 写不出一份**具名契约** → 不具备拆卡条件，先
 investigation 把契约摸出来再判；写得出是必要非充分。字段级机制（part 轴各文档字段、看板
 两轴与单调约束、canonical 术语表、card-还是-雾判定）与 **split-out procedure**（升 B 后的
-拆出五步）：`references/split-isolate.md`。
+拆出五步）：`references/legacy/split-isolate.md`。
 
 ## Six cross-cutting mechanisms
 
@@ -401,7 +401,7 @@ vendored file to change behavior; the **contract never changes**, only the imple
   decision-zone gate ask.
 - `references/legacy/steps/review-deep.md` — the `review` verb's deep-tier continuation.
 - `references/legacy/model-tiering.md` — subagent model assignment rationale + session-model tiering.
-- `references/split-isolate.md` — 拆分与隔离 field-level mechanics.
+- `references/legacy/split-isolate.md` — 拆分与隔离 field-level mechanics.
 - `references/legacy/provenance.md` — what each vendored step was forked from.
 - `references/legacy/id-schemes.md` — the full ID-prefix registry (SKILL.md keeps only the core five).
 - `references/diagram-gotchas.md` — Mermaid pitfalls + ASCII CJK-width alignment.
