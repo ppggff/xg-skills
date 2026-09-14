@@ -51,10 +51,8 @@ frozen legacy step files (the 存量 flow keeps them).
   load-bearing facts and the approach's assumptions) and **commitment coverage** (rulings ↔ doc · upstream
   and deferred items ↔ Req or 不做 · Req ↔ Task ↔ V · creep · the roadmap's 裁定 lines · on a redo the
   old card's commitments). Review's lenses: `review.md` step 4.
-- **Adjudicate before reporting** (`lenses.md`「Adjudicate」): re-measure every number, separate facts
-  from inference, record 裁定 and 去向 in `notes/lens-<date>.md`; collect every lens before fixing.
-- Two standing rules need no agent: grep for an existing carrier before designing a new cross-boundary
-  mechanism; test every open concern against the KB's `*-invariants` ledger.
+- **Adjudicate before reporting**: `lenses.md`「Adjudicate」; the orchestrator's inline rules that need no
+  agent: `lenses.md`「Standing rules」.
 
 ## 4. Design topics to walk (M cards; lighter by size)
 

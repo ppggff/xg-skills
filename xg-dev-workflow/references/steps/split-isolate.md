@@ -10,7 +10,7 @@ A design splits into **parts** — named blocks of ≥1 module, each implemented
 independently against mocked neighbors. The part axis runs through `plan.md` (a `Part` column or grouping)
 and 「测试与验证」(one 联调 row per seam). A seam contract **disproved by 联调** is an approach change: an
 A→B walk (lite.md「Executing」) when the commitments still hold, otherwise the three-case ask — never a
-silent plan edit. Each part's completion gets one fresh-context attack on its diff (lite.md).
+silent plan edit. Per-part attack at completion: lite.md「Slice discipline」.
 
 ## B — several cards + the board
 

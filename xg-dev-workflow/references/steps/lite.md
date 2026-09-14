@@ -43,7 +43,8 @@ and the roadmap's 裁定 lines even when its other docs stay unread. Spikes stay
 local and reversible. Enhancing an existing tool or script starts by running it **unchanged in its target
 environment** (the host or container it actually runs in, not the dev box) — that baseline (command · output
 · version) is the first fact in the doc, and the design and later verification are measured against it.
-**Candidates first (方案优先)**: before drafting the approach, put ≥2 candidates side by side — one-line 思路
+**Candidates first (方案优先)**: before drafting the approach, put ≥2 candidates side by side (XS: one sentence
+naming the alternative) — one-line 思路
 · position on the hack ↔ 补丁 ↔ 推翻重来 spectrum · cost (工期 / 技术债 / 影响面 / 可维护性) · provenance; a
 hack or patch is a recorded debt decision, never a default (depth by size). "Enough basis" for go: key
 feasibility rests on code, a derivation or a spike; thin evidence is stated; a question that could sink the
@@ -79,13 +80,13 @@ what code can answer, ask promptly for what only the human knows.
 
 ### Slice discipline
 
-- **Recon first**: run the project's build / test baseline before slice 1 and record the exact entry
-  (command · output · version) in the doc; read every build's warnings (an implicit declaration is a load-time undefined symbol).
+- **Recon first**: run the project's build / test baseline before slice 1 and record the exact entry (command ·
+  output · version) in the doc; read every build's warnings (an implicit declaration is a load-time undefined symbol).
 - **Test mode follows the project's execution policy**: tests run by default → TDD (a failing test observed
-  before the code; a bug fix reproduces first); "describe, don't run" → test-after (write or describe the
-  test beside the code, defer the run, list the commands as suggested steps); unknown → ask before slice 1
-  and record the answer as the project's standing policy. Both are vertical per slice — never all code, then
-  all tests. `[x]` only on an observed pass; a criterion naming N sites is walked per site before ticking.
+  before the code; a bug fix reproduces first); "describe, don't run" → test-after (write or describe the test
+  beside the code, defer the run, list the commands as suggested steps); unknown → ask before slice 1 and record
+  the answer as the project's policy. Both are vertical per slice — never all code, then all tests. `[x]` only on
+  an observed pass; a criterion naming N sites is walked per site before ticking.
 - **Commit when a slice's runnable checks pass** (`constraints.md` Git · Ver; granularity is your call, one
   concern each); verify the staged blob, not the worktree (`git show :<file>` — after a `reset --soft` the old content is what's staged); a
   project no-commit policy → checkpoint and ask.
@@ -96,7 +97,7 @@ what code can answer, ask promptly for what only the human knows.
   (a pool cap serializes statements, not sequences) · no blocking IO under a lock · deletion test + caller
   audit on every new function (a parameter every caller passes constant is unused generality) · no causal claim
   without the traced mechanism.
-- **Scope**: the simplest *reliable* thing, no abstraction before the third use; touch only what the task
+- **Scope**: the simplest *reliable* thing, no abstraction before a second real caller; touch only what the task
   needs — clean up what your own change orphans, leave pre-existing dead code (note it); don't re-handle
   anomalies the design already eliminated; compilable after every slice; additive and revertable.
 - **Comments**: docstrings · step markers · why-notes for what the code can't show (a load-bearing guard's
@@ -119,7 +120,7 @@ A result names object, method, actual outcome and code version / environment —
 test name is not a run, a link is not support. When code, approach or environment changes, re-judge old
 evidence (stale → 待重验 with reason). Refuted (counter-example) and unverified (thin evidence) stay distinct
 — the latter is never a negative conclusion (`investigate.md`). Review depth follows impact, reversibility,
-invariants and verifiability, not task size. A "follow the text literally" criterion is run by an agent that
+invariants and verifiability — the by-size row is the floor, not the ceiling. A "follow the text literally" criterion is run by an agent that
 does not know the answer — the author's run does not count. A check run outside the card (scratch dir,
 temporary dev_root) lands its result line in plan.md at once; progress.md may cite it, never assert it.
 Close-out, in order: (1) **simplify** once when the change exceeds ~150 lines or adds files — behavior-

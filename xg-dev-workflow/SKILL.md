@@ -71,8 +71,10 @@ verb name: on a lite card or with no card they mean ordinary drafting, an A→B 
 ## What stays the model's call (自主区)
 
 Section depth · drawing beyond lite.md's trigger · candidates beyond the by-size minimum · when to split a
-file or a card · test strategy · commit granularity · reading scope · dispatching a lens by risk · number
-of ADRs. A step sentence that fixes one of these for a lite card is out of bounds — delete it at review.
+file or a card · test strategy · commit granularity · reading scope · dispatching a lens by risk · the review
+tier by stakes · anchoring a finding to a card when torn · spike vs open question · number of ADRs. A step
+sentence that fixes one of these for a lite card is out of bounds — delete it at review. Numeric triggers,
+minima and thresholds in the by-size table and the steps are human-set floors, not model items.
 
 ## Subagents
 

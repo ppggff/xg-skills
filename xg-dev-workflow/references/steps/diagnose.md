@@ -40,10 +40,10 @@ bug and yields the wrong fix. Then cut inputs / callers / config / data one at a
 each cut, until every remaining element is load-bearing: the minimal repro shrinks the hypothesis space
 and becomes the regression test.
 
-## Phase 3 — hypothesize (3–5, ranked, falsifiable)
+## Phase 3 — hypothesize (several, ranked, falsifiable)
 
-Generate 3–5 ranked hypotheses before testing any — a single hypothesis anchors on the first plausible
-idea. Each states its prediction ("if X is the cause, changing Y makes it disappear / Z makes it worse");
+Generate at least three ranked hypotheses before testing any — a single hypothesis anchors on the first
+plausible idea. Each states its prediction ("if X is the cause, changing Y makes it disappear / Z makes it worse");
 no prediction → discard or sharpen (a hypothesis is 假设 until tested). Show the list to the human — domain
 knowledge re-ranks instantly ("we just deployed #3") — without blocking on them.
 
@@ -61,8 +61,9 @@ forensic oracle and don't change what you can't reproduce.
 
 ## Phase 5 — fix via Prove-It
 
-Regression test **before** the fix, at a **correct seam** — one that exercises the bug pattern as it
-occurred at the call site (a too-shallow seam gives false confidence). No correct seam is itself a
+Regression test at a **correct seam** — one that exercises the bug pattern as it occurred at the call
+site (a too-shallow seam gives false confidence) — written **before** the fix where the project runs tests,
+beside it with the run deferred in a "describe, don't run" project (lite.md「Slice discipline」test mode). No correct seam is itself a
 finding — the architecture prevents locking the bug down — record it as a roadmap candidate. Then:
 failing test → fix (a slice on an active card; standalone: propose and wait) → test passes → re-run the
 Phase-1 loop on the **original, un-minimized** scenario.
