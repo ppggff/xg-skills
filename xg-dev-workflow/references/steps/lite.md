@@ -6,10 +6,9 @@ SKILL.md「Files on the lite path」names what else is shared or never loaded.
 ## Model
 
 One continuously updated working draft; explicitly confirmed goals and boundaries (**commitments**); one
-execution authorization (**go**); verification evidence matching the current change. Requirement / design
-/ detail are angles of thought, not gated phases: the loop understand ⇄ investigate ⇄ compare ⇄ negotiate
-runs before go and continues after it inside the authorization — only three kinds of change come back to
-the human (「Executing」).
+execution authorization (**go**); verification evidence matching the current change. Requirement / design /
+detail are angles of thought, not gated phases: understand ⇄ investigate ⇄ compare ⇄ negotiate runs before go
+and continues after it inside the authorization — only three kinds of change come back to the human (「Executing」).
 - **Commitment** = a goal, constraint or acceptance condition the human asked for or confirmed and still in
   force, plus the project's standing constraints; a confirmed Claude proposal is one and Claude cannot
   withdraw it alone. Not copied into the doc ≠ authorization to drop it — backfill and say so.
