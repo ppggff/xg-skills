@@ -4,6 +4,40 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-14 — audit against the GPT-6 Astra「Better skills」criteria + two lessons from recent cards
+
+Source: dev_root `xg-skills/reviews/2026-09-14-astra-better-skills-audit.md` — the article's four criteria
+(short precise descriptions · root as minimal router · no itineraries · know which model reads the text)
+applied to both skills. Items that belong to 期 2 went to card 031 as input; the rest landed here.
+
+- **description**: `'design this'` → `'design this change'` — it collided with the loaded `design` /
+  `frontend-design` / `design-taste-frontend` skills (criterion 1); `'change the design'` leaves the trigger
+  surface (subsumed; the SKILL.md body sentence on mode-following phrases keeps it). Claude Code's listing
+  budget was checked first (1% of the context window; least-used descriptions dropped first; 1,536 chars per
+  entry): neither skill is at risk, so nothing else was trimmed.
+- **lite.md「design.md skeleton」/「By size」**: the diagram rule keeps its trigger (≥2 interacting components
+  or a branch → at least one) and drops the per-size count (M+ → two); further views are the model's call.
+  A count fixed by size was a step sentence inside SKILL.md's autonomy list (criterion 3).
+- **lite.md「Model」/「By size」**: size is re-judged whenever the scope or impact forecast grows — the
+  opening call is not sticky; a larger row's requirements switch on from that point with one reason line.
+  Why: user lesson from recent cards (2026-09-14) — a card kept its opening size after its scope grew.
+- **lite.md「Drafting」**: enhancing an existing tool or script starts by running it unchanged in its target
+  environment (the host or container it actually runs in); that baseline — command · output · version — is
+  the first fact in the doc and what the design and later verification are measured against. Why: user
+  lesson from recent cards (2026-09-14). Distinct from implement.md's green-baseline-suite rule (that one is
+  about the test suite before slice 1; this one is about the object being enhanced, before the design).
+- **evidence.md**: the 2026-08-21「共享前提」bullet had been split by a parenthetical inserted 2026-08-27;
+  its last two lines (三处同看 …) read as an orphan paragraph. Rejoined, no wording change.
+- **README**: By-size bullet follows (size re-judged; ADRs and diagrams as earned).
+- **Judged, not done here — recorded as input on card 031**: review.md / investigate.md preambles still
+  speak legacy (19 / 12 legacy-vocabulary hits) → Req-3; evidence.md's subagent-facing search checklist →
+  the lenses file (Req-4, criterion 4); inline incident citations (003 · 024 R12 · 026 Req-19) → CHANGELOG
+  (Req-7); SKILL.md「References」duplication and the never-loaded blacklist fall with Req-1; a data-backed
+  sediment pass over evidence.md's failure-form enumerations → Req-7's rule→failure table gains a "zero
+  recurrence since 2026-08 → retire" criterion. The article's advice to delete guardrail rules outright was
+  not followed: each rule here has a Claude-side incident on file.
+- **体量行**: SKILL.md 93 · lite.md 145 · discuss.md 82 · constraints.md 58 · lite `--check` items 5.
+
 ## 2026-09-14 — lite product commits drop the `(NNN Req-n)` tail
 
 - **lite.md「Executing」· SKILL.md「Files on the lite path」· templates/design-lite.md.** Product commits

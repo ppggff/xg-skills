@@ -4,6 +4,27 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-14 — SKILL.md becomes a router; procedures move to `references/actions/`
+
+Source: the GPT-6 Astra「Better skills」audit (dev_root `xg-skills/reviews/2026-09-14-astra-better-skills-audit.md`),
+criterion 2 — the root document of a multi-workflow skill is a minimal router. Triggering any one action loaded
+all five procedures (269 lines), and xg-dev-workflow's `investigate` calls Orient on every run, so the whole
+file was paid for on every investigation.
+
+- **SKILL.md 269 → 106 lines**: two-layer model · action table (one line + one file per action) · designated
+  docs (architecture · invariants · CONTEXT-MAP, compressed with every point kept) · Conventions · Out of
+  scope · References.
+- **New `references/actions/{write,compile,query,orient}.md`** — moved verbatim, only cross-reference
+  pointers adjusted; `references/lint.md` → `references/actions/lint.md` (header + the log line that lived in
+  SKILL.md「Lint」). Lint's §1–§8 numbering is unchanged.
+- **New `references/constraints.md`** — `$KB` / config resolution · initialization set · project resolution ·
+  KB git versioning · usage logging: the hard rules, same name and shape as xg-dev-workflow's.
+- **description**: `(Karpathy two-layer)` dropped — identity text with no trigger value (criterion 1).
+- **README**: Orient added to the action list (it was missing), router pointer, out-of-scope list aligned
+  with SKILL.md (a glossary is in scope via CONTEXT-MAP; archive pages are out).
+- Behavior unchanged. Verified by diffing every old SKILL.md line against the new file set: the 35 lines not
+  found verbatim are all in the rewritten router sections or carry a substituted pointer.
+
 ## 2026-08-28 — ask-routing shared core (card 026)
 
 - New synced pair `references/ask-routing-core.md` (two-lane routing SoT, byte-identical
