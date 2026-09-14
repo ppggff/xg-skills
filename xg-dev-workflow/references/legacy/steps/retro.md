@@ -18,8 +18,8 @@ fixes back into the workflow itself — so the skill compounds.
 1. **Collect friction** — list concrete moments where the workflow under- or over-served.
    Cite the doc/step involved (evidence, not vibes).
 2. **Classify each** → fix belongs in:
-   - a **step file** (`references/steps/*`) — the procedure was wrong/unclear;
-   - a **template** (`references/templates/*`) — a doc was missing a section;
+   - a **step file** (`references/legacy/steps/*`) — the procedure was wrong/unclear;
+   - a **template** (`references/legacy/templates/*`) — a doc was missing a section;
    - **SKILL.md** — a contract/mechanism/gate needs changing;
    - **the project's CLAUDE.md** (e.g. `cbdb/CLAUDE.md`) — a project rule should be explicit;
    - **xg-knowledge-lite** — recurring module knowledge to capture/promote.

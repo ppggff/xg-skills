@@ -187,8 +187,8 @@ initialized on the first commit (`tools/commit-data-repos.py`).
 ## The five phases (contracts) + the close-out review gate
 
 Each phase is a **contract** — input, output doc, gate — independent of which skill implements it
-(see Step binding). Templates in `references/templates/`, per-step procedures in
-`references/steps/`.
+(see Step binding). Templates in `references/legacy/templates/`, per-step procedures in
+`references/legacy/steps/`.
 
 **Requirement sizing (XS/S vs M+).** A human judgment, reusing the task-scope vocabulary (XS · S · M
 · L) at requirement level: **XS/S** = structure-light, ~one vertical slice, no new module/contract →
@@ -377,14 +377,14 @@ record; only standalone KB work logs under xg-knowledge-lite.
 
 Each step resolves to one implementation, by priority: (1) **runtime override** — `use:<skill>` on
 the verb, or a persisted `workflow.bindings:` entry in config; (2) **vendored default** —
-`references/steps/<step>.md`, a forked copy of a source skill's procedure (ours, editable; origins:
+`references/legacy/steps/<step>.md`, a forked copy of a source skill's procedure (ours, editable; origins:
 `references/legacy/provenance.md`); (3) **inline** — steps with no third-party source. Rebind or edit the
 vendored file to change behavior; the **contract never changes**, only the implementation.
 
 ## References
 
-- `references/templates/` — the twelve doc templates.
-- `references/steps/` — per-step procedures + shared mechanisms referenced by multiple steps.
+- `references/legacy/templates/` — the twelve doc templates.
+- `references/legacy/steps/` — per-step procedures + shared mechanisms referenced by multiple steps.
 - `references/conventions-core.md` — shared writing core (byte-identical copy in both skills;
   declared in `tools/sync-manifest.txt`, checked by `tools/check-sync.py`).
 - `references/legacy/doc-conventions.md` — the workflow-supplement writing rules (layered on core;

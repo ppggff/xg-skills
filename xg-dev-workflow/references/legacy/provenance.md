@@ -1,7 +1,7 @@
 # Step provenance — what each vendored step was forked from
 
 Reference for rebinding/retro work (not needed at run time). Each vendored step in
-`references/steps/` is a forked, lightly-adjusted copy of the source skill(s) below; the fork is
+`references/legacy/steps/` is a forked, lightly-adjusted copy of the source skill(s) below; the fork is
 ours and editable anytime (see legacy/SKILL.md「Step binding」). "Provenance" here = vendoring history —
 distinct from the claim-provenance markers (evidence / 推断 / 假设) used in phase docs.
 
