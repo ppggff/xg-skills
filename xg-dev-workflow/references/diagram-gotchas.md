@@ -24,6 +24,16 @@ fails to render. So any label carrying an `[F<n>]` / `[R<n>]` / `[D<n>]` citatio
 **edge labels are the exposed form** because `|…|` looks like it quotes and doesn't. After writing,
 grep the mermaid blocks for an unquoted `|`-label containing `[`.
 
+**Mermaid gotcha — a call chain drawn as a straight line reads as N separate steps:** `A → B → C`
+for outer function → inner function → the system call it makes is read as *three things that happen
+one after another* (measured: "so that is three remote executions?"). What contains what goes in a
+`subgraph`, whose title says what that layer *is* ("one table = one execution"). The sections a
+single function prints in order are a **chain**, not a fan-out — a fan-out reads as alternatives.
+Nest **two levels at most**: all clusters share one `clusterBkg`, so depth is carried only by the
+border and the title, and a third level means the diagram wants splitting. When two levels really
+do need separating, one `style <id> fill:#f6f6f6` on the inner one — a neutral light fill, never a
+colour, because the value is hardcoded and has to stay readable in a dark theme.
+
 **Mermaid gotcha — subgraph `direction` is ignored when the subgraph has external links**
 (documented limitation): any edge crossing the subgraph boundary makes the subgraph inherit the
 parent graph's direction, so a "two vertical columns" layout built from `direction TB` subgraphs
