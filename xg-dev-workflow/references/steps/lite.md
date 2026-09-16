@@ -24,7 +24,7 @@ Start from `design.md`; create the others when their content appears, never as e
 `progress.md` (park / handoff) · `facts.md` (many load-bearing facts) · `adr/` (a trade-off worth its reason
 — when, and the supersede form: `constraints.md` Adr-1/2; skeleton `templates/adr.md`) · `plan.md` (tasks crowd
 the doc; skeleton `templates/plan.md`) · `log.md` (history outgrows the doc) · `notes/` (long output, spikes, lens and
-review notes; `human-messages.md` — the human's messages verbatim, one line each, as they arrive). Full content
+review notes; `human-messages.md` — the human's messages verbatim, one `- YYYY-MM-DD …` line each, as they arrive). Full content
 has one home; a summary is self-contained; prose states the present — history is git plus the 变更 lines. After
 its first commit design.md is edited in place, never rewritten whole; a grill's menus and enumeration tables land
 in `notes/` that round, design.md keeps the pointer. Opening a card is SKILL.md's `new` verb (by hand, no script);
@@ -55,8 +55,8 @@ what the authorization includes and excludes · the **收敛行** `已定 n 项 
 ids only in brackets). A partial go names the Req ids covered; the rest stay 讨论中. **What counts as go**: the
 word, or a reply **to this ask** that settles every 待你判 item and raises no new question — a discussion round's
 closing reply never is; the 授权记录 line quotes the human verbatim (`constraints.md` Go-1); an unanswered item
-gets asked for by itself, never "please say go". On go: the 授权记录 line and each covered block's `确认:` line,
-`status: executing`, `go:`, commit again (a tag is a pointer, not the approval).
+gets asked for by itself, never "please say go". On go: the 授权记录 line (carrying the 收敛行's `lens:` / `review:` fields)
+and each covered block's `确认:` line, `status: executing`, `go:`, commit again (a tag is a pointer, not the approval).
 
 ## Executing (after go)
 
@@ -144,7 +144,8 @@ real doc gap is not a failure.
 
 Re-checked whenever the scope or impact forecast grows; a switch once on stays on, with one reason line.
 - **Lenses** (falsifier + commitment coverage — `lenses.md`, dispatch per `discuss.md` §3) and the **close-out
-  review** are on by default; off only with a written reason in the 收敛行 (`lens: 未做（原因）` · `review: 自审（原因）`).
+  review** are on by default; off only with a written reason in the 收敛行, carried into the 授权记录 line (`lens: 未做（原因）` ·
+  `review: 自审（原因）`).
 - **Grill to convergence** (`discuss.md` §1–§2, §4 topics) ← the approach spans ≥2 interacting modules or holds a
   hard-to-reverse choice; otherwise one round may share the go ask (say so in the 收敛行).
 - **Inv blocks** ← any Req mentions a lock · signal · exit code · disk format · output shape · external environment ·

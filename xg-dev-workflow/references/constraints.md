@@ -19,8 +19,8 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
   comment on the value) · `skill: <skill-repo HEAD the card was drafted against>` (a hint when it trails the current HEAD);
   when `requirement.md` also carries `governance`, the two agree (requirement.md wins).
 - Lay-3 (S: aj) — other card files exist only once their content appears, never as empty containers; `notes/human-messages.md`
-  holds the human's messages verbatim, one line each, appended as they arrive — its last date is never older than the newest
-  `- 变更:` line in design.md (day granularity); a done card has `notes/observations.md`.
+  holds the human's messages verbatim, one `- YYYY-MM-DD <原话>` line each, appended as they arrive — its last date is never older
+  than the newest `- 变更:` line in design.md (day granularity); a done card has `notes/observations.md`.
 - Lay-4 (S: ah, w, u) — board row `| NNN | lite | todo·active·done·dropped | — | [NNN-slug](./NNN-slug/) |`; 整体状态 follows
   `status` (draft→todo · executing/closing→active · done→done; dropped is row-only) and never moves backwards — except
   done → active once on a re-open (lite.md「Re-open after close-out」), with a reason line.
@@ -52,7 +52,7 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 - Doc-6 (H) — diagrams are Mermaid (`diagram-gotchas.md`); KB references keep the wikilink form (load-bearing for recompile).
 - Doc-7 (H) — a Task deleted / merged / deferred, or a `[x]` invalidated, leaves a one-line note (plan.md or a 变更 line) — never a silent edit.
 - Doc-8 (S: aj) — a Req that mentions a lock · signal · exit code · disk format · output shape · external environment · irreversible
-  operation has at least one `### Inv-n` block (lite.md「Triggers」).
+  operation has at least one `### Inv-n` block (lite.md「Triggers」) — or one written line `- Inv: 无（原因）` under 契约与不变量.
 
 ## ADRs (Adr)
 
@@ -70,7 +70,8 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
   written as a 变更 line that cites the confirming words — without them it stays a proposal and the old commitment stands.
 - Go-3 (H) — cross-card supersede: the superseding card writes one `- 退役:` line under the superseded item, `(<its go commit>, date)`;
   on a 存量 card through `commit-data-repos.py --allow-approved-edit`.
-- Go-4 (S: aj) — an executing or done card has `notes/lens-*.md`, or its 授权记录 carries `lens: 未做（原因）`.
+- Go-4 (S: aj) — an executing, closing or done card has a `## 授权记录` section, and `notes/lens-*.md` or a 授权记录 line carrying
+  `lens: 未做（原因）` (the 收敛行's lens / review fields ride the go line).
 
 ## Operations (Ops) — never covered by a go on tasks
 
