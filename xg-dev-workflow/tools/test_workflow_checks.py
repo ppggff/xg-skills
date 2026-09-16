@@ -915,6 +915,61 @@ class LiteDocForm(unittest.TestCase):
         self.assertIn("lite-doc-form", wc.LITE_CHECKS)
         self.assertIn("lite-doc-form", wc.LITE_ONLY_CHECKS)
 
+    def test_auth_section_missing_is_a_finding_on_a_live_card(self):
+        design = self.GOOD_DESIGN.split("## 授权记录")[0]
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual([x.split(":")[0] for x in f], ["doc-form/auth-missing"])
+
+    def test_star_bullets_parse_in_both_files(self):
+        design = self.GOOD_DESIGN.replace("- 2026-09-16 · **go**", "* 2026-09-16 · **go**") + \
+            "* 2026-09-15 · **go（续）** · Req-1 · 视为 go\n"
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "* 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual([x.split(":")[0] for x in f], ["doc-form/go-quote"])
+        self.assertFalse([x for x in s if "no `- YYYY-MM-DD" in x])
+
+    def test_change_lines_must_be_newest_first(self):
+        design = self.GOOD_DESIGN.replace("- 变更: 2026-09-16 x（人：「好」）\n",
+                                          "- 变更: 2026-09-15 y（人：「好」）\n- 变更: 2026-09-16 x（人：「好」）\n")
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual([x.split(":")[0] for x in f], ["doc-form/change-order"])
+
+    def test_cjk_marker_without_space_and_marker_outside_陈述(self):
+        ok = self.GOOD_DESIGN.replace("  - (a) uses a lock on the spool file", "  - (a)使用锁保护 spool 文件")
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", ok, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        self.assertEqual(wc.check_lite_doc_form("proj", card, ws._L1)[0], [])
+        bad = self.GOOD_DESIGN.replace("- 陈述:\n  lead\n  - (a) uses a lock on the spool file\n  - (b) two\n",
+                                       "- 陈述: (a) uses a lock (b) two\n- 备注:\n  - (a) marker elsewhere\n")
+        card = self._card("002-b", "executing", "2026-09-16", "abc1234", bad, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        self.assertEqual([x.split(":")[0] for x in wc.check_lite_doc_form("proj", card, ws._L1)[0]], ["doc-form/inline-clause"])
+
+    def test_inv_exemption_line_satisfies_doc8_and_any_status_is_judged(self):
+        no_inv = self.GOOD_DESIGN.replace("### Inv-1 lock\n- 不变量: one holder\n- 归宿: Req-1\n- 检验: test\n", "")
+        card = self._card("001-a", "draft", "2026-09-16", "abc1234", no_inv, "- 2026-09-16 「go」\n")
+        self.assertIn("doc-form/inv-missing", [x.split(":")[0] for x in wc.check_lite_doc_form("proj", card, ws._L1)[0]])
+        exempt = no_inv.replace("### 契约与不变量\n", "### 契约与不变量\n- Inv: 无（纯文本改动，无运行期契约）\n")
+        card = self._card("002-b", "draft", "2026-09-16", "abc1234", exempt, "- 2026-09-16 「go」\n")
+        self.assertNotIn("doc-form/inv-missing", [x.split(":")[0] for x in wc.check_lite_doc_form("proj", card, ws._L1)[0]])
+
+    def test_prose_mention_of_go_is_not_a_go_entry(self):
+        design = self.GOOD_DESIGN + "- 2026-09-16 · **补记** · 上面那条 **go** 的基线是 abc\n"
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        self.assertEqual(wc.check_lite_doc_form("proj", card, ws._L1)[0], [])
+
+    def test_undated_messages_file_is_a_skip_not_silence(self):
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", self.GOOD_DESIGN, "# 人话\n「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertTrue(any("no `- YYYY-MM-DD" in x for x in s), s)
+
     def test_run_check_streams(self):
         self._card("001-a", "done", "2026-09-16", "abc1234", self.BAD_DESIGN, "- 2026-09-14 「开卡」\n")
         self._card("002-b", "done", "2026-09-12", None, self.BAD_DESIGN, "- 2026-09-12 「开卡」\n")

@@ -363,29 +363,48 @@ LITE_DOC_FORM_CUTOFF = "2026-09-16"   # 032 go day; an older lite card sees hint
 LITE_DOC_FORM_DOCS = ("design.md", "plan.md", "facts.md", "progress.md")
 LONG_FIELD_CHARS = 120                 # the frozen (ag) threshold, chars not bytes
 INV_TRIGGER = re.compile(r"锁|信号|退出码|磁盘格式|输出形状|外部环境|不可逆"
-                         r"|\b(lock|signal|exit code|disk format|output shape|external environment|irreversible)\b", re.I)
+                         r"|\b(locks?|locked|locking|signals?|signalled|exit codes?|disk formats?|output shapes?"
+                         r"|external environments?|irreversible)\b", re.I)
+INV_EXEMPT = re.compile(r"^\s*- Inv[:：]\s*无[（(]", re.M)
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 CHANGE_DATE = re.compile(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", re.M)
 CONFIRM_DATE = re.compile(r"^\s*- 确认[:：]\s*(\d{4}-\d{2}-\d{2})", re.M)
 AUTH_SECTION = re.compile(r"^## 授权记录[^\n]*\n(.*?)(?=^## |\Z)", re.M | re.S)
 FIELD_LINE = re.compile(r"^\s*- ([^\s:：()（）]{1,12})[:：]\s*(\S.*)$")   # `- 标签: 内容` on one line
-CLAUSE_MARK = re.compile(r"^\s*- \([a-z]\) ", re.M)
+CLAUSE_MARK = re.compile(r"^\s*- \([a-z]\)", re.M)   # no trailing-space demand: CJK text follows the marker directly
 INLINE_CLAUSE = re.compile(r"\([a-z]\)")
-GO_ENTRY = re.compile(r"\*\*go(（续）|\(续\))?\*\*")
+GO_ENTRY = re.compile(r"^\S+\s*·\s*\*\*go(（续）|\(续\))?\*\*")   # `<date> · **go**` — a later **go** in prose is a mention
+BULLET = r"^[-*] "
 QUOTE = re.compile(r"原话[:：]\s*[「“\"]([^」”\"]+)[」”\"]")
 INFERRED_GO = re.compile(r"(视为|视作|等同|即为)\s*(go|授权)")
 
 
-def _skill_repo_head():
-    """Short HEAD of the git repo this script lives in (a symlinked install resolves to the repo); "" when unknown."""
+def _git_here(*args):
+    """Run git inside the repo this script lives in (a symlinked install resolves to the repo); rc 128 when it cannot run."""
     import subprocess
     here = os.path.dirname(os.path.realpath(__file__))
     try:
-        res = subprocess.run(["git", "-C", here, "rev-parse", "--short", "HEAD"],
-                             capture_output=True, text=True, timeout=5)
+        return subprocess.run(["git", "-C", here, *args], capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
-        return ""
+        return subprocess.CompletedProcess(args, 128, "", "")
+
+
+def _skill_repo_head():
+    """Short HEAD of the skill repo; "" when unknown (not a git checkout)."""
+    res = _git_here("rev-parse", "--short", "HEAD")
     return res.stdout.strip() if res.returncode == 0 else ""
+
+
+def _skill_relation(skill):
+    """("same" | "trails" | "unknown" | "nogit", head): how a card's `skill:` relates to the skill repo HEAD —
+    trails = an ancestor of HEAD; unknown = not an ancestor (ahead, or a foreign sha)."""
+    head = _skill_repo_head()
+    if not head:
+        return "nogit", ""
+    if head.startswith(skill) or skill.startswith(head):
+        return "same", head
+    rc = _git_here("merge-base", "--is-ancestor", skill, "HEAD").returncode
+    return ("trails" if rc == 0 else "unknown"), head
 
 
 def _visible(text):
@@ -478,16 +497,20 @@ def check_lite_doc_form(project, card_dir, ws):
         if text:
             hits += _long_lines(rel, text)
 
-    inv_present = bool(re.search(r"^### Inv-\d+", design, re.M))
+    inv_present = bool(re.search(r"^### Inv-\d+", design, re.M)) or bool(INV_EXEMPT.search(design))
     for rid, body in _req_blocks(design):
-        if INLINE_CLAUSE.search(_field_value(body, "陈述")) and not CLAUSE_MARK.search(body):
-            hits.append("doc-form/inline-clause: %s has (x) clauses with no line-leading `- (x)` marker" % rid)
-        if status == "done" and not inv_present:
+        if INLINE_CLAUSE.search(body) and not CLAUSE_MARK.search(_field_value(body, "陈述")):
+            hits.append("doc-form/inline-clause: %s has (x) clauses with no line-leading `- (x)` marker in its 陈述" % rid)
+        if not inv_present:
             m = INV_TRIGGER.search(_strip_code(body))
             if m:
-                hits.append("doc-form/inv-missing: %s mentions '%s' but the card has no Inv block" % (rid, m.group(0)))
+                hits.append("doc-form/inv-missing: %s mentions '%s' but the card has no Inv block (or `- Inv: 无（原因）` line)"
+                            % (rid, m.group(0)))
+        changes = CHANGE_DATE.findall(body)
+        if any(a < b for a, b in zip(changes, changes[1:])):
+            hits.append("doc-form/change-order: %s 变更 lines are not newest-first" % rid)
         confirms = CONFIRM_DATE.findall(body)
-        for d in sorted(set(CHANGE_DATE.findall(body))):
+        for d in sorted(set(changes)):
             if not any(c >= d for c in confirms):
                 hits.append("doc-form/change-unconfirmed: %s 变更 %s has no 确认 on or after it" % (rid, d))
 
@@ -499,8 +522,11 @@ def check_lite_doc_form(project, card_dir, ws):
 
     m = AUTH_SECTION.search(design)
     auth = m.group(1) if m else ""
+    live = status in ("executing", "closing", "done")
+    if live and not m:
+        hits.append("doc-form/auth-missing: %s card without a `## 授权记录` section" % status)
     msgs_norm = " ".join(messages.split())
-    for entry in re.split(r"^- ", auth, flags=re.M)[1:]:
+    for entry in re.split(BULLET, auth, flags=re.M)[1:]:
         when = DATE.search(entry)
         when = when.group(0) if when else "?"
         if GO_ENTRY.search(entry):
@@ -514,20 +540,23 @@ def check_lite_doc_form(project, card_dir, ws):
         if m:
             hints.append("lite-doc-form: 授权记录 entry %s reads like an inferred go ('%s') — Go-1 wants the human's words"
                          % (when, m.group(0)))
-    if status in ("executing", "closing", "done") and not glob.glob(os.path.join(notes, "lens-*.md")) \
-            and not re.search(r"lens[:：]\s*未做", auth):
+    if live and not glob.glob(os.path.join(notes, "lens-*.md")) and not re.search(r"lens[:：]\s*未做", auth):
         hits.append("doc-form/lens-missing: %s card without notes/lens-*.md or a `lens: 未做（原因）` in 授权记录" % status)
 
-    msg_dates = re.findall(r"^- (\d{4}-\d{2}-\d{2})", messages, re.M)
+    msg_dates = re.findall(BULLET + r"(\d{4}-\d{2}-\d{2})", messages, re.M)
     changes = CHANGE_DATE.findall(design)
-    if msg_dates and changes and max(msg_dates) < max(changes):
+    if messages and not msg_dates:
+        hints.append("lite-doc-form: notes/human-messages.md has no `- YYYY-MM-DD …` lines — messages-stale unjudged (Lay-3)")
+    elif msg_dates and changes and max(msg_dates) < max(changes):
         hits.append("doc-form/messages-stale: notes/human-messages.md last date %s is older than the newest 变更 %s"
                     % (max(msg_dates), max(changes)))
     if skill:
-        head = _skill_repo_head()
-        if head and not (head.startswith(skill) or skill.startswith(head)):
-            hints.append("lite-doc-form: skill-behind — skill: %s trails the skill repo HEAD %s; re-read SKILL.md · lite.md · constraints.md"
-                         % (skill, head))
+        rel, head = _skill_relation(skill)
+        if rel == "nogit":
+            hints.append("lite-doc-form: skill repo HEAD unknown (not a git checkout) — skill-behind unjudged")
+        elif rel != "same":
+            hints.append("lite-doc-form: skill-behind — skill: %s %s the skill repo HEAD %s; re-read SKILL.md · lite.md · constraints.md"
+                         % (skill, "trails" if rel == "trails" else "is not an ancestor of", head))
 
     if gate:
         return hits, hints, []
