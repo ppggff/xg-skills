@@ -1,9 +1,9 @@
 # Lenses — fresh-context agent prompt shapes (the 视角 dimension)
 
 An agent that does not hold your frame hits the blind spots you cannot; a designer grilling their own
-proposal carries the blind spot through. Every lens below is dispatched as **one agent per lens** at M+
-(a mixed mandate satisfices on its secondary lens; independent contexts decorrelate) — XS/S may fold
-lenses into one agent. Model: SKILL.md「Subagents」. Companion: `smell-catalog.md` (the quality lens's
+proposal carries the blind spot through. Every lens below is dispatched as **one agent per lens**
+(a mixed mandate satisfices on its secondary lens; independent contexts decorrelate); folding lenses into
+one agent is a written call with its reason. Model: SKILL.md「Subagents」. Companion: `smell-catalog.md` (the quality lens's
 brief). Steps only say *when* to dispatch (`steps/discuss.md` §3 · `steps/review.md` step 4); the
 prompt shapes live here and nowhere else.
 
@@ -37,7 +37,7 @@ prompt shapes live here and nowhere else.
   next dispatch does not re-find them; a later citation of a lens finding must be locatable.
 - Several lenses or review axes in flight → collect them all before fixing anything.
 
-## Pre-go lenses (lite.md「By size」M+; dispatch per discuss.md §3)
+## Pre-go lenses (on by default — lite.md「Triggers」; dispatch per discuss.md §3)
 
 ### Falsifier
 
@@ -63,8 +63,9 @@ Traceability, not opinion. Matrices, each cell a Req id / 不做 item / 缺:
   card's deferred items / handed-over audit items → a Req or an explicit 不做; flag source conflicts.
 - **Req ↔ Task ↔ V ↔ Inv** — orphans in any direction; numbering across design.md and plan.md.
 - **Scope creep** — anything no source asked for (自主区 ok when SKILL.md「自主区」covers it).
-- **Acceptance completeness** — every upstream acceptance condition has a V row; every inherited
-  constraint an Inv; a redo card also covers the old card's commitments.
+- **Acceptance completeness** — every upstream acceptance condition has a V row; every inherited constraint an
+  Inv, and a Req naming a lock · signal · exit code · disk format · output shape · external environment · irreversible
+  operation with no Inv block is a finding (`constraints.md` Doc-8); a redo card also covers the old card's commitments.
 Verdict per criterion: `satisfied @<doc §>` / `not satisfied (<what's missing>)` /
 `key-mismatch (<declared key> vs <delivered key>)`; the artifact's own "已核实 / done" is never
 evidence — the author being the satisfier is the failure mode this lens exists to break.
@@ -92,7 +93,7 @@ evidence — the author being the satisfier is the failure mode this lens exists
   docs accuracy (sonnet).
 - **Model-diversity sweep** (deep only, `model: sonnet`): fresh-eyes framing — pack + intentional-changes
   list + exemplars + "report only what you are confident is real; zero findings is a good outcome".
-- **Test adequacy** (M+ close-out fixed member): target list = the Req blocks' 验证 lines; per
+- **Test adequacy** (close-out fixed member): target list = the Req blocks' 验证 lines; per
   block four questions — **落地了吗** (the artifact exists at the named home doing what the 陈述
   says) · **可证伪吗** (a test or negative sample can trigger its failure) · **与他行矛盾吗** (other
   Req / Inv rows, the KB ledger) · **测试覆盖了吗** (a test or check cites it). Rows touched since
@@ -141,4 +142,3 @@ line (`Review 饱和判定: 建议停 — 8/9 confirmed 被 ≥2 路径命中`);
   concern against the KB invariants ledger**, and land a newly confirmed invariant there in the same
   session (one evidence-cited line) — deferral is what forces the next round to re-verify from zero.
 
-Honest limit: domain intuition is not automatable; these moves trigger the search that approximates it.

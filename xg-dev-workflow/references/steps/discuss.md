@@ -1,6 +1,6 @@
 # Step: discuss — the pre-go conversation on a lite card (with the human, with yourself, with fresh agents)
 
-Companion to `lite.md`「Drafting」/「The go ask」/「By size」. Four parts: how to ask the human, how to state your
+Companion to `lite.md`「Drafting」/「The go ask」/「Triggers」. Four parts: how to ask the human, how to state your
 understanding, how to dispatch a fresh-context lens, and which design topics to walk. Distilled from the
 frozen legacy step files (the 存量 flow keeps them).
 
@@ -20,7 +20,9 @@ frozen legacy step files (the 存量 flow keeps them).
   trying, not reasoning) · magnitude × access medium · cost symmetry (what it adds vs removes) · does the
   system already ship a carrier for it.
 - **Questions are self-contained**: an id's first use carries a one-clause gloss; phrase the judgment in
-  operation/behavior language, never an internal shorthand.
+  operation/behavior language, never an internal shorthand; a status line or question never leads with an internal
+  id. Option costs are stated in terms the human feels (a split file · an extra session · one more deploy step) —
+  line counts only as a bracketed range. **Land the answer** (doc + `notes/human-messages.md`) before asking the next question.
 - **A round is one decision cluster**; force-close after ~6–8 human touchpoints. **Every round ends with a
   one-line convergence verdict in the closing message** — judged by materiality (would another round change
   the decision?), not by "questions remain": a dry round (no decision-level change) → 建议收敛; an open point
@@ -44,7 +46,7 @@ frozen legacy step files (the 存量 flow keeps them).
 ## 3. Fresh-context lenses
 
 - **Why fresh, how to dispatch, the prompt shapes, adjudication**: `references/lenses.md` — one lens, one
-  agent at M+ (XS/S may fold); pack = {problem · claim · verified facts · dead findings}, premises only from
+  agent (folding lenses into one agent is a written call); pack = {problem · claim · verified facts · dead findings}, premises only from
   the pack; model per SKILL.md「Subagents」; Chinese report, ids in English, Mermaid only.
 - **The two lite lenses** — dispatch once the approach forms, and again at any round that produces an
   expensive-to-redo artifact (an enumeration table, a layering decision): **falsifier** (attack the
@@ -54,13 +56,13 @@ frozen legacy step files (the 存量 flow keeps them).
 - **Adjudicate before reporting**: `lenses.md`「Adjudicate」; the orchestrator's inline rules that need no
   agent: `lenses.md`「Standing rules」.
 
-## 4. Design topics to walk (M cards; lighter by size)
+## 4. Design topics to walk (those the card touches)
 
 | Topic | attr | lite home in design.md |
 |---|---|---|
 | Module & layer split | panorama | 当前方案 (understanding statement · candidates · chosen path) |
 | Happy path / data-flow walk | panorama | 当前方案 diagrams |
-| Part decomposition (L) | panorama | 当前方案 seam contract; `split-isolate.md` A↔B |
+| Part decomposition (split) | panorama | 当前方案 seam contract; `split-isolate.md` A↔B |
 | State & lifecycle | panorama | 契约与不变量 |
 | Concurrency / ordering | detail | 契约与不变量 |
 | Data model & storage footprint | panorama | 当前方案 impact forecast |

@@ -36,7 +36,7 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   (the design.md skeleton `new` copies) · `references/constraints.md` · `references/lenses.md` (fresh-context lens
   prompt shapes; `smell-catalog.md` is its companion).
 - **Shared verbs, read as-is**: steps investigate (the evidence rule lives there) · diagnose · review (its lite
-  branch; L close-out lenses per `lenses.md`) · improve · learn · retro · split-isolate (L cards: A↔B 判定 + 拆出
+  branch; close-out lenses per `lenses.md`) · improve · learn · retro · split-isolate (拆不拆: A↔B 判定 + 拆出
   五步); templates design-lite · adr · facts · index · roadmap. Slice discipline (recon · test mode ·
   commit · comments) is lite.md「Executing」.
 - **Never loaded for a lite card**: everything under `references/legacy/` (the frozen five-phase flow —
@@ -53,8 +53,9 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
 
 `xg-dev-workflow <verb> [args]`:
 - `new <slug>` — open a lite card by hand (next `NNN` · dir · `design.md` copied from
-  `templates/design-lite.md` with id / title / project / created filled · board row ·
-  `notes/human-messages.md` at the first human message): lite.md「Open a card」, then「Drafting」.
+  `templates/design-lite.md` with id / title / project / created filled · board row (a new project first gets its dir +
+  `templates/index.md`) ·
+  `notes/human-messages.md` at the first human message): lite.md「Card files」, then「Drafting」.
 - `resume [<slug>]` · `park [<slug>]` — lite.md「Park / resume」(存量 cards: legacy/SKILL.md).
 - `check [<slug>]` — the lite check subset above (存量 cards: legacy's M3).
 - `investigate <topic>` — the front door for any code-behavior question; KB-first, evidence-cited,
@@ -71,11 +72,11 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
 
 ## What stays the model's call (自主区)
 
-Section depth · drawing beyond lite.md's trigger · candidates beyond the by-size minimum · when to split a
+Section depth · drawing beyond lite.md's trigger · candidates beyond the ≥2 minimum · when to split a
 file or a card · test strategy · commit granularity · reading scope · dispatching a lens by risk · the review
 tier by stakes · anchoring a finding to a card when torn · spike vs open question · number of ADRs. A step
 sentence that fixes one of these for a lite card is out of bounds — delete it at review. Numeric triggers,
-minima and thresholds in the by-size table and the steps are human-set floors, not model items.
+minima and thresholds in lite.md「Triggers」and the steps are human-set floors, not model items.
 
 ## Subagents
 

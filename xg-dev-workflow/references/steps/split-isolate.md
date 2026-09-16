@@ -1,6 +1,6 @@
-# Split and isolate (拆分与隔离) — an L card's two granularities
+# Split and isolate (拆分与隔离) — two granularities for a card that reads as several parts
 
-Both optional and independent; a card small enough is not split. lite.md「By size」L: run the A↔B call first.
+Both optional and independent; a card small enough is not split. lite.md「Triggers」split: run the A↔B call first.
 
 ## A — parts inside one design.md (part 化)
 

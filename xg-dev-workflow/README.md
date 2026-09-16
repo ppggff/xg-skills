@@ -3,7 +3,7 @@
 A lite, design-centric development workflow skill. One card = one directory of docs, organized per
 project under a config-driven root. The spine is one continuously updated working draft:
 
-understand ⇄ investigate ⇄ compare ⇄ negotiate → **go** → continuous execution → close-out (simplify · review by size · observation note)
+understand ⇄ investigate ⇄ compare ⇄ negotiate → **go** → continuous execution → close-out (simplify · review · observation note)
 
 Requirement, design and detail are angles of thought in the draft, not gated phases. The human confirms
 **commitments** (goals, constraints, acceptance conditions) and gives one **go**; after that Claude runs
@@ -13,7 +13,7 @@ brand-new one — resumes from files alone.
 
 ## What it is / isn't
 
-- It **is** a routing `SKILL.md` + one procedure (`references/steps/lite.md`, ≤150 lines) + its companions
+- It **is** a routing `SKILL.md` + one procedure (`references/steps/lite.md`, ≤160 lines) + its companions
   (`steps/discuss.md` for the pre-go conversation, `templates/design-lite.md`, `constraints.md` — the closed
   list of hard rules — and `lenses.md`, the fresh-context lens prompt shapes) + shared steps (investigate ·
   diagnose · review · improve · learn · split-isolate · retro) + a few Python tools. Everything the frozen
@@ -46,19 +46,21 @@ each row script- or reader-checkable.
   messages and the roadmap's rulings.
 - **The go ask is one message with receipts**: commit first, then 摘要 · commitments · scope · impact forecast
   · risks · what the authorization includes and excludes · the 收敛行 · the split between what Claude
-  verified and what only the human can decide. A reply that settles every open judgment and raises no new
-  question is a go.
+  verified and what only the human can decide. A reply **to that ask** that settles every open judgment and raises
+  no new question is a go; the 授权记录 quotes the human verbatim — never an inferred 「视为 go」.
 - **Execution is continuous.** Approach changes, added tests, reordering and review fixes are ordinary work
   (an A→B walk with one reason line); only three kinds of change come back to the human. Destructive or
   outward operations (live environments, push, range deletes) always need their own authorization.
 - **Verification names object, method, outcome and environment** (concurrent load included); a test name
-  is not a run. Close-out: simplify when the change is large, review by size (S self-review · M `review`
-  standard tier · L deep), per-commitment result, and an observation note that records skipped steps.
+  is not a run. Close-out: simplify when the change is large, review (`review` standard tier by default; a
+  self-review or the deep tier is a written call), per-commitment result, and an observation note that records
+  skipped steps and the model's own interruptions.
 - **Evidence only, with provenance.** No guessing, no 望文生义 — every load-bearing claim cites code or a doc,
   marked evidence / 推断 / 假设; doubts are investigated by a subagent (`investigate` is the front door).
-- **By size.** XS/S stay light; size is re-judged whenever scope grows; M requires a grill to convergence, two
-  fresh-context lenses (falsifier + commitment coverage), `plan.md`, `facts.md`, ADRs and diagrams as earned; L splits first
-  (`references/steps/split-isolate.md`).
+- **Triggers, not size tiers.** Two fresh-context lenses (falsifier + commitment coverage) and the close-out review
+  are on by default, off only with a written reason in the 收敛行; a grill to convergence, Inv blocks, a baseline run,
+  diagrams, `plan.md` / `facts.md` / ADRs and a split (`references/steps/split-isolate.md`) each switch on from the
+  card's content (`references/steps/lite.md`「Triggers」), re-checked whenever scope grows.
 - **Docs + KB are git-managed.** `dev_root` and the KB are each their **own repo** with autonomous **local**
   commits at every doc boundary, scoped to the acting card (`--card <project>/<NNN>`); `push` stays
   manual. An optional session-end hook sweeps leftovers per project:

@@ -10,10 +10,10 @@ touches a commitment (then lite.md「Executing」's ask); a fix that changes beh
 **Context pack on a lite card** = `design.md`'s Req blocks + 当前方案 (its 契约与不变量 rows feed the
 invariants axis); the test-adequacy lens's target list is the Req blocks' 验证 lines.
 
-**Two ways it runs**: (1) **ad-hoc** — any time, any diff; (2) the **M+ close-out** (lite.md「Verification
-and close-out」) — the review **checks the promised verification ran**: every V row / Req 验证 line maps to
+**Two ways it runs**: (1) **ad-hoc** — any time, any diff; (2) the **close-out** (lite.md「Verification and
+close-out」; on by default, a skip is written with its reason) — the review **checks the promised verification ran**: every V row / Req 验证 line maps to
 an executed test or check, or to a recorded, reasoned downgrade; a silently dropped scenario is a finding,
-and the report carries the per-row verdict. An S card may skip the close-out review — say so in the doc.
+and the report carries the per-row verdict.
 
 ## Procedure
 
@@ -45,10 +45,10 @@ and the report carries the per-row verdict. An S card may skip the close-out rev
 4. **Pick the tier, then dispatch** (briefs, models, menu and stop-rule: `references/lenses.md`「Review
    lenses」). Tier by stakes — diff size, card size, invariant density, the human's ask (「彻底审」→ deep);
    state it in the report.
-   - **light** (XS/S, diff <~150 lines, not invariant-heavy) — no subagents: the orchestrator reviews
+   - **light** (diff <~150 lines, not invariant-heavy — a written call) — no subagents: the orchestrator reviews
      inline across the three axes (spec · standards · invariants) with the pack; step 5 still applies.
-   - **standard** (M, one-sitting diff) — three axis agents, each a complete self-contained brief.
-   - **deep** (L, invariant-heavy, an M+ close-out of such code, or asked) — the lens fan-out +
+   - **standard** (the default; a one-sitting diff) — three axis agents, each a complete self-contained brief.
+   - **deep** (invariant-heavy, a split card's close-out, or asked) — the lens fan-out +
      adversarial trio + the model-diversity sweep + saturation passes. **Start lean, expand on
      evidence**: pass 1 = the sharp core (correctness-vs-invariants · trio · sweep) plus only the menu
      lenses the diff plainly indicates; the rest join a later pass if the saturation verdict says
