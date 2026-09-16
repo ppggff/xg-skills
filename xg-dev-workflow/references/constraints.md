@@ -116,4 +116,4 @@ provenance three-class · negative statements · tables vs prose · diagrams · 
 ## Caps (Cap) — anti-ratchet, re-measured by `retro`
 
 - Cap-1 (S: wc -l) — SKILL.md ≤120 · `steps/lite.md` ≤150 · `steps/discuss.md` ≤100 · this file ≤120 · 流程 = `steps/` minus
-  `retro.md`: ≤8 files, ≤900 lines in all · `templates/` 5 files ≤250 · lenses ≤200 (one or two files) · `steps/retro.md` (元) ≤100.
+  `retro.md`: ≤8 files, ≤900 lines in all · `templates/` 6 files ≤250 · lenses ≤200 (one or two files) · `steps/retro.md` (元) ≤100.

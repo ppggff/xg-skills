@@ -21,7 +21,7 @@ and continues after it inside the authorization — only three kinds of change c
 Start from `design.md`; create the others when their content appears, never as empty containers:
 `progress.md` (park / handoff) · `facts.md` (many load-bearing facts) · `adr/` (a trade-off worth its reason
 — when, and the supersede form: `constraints.md` Adr-1/2; skeleton `templates/adr.md`) · `plan.md` (tasks crowd
-the doc) · `log.md` (history outgrows the doc) · `notes/` (long output, spikes, lens and review notes;
+the doc; skeleton `templates/plan.md`) · `log.md` (history outgrows the doc) · `notes/` (long output, spikes, lens and review notes;
 `human-messages.md` — the human's messages verbatim, one line each, as they arrive). Full content has one
 home; a summary is self-contained; prose states the present — history is git plus the 变更 lines.
 

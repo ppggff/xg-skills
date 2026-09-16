@@ -8,6 +8,8 @@ the workflow so the skill compounds — and prune, so it does not sediment.
 - Lite cards' close-out **observation notes** (`notes/observations.md`: places synced per change · needless
   interruptions · doc time and lines read at go · missed commitments / unauthorized changes / verification
   gaps · quality steps skipped and why · handoff gaps) — the flow's friction record.
+- **The session transcripts** where available: tally AskUserQuestion calls and turns ending in 「继续？」or a
+  confirmation ask — the interruption count the model's own observation note misses.
 - **The usage log** — `tools/log-usage.py report`: low scores and friction notes point at what to fix.
 - Any place evidence was guessed, a pointer drifted, or a commitment was changed without its 变更 line.
 
