@@ -88,7 +88,7 @@ new forms, and the new check gates the card itself).
 
 - **体量行**: SKILL.md 87 · 流程 8 files / 751 · 约束 125 · 模版 6 files / 167 · 视角 2 files / 200 · 元 77 ·
   lite card checks 6 (+4 project). Totals: lite face 1,527 md lines (incl. the two synced refs); whole skill
-  7,284 md lines (legacy 5,692 + ask-routing-core 65); tools 1,828 production lines on the lite half +
+  7,284 md lines (legacy 5,692 + ask-routing-core 65); tools 4,293 production lines on the lite half +
   2,558 under `tools/legacy/`.
 
 ## 2026-09-14 — 期 2 分维度重组 (card xg-skills/031): the lite face reorganized by dimension, legacy isolated
