@@ -14,7 +14,7 @@ brand-new one — resumes from files alone.
 ## What it is / isn't
 
 - It **is** a routing `SKILL.md` + one procedure (`references/steps/lite.md`, ≤160 lines) + its companions
-  (`steps/discuss.md` for the pre-go conversation, `templates/design-lite.md`, `constraints.md` — the closed
+  (`steps/discuss.md` for the pre-go conversation, `templates/design-lite.md` + `plan.md`, `constraints.md` — the closed
   list of hard rules — and `lenses.md`, the fresh-context lens prompt shapes) + shared steps (investigate ·
   diagnose · review · improve · learn · split-isolate · retro) + a few Python tools. Everything the frozen
   five-phase flow needs lives under `references/legacy/` and `tools/legacy/` (deleted in phase 3).

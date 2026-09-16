@@ -4,6 +4,93 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-16 — lite 试跑修补 (card xg-skills/032): what the first real lite card showed, folded back
+
+Source: the read-only session review of hashdata/011 (dev_root `xg-skills/investigations/lite-trial-011-session-review-2026-09-15.md`,
+23 findings F1–F7 · G1–G5 · E1–E9, seven fix groups) and the human's rulings on 2026-09-15/16: Q1 drop the XS/S/M/L
+tiers for content triggers, no two-tier naming; Q2 Req blocks in field-block form; Q3 plan.md as Task blocks + index
+table; Q4 011's own leftovers stay with the hashdata follow-up session (roadmap line); Q5 compress first, +10 on a cap
+only when still short by ≤5 lines. Pre-go: falsifier + commitment-coverage lenses (4 + 3 High, all adopted) and a
+sonnet consistency pass; the card bootstrapped its own rules (its design.md and plan.md are the first documents in the
+new forms, and the new check gates the card itself).
+
+- **Authorization is the human's words, not an inference** (E1 · E9 · F2). The 011 card recorded a「go（续）」the
+  human never gave — a discussion round's closing reply read through lite.md's "settles every 待你判 item" sentence —
+  and the next session shipped four product commits on it. Go-1 (constraints.md and lite.md「The go ask」, both
+  copies) binds the implicit go to a reply **to the go ask** and requires the 授权记录 line to quote the human verbatim
+  (`人原话：「…」`, present in `notes/human-messages.md`); Go-2 requires a 变更 line on a confirmed commitment to cite
+  the confirming words, otherwise it stays a 待确认 proposal (two deliverable shapes were rewritten by 变更 lines alone
+  while the observation note self-reported "unauthorized changes: 0"). Park's first blocker line is the authorization
+  state; resume first checks `go:` against the last human message.
+- **Size tiers → content triggers** (F1 · G1 · review §五). Size was never written down, never re-judged, and the
+  M-only lens requirement was skipped until the human asked; the「M+」condition on the invariants section left it empty
+  on every lite card so far (five done cards, zero Inv blocks, while 011 shipped a lock, signals, exit codes and an
+  output-shape contract — the close-out review's four high-severity defects were each an unwritten invariant). lite.md
+  「Triggers」replaces「By size」: lenses and the close-out review are on by default (off only with a written reason in
+  the 收敛行, which now carries `lens:` and `review:` fields); a grill to convergence, Inv blocks (Doc-8 keywords),
+  a baseline run, diagrams, plan.md / facts.md / ADRs and a split each switch on from the card's content. The S/M/L
+  wording was removed from SKILL.md, discuss.md, lenses.md, review.md, split-isolate.md and README (19 lines, 8 files).
+- **The stops and re-reads the trial lacked** (F3 · F4 · F5 · E2 · E3 · E4 · E6). "Slice boundaries are not stops"
+  (six「继续？」pauses in one execution window); "land the answer before the next question" and "a product commit that
+  changes a verified behavior updates the Req line in the same turn" (four rulings and one flock change landed only
+  when the human asked); a「Re-open after close-out」paragraph (done → executing once, a new go ask, `go（续）`, `closing`
+  while anything is 待人判 — two cards had done it from memory of a precedent); the rules are re-read before the go
+  ask, before close-out and on resume, and `skill:` in the frontmatter records the HEAD read (twenty skill commits
+  landed during the 011 session, which read lite.md once); a human correction lands in `notes/observations.md` at once
+  and never inside a message that also asks; design.md is edited in place after its first commit (a whole-file
+  rewrite lost the P1–P38 menu).
+- **Form is judged per item** (G2 · G3 · G5). conventions-core.md (both skills) now states both directions — a chain
+  of reasoning is a paragraph, parallel items a list, one-sentence facts a table, each item free-form inside — and
+  defines a field-labelled line as a block header whose content sits on the indented lines below (the human chose this
+  form over four alternatives for the review document; that document is the sample). Templates follow: the Req block
+  shows its real shape (label line, line-leading `- (a)` clauses, 变更 newest-first, an 授权记录 line that quotes the
+  human), 契约与不变量 becomes Inv blocks, the test plan becomes blocks or a layered list, and `templates/plan.md`
+  exists (031's plan.md had 900-character table cells). investigate.md / review.md name the field-block shape for a
+  finding. Doc-4 fixes clause markers (Id-1 had required them; 011's `[Req-12-a]` citations had no anchor) and
+  newest-first 变更 lines.
+- **Ten reader rules became one script check** — `lite-doc-form (aj)`, lite-only (`LITE_ONLY_CHECKS`), tagged findings
+  for Doc-3 long cells / fields, Id-1 inline clauses, Doc-8 missing Inv blocks, Lay-3 missing observation note and
+  stale human-messages date, Id-3 Fact-n outside facts.md, Go-1 go entries without the human's words, Go-2 变更
+  without 确认, Go-4 missing lens record; two hints that never gate (`skill:` behind HEAD, inferred-go wording).
+  Cards created from 2026-09-16 or carrying `skill:` get findings; older lite cards get the same lines as hints, so
+  the 011 card now shows the review's findings under `--check` without going red. 存量 output is byte-identical (031
+  snapshot: 0 lines); `--manifest` gains one row. `commit-data-repos.py --card` prints the usage-log reminder when a
+  commit moves `status` to executing or done (011 logged neither event).
+- **Wording** (F7 · E8): Ops-3 "a shared container or cluster is not a spike target" (a `killpg` took down the shared
+  test container once); a status line or question never leads with an internal id; option costs in terms the human
+  feels, line counts only as a bracketed range (30–50% estimation error drove two rounds). retro.md reads session
+  transcripts for the interruption tally the observation note misses; the note itself counts the model's own stops,
+  test mode per slice and questions per ask, and checks each 变更 line against Go-2 instead of self-assessing.
+- **Caps**: lite.md 150 → 160 and constraints.md 120 → 130 under the Q5 ruling — after compressing (Model paragraph,
+  「Open a card」folded into「Card files」, the header of constraints.md, Go-1 in three lines, the lenses pair back to
+  200 by folding Inv coverage into acceptance completeness and deleting a no-op closing line) the two files were still
+  3 and 5 lines short; the human had pre-authorized +10 for ≤5. `templates/` counts six files.
+- Not done on purpose: `~/.claude/CLAUDE.md`'s Mermaid convention (a proposed diff sits in the card:
+  `notes/claude-md-mermaid-chat.diff` — Mermaid is for documents, chat uses words); the 011 card's fake go line and
+  inline observation notes (hashdata roadmap line, its follow-up session); a retro mechanism for old cards' inline
+  observation notes (a stale-spec failure, not a rule gap); the facts.md field wording (already there since 028).
+
+**Rule → the failure it prevents (rows added or changed by this card):**
+
+| 规则 | 防的失败 · 来源 | 退役候选 |
+|---|---|---|
+| Go-1 (changed) | a discussion-round reply recorded as go; the next session shipped code on it (hashdata/011 E1 · F2, 2026-09-15) | 否 |
+| Go-2 (changed) | two deliverable shapes rewritten by 变更 lines alone, self-assessed as "unauthorized changes: 0" (011 E9) | 否 |
+| Go-4 (new) | the M-only lens requirement skipped until the human asked (011 F1) | 否 |
+| Doc-8 (new) | zero Inv blocks on five done lite cards; 011's four high-severity defects were unwritten invariants (G1) | 否 |
+| Doc-4 (changed) | inline `(a)…(k)` clauses with no anchor; 变更 / 确认 lines interleaved out of time order (011 G2) | 否 |
+| Lay-2 (changed) | rules changed twenty times under a session that read them once (011 E2) | 否 |
+| Lay-3 (changed) | human messages appended in one batch an hour late; observation note in design.md, invisible to retro (011 F4 · F6) | 否 |
+| Lay-4 (changed) | done → executing done from memory of a precedent, no rule (009 · 011 F5 · E3) | 否 |
+| Id-1 / Id-3 / Doc-3 (now S) | reader rules with no check: 41 long cells, 37 inline Fact-n, 9 clause-less Req blocks on one card (G2 · G3) | 否 |
+| Ops-3 (changed) | `killpg` on the shared test container during a spike (011 F7) | 否 |
+| Cap-1 (raised) | see「Caps」above — the anti-ratchet stays; the raise is recorded, not silent | 否 |
+
+- **体量行**: SKILL.md 87 · 流程 8 files / 751 · 约束 125 · 模版 6 files / 167 · 视角 2 files / 200 · 元 77 ·
+  lite card checks 6 (+4 project). Totals: lite face 1,527 md lines (incl. the two synced refs); whole skill
+  7,284 md lines (legacy 5,692 + ask-routing-core 65); tools 1,828 production lines on the lite half +
+  2,558 under `tools/legacy/`.
+
 ## 2026-09-14 — 期 2 分维度重组 (card xg-skills/031): the lite face reorganized by dimension, legacy isolated
 
 Direction: dev_root `xg-skills/notes/2026-09-07-lite-default-and-skill-decomposition-direction.md` §3–§5; the
