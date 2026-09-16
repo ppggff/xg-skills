@@ -365,6 +365,9 @@ LONG_FIELD_CHARS = 120                 # the frozen (ag) threshold, chars not by
 INV_TRIGGER = re.compile(r"锁|信号|退出码|磁盘格式|输出形状|外部环境|不可逆"
                          r"|\b(lock|signal|exit code|disk format|output shape|external environment|irreversible)\b", re.I)
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+CHANGE_DATE = re.compile(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", re.M)
+CONFIRM_DATE = re.compile(r"^\s*- 确认[:：]\s*(\d{4}-\d{2}-\d{2})", re.M)
+AUTH_SECTION = re.compile(r"^## 授权记录[^\n]*\n(.*?)(?=^## |\Z)", re.M | re.S)
 FIELD_LINE = re.compile(r"^\s*- ([^\s:：()（）]{1,12})[:：]\s*(\S.*)$")   # `- 标签: 内容` on one line
 CLAUSE_MARK = re.compile(r"^\s*- \([a-z]\) ", re.M)
 INLINE_CLAUSE = re.compile(r"\([a-z]\)")
@@ -388,22 +391,6 @@ def _skill_repo_head():
 def _visible(text):
     """Code spans and link targets removed before measuring — a backticked path is not prose length."""
     return re.sub(r"\]\([^)]*\)", "]", _strip_code(text))
-
-
-def _sections(text):
-    """{first token of a `## ` heading: body} for a design.md."""
-    out, key, buf = {}, None, []
-    for line in text.splitlines():
-        if line.startswith("## "):
-            if key is not None:
-                out[key] = "\n".join(buf)
-            head = line[3:].split()
-            key, buf = (head[0] if head else ""), []
-        elif key is not None:
-            buf.append(line)
-    if key is not None:
-        out[key] = "\n".join(buf)
-    return out
 
 
 def _req_blocks(text):
@@ -499,8 +486,8 @@ def check_lite_doc_form(project, card_dir, ws):
             m = INV_TRIGGER.search(_strip_code(body))
             if m:
                 hits.append("doc-form/inv-missing: %s mentions '%s' but the card has no Inv block" % (rid, m.group(0)))
-        confirms = re.findall(r"^\s*- 确认[:：]\s*(\d{4}-\d{2}-\d{2})", body, re.M)
-        for d in sorted(set(re.findall(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", body, re.M))):
+        confirms = CONFIRM_DATE.findall(body)
+        for d in sorted(set(CHANGE_DATE.findall(body))):
             if not any(c >= d for c in confirms):
                 hits.append("doc-form/change-unconfirmed: %s 变更 %s has no 确认 on or after it" % (rid, d))
 
@@ -510,7 +497,8 @@ def check_lite_doc_form(project, card_dir, ws):
     if facts and not os.path.exists(os.path.join(card_dir, "facts.md")):
         hits.append("doc-form/fact-home: %s cited in design.md but facts.md is absent" % ", ".join(facts[:3]))
 
-    auth = _sections(design).get("授权记录", "")
+    m = AUTH_SECTION.search(design)
+    auth = m.group(1) if m else ""
     msgs_norm = " ".join(messages.split())
     for entry in re.split(r"^- ", auth, flags=re.M)[1:]:
         when = DATE.search(entry)
@@ -531,7 +519,7 @@ def check_lite_doc_form(project, card_dir, ws):
         hits.append("doc-form/lens-missing: %s card without notes/lens-*.md or a `lens: 未做（原因）` in 授权记录" % status)
 
     msg_dates = re.findall(r"^- (\d{4}-\d{2}-\d{2})", messages, re.M)
-    changes = re.findall(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", design, re.M)
+    changes = CHANGE_DATE.findall(design)
     if msg_dates and changes and max(msg_dates) < max(changes):
         hits.append("doc-form/messages-stale: notes/human-messages.md last date %s is older than the newest 变更 %s"
                     % (max(msg_dates), max(changes)))
