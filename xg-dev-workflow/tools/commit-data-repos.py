@@ -414,6 +414,21 @@ def card_pathspecs(docs: Path, card: str):
     return project, [f"{project}/{hits[0]}", f"{project}/index.md", f"{project}/roadmap.md"]
 
 
+LITE_EVENTS = {"executing": "go", "done": "close-out"}
+
+
+def _lite_event_hint(repo: Path, card_rel: str) -> list:
+    """A `--card` docs commit that moves design.md `status` to executing (go) or done (close-out) is a
+    usage-log event (constraints.md Log-1); the reminder line names the command."""
+    diff = git(repo, "diff", "HEAD", "--", f"{card_rel}/design.md").stdout
+    for m in re.finditer(r"^\+status:\s*(\w+)", diff, re.M):
+        event = LITE_EVENTS.get(m.group(1))
+        if event:
+            return [f"usage log: {event} event — python3 tools/log-usage.py log --skill xg-dev-workflow "
+                    f"--action lite --score <1-5> --note '<one sentence>' --project <project>"]
+    return []
+
+
 def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = None,
                 card: str = None, allow: bool = False) -> list:
     if not repo.exists():
@@ -432,8 +447,10 @@ def commit_repo(repo: Path, label: str, kind: str, message: str, project: str = 
             cproj, specs = card_pathspecs(repo, card)
             if cproj is None:
                 return [f"{label}: " + ln for ln in specs]
-            return _commit_scoped(repo, label, kind, message, cproj, inited, allow,
-                                  spec_override=specs, scope_desc=f"--card {card}")
+            hint = _lite_event_hint(repo, specs[0])
+            lines = _commit_scoped(repo, label, kind, message, cproj, inited, allow,
+                                   spec_override=specs, scope_desc=f"--card {card}")
+            return lines + (hint if any(" committed " in ln for ln in lines) else [])
         # the KB repo has no card dirs — --card keeps its KB half at project
         # scope (027 HLD-6/F6)
         return _commit_scoped(repo, label, kind, message, card.partition("/")[0],

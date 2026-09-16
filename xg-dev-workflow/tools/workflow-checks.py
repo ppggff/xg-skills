@@ -2,7 +2,7 @@
 """workflow-checks.py — the deterministic check domain (L2 of the status/checks split), lite half.
 
 Check implementations behind `workflow-status.py --check`: the checks a lite card runs — links (o),
-status-field (p), progress-cap (s), governance-carriers (ai), lite-board-sync (ah) — plus the project
+status-field (p), progress-cap (s), governance-carriers (ai), lite-board-sync (ah), lite-doc-form (aj) — plus the project
 scope (o)(u)(v)(w) and the registry / exemption infrastructure. The 23 存量-only card checks (ledger,
 grill, receipts, trace, doc-native blocks, …) were split out to legacy/legacy_checks.py (031,
 2026-09-14) and are lazy-loaded by `_legacy()` only for a non-lite card, for `--manifest`, or when a
@@ -358,6 +358,195 @@ def check_governance_carriers(project, card_dir, ws):
     return []
 
 
+# ---- (aj) lite doc-form (032 Req-5): the constraints.md rows marked (S: aj), one lite-only entry ----
+LITE_DOC_FORM_CUTOFF = "2026-09-16"   # 032 go day; an older lite card sees hints unless its frontmatter carries `skill:`
+LITE_DOC_FORM_DOCS = ("design.md", "plan.md", "facts.md", "progress.md")
+LONG_FIELD_CHARS = 120                 # the frozen (ag) threshold, chars not bytes
+INV_TRIGGER = re.compile(r"锁|信号|退出码|磁盘格式|输出形状|外部环境|不可逆"
+                         r"|\b(lock|signal|exit code|disk format|output shape|external environment|irreversible)\b", re.I)
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+FIELD_LINE = re.compile(r"^\s*- ([^\s:：()（）]{1,12})[:：]\s*(\S.*)$")   # `- 标签: 内容` on one line
+CLAUSE_MARK = re.compile(r"^\s*- \([a-z]\) ", re.M)
+INLINE_CLAUSE = re.compile(r"\([a-z]\)")
+GO_ENTRY = re.compile(r"\*\*go(（续）|\(续\))?\*\*")
+QUOTE = re.compile(r"原话[:：]\s*[「“\"]([^」”\"]+)[」”\"]")
+INFERRED_GO = re.compile(r"(视为|视作|等同|即为)\s*(go|授权)")
+
+
+def _skill_repo_head():
+    """Short HEAD of the git repo this script lives in (a symlinked install resolves to the repo); "" when unknown."""
+    import subprocess
+    here = os.path.dirname(os.path.realpath(__file__))
+    try:
+        res = subprocess.run(["git", "-C", here, "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return res.stdout.strip() if res.returncode == 0 else ""
+
+
+def _visible(text):
+    """Code spans and link targets removed before measuring — a backticked path is not prose length."""
+    return re.sub(r"\]\([^)]*\)", "]", _strip_code(text))
+
+
+def _sections(text):
+    """{first token of a `## ` heading: body} for a design.md."""
+    out, key, buf = {}, None, []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if key is not None:
+                out[key] = "\n".join(buf)
+            head = line[3:].split()
+            key, buf = (head[0] if head else ""), []
+        elif key is not None:
+            buf.append(line)
+    if key is not None:
+        out[key] = "\n".join(buf)
+    return out
+
+
+def _req_blocks(text):
+    """[(id, body)] — every `### Req-n` block up to the next `##`/`###` heading."""
+    blocks, cur, buf = [], None, []
+    for line in text.splitlines():
+        m = re.match(r"^### (Req-\d+)\b", line)
+        if m or (cur and re.match(r"^##+ ", line)):
+            if cur:
+                blocks.append((cur, "\n".join(buf)))
+            cur, buf = (m.group(1) if m else None), []
+            continue
+        if cur:
+            buf.append(line)
+    if cur:
+        blocks.append((cur, "\n".join(buf)))
+    return blocks
+
+
+def _field_value(body, label):
+    """The payload of `- <label>:` in a block: the label line's tail plus its indented continuation."""
+    out, on = [], False
+    for ln in body.splitlines():
+        m = re.match(r"^- ([^\s:：]+)[:：]\s*(.*)$", ln)
+        if m:
+            on = m.group(1) == label
+            if on:
+                out.append(m.group(2))
+            continue
+        if on and (ln.startswith("  ") or not ln.strip()):
+            out.append(ln)
+        else:
+            on = False
+    return "\n".join(out)
+
+
+def _long_lines(rel, text):
+    """long-cell hits: table cells and one-line `- 标签: 内容` payloads over LONG_FIELD_CHARS (code-stripped)."""
+    out, fenced = [], False
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        ln = raw.strip()
+        if ln.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if ln.startswith("|"):
+            cells = [c.strip() for c in ln.strip("|").split("|")]
+            if all(set(c) <= set("-: ") for c in cells):
+                continue
+            for i, c in enumerate(cells):
+                n = len(_visible(c))
+                if n > LONG_FIELD_CHARS:
+                    out.append("doc-form/long-cell: %s line %d col %d — %d chars" % (rel, lineno, i + 1, n))
+            continue
+        m = FIELD_LINE.match(raw)
+        if m:
+            n = len(_visible(m.group(2)))
+            if n > LONG_FIELD_CHARS:
+                out.append("doc-form/long-cell: %s line %d field %s — %d chars" % (rel, lineno, m.group(1), n))
+    return out
+
+
+def check_lite_doc_form(project, card_dir, ws):
+    """(aj) 032 Req-5 — the reader rules constraints.md marks (S: aj), as one check with tagged findings:
+    long-cell (Doc-3) · inline-clause (Id-1) · inv-missing (Doc-8, done cards) · observations-missing (Lay-3,
+    done cards) · fact-home (Id-3) · go-quote (Go-1) · change-unconfirmed (Go-2) · messages-stale (Lay-3) ·
+    lens-missing (Go-4) — plus two hints that never gate: skill-behind (Lay-2) and an inferred-go wording.
+    Gate: created >= LITE_DOC_FORM_CUTOFF or a `skill:` field; an older card gets the findings as skips and one
+    grandfathered exemption. Runs for lite cards only (LITE_ONLY_CHECKS)."""
+    design_path = os.path.join(card_dir, "design.md")
+    design = ws._read(design_path)
+    if not design:
+        return [], [], [("carrier-missing", "design.md missing/empty")]
+    skill = ws.frontmatter(design_path).get("skill", "").split("#", 1)[0].strip().strip("\"'")
+    created = ws.card_created(card_dir)
+    gate = bool(skill) or (bool(created) and created >= LITE_DOC_FORM_CUTOFF)
+    status = ws.lite_status_word(card_dir)
+    notes = os.path.join(card_dir, "notes")
+    messages = ws._read(os.path.join(notes, "human-messages.md"))
+    hits, hints = [], []
+
+    for rel in LITE_DOC_FORM_DOCS:
+        text = design if rel == "design.md" else ws._read(os.path.join(card_dir, rel))
+        if text:
+            hits += _long_lines(rel, text)
+
+    inv_present = bool(re.search(r"^### Inv-\d+", design, re.M))
+    for rid, body in _req_blocks(design):
+        if INLINE_CLAUSE.search(_field_value(body, "陈述")) and not CLAUSE_MARK.search(body):
+            hits.append("doc-form/inline-clause: %s has (x) clauses with no line-leading `- (x)` marker" % rid)
+        if status == "done" and not inv_present:
+            m = INV_TRIGGER.search(_strip_code(body))
+            if m:
+                hits.append("doc-form/inv-missing: %s mentions '%s' but the card has no Inv block" % (rid, m.group(0)))
+        confirms = re.findall(r"^\s*- 确认[:：]\s*(\d{4}-\d{2}-\d{2})", body, re.M)
+        for d in sorted(set(re.findall(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", body, re.M))):
+            if not any(c >= d for c in confirms):
+                hits.append("doc-form/change-unconfirmed: %s 变更 %s has no 确认 on or after it" % (rid, d))
+
+    if status == "done" and not os.path.exists(os.path.join(notes, "observations.md")):
+        hits.append("doc-form/observations-missing: done card without notes/observations.md")
+    facts = sorted(set(re.findall(r"\bFact-\d+\b", _strip_code(design))))
+    if facts and not os.path.exists(os.path.join(card_dir, "facts.md")):
+        hits.append("doc-form/fact-home: %s cited in design.md but facts.md is absent" % ", ".join(facts[:3]))
+
+    auth = _sections(design).get("授权记录", "")
+    msgs_norm = " ".join(messages.split())
+    for entry in re.split(r"^- ", auth, flags=re.M)[1:]:
+        when = DATE.search(entry)
+        when = when.group(0) if when else "?"
+        if GO_ENTRY.search(entry):
+            q = QUOTE.search(entry)
+            if not q:
+                hits.append("doc-form/go-quote: 授权记录 go entry %s has no 人原话：「…」" % when)
+            elif " ".join(q.group(1).split()) not in msgs_norm:
+                hits.append("doc-form/go-quote: 授权记录 go entry %s quotes 「%s」 which is not in notes/human-messages.md"
+                            % (when, q.group(1)[:40]))
+        m = INFERRED_GO.search(entry)
+        if m:
+            hints.append("lite-doc-form: 授权记录 entry %s reads like an inferred go ('%s') — Go-1 wants the human's words"
+                         % (when, m.group(0)))
+    if status in ("executing", "closing", "done") and not glob.glob(os.path.join(notes, "lens-*.md")) \
+            and not re.search(r"lens[:：]\s*未做", auth):
+        hits.append("doc-form/lens-missing: %s card without notes/lens-*.md or a `lens: 未做（原因）` in 授权记录" % status)
+
+    msg_dates = re.findall(r"^- (\d{4}-\d{2}-\d{2})", messages, re.M)
+    changes = re.findall(r"^\s*- 变更[:：]\s*(\d{4}-\d{2}-\d{2})", design, re.M)
+    if msg_dates and changes and max(msg_dates) < max(changes):
+        hits.append("doc-form/messages-stale: notes/human-messages.md last date %s is older than the newest 变更 %s"
+                    % (max(msg_dates), max(changes)))
+    if skill:
+        head = _skill_repo_head()
+        if head and not (head.startswith(skill) or skill.startswith(head)):
+            hints.append("lite-doc-form: skill-behind — skill: %s trails the skill repo HEAD %s; re-read SKILL.md · lite.md · constraints.md"
+                         % (skill, head))
+
+    if gate:
+        return hits, hints, []
+    return [], ["lite-doc-form (pre-cutoff hint): " + h for h in hits] + hints, \
+        [("grandfathered", "pre-cutoff lite card: doc-form findings shown as hints")]
+
+
 def check_board_monotonic(project, project_dir, ws):
     """(w) B5 — the machine-decidable board subset (021 D6): Deps acyclic ·
     整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
@@ -456,9 +645,10 @@ CARD_ORDER = (
     "long-cell",
     "governance-carriers",
     "lite-board-sync",
+    "lite-doc-form",
 )   # output order of every card check — lite and legacy interleaved exactly as before the 031 split
 
-# The five checks a lite card runs (and every card shares); the 23 存量-only ones live in
+# The six checks a lite card runs; the 23 存量-only ones live in
 # legacy/legacy_checks.py ENTRIES and are assembled into CARD_ORDER by card_entries() / __getattr__.
 LITE_ENTRIES = {
     "links": ("links", check_links,
@@ -472,6 +662,12 @@ LITE_ENTRIES = {
     "lite-board-sync": ("lite-board-sync", check_lite_board_sync,
      _m("(ah)", "lite 卡看板行整体状态 ↔ design.md status 映射一致（draft→todo · executing/closing→active · done→done；dropped 只在行上）",
         "lite 卡（非 lite 卡不跑，输出零变化）", "Lay-4 · card 030", misfire="LiteBoardSync")),
+    "lite-doc-form": ("lite-doc-form", check_lite_doc_form,
+     _m("(aj)", "lite 卡文档形（constraints 的 S: aj 行）：单格/字段行 >120 字符 · Req 块行内 (x) 无行首 marker · done 卡关键词 Req 无 Inv 块 · "
+        "done 卡缺 notes/observations.md · Fact-n 在 design.md 无 facts.md · 授权记录 go 条目无原话或原话不在 human-messages · 变更 无同日后 确认 · "
+        "human-messages 日期早于最新 变更 · 无 lens 记录；提示级：skill: 落后 HEAD · 「视为 go」措辞",
+        "lite 卡；created ≥ 2026-09-16 或带 skill: 字段 → findings，更早的卡 → skips 提示", "Lay-2 · Lay-3 · Id-1 · Id-3 · Doc-3 · Doc-4 · Doc-8 · Go-1 · Go-2 · Go-4 · card 032",
+        misfire="LiteDocForm")),
 }
 
 PROJECT_CHECKS = (
@@ -532,8 +728,8 @@ def _run_entries(entries, args, ws):
     return findings, skips, exemptions
 
 
-LITE_CHECKS = ("links", "status-field", "progress-cap", "governance-carriers", "lite-board-sync")   # what a lite card runs
-LITE_ONLY_CHECKS = ("lite-board-sync",)   # never run for other modes — their output stays byte-identical
+LITE_CHECKS = ("links", "status-field", "progress-cap", "governance-carriers", "lite-board-sync", "lite-doc-form")   # what a lite card runs
+LITE_ONLY_CHECKS = ("lite-board-sync", "lite-doc-form")   # never run for other modes — their output stays byte-identical
 
 
 class LegacyChecksUnavailable(RuntimeError):

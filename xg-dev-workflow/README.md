@@ -69,8 +69,10 @@ each row script- or reader-checkable.
   {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 <path-to-skill>/tools/commit-data-repos.py"}]}]}}
   ```
 - **Check after every edit.** `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset
-  (links · status field · progress cap · governance carriers · board ↔ `status` sync — each naming its
-  `constraints.md` row in `--manifest`); the board and the viewer show a lite card as one cell derived from
+  (links · status field · progress cap · governance carriers · board ↔ `status` sync · doc form — long cells,
+  inline clauses, missing Inv blocks / observation note / lens record, an 授权记录 go entry without the human's
+  verbatim words, a 变更 line without its 确认, a stale human-messages file, a `skill:` field behind the skill HEAD;
+  findings on cards from 2026-09-16, hints on older lite cards — each naming its `constraints.md` row in `--manifest`); the board and the viewer show a lite card as one cell derived from
   `design.md`'s `status`; `--trace` / `--digest` print 不适用 for it.
 - **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
   `CHANGELOG.md` with the 体量行 by dimension (`constraints.md` Cap-1) plus the lite-face and whole-skill totals.

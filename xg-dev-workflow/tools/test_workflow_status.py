@@ -914,7 +914,8 @@ class LiteMode(unittest.TestCase):
         # past every cutoff, a legacy card would fire design-sections / governance / grill
         card = self.card("---\ngovernance: lite\nstatus: executing\ncreated: 2099-01-01\n---")
         findings, _, exs = wc.check_card_all("proj", card, ws._L1)
-        self.assertEqual(findings, [])
+        # the lite doc-form check (aj) legitimately fires on this bare fixture; phase-shape checks must not
+        self.assertEqual([f for f in findings if not f.startswith("doc-form/")], [])
         self.assertTrue(any(e.check == "lite" and e.cls == "not-yet-due" for e in exs))
 
     def test_lite_still_runs_status_field(self):

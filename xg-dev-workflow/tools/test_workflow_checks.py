@@ -784,7 +784,8 @@ class LegacySplit(unittest.TestCase):
     def test_registry_order_and_forwarding(self):
         ids = [e[0] for e in wc.CARD_CHECKS]
         self.assertEqual(ids, list(wc.CARD_ORDER))
-        self.assertEqual(len(ids), 28)
+        self.assertEqual(len(ids), 29)
+        self.assertEqual(ids[-1], "lite-doc-form")           # 032: appended after lite-board-sync
         self.assertEqual(ids[10:12], ["links", "status-field"])   # lite checks stay interleaved where they were
         self.assertTrue(callable(wc.check_grill_reverse))          # a legacy name resolves through __getattr__
         with self.assertRaises(AttributeError):
@@ -804,3 +805,122 @@ class ConstraintsBasis(unittest.TestCase):
         for cid, _fn, meta in entries:
             head = meta["basis"].split(" · ")[0]
             self.assertIn(head, ids, "%s basis %r names no constraints.md row" % (cid, meta["basis"]))
+
+
+LITE_FM = ("---\nid: %s\ntitle: t\nproject: proj\ngovernance: lite\nstatus: %s\ncreated: %s\n"
+           "go: abc\n%s---\n")
+
+
+class LiteDocForm(unittest.TestCase):
+    """032 Req-5: the lite doc-form check (aj) — ten sub-checks behind one lite-only registry entry.
+    Gate: created >= LITE_DOC_FORM_CUTOFF or a `skill:` frontmatter field → findings; an older lite card
+    without the field gets the same lines as skips (pre-cutoff hints) plus a grandfathered exemption;
+    a non-lite card never runs it. `skill:` trailing the skill repo HEAD is always a hint."""
+
+    GOOD_DESIGN = (
+        "# 001 t\n## 当前摘要\nx\n## 目标与边界\n"
+        "### Req-1 待验证 — a\n- 陈述:\n  lead\n  - (a) uses a lock on the spool file\n  - (b) two\n"
+        "- 验证: v\n- 来源: s\n- 变更: 2026-09-16 x（人：「好」）\n- 确认: 2026-09-16 go\n"
+        "## 当前方案\n### 契约与不变量\n### Inv-1 lock\n- 不变量: one holder\n- 归宿: Req-1\n- 检验: test\n"
+        "## 待解问题与证据\n- Q-1 x\n## 任务\nplan.md\n## 测试与验证\n| 项 | 结果 |\n|---|---|\n| V1 | ok |\n"
+        "## 授权记录\n- 2026-09-16 · **go** · Req-1 · 人原话：「go」· 基线 abc\n")
+
+    BAD_DESIGN = (
+        "# 001 t\n## 当前摘要\nx\n## 目标与边界\n"
+        "### Req-1 待验证 — a\n- 陈述: (a) takes a lock (b) sends a signal (c) three\n"
+        "- 验证: v\n- 来源: s\n- 变更: 2026-09-15 dropped (b)\n- 确认: 2026-09-14 go\n"
+        "## 当前方案\n| 案 | 代价 |\n|---|---|\n| A | " + "长" * 130 + " |\n"
+        "## 待解问题与证据\n- Fact-3 says so\n## 任务\nx\n## 测试与验证\nx\n"
+        "## 授权记录\n- 2026-09-15 · **go（续）** · Req-1 · 按 lite.md 视为 go · 基线 abc\n"
+        "- 2026-09-14 · **go** · Req-1 · 人原话：「nope」· 基线 abc\n")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        _write(self.root, "proj/index.md", NEW_BOARD_HEAD +
+               "| 001 | lite | active | — | [001-a](./001-a/) |\n"
+               "| 002 | lite | done | — | [002-b](./002-b/) |\n"
+               "| 003 | 需求 | active | — | [003-c](./003-c/) |\n")
+        orig = wc._skill_repo_head
+        wc._skill_repo_head = lambda: "abc1234"
+        self.addCleanup(lambda: setattr(wc, "_skill_repo_head", orig))
+        kb = os.path.join(self.root, "kb")
+        os.makedirs(kb)
+        orig_kb = wc._kb_root
+        wc._kb_root = lambda: kb
+        self.addCleanup(lambda: setattr(wc, "_kb_root", orig_kb))
+
+    def _card(self, rel, status, created, skill, design, messages, extra=()):
+        fm = LITE_FM % (rel[:3], status, created, ("skill: %s   # note\n" % skill) if skill else "")
+        _write(self.root, "proj/%s/design.md" % rel, fm + design)
+        _write(self.root, "proj/%s/notes/human-messages.md" % rel, messages)
+        for name, text in extra:
+            _write(self.root, "proj/%s/%s" % (rel, name), text)
+        return os.path.join(self.root, "proj", rel)
+
+    def _tags(self, lines):
+        return sorted(l.split(":")[0].replace("lite-doc-form (pre-cutoff hint)", "").strip(" /")
+                      for l in lines if "doc-form" in l or l.startswith(("long-cell", "inline-clause")))
+
+    def test_clean_gated_card_has_no_findings(self):
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", self.GOOD_DESIGN,
+                          "- 2026-09-16 「go」\n", extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual((f, s), ([], []))
+
+    def test_each_violation_flags_once_on_a_gated_card(self):
+        card = self._card("001-a", "done", "2026-09-16", "old1111", self.BAD_DESIGN,
+                          "- 2026-09-14 「开卡」\n")
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        tags = sorted(l.split(":")[0] for l in f)
+        self.assertEqual(tags, sorted([
+            "doc-form/long-cell", "doc-form/inline-clause", "doc-form/inv-missing",
+            "doc-form/observations-missing", "doc-form/fact-home",
+            "doc-form/go-quote", "doc-form/go-quote", "doc-form/change-unconfirmed",
+            "doc-form/messages-stale", "doc-form/lens-missing"]))
+        self.assertTrue(any("skill-behind" in x and "old1111" in x and "abc1234" in x for x in s), s)
+        self.assertTrue(any("视为 go" in x for x in s), s)   # the wording hint rides the skips stream
+
+    def test_pre_cutoff_card_gets_hints_not_findings(self):
+        card = self._card("002-b", "done", "2026-09-12", None, self.BAD_DESIGN, "- 2026-09-12 「开卡」\n")
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual(f, [])
+        self.assertEqual(sum(1 for x in s if x.startswith("lite-doc-form (pre-cutoff hint): doc-form/")), 10)
+        self.assertIn(("grandfathered", "pre-cutoff lite card: doc-form findings shown as hints"), exs)
+
+    def test_skill_field_alone_gates_an_older_card(self):
+        card = self._card("002-b", "done", "2026-09-12", "abc1234", self.BAD_DESIGN, "- 2026-09-12 「开卡」\n")
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual(len(f), 10)
+
+    def test_lens_skip_note_satisfies_go4(self):
+        design = self.GOOD_DESIGN.replace("人原话：「go」· 基线 abc", "人原话：「go」· lens: 未做（纯文档改动）· 基线 abc")
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n")
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual(f, [])
+
+    def test_prose_clause_citations_are_not_inline_clauses(self):
+        design = self.GOOD_DESIGN.replace("- 验证: v", "- 验证: (a) and (b) both walked; Req-1(a) cited")
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        self.assertEqual(f, [])
+
+    def test_non_lite_card_never_runs_it_and_registry_is_lite_only(self):
+        _write(self.root, "proj/003-c/requirement.md", REQ_FM % ("drafting", "ledger", "2026-09-16"))
+        f, s, exs = wc.check_card_all("proj", os.path.join(self.root, "proj/003-c"), ws._L1)
+        self.assertFalse([x for x in f + s if "doc-form" in x])
+        self.assertNotIn("lite-doc-form", [e[0] for e in wc.card_entries(False)])
+        self.assertIn("lite-doc-form", wc.LITE_CHECKS)
+        self.assertIn("lite-doc-form", wc.LITE_ONLY_CHECKS)
+
+    def test_run_check_streams(self):
+        self._card("001-a", "done", "2026-09-16", "abc1234", self.BAD_DESIGN, "- 2026-09-14 「开卡」\n")
+        self._card("002-b", "done", "2026-09-12", None, self.BAD_DESIGN, "- 2026-09-12 「开卡」\n")
+        code, out = _run(self.root, "proj/001")
+        self.assertEqual(code, 1)
+        self.assertIn("⚠ doc-form/go-quote", out)
+        code, out = _run(self.root, "proj/002")
+        self.assertEqual(code, 0)
+        self.assertIn("skip: lite-doc-form (pre-cutoff hint): doc-form/go-quote", out)

@@ -674,3 +674,26 @@ class DiffGuardReviewRound(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CardEventHint(unittest.TestCase):
+    """032 Req-5(b): a `--card` docs commit whose design.md `status` moves to executing (go) or done
+    (close-out) prints a usage-log reminder line; any other card commit prints none."""
+
+    def _repo(self, before, after):
+        repo = init_repo({"proj/001-a/design.md": "---\nstatus: %s\ngovernance: lite\n---\n# x\n" % before,
+                          "proj/index.md": "| 001 | lite | todo | — | [001-a](./001-a/) |\n"})
+        dirty(repo, "proj/001-a/design.md", "---\nstatus: %s\ngovernance: lite\n---\n# x changed\n" % after)
+        return repo
+
+    def test_go_transition_hints_usage_log(self):
+        lines = cdr.commit_repo(self._repo("draft", "executing"), "docs", "docs", "m", card="proj/001")
+        self.assertTrue(any("usage log" in l and "go" in l and "--action lite" in l for l in lines), lines)
+
+    def test_close_out_transition_hints_usage_log(self):
+        lines = cdr.commit_repo(self._repo("executing", "done"), "docs", "docs", "m", card="proj/001")
+        self.assertTrue(any("usage log" in l and "close-out" in l for l in lines), lines)
+
+    def test_no_transition_no_hint(self):
+        lines = cdr.commit_repo(self._repo("executing", "executing"), "docs", "docs", "m", card="proj/001")
+        self.assertFalse([l for l in lines if "usage log" in l], lines)

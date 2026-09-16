@@ -43,7 +43,9 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   `legacy/SKILL.md` with its steps, templates and refs, plus frozen forks of the shared files it cites) and
   `references/ask-routing-core.md` (legacy-only, kept at top level as a synced file).
 - **Tooling**: `tools/workflow-status.py --check <project>/<NNN>` runs the lite subset (links · status-field ·
-  progress-cap · governance-carriers · lite-board-sync — each naming its `constraints.md` row in `--manifest`);
+  progress-cap · governance-carriers · lite-board-sync · lite-doc-form — the last one turns the `(S: aj)` rows of
+  `constraints.md` into findings on cards created from 2026-09-16 or carrying `skill:`, hints on older lite cards;
+  each names its `constraints.md` row in `--manifest`);
   the board and the viewer render a lite card as one cell from design.md `status` (`status · Req n / 已验证 k`);
   `--trace` and `--digest` print one 不适用 line for a lite card (they render five-phase scaffolding).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
