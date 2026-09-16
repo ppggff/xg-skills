@@ -86,9 +86,14 @@ new forms, and the new check gates the card itself).
 | Ops-3 (changed) | `killpg` on the shared test container during a spike (011 F7) | 否 |
 | Cap-1 (raised) | see「Caps」above — the anti-ratchet stays; the raise is recorded, not silent | 否 |
 
-- **体量行**: SKILL.md 87 · 流程 8 files / 751 · 约束 125 · 模版 6 files / 167 · 视角 2 files / 200 · 元 77 ·
-  lite card checks 6 (+4 project). Totals: lite face 1,527 md lines (incl. the two synced refs); whole skill
-  7,284 md lines (legacy 5,692 + ask-routing-core 65); tools 4,293 production lines on the lite half +
+- **Close-out review** (standard tier: Spec opus · Standards sonnet · Invariants opus, plus a fresh-agent literal walk of four
+  judgment questions — all four right, zero legacy touch): 1 High + 5 Med + 12 Low; adopted all but four notes (manifest basis
+  packaging, the 依据 label on review findings, non-zero-padded `created`, non-UTF-8 files) — the High was a live card with no
+  `## 授权记录` section passing Go-1 / Go-4 untouched; the Meds were rule-vs-check key mismatches (skip note location, undated
+  human-messages lines, `*` bullets, CJK clause markers, Inv trigger with no written exemption).
+- **体量行**: SKILL.md 87 · 流程 8 files / 752 · 约束 126 · 模版 6 files / 167 · 视角 2 files / 200 · 元 77 ·
+  lite card checks 6 (+4 project). Totals: lite face 1,529 md lines (incl. the two synced refs); whole skill
+  7,286 md lines (legacy 5,692 + ask-routing-core 65); tools 4,310 production lines on the lite half +
   2,558 under `tools/legacy/`.
 
 ## 2026-09-14 — 期 2 分维度重组 (card xg-skills/031): the lite face reorganized by dimension, legacy isolated
