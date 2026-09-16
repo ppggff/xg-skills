@@ -13,10 +13,13 @@
 ## Writing style & structure
 
 - Plain prose, technical terms intact (不变量 / 契约 / 幂等 stay); short sentences.
-- **Structure over paragraphs**: parallel or enumerable content (conditions, steps, per-module
-  points) goes in nested lists — one point per bullet; paragraphs are reserved for reasoning
-  that genuinely chains (evidence → mechanism → conclusion). A paragraph packing ≥3 parallel
-  points is the smell — restructure it as a list.
+- **Form is judged per item, not per document**: a chain of reasoning (evidence → mechanism →
+  conclusion) is a paragraph; parallel or enumerable items (conditions, steps, per-module points)
+  are a list, one point per bullet; facts with one-sentence cells are a table (below). Each item is
+  free-form inside. Two smells, one per direction: a paragraph packing ≥3 parallel points →
+  a list; a bullet carrying a chain of reasoning → a paragraph.
+- **A field-labelled line is a block header** (`- 现象:` · `- 陈述:` · `- 事实:`): its content is
+  free-form on the indented lines below — never squeezed onto the label line.
 - **Short lines** — wrap prose around ~100 chars; a list item that runs long **splits into
   sub-bullets** (one clause per line) instead of one long line; rewrap existing long lines
   opportunistically when editing.

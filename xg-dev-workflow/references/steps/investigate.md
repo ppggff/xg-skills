@@ -111,6 +111,8 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
 5. **Receipts — write first, then reply**: the closing reply (or a phase pause) names the notes / KB paths
    and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped.
 
+A finding in a notes file is a **field block** — stable labels 现象 · 规范 (or 机理) · 改法 (or 结论), each a label
+line with free-form indented content; a further field only for an independent point (`conventions-core.md`「Form」).
 Citation forms in docs: code `` `TpFrozenShmemGetMin()` in `appserver.c` `` · knowledge
 `[[wiki/cbdb/appserver-epoch-shmem]]` · external: full URL with anchor + a one-line quote for a non-obvious
 decision. A verified load-bearing fact persists as `Fact-n` (card) or in the note's 事实清单.

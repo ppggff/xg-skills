@@ -74,7 +74,8 @@ and the report carries the per-row verdict. An S card may skip the close-out rev
    (the `review-` prefix and the date are load-bearing — multi-round reviews sort and don't collide; a
    same-day second round appends `-2`); standalone → `<dev_root>/<project>/reviews/YYYY-MM-DD-<slug>.md`.
    Shape: 总体结论 (approve when the change definitely improves overall code health, not when it is
-   perfect; the saturation one-liner) → findings by severity with `file:line` + suggested fix → 误报澄清
+   perfect; the saturation one-liner) → findings by severity, each a field block (现象 · 依据 with `file:line` ·
+   改法 — label line + indented free-form content, never one long bullet) → 误报澄清
    → **确认正确的关键点** (what was checked and confirmed against the invariants — for invariant-heavy
    code this positive half carries as much value as the findings) → **修复决策表** → suggested
    verification steps, labeled NOT executed where the repo's execution policy forbids running them.
