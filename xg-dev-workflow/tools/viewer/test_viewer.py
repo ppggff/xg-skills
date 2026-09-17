@@ -266,5 +266,37 @@ class T345Endpoints(unittest.TestCase):
         self.assertIn("note", json.loads(body))
 
 
+class T6Port(unittest.TestCase):
+    """033 Req-1: the viewer's port is fixed (ssh -L stability), and a busy port never degrades to a random one."""
+
+    def test_default_port_is_fixed(self):
+        self.assertEqual(viewer.DEFAULT_PORT, 8790)
+        self.assertEqual(viewer.parse_args([])["port"], viewer.DEFAULT_PORT)
+        self.assertEqual(viewer.parse_args(["--port", "9999"])["port"], 9999)
+        self.assertEqual(viewer.parse_args(["--port", "0"])["port"], 0)
+
+    def test_busy_port_exits_instead_of_falling_back(self):
+        import socket, io, contextlib
+        held = socket.socket()
+        held.bind(("127.0.0.1", 0))
+        held.listen(1)
+        port = held.getsockname()[1]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as cm:
+                viewer.bind_server(port)
+            self.assertEqual(cm.exception.code, 1)
+            self.assertIn(str(port), err.getvalue())
+        finally:
+            held.close()
+
+    def test_free_port_binds(self):
+        httpd = viewer.bind_server(0)
+        try:
+            self.assertTrue(httpd.server_address[1] > 0)
+        finally:
+            httpd.server_close()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

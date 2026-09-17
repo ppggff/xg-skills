@@ -13,9 +13,13 @@ Security (R6): binds 127.0.0.1 only; every route checks the Host header is local
 the shell + vendored asset come from a hardcoded repo path, never a user path. Read-only:
 no write endpoints, no disk writes, no cross-request state — Ctrl-C stops it clean.
 
+Ports are fixed by default (viewer 8790, gitweb 8791) so one `ssh -L` rule keeps working across
+restarts; a busy port is reported and the run stops rather than degrading to a random port.
+
 Usage:
   viewer.py [--port N] [--no-browser] [--dev-root DIR] [--kb-root DIR]
 """
+import errno
 import http.server
 import importlib.util
 import json
@@ -27,6 +31,7 @@ import subprocess
 import sys
 import threading
 import urllib.parse
+import urllib.request
 import webbrowser
 from pathlib import Path
 
@@ -36,6 +41,7 @@ SHELL_HTML = VIEWER_DIR / "shell.html"
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
           "mermaid.min.js": "text/javascript"}    # served from the hardcoded VIEWER_DIR only
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # server binds 127.0.0.1 (IPv4 loopback) only
+DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
@@ -485,9 +491,35 @@ def _git(dev_root: Path, *args):
         return ""
 
 
-def serve(dev_root: Path, kb_root: Path, port=0, open_browser=True, gitweb=True, gitweb_port=None):
+def _viewer_on(port):
+    """Whether 127.0.0.1:port answers with this viewer's shell (not just any listener)."""
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%d/" % port, timeout=0.6) as r:
+            return "status viewer" in r.read(4096).decode("utf-8", "replace")
+    except Exception:
+        return False
+
+
+def bind_server(port):
+    """Bind the fixed port, or name who holds it and stop — never fall back to a random port,
+    which would break the ssh -L rule the fixed port exists for."""
+    try:
+        httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    except OSError as e:
+        if e.errno != errno.EADDRINUSE:
+            raise
+        who = "another status viewer" if _viewer_on(port) else "another program"
+        sys.stderr.write("port %d is busy (%s). The viewer's port is fixed; stop that one "
+                         "or pass --port N.\n" % (port, who))
+        sys.exit(1)
+    httpd.daemon_threads = True
+    return httpd
+
+
+def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, gitweb=True, gitweb_port=None):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
+    httpd = bind_server(port)      # before the companion: a failed bind must not leave a fresh lighttpd behind
     companion = None
     if gitweb:                                  # 003: co-launch the read-only gitweb companion
         try:
@@ -502,8 +534,6 @@ def serve(dev_root: Path, kb_root: Path, port=0, open_browser=True, gitweb=True,
         print("gitweb companion on %s (%d repos)" % (Handler.gitweb_url, len(companion["repos"])), file=sys.stderr)
     else:
         Handler.gitweb_url = ""
-    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    httpd.daemon_threads = True
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
     print("status viewer on %s  (dev_root=%s, kb=%s)  — Ctrl-C to stop" %
           (url, dev_root, kb_root), file=sys.stderr)
@@ -531,8 +561,8 @@ def serve(dev_root: Path, kb_root: Path, port=0, open_browser=True, gitweb=True,
         _gw.stop(companion)
 
 
-def main(argv):
-    port, open_browser, dev_arg, kb_arg = 0, True, None, None
+def parse_args(argv):
+    port, open_browser, dev_arg, kb_arg = DEFAULT_PORT, True, None, None
     gitweb, gitweb_port = True, None
     i = 0
     while i < len(argv):
@@ -550,8 +580,15 @@ def main(argv):
         elif a == "--kb-root":
             kb_arg = argv[i + 1]; i += 2; continue
         i += 1
-    dev_root, kb_root = resolve_roots(dev_arg, kb_arg)
-    serve(dev_root, kb_root, port=port, open_browser=open_browser, gitweb=gitweb, gitweb_port=gitweb_port)
+    return {"port": port, "open_browser": open_browser, "dev_arg": dev_arg, "kb_arg": kb_arg,
+            "gitweb": gitweb, "gitweb_port": gitweb_port}
+
+
+def main(argv):
+    a = parse_args(argv)
+    dev_root, kb_root = resolve_roots(a["dev_arg"], a["kb_arg"])
+    serve(dev_root, kb_root, port=a["port"], open_browser=a["open_browser"],
+          gitweb=a["gitweb"], gitweb_port=a["gitweb_port"])
 
 
 if __name__ == "__main__":
