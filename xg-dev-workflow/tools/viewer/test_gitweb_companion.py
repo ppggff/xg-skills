@@ -75,6 +75,46 @@ class TUnit(unittest.TestCase):
         finally:
             srv.close()
 
+    def test_parse_gitweb_repos_yaml_and_fallback(self):
+        """033 Req-4: the browse-only repo list, read the same two ways as every other config key."""
+        text = ("root: ~/knowledge\n"
+                "dev_root: ~/dev-workflow\n"
+                "gitweb_repos:\n"
+                "  - ~/xxx/hdw-agent\n"
+                "  - /tmp/other-repo\n"
+                "projects:\n"
+                "  p1:\n"
+                "    paths:\n"
+                "    - /tmp/p1\n")
+        want = [os.path.expanduser("~/xxx/hdw-agent"), "/tmp/other-repo"]
+        self.assertEqual(gwc.parse_gitweb_repos(text), want)
+        real_load = gwc._rp._load
+        gwc._rp._load = lambda _t: None          # PyYAML absent → the text fallback
+        try:
+            self.assertEqual(gwc.parse_gitweb_repos(text), want)
+        finally:
+            gwc._rp._load = real_load
+        self.assertEqual(gwc.parse_gitweb_repos("root: ~/knowledge\n"), [])
+        self.assertEqual(gwc.parse_gitweb_repos(""), [])
+
+    def test_collect_repos_appends_extras_last_and_keeps_reserved_labels(self):
+        tmp = Path(tempfile.mkdtemp())
+        for name in ("proj", "dev-workflow", "knowledge", "extra"):
+            d = tmp / name
+            d.mkdir()
+            _git(d, "init", "-q")
+        cfg = tmp / "config.yaml"
+        cfg.write_text("root: %s\ndev_root: %s\ngitweb_repos:\n  - %s\n  - %s\nprojects:\n  proj:\n    paths:\n    - %s\n"
+                       % (tmp / "knowledge", tmp / "dev-workflow", tmp / "extra", tmp / "missing", tmp / "proj"),
+                       encoding="utf-8")
+        real_cp = gwc._rp.config_path
+        gwc._rp.config_path = lambda: cfg
+        try:
+            labels = [l for l, _ in gwc.collect_repos()]
+        finally:
+            gwc._rp.config_path = real_cp
+        self.assertEqual(labels, ["proj", "dev-workflow", "knowledge", "extra"])   # extras last, missing path dropped
+
     def test_write_configs_hardening(self):
         tmp = Path(tempfile.mkdtemp())
         gwc.write_configs(tmp, {"share": "/some/gitweb"}, 8791)

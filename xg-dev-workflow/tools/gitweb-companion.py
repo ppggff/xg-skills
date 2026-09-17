@@ -7,6 +7,9 @@ companion of viewer.py. The viewer stays pure stdlib; this module only
 orchestrates the external lighttpd/gitweb (subprocess), and its dependencies
 (lighttpd, Perl, gitweb.cgi) never enter the viewer.
 
+Repos come from the shared config: every `projects:` entry, dev_root, the KB, and the
+browse-only `gitweb_repos:` list (repos worth reading that are not workflow projects).
+
 Security posture: localhost bind + a lighttpd Host allowlist (DNS-rebinding guard,
 needs mod_access loaded), gitweb snapshot disabled, a controlled symlink forest
 (only the chosen repos' git-dirs), read-only.
@@ -71,8 +74,35 @@ def _gitweb_share():
     return None
 
 
+def parse_gitweb_repos(text):
+    """Config `gitweb_repos:` — a flat list of browse-only repo paths (not workflow projects).
+
+    Reuses resolve-project.py's PyYAML-or-none decision so both tools agree on when the text
+    fallback applies; the fallback below reads one top-level list, the only shape this key has.
+    """
+    data = _rp._load(text or "")
+    if data is not None:
+        items = data.get("gitweb_repos") or []
+        if isinstance(items, str):
+            items = [items]
+        return [os.path.expanduser(str(x)) for x in items]
+    out, inside = [], False
+    for raw in (text or "").splitlines():
+        line = raw.rstrip()
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if len(line) - len(line.lstrip()) == 0:
+            inside = line.strip().startswith("gitweb_repos:")
+            continue
+        if inside and line.lstrip().startswith("-"):
+            item = line.lstrip()[1:].strip().strip("\"'")
+            if item:
+                out.append(os.path.expanduser(item))
+    return out
+
+
 def collect_repos():
-    """[(label, git_dir)] for product projects + dev_root + KB.
+    """[(label, git_dir)] for product projects + dev_root + KB + `gitweb_repos:` extras.
 
     Skips paths that are missing / not a git repo; reserves the dev-workflow and
     knowledge labels; suffixes a colliding label rather than dropping a repo;
@@ -88,6 +118,8 @@ def collect_repos():
             wanted.append((name, Path(os.path.expanduser(str(paths[0])))))
     wanted.append(("dev-workflow", Path(os.path.expanduser(_rp.parse_dev_root(text)))))
     wanted.append(("knowledge", Path(os.path.expanduser(_rp.parse_kb_root(text)))))
+    for path in parse_gitweb_repos(text):      # last, so an extra named like a reserved label gets the suffix
+        wanted.append((Path(path).name, Path(path)))
 
     out, labels, gitdirs = [], set(), set()
     for label, path in wanted:
