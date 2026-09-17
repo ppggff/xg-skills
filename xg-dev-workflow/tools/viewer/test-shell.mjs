@@ -1028,6 +1028,14 @@ t("histLabel keeps the parent dir so same-named docs stay apart", () => {
   assert.equal(SV.histLabel(null), "?");
 });
 
+t("the visit list is keyed without a side, so ⇄ does not orphan the current entry", () => {
+  assert.match(html, /function mruKey\(view\) \{ return SV\.viewKey\("", view, project\); \}/, "one side-less key helper");
+  assert.match(html, /p\._mru = SV\.mruPut\(p\._mru, mruKey\(view\), view, MRU_CAP\);/, "the write uses it");
+  assert.match(html, /var mru = p\._mru \|\| \[\], curKey = mruKey\(p\._view\);/, "the read uses it");
+  assert.notEqual(SV.viewKey("left", { kind: "doc", tree: "dev", rel: "a/b.md" }),
+                  SV.viewKey("right", { kind: "doc", tree: "dev", rel: "a/b.md" }));   // why it matters
+});
+
 t("mruPut keeps a stable visit list: new entries front, revisits in place, capped", () => {
   let l = SV.mruPut([], "k1", { kind: "doc", rel: "a.md" }, 3);
   assert.deepEqual(l.map(x => x.key), ["k1"]);

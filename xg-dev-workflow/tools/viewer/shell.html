@@ -1348,7 +1348,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var p = PANES[side];
     leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
-    p._mru = SV.mruPut(p._mru, SV.viewKey(side, view, project), view, MRU_CAP);   // the dropdown's own list
+    p._mru = SV.mruPut(p._mru, mruKey(view), view, MRU_CAP);   // the dropdown's own list
     if (side === "right") showRight(true);
     p._entering = true;   // S12
     setFocus(side); render(side);
@@ -1390,13 +1390,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
     el.textContent = msg; el.classList.add("show");
     clearTimeout(flashT); flashT = setTimeout(function () { el.classList.remove("show"); }, 2200);
   }
+  // The list is already per pane, and ⇄ hands it to the other one — so its keys must not carry a
+  // side, or after a swap no entry would match the view the pane is showing.
+  function mruKey(view) { return SV.viewKey("", view, project); }
   function histTitle(v) {   // the option's tooltip: the full path, which the 12em select cannot show
     return v && v.kind === "doc" ? v.tree + "/" + v.rel : SV.histLabel(v);
   }
   function paneHead(side, crumb, extra) {
     var p = PANES[side];
     var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back">◀</button>';
-    var mru = p._mru || [], curKey = SV.viewKey(side, p._view, project);
+    var mru = p._mru || [], curKey = mruKey(p._view);
     var hist = mru.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
         ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select>" : "";
