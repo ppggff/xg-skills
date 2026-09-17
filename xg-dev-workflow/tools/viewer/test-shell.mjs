@@ -1056,3 +1056,17 @@ t("the find bar carries both halves of the sticky-bottom idiom", () => {
   assert.ok(/bottom:\s*-20px/.test(rule), rule);
   assert.ok(/margin-bottom:\s*-20px/.test(rule), rule);   // without it the bar rides up with the last screenful
 });
+
+// --- 033 Req-7: the button tiers follow the pane, a dragged measure does not ---
+t("only the button-picked width tiers are recomputed when the pane geometry changes", () => {
+  const fn = html.match(/function remeasureOnGeometry\(side\) \{[\s\S]*?\n  \}/);
+  assert.ok(fn, "the geometry path has one named entry point");
+  assert.match(fn[0], /mode === "custom"/, "a hand-dragged measure is left alone");
+  assert.match(fn[0], /applyMeasure\(side\)/, "the other tiers are recomputed");
+  // it hangs off the one hook every geometry change already goes through
+  const geo = html.match(/function invalidateGeometry\(side\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(geo, /remeasureOnGeometry\(side\);/, "invalidateGeometry drives it");
+  // the default tier has no JS width at all — its CSS fallback has to fit a narrow pane by itself
+  assert.match(html, /\.docbody \{[^}]*width: var\(--m-w, min\(52em, [^)]*\)\)/,
+    "the default tier's CSS fallback is bounded by the available width");
+});

@@ -137,7 +137,10 @@
   /* R1/R2/R11: three-tier reading measure (default/custom/full) driven by two CSS vars JS writes
      on .docbody itself — never an inline max-width, which would always beat this class rule.
      measure lives ON .docbody so the R52 current-line band (keyed off .docbody rect) stays aligned. */
-  .docbody { color: var(--body); max-width: none; margin-left: var(--m-l, 0); width: var(--m-w, 52em); }   /* R21: doc body dimmer than chrome */
+  /* the default tier ships no --m-w, so its fallback is what has to fit a narrow pane: 52em is the
+     reading measure we want, bounded by whatever is left after the gutter strip on the left. */
+  .docbody { color: var(--body); max-width: none; margin-left: var(--m-l, 0);
+    width: var(--m-w, min(52em, calc(100% - var(--m-l, 0px)))); }   /* R21: doc body dimmer than chrome */
   #lp .lp-body.docbody { width: auto; max-width: 52em; margin-left: 0; }   /* hovercard preview: not a pane docbody, keeps the old shrink-to-fit measure */
   .docbody pre, .docbody table { max-width: 100%; }   /* wide blocks scroll within the measure; use 全宽 for more */
   /* R1: the boundary is a 9px grab strip whose 1px line stays out of the way until the cursor
@@ -2059,11 +2062,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   // S9 (016): geometry invalidation — rAF-coalesced so a drag's many events settle to one
   // recompute per frame. Reused by every hookpoint that can move/resize a docbody or pane.
+  // The width tiers the ↔ button picks are meant to track the pane, so a pane resize has to recompute
+  // them; a measure the reader dragged by hand is their setting, not a derived value — it stays put
+  // and a pane too narrow for it scrolls (ruled 2026-09-17).
+  function remeasureOnGeometry(side) {
+    if (layoutState.m[side].mode === "custom") return;
+    applyMeasure(side);
+  }
   function invalidateGeometry(side) {
     var p = PANES[side];
     if (p._geoRaf) return;
     p._geoRaf = requestAnimationFrame(function () {
       p._geoRaf = null;
+      remeasureOnGeometry(side);   // before the marker/rail below: both read the body's box
       if (p._idxDirty) { p._idxDirty = false; reindex(side); }
       if (p._curEl && p._curEl.isConnected) {   // the marked block is gone — skip that part, don't throw
         var y = p._curYOff == null ? null : p._curEl.getBoundingClientRect().top + p._curYOff;
