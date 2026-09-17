@@ -17,6 +17,11 @@ default tier had the same shape in CSS as a flat 52em.
 - **A hand-dragged measure is the reader's setting, not a derived value** (human ruling): it is left untouched by any
   pane resize, and a pane too narrow for it scrolls. That split — button tiers derive, a dragged measure persists — is
   the rule the code now states in one named place.
+- **Follow-up, same day (card xg-skills/035):** hanging the remeasure off the geometry hook only fixed the entries that
+  went through it. Three did not — dragging the sidebar divider, collapsing the sidebar, re-opening it — and the first
+  is the one a reader hits most, so the fix read as "not working". They now call the same `panesResized()`, which is the
+  one name for "a content pane changed width"; the nine entries that can change a pane's width were walked one by one
+  in a browser rather than sampled, which is how the two beyond the reported one turned up.
 
 ## 2026-09-17 — status viewer: fixed ports, find bar, history dropdown, extra gitweb repos, id jumps (card xg-skills/033)
 
