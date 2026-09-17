@@ -1057,7 +1057,7 @@ t("the find bar carries both halves of the sticky-bottom idiom", () => {
   assert.ok(/margin-bottom:\s*-20px/.test(rule), rule);   // without it the bar rides up with the last screenful
 });
 
-// --- 033 Req-7: the button tiers follow the pane, a dragged measure does not ---
+// --- the button tiers follow the pane, a dragged measure does not ---
 t("only the button-picked width tiers are recomputed when the pane geometry changes", () => {
   const fn = html.match(/function remeasureOnGeometry\(side\) \{[\s\S]*?\n  \}/);
   assert.ok(fn, "the geometry path has one named entry point");
