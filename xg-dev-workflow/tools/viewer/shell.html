@@ -83,7 +83,10 @@
      visible while scrolling without stacking a second sticky band under .doc-head. */
   .findbar { display: flex; align-items: center; gap: 6px; order: 99;
     position: sticky; bottom: 0; z-index: 4; background: var(--bg); border-top: 1px solid var(--line);
-    padding: 6px 0 8px; bottom: -20px; }   /* -20px = the pane's own bottom padding: rest flush with the pane edge, not above it */
+    padding: 6px 0 8px; bottom: -20px; margin-bottom: -20px; }
+  /* 033 Req-2: both halves of the idiom .card-detail already uses. `bottom: -20px` pins the bar flush
+     with the pane edge while scrolling; the matching negative margin puts its STATIC position there too —
+     without it the bar stops 20px short (the pane's bottom padding) and rides up with the last screenful. */
   .findbar input { flex: 1; font: inherit; background: var(--bg); color: var(--fg);
     border: 1px solid var(--line2); border-radius: var(--radius); padding: 3px 8px; }
   .find-count { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 3em; text-align: right; }

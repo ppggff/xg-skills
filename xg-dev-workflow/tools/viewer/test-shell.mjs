@@ -979,3 +979,9 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   const fenced = box.marked.parse("```\n[Req-1]\n```");
   assert.ok(!fenced.includes("class=\"xid\""), "no linkify inside code fences");
 });
+
+t("the find bar carries both halves of the sticky-bottom idiom", () => {
+  const rule = html.match(/\.findbar \{[\s\S]*?\}/)[0];
+  assert.ok(/bottom:\s*-20px/.test(rule), rule);
+  assert.ok(/margin-bottom:\s*-20px/.test(rule), rule);   // without it the bar rides up with the last screenful
+});
