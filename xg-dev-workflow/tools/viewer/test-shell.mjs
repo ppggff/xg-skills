@@ -882,7 +882,9 @@ t("anchorOf / anchorFind: index hit, index moved (prefix rescue), both miss", ()
 t("T11: the entering flag is set on every entry path and burned on read", () => {
   assert.match(html, /p\._entering = true;   \/\/ S12/, "navigate sets it before render");
   assert.match(html, /if \(p\._hi > 0\) \{ leaveView\(side\); p\._hi--; p\._entering = true;/, "back sets it");
-  assert.match(html, /PANES\[side\]\._entering = true; setFocus\(side\); render\(side\);   \/\/ S12: a history jump is an entry/, "the history dropdown sets it");
+  // 033 Req-3: the dropdown no longer renders the stack in place — it delegates to navigate(),
+  // which is the entry path that sets the flag.
+  assert.match(html, /if \(entry\) navigate\(hside, entry\.view\);/, "the history dropdown enters through navigate");
   assert.match(html, /L\._entering = R\._entering = true;   \/\/ S12/, "swapPanes sets it for both panes");
   assert.match(html, /var entering = p\._entering; p\._entering = false;/, "afterRender reads once and clears");
   const rv = html.match(/function refreshView\(side\) \{[\s\S]*?\n  \}/)[0];
@@ -923,10 +925,11 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
 
 t("T13: every exit from a view writes through the one named hook", () => {
   const calls = (html.match(/(?<!function )leaveView\((side|"left"|"right")\)/g) || []);
-  assert.equal(calls.length, 7, "navigate + back + history + closeright + swapPanes' two + pagehide");
-  [1, 2, 3, 4, 5].forEach(n => assert.match(html, new RegExp("write point " + n + " of 5"), "write point " + n + " is labelled"));
+  // 033 Req-3: the history dropdown lost its own exit — it enters through navigate, which owns write point 1.
+  assert.equal(calls.length, 6, "navigate + back + closeright + swapPanes' two + pagehide");
+  [1, 2, 3, 4].forEach(n => assert.match(html, new RegExp("write point " + n + " of 4"), "write point " + n + " is labelled"));
   assert.match(html, /window\.addEventListener\("pagehide", function \(\) \{ visiblePanes\(\)\.forEach\(function \(side\) \{ leaveView\(side\); \}\); \}\);/, "closing the tab never reaches the five entries");
-  assert.match(html, /leaveView\("left"\); leaveView\("right"\);   \/\/ write point 5 of 5\s+var tmp = \{ h: L\._hist/, "swapPanes writes BEFORE the histories move — the key carries the pane");
+  assert.match(html, /leaveView\("left"\); leaveView\("right"\);   \/\/ write point 4 of 4\s+var tmp = \{ h: L\._hist/, "swapPanes writes BEFORE the histories move — the key carries the pane");
 });
 
 t("R17: the find box seeds from the selection, remembers past queries, and waits before scanning", () => {
@@ -978,6 +981,35 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   assert.ok(!legacy.includes("class=\"xid\""), "legacy forms must not linkify: " + legacy);
   const fenced = box.marked.parse("```\n[Req-1]\n```");
   assert.ok(!fenced.includes("class=\"xid\""), "no linkify inside code fences");
+});
+
+// --- 033: pane history dropdown (Req-3) ---
+t("histLabel keeps the parent dir so same-named docs stay apart", () => {
+  assert.equal(SV.histLabel({ kind: "doc", rel: "xg-skills/032-lite-trial-fixes/design.md" }),
+    "📄 032-lite-trial-fixes/design.md");
+  assert.equal(SV.histLabel({ kind: "doc", rel: "index.md" }), "📄 index.md");
+  assert.equal(SV.histLabel({ kind: "doc", rel: "a/b/c/adr/0001-x.md" }), "📄 adr/0001-x.md");
+  assert.equal(SV.histLabel({ kind: "search", q: "gitweb" }), "🔍 gitweb");
+  assert.equal(SV.histLabel({ kind: "diff", card: "cbdb/001" }), "± cbdb/001");
+  assert.equal(SV.histLabel({ kind: "trace", card: "cbdb/001" }), "🔗 cbdb/001");
+  assert.equal(SV.histLabel({ kind: "recent" }), "commits");
+  assert.equal(SV.histLabel({ kind: "board" }), "board");
+  assert.equal(SV.histLabel(null), "?");
+});
+
+t("mruPut keeps a stable visit list: new entries front, revisits in place, capped", () => {
+  let l = SV.mruPut([], "k1", { kind: "doc", rel: "a.md" }, 3);
+  assert.deepEqual(l.map(x => x.key), ["k1"]);
+  assert.equal(l[0].view.rel, "a.md");
+  l = SV.mruPut(l, "k2", { kind: "doc", rel: "b.md" }, 3);
+  l = SV.mruPut(l, "k3", { kind: "doc", rel: "c.md" }, 3);
+  assert.deepEqual(l.map(x => x.key), ["k3", "k2", "k1"]);
+  // revisiting k1 must NOT reorder — a dropdown whose rows move under the cursor is unpickable
+  const same = SV.mruPut(l, "k1", { kind: "doc", rel: "a.md" }, 3);
+  assert.deepEqual(same.map(x => x.key), ["k3", "k2", "k1"]);
+  // cap drops the oldest
+  const capped = SV.mruPut(l, "k4", { kind: "doc", rel: "d.md" }, 3);
+  assert.deepEqual(capped.map(x => x.key), ["k4", "k3", "k2"]);
 });
 
 t("the find bar carries both halves of the sticky-bottom idiom", () => {

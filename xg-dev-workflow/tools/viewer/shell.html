@@ -1078,6 +1078,24 @@ var SV = (function () {
     if (k === "recent") return side + "|recent";
     return side + "|" + k;   // an unregistered kind still gets a key of its own rather than throwing
   }
+  // 033 Req-3: the dropdown label. The file name alone is useless in dev_root, where nearly every
+  // card ships a design.md — the parent dir is what tells two entries apart.
+  function histLabel(v) {
+    if (!v) return "?";
+    if (v.kind === "doc") return "📄 " + String(v.rel || "").split("/").slice(-2).join("/");
+    if (v.kind === "search") return "🔍 " + v.q;
+    if (v.kind === "diff") return "± " + v.card;
+    if (v.kind === "trace") return "🔗 " + v.card;
+    return (v.kind === "recent" ? "commits" : "board");
+  }
+  // 033 Req-3: the per-pane visit list behind the dropdown — separate from the back/forward stack,
+  // so a step back never drops what was opened after it. A revisit keeps its position: rows that
+  // move under the cursor between two picks are what makes a reordering list unpickable.
+  function mruPut(list, key, view, cap) {
+    var out = list || [];
+    if (out.some(function (x) { return x.key === key; })) return out;
+    return [{ key: key, view: view }].concat(out).slice(0, cap || 20);
+  }
   // S4: MRU put over {order, map}. The evicted key's entry goes with it — otherwise the cap bounds
   // the order list while the map grows forever.
   function recallPut(store, key, entry, cap) {
@@ -1143,7 +1161,7 @@ var SV = (function () {
            blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
-           viewKey: viewKey, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
+           viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, stepFace: stepFace };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
@@ -1170,6 +1188,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var GUTTER_PAD = 46;     // S8: measure-left offset that leaves room for the hanging line-number gutter
   var FULL_PAD = 16;       // S7: the full tier only needs enough left offset to keep that gutter inside the scrollport
   var HEAD_PAD = 56;   // R4: how far below the sticky head a scrolled-to target lands (= scroll-margin-top: 56px)
+  var MRU_CAP = 20;    // 033 Req-3: entries in a pane's history dropdown
   var FIND_DEBOUNCE = 160;   // R17: pause before a typed query is scanned
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
@@ -1260,7 +1279,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     try { var s = JSON.parse(lsGet("sv-tree-scope")); if (s && typeof s.dev === "boolean" && typeof s.kb === "boolean") return s; } catch (e) {}
     return { dev: true, kb: true };
   })();
-  ["left", "right"].forEach(function (s) { var p = PANES[s]; p._hist = []; p._hi = -1; p._view = null; p._sections = []; p._cur = 0;
+  ["left", "right"].forEach(function (s) { var p = PANES[s]; p._hist = []; p._hi = -1; p._mru = []; p._view = null; p._sections = []; p._cur = 0;
     p._findOpen = false; p._hits = { idx: null, q: "", hits: [], cur: -1, pins: [], slotUsed: [false, false, false, false] }; });   // S2 (016)
 
   function api(p) { return fetch(p).then(function (r) {
@@ -1304,13 +1323,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // instead of collapsing the column and reflowing both panes.
   function navigate(side, view, push) {
     var p = PANES[side];
-    leaveView(side);   // L4 write point 1 of 5
+    leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
+    p._mru = SV.mruPut(p._mru, SV.viewKey(side, view, project), view, MRU_CAP);   // 033: the dropdown's own list
     if (side === "right") showRight(true);
     p._entering = true;   // S12
     setFocus(side); render(side);
   }
-  function back(side) { var p = PANES[side]; if (p._hi > 0) { leaveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }   // write point 2 of 5
+  function back(side) { var p = PANES[side]; if (p._hi > 0) { leaveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }   // write point 2 of 4
   function highlightNav() {   // mark the nav item matching the left pane's current view (board/recent)
     var k = PANES.left._view && PANES.left._view.kind;
     document.querySelectorAll(".navbtn[data-go]").forEach(function (b) { b.classList.toggle("on", b.dataset.go === k); });
@@ -1326,20 +1346,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
     else renderBoard(side, v);
     if (side === "left") highlightNav();
   }
-  function histLabel(v) {
-    if (!v) return "?";
-    if (v.kind === "doc") return "📄 " + v.rel.split("/").pop();
-    if (v.kind === "search") return "🔍 " + v.q;
-    if (v.kind === "diff") return "± " + v.card;
-    if (v.kind === "trace") return "🔗 " + v.card;
-    return (v.kind === "recent" ? "commits" : "board");
+  function histTitle(v) {   // the option's tooltip: the full path, which the 12em select cannot show
+    return v && v.kind === "doc" ? v.tree + "/" + v.rel : SV.histLabel(v);
   }
   function paneHead(side, crumb, extra) {
     var p = PANES[side];
     var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back">◀</button>';
-    var hist = p._hist.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="history">' +
-      p._hist.map(function (v, i) { return '<option value="' + i + '"' + (i === p._hi ? " selected" : "") + ">" +
-        esc(histLabel(v)) + "</option>"; }).join("") + "</select>" : "";
+    var mru = p._mru || [], curKey = SV.viewKey(side, p._view, project);
+    var hist = mru.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
+      mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
+        ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select>" : "";
     var tools = side === "left"
       ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
@@ -2602,9 +2618,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
-    if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 4 of 5
+    if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 3 of 4
       PANES.right.innerHTML = ""; PANES.right._view = null;
-      PANES.right._hist = []; PANES.right._hi = -1; showRight(false); if (focus === "right") setFocus("left"); return; }
+      PANES.right._hist = []; PANES.right._hi = -1; PANES.right._mru = []; showRight(false); if (focus === "right") setFocus("left"); return; }
     if ((t = e.target.closest("[data-mirror]"))) { e.preventDefault();
       if (PANES.left._view) navigate("right", Object.assign({}, PANES.left._view)); return; }
     if ((t = e.target.closest("[data-swap]"))) { e.preventDefault(); swapPanes(); return; }
@@ -2658,8 +2674,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var L = PANES.left, R = PANES.right;
     // The memory key carries the pane, so a swap can't move entries — write both sides under their
     // old keys first, then let each side read back under its new one (both ends are idempotent).
-    leaveView("left"); leaveView("right");   // write point 5 of 5
-    var tmp = { h: L._hist, i: L._hi }; L._hist = R._hist; L._hi = R._hi; R._hist = tmp.h; R._hi = tmp.i;
+    leaveView("left"); leaveView("right");   // write point 4 of 4
+    var tmp = { h: L._hist, i: L._hi, m: L._mru }; L._hist = R._hist; L._hi = R._hi; L._mru = R._mru;
+    R._hist = tmp.h; R._hi = tmp.i; R._mru = tmp.m;
     setFocus("left");
     L._entering = R._entering = true;   // S12: both panes are entering a view they didn't have
     if (!R._hist.length) { showRight(false); } else { showRight(true); render("right"); }
@@ -2681,8 +2698,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
       reindex(focus); invalidateGeometry(focus); return; }   // R15 + S9 hookpoint 8: hiding a group also moves everything below it
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
-    var side = sel.dataset.hist; leaveView(side); PANES[side]._hi = +sel.value;   // write point 3 of 5
-    PANES[side]._entering = true; setFocus(side); render(side);   // S12: a history jump is an entry
+    var hside = sel.dataset.hist, entry = (PANES[hside]._mru || [])[+sel.value];   // 033 Req-3: pick from the visit list
+    if (entry) navigate(hside, entry.view);   // a normal entry (leaveView + push + focus + render live there)
   });
   // R6 fix: shift-clicking a nav target must not extend the text selection / flash.
   document.addEventListener("mousedown", function (e) {
