@@ -3153,7 +3153,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var ex = e.target.closest && e.target.closest("[data-diffexit]");
     if (ex) { e.preventDefault(); var xs = ex.dataset.diffexit; chSel[xs] = ""; applyChangeSel(xs); return; }
     var row = e.target.closest && e.target.closest("#chpanel .ch-row");
-    if (row) { chChoose(chSide, row.dataset.sha, row); return; }
+    if (row && chSide) { chChoose(chSide, row.dataset.sha, row); return; }   // 033: a closed panel has no side to render into
     // R5: no outside-click auto-close — the panel closes only via ✕ / Esc / the ◷ toggle (explicit)
   });
 
