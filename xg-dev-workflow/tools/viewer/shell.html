@@ -2609,7 +2609,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
     } else {
       L.style.flex = ""; L.style.width = "";                        // #left is the single-pane filler
     }
-    invalidateGeometry("left"); invalidateGeometry("right");   // S9 hookpoint 5: covers showRight/gutter drag/showToc/resetLayout/mirror
+    panesResized();   // S9 hookpoint 5: covers showRight/gutter drag/showToc/resetLayout/mirror
+  }
+  // Anything that changes how wide a content pane is has to come through here: the width tiers the
+  // ↔ button picks are derived from the pane, and nothing else recomputes them. Three entries used
+  // to bypass it (the sidebar divider, collapsing the sidebar, re-opening it) — each left the body
+  // at its old width inside a pane that had just changed size.
+  function panesResized() {
+    invalidateGeometry("left"); invalidateGeometry("right");
   }
   function showRight(on) {
     var was = PANES.right.classList.contains("show");
@@ -2640,11 +2647,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var el = document.getElementById(b.dataset.collapse); el.classList.toggle("collapsed");
       var g = gutterFor(b.dataset.collapse); if (g) g.classList.toggle("hidden", el.classList.contains("collapsed"));
       if (b.dataset.collapse === "side") document.getElementById("reopen").classList.toggle("show", el.classList.contains("collapsed"));
+      panesResized();
     };
   });
   document.getElementById("reopen").onclick = function () {
     document.getElementById("side").classList.remove("collapsed");
     gutterFor("side").classList.remove("hidden"); this.classList.remove("show");
+    panesResized();
   };
   // Each gutter drags the boundary next to it; the doc pane (left/right, the filler) absorbs the
   // change. #toc is never the filler (R8) — its divider resizes #toc itself.
@@ -2659,7 +2668,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (name === "side") {
         var sideEl = document.getElementById("side"), sw = sideEl.getBoundingClientRect().width;
         move = function (ev) { var w = Math.max(140, sw + (ev.clientX - startX)); layoutState.sideW = w;
-          sideEl.style.flex = "none"; sideEl.style.width = w + "px"; };   // R6: track for persistence
+          sideEl.style.flex = "none"; sideEl.style.width = w + "px";   // R6: track for persistence
+          panesResized(); };
       } else if (name === "rightpane") {                // left|right boundary → resize LEFT (right fills)
         var lw = PANES.left.getBoundingClientRect().width;
         move = function (ev) { layoutState.leftW = Math.max(200, lw + (ev.clientX - startX)); layoutState.leftCustom = true; applyLayout(); };
@@ -2693,7 +2703,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
   });
   window.addEventListener("resize", function () {   // S9 hookpoint 7: fixes a pre-existing curline misalignment on resize (D6)
-    invalidateGeometry("left"); invalidateGeometry("right");
+    panesResized();
   });
 
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap

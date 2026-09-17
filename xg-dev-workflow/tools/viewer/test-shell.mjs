@@ -540,7 +540,9 @@ t("T2: setCurLine stores a block-relative y offset, not the raw viewport clientY
 t("T2: all five hookpoints call invalidateGeometry", () => {
   assert.match(html, /positionMrules\(side, pane, db\);\s+invalidateGeometry\(side\);.*hookpoint 1/, "hookpoint 1: measure drag");
   assert.match(html, /saveLayout\(\); applyMeasure\(ws\); invalidateGeometry\(ws\);.*hookpoint 2/, "hookpoint 2: width-tier button (per-pane since the M2 change)");
-  assert.match(html, /invalidateGeometry\("left"\); invalidateGeometry\("right"\);.*hookpoint 5/, "hookpoint 5: applyLayout end");
+  // hookpoint 5 now reaches it through panesResized(), the one name for "a content pane changed width"
+  assert.match(html, /panesResized\(\);.*hookpoint 5/, "hookpoint 5: applyLayout end");
+  assert.match(html, /function panesResized\(\) \{\s+invalidateGeometry\("left"\); invalidateGeometry\("right"\);/, "…which is where the two calls live");
   assert.match(html, /padForDrawer\(pane\);\s+invalidateGeometry\(side\);.*hookpoint 6/, "hookpoint 6: updateDetail end");
   assert.match(html, /window\.addEventListener\("resize", function \(\) \{.*hookpoint 7/, "hookpoint 7: window resize");
 });
@@ -1069,4 +1071,22 @@ t("only the button-picked width tiers are recomputed when the pane geometry chan
   // the default tier has no JS width at all — its CSS fallback has to fit a narrow pane by itself
   assert.match(html, /\.docbody \{[^}]*width: var\(--m-w, min\(52em, [^)]*\)\)/,
     "the default tier's CSS fallback is bounded by the available width");
+});
+
+// --- every entry that resizes the content panes goes through one named hook ---
+t("a pane-width change without a re-render still reaches the geometry hook", () => {
+  const fn = html.match(/function panesResized\(\) \{[\s\S]*?\n  \}/);
+  assert.ok(fn, "the panes-resized hook exists");
+  assert.match(fn[0], /invalidateGeometry\("left"\); invalidateGeometry\("right"\);/);
+  // the three entries that change a pane's width without re-rendering: the sidebar divider drag,
+  // collapsing the sidebar, and re-opening it — each silently froze the measure before.
+  const side = html.match(/if \(name === "side"\) \{[\s\S]*?\n      \}/)[0];
+  assert.match(side, /panesResized\(\);/, "the sidebar divider drag");
+  const collapse = html.match(/document\.querySelectorAll\("\[data-collapse\]"\)[\s\S]*?\n  \}\);/)[0];
+  assert.match(collapse, /panesResized\(\);/, "collapsing a pane");
+  const reopen = html.match(/document\.getElementById\("reopen"\)\.onclick[\s\S]*?\n  \};/)[0];
+  assert.match(reopen, /panesResized\(\);/, "re-opening the sidebar");
+  // and the shared layout routine funnels through the same hook rather than repeating it
+  const layout = html.match(/function applyLayout\(\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(layout, /panesResized\(\);/, "applyLayout reuses it");
 });
