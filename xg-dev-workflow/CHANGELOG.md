@@ -4,6 +4,31 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-17 — status viewer: fixed ports, find bar, history dropdown, extra gitweb repos, id jumps (card xg-skills/033)
+
+Five defects the human hit while reading docs in the viewer; each was reproduced in a browser before it was
+changed, and the whole sweep of the other jump paths (TOC · search hit · rail mark · internal link and wikilink ·
+hover preview · board → diff / trace · change history) came back clean.
+
+- **Both ports are fixed** (`viewer.py` 8790, the gitweb companion's 8791 unchanged), so one `ssh -L` rule keeps
+  working across restarts. A busy port now names who holds it and stops instead of degrading to a random port,
+  and the viewer binds before launching the companion so a failed bind leaves no stray lighttpd behind.
+- **The find bar stays on the pane edge through the last screenful.** It carried only half of the sticky-bottom
+  idiom the board's detail drawer uses, so it rode up with the content once the scroll reached the end.
+- **The pane history dropdown is a visit list, labelled by card.** Every entry used to read `design.md` (the label
+  took only the file name, and a docs tree is almost entirely design.md / progress.md / index.md), and it rendered
+  the back/forward stack, so stepping back and opening something else silently dropped what came after. The label
+  now keeps the parent dir with the full path in the tooltip; the list is per-pane, deduped, capped and stable,
+  while the back button keeps the stack.
+- **gitweb can serve repos that are not workflow projects**, through a flat `gitweb_repos:` list in the shared
+  config — appended after the projects, so an entry named like a reserved label takes the suffix instead.
+- **Id citations jump, Fact-n included.** Roughly half the clickable citations in a docs tree are `[Fact-n]` and
+  none of them moved: an anchor was minted only for a heading carrying one of four English status words, while a
+  Fact is a list item in the card's facts.md and a lite card's status words are Chinese. The id now anchors the
+  block whatever follows it, headings and list items alike; a Fact citation crosses to the facts.md that
+  `constraints.md` Id-3 gives it; a citation that resolves nowhere says so rather than doing nothing. The grammar
+  gains `Inv` and no longer swallows a citation that is already a markdown link.
+
 ## 2026-09-16 — lite 试跑修补 (card xg-skills/032): what the first real lite card showed, folded back
 
 Source: the read-only session review of hashdata/011 (dev_root `xg-skills/investigations/lite-trial-011-session-review-2026-09-15.md`,
