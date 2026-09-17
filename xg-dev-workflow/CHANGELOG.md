@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-17 — status viewer: the reading measure follows the pane again (card xg-skills/033, re-opened)
+
+The width the ↔ button picks is a derived value, but it was only ever computed when a document rendered, when the
+button cycled a tier, or while a measure rule was dragged. A pane resize — opening the right pane, dragging the
+divider, resizing the window — went through the geometry hook, which recomputed the current-line marker and the mark
+rail but not the measure. So the "max content width" tier froze at whatever the pane was when the button was pressed
+(measured: a 892px body inside a 287px pane, 677px of overflow, the measure rule sitting outside the pane), and the
+default tier had the same shape in CSS as a flat 52em.
+
+- The geometry hook now remeasures, and the default tier's CSS fallback is bounded by the width it has.
+- **A hand-dragged measure is the reader's setting, not a derived value** (human ruling): it is left untouched by any
+  pane resize, and a pane too narrow for it scrolls. That split — button tiers derive, a dragged measure persists — is
+  the rule the code now states in one named place.
+
 ## 2026-09-17 — status viewer: fixed ports, find bar, history dropdown, extra gitweb repos, id jumps (card xg-skills/033)
 
 Five defects the human hit while reading docs in the viewer; each was reproduced in a browser before it was
