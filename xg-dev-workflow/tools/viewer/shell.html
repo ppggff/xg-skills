@@ -1083,7 +1083,7 @@ var SV = (function () {
     if (k === "recent") return side + "|recent";
     return side + "|" + k;   // an unregistered kind still gets a key of its own rather than throwing
   }
-  // 033 Req-3: the dropdown label. The file name alone is useless in dev_root, where nearly every
+  // the dropdown label. The file name alone is useless in dev_root, where nearly every
   // card ships a design.md — the parent dir is what tells two entries apart.
   function histLabel(v) {
     if (!v) return "?";
@@ -1093,7 +1093,7 @@ var SV = (function () {
     if (v.kind === "trace") return "🔗 " + v.card;
     return (v.kind === "recent" ? "commits" : "board");
   }
-  // 033 Req-3: the per-pane visit list behind the dropdown — separate from the back/forward stack,
+  // the per-pane visit list behind the dropdown — separate from the back/forward stack,
   // so a step back never drops what was opened after it. A revisit keeps its position: rows that
   // move under the cursor between two picks are what makes a reordering list unpickable.
   function mruPut(list, key, view, cap) {
@@ -1140,8 +1140,8 @@ var SV = (function () {
     return Math.max(0, Math.min(top, trackH - 2));
   }
 
-  // ---- doc-native id anchors (026 T16): definition-site parse + bracket-cite grammar ----
-  // 033 Req-5: the id is what anchors a block, not its status word — lite cards write Chinese ones
+  // ---- doc-native id anchors: definition-site parse + bracket-cite grammar ----
+  // the id is what anchors a block, not its status word — lite cards write Chinese ones
   // (待验证 …), Inv blocks write none, and a Fact is a list item in facts.md, never a heading.
   var XID_ID = "(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer|Inv)";
   var XID_HEAD = new RegExp("^(" + XID_ID + "-\\d+)(?![\\w-])\\s*(\\S*)");
@@ -1157,7 +1157,7 @@ var SV = (function () {
     var m = XID_HEAD.exec((text || "").trim());
     return m ? { id: m[1], state: XID_STATE.test(m[2]) ? m[2] : "" } : null;
   }
-  // 033 Req-5: the file that by convention holds an id the current doc does not. Only Fact ids have
+  // the file that by convention holds an id the current doc does not. Only Fact ids have
   // one (a card's facts.md); every other id is defined where it is used, so pointing elsewhere would
   // navigate away for nothing.
   function xidHomeRel(rel, id) {
@@ -1211,7 +1211,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var GUTTER_PAD = 46;     // S8: measure-left offset that leaves room for the hanging line-number gutter
   var FULL_PAD = 16;       // S7: the full tier only needs enough left offset to keep that gutter inside the scrollport
   var HEAD_PAD = 56;   // R4: how far below the sticky head a scrolled-to target lands (= scroll-margin-top: 56px)
-  var MRU_CAP = 20;    // 033 Req-3: entries in a pane's history dropdown
+  var MRU_CAP = 20;    // entries in a pane's history dropdown
   var FIND_DEBOUNCE = 160;   // R17: pause before a typed query is scanned
   var layoutState = (function () {           // R58: fixed pane widths (px) + filler mode; R6: persisted
     // R1/D7: the measure is per pane — reading a narrow column on the left while a wide table
@@ -1329,7 +1329,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (m) return { type: "wikilink", raw: m[0], text: m[1] }; },
     renderer: function (t) { return '<a href="[[' + esc(t.text) + ']]">' + esc(t.text) + "</a>"; },
   }, {
-    // 026 T16 id-linkify: the exact bracket grammar only (HLD-10 — precise match, no heuristics);
+    // id-linkify: the exact bracket grammar only (a precise match, no heuristics);
     // clause suffix rides the display, the anchor is the block id. Both hooks read SV's one grammar.
     name: "xid", level: "inline",
     start: function (src) { return SV.xidCiteStart(src); },
@@ -1348,7 +1348,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var p = PANES[side];
     leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
-    p._mru = SV.mruPut(p._mru, SV.viewKey(side, view, project), view, MRU_CAP);   // 033: the dropdown's own list
+    p._mru = SV.mruPut(p._mru, SV.viewKey(side, view, project), view, MRU_CAP);   // the dropdown's own list
     if (side === "right") showRight(true);
     p._entering = true;   // S12
     setFocus(side); render(side);
@@ -1369,7 +1369,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     else renderBoard(side, v);
     if (side === "left") highlightNav();
   }
-  // 033 Req-5: scroll this pane to a definition; false = this document does not hold it.
+  // scroll this pane to a definition; false = this document does not hold it.
   function xidScroll(side, id) {
     var el = PANES[side].querySelector('[data-xid="' + cssEsc(id) + '"]');
     if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1486,12 +1486,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
       var body = pane.querySelector(".docbody");
-      markXids(body);   // 026 T16 + 033 Req-5: block anchors
+      markXids(body);   // block anchors
       markLinks(body, v.tree, v.rel); renderMermaid(side, body);
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
       if (v.line) scrollToLine(side, v.line);   // R4: a search hit carried a line → jump to its section
-      if (v.xid && !xidScroll(side, v.xid)) flash("未找到 " + v.xid + " 的定义");   // 033: cross-file id jump
+      if (v.xid && !xidScroll(side, v.xid)) flash("未找到 " + v.xid + " 的定义");   // cross-file id jump
     }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
       var is404 = / → 404$/.test(e.message);
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
@@ -1515,7 +1515,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var m = l.match(/^(#{1,6})\s+(.+?)\s*#*$/); if (m) out.push({ depth: m[1].length, text: m[2].trim(), line: i }); });
     return out;
   }
-  // 026 T16 + 033 Req-5: a definition site is a heading or a list item whose text STARTS with the id,
+  // a definition site is a heading or a list item whose text STARTS with the id,
   // which covers a lite card's Chinese-status blocks and facts.md's `- Fact-n …` lines alike. Only a
   // heading takes the .xhead dot; a list item already has a marker of its own.
   function markXids(body) {
@@ -2670,7 +2670,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
   document.addEventListener("click", function (e) {
     var t;
-    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // 026 T16 / 033 Req-5: id jump
+    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // id jump
       xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
       return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
@@ -2756,7 +2756,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var grp = pf.querySelector('section.grp[data-key="' + cssEsc(key) + '"]'); if (grp) grp.hidden = !chk.checked;
       reindex(focus); invalidateGeometry(focus); return; }   // R15 + S9 hookpoint 8: hiding a group also moves everything below it
     var sel = e.target.closest("select[data-hist]"); if (!sel) return;
-    var hside = sel.dataset.hist, entry = (PANES[hside]._mru || [])[+sel.value];   // 033 Req-3: pick from the visit list
+    var hside = sel.dataset.hist, entry = (PANES[hside]._mru || [])[+sel.value];   // pick from the visit list
     if (entry) navigate(hside, entry.view);   // a normal entry (leaveView + push + focus + render live there)
   });
   // R6 fix: shift-clicking a nav target must not extend the text selection / flash.
@@ -3155,7 +3155,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var ex = e.target.closest && e.target.closest("[data-diffexit]");
     if (ex) { e.preventDefault(); var xs = ex.dataset.diffexit; chSel[xs] = ""; applyChangeSel(xs); return; }
     var row = e.target.closest && e.target.closest("#chpanel .ch-row");
-    if (row && chSide) { chChoose(chSide, row.dataset.sha, row); return; }   // 033: a closed panel has no side to render into
+    if (row && chSide) { chChoose(chSide, row.dataset.sha, row); return; }   // a closed panel has no side to render into
     // R5: no outside-click auto-close — the panel closes only via ✕ / Esc / the ◷ toggle (explicit)
   });
 

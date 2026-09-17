@@ -883,7 +883,7 @@ t("anchorOf / anchorFind: index hit, index moved (prefix rescue), both miss", ()
 t("T11: the entering flag is set on every entry path and burned on read", () => {
   assert.match(html, /p\._entering = true;   \/\/ S12/, "navigate sets it before render");
   assert.match(html, /if \(p\._hi > 0\) \{ leaveView\(side\); p\._hi--; p\._entering = true;/, "back sets it");
-  // 033 Req-3: the dropdown no longer renders the stack in place — it delegates to navigate(),
+  // the dropdown no longer renders the stack in place — it delegates to navigate(),
   // which is the entry path that sets the flag.
   assert.match(html, /if \(entry\) navigate\(hside, entry\.view\);/, "the history dropdown enters through navigate");
   assert.match(html, /L\._entering = R\._entering = true;   \/\/ S12/, "swapPanes sets it for both panes");
@@ -892,7 +892,7 @@ t("T11: the entering flag is set on every entry path and burned on read", () => 
   assert.doesNotMatch(rv, /_entering/, "D12 priority 3: the re-render path must never set it");
 });
 t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
-  // 033 Req-5: an id jump is the second kind of explicit target, and suppresses the restore the same way.
+  // an id jump is the second kind of explicit target, and suppresses the restore the same way.
   assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && \(p\._view\.line \|\| p\._view\.xid\)\)\);/, "D12 priority 1 beats 2: an explicit target suppresses the anchor scroll");
   // Review #12: only the re-render path rescans here. Entering replaces the terms from memory and
   // rescans inside restoreView, so scanning first would be a full pass with the outgoing view's term.
@@ -927,7 +927,7 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
 
 t("T13: every exit from a view writes through the one named hook", () => {
   const calls = (html.match(/(?<!function )leaveView\((side|"left"|"right")\)/g) || []);
-  // 033 Req-3: the history dropdown lost its own exit — it enters through navigate, which owns write point 1.
+  // the history dropdown lost its own exit — it enters through navigate, which owns write point 1.
   assert.equal(calls.length, 6, "navigate + back + closeright + swapPanes' two + pagehide");
   [1, 2, 3, 4].forEach(n => assert.match(html, new RegExp("write point " + n + " of 4"), "write point " + n + " is labelled"));
   assert.match(html, /window\.addEventListener\("pagehide", function \(\) \{ visiblePanes\(\)\.forEach\(function \(side\) \{ leaveView\(side\); \}\); \}\);/, "closing the tab never reaches the five entries");
@@ -956,7 +956,7 @@ console.log("\n" + pass + " shell-helper tests passed");
 t("xidHead marks a definition site whatever its status word", () => {
   assert.deepEqual(SV.xidHead("Req-1 approved — 标题"), { id: "Req-1", state: "approved" });
   assert.deepEqual(SV.xidHead("LLD-8 proposed"), { id: "LLD-8", state: "proposed" });
-  // 033 Req-5: a lite card's status words are Chinese and Inv blocks carry none at all — the id is
+  // a lite card's status words are Chinese and Inv blocks carry none at all — the id is
   // what anchors the block; only the four English words still colour the dot.
   assert.deepEqual(SV.xidHead("Req-1 待验证 — 标题"), { id: "Req-1", state: "" });
   assert.deepEqual(SV.xidHead("Inv-2 导航历史与前进后退栈的分工"), { id: "Inv-2", state: "" });
@@ -974,7 +974,7 @@ t("xidCite matches the exact citation grammar only (zero false links)", () => {
   assert.equal(SV.xidCite("[025:F3] cross-card"), null);
   assert.equal(SV.xidCite("[R1](./requirement.md)"), null);     // legacy link form untouched
   assert.equal(SV.xidCite("[wiki/x]"), null);
-  assert.equal(SV.xidCite("[Inv-2] 不变量").id, "Inv-2");       // 033 Req-5: lite cards cite Inv blocks
+  assert.equal(SV.xidCite("[Inv-2] 不变量").id, "Inv-2");       // lite cards cite Inv blocks
   // a citation that is already a markdown link must stay one — swallowing the id would leave the
   // "(./adr/0001-x.md)" dangling as text
   assert.equal(SV.xidCite("[ADR-0001](./adr/0001-x.md)"), null);
@@ -1000,7 +1000,7 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   const reg = html.match(/window\.marked\.use\(\{[\s\S]*?\}\] \}\);/);
   const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);
   vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
-  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // 033: the tokenizer reads the one grammar from SV, as it does in the page
+  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // the tokenizer reads the one grammar from SV, as it does in the page
   vm.runInContext(reg[0], box);
   const out = box.marked.parse("见 [HLD-3] 与 [Req-12-a]。");
   assert.ok(out.includes('<a class="xid" href="#xid:HLD-3">[HLD-3]</a>'), out);
