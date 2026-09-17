@@ -310,6 +310,7 @@ t("marked + shell wikilink extension renders [[..]] as <a href=[[..]]>", () => {
   const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);   // use the shell's REAL esc
   assert.ok(escSrc, "could not extract esc() from shell.html");
   vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
+  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // the xid tokenizer reads SV, as the page does
   vm.runInContext(reg[0], box);
   const out = box.marked.parse("see [[wiki/cbdb/x]] here");
   assert.ok(/<a href="\[\[wiki\/cbdb\/x\]\]">/.test(out), "wikilink not rendered as anchor: " + out);
@@ -891,10 +892,11 @@ t("T11: the entering flag is set on every entry path and burned on read", () => 
   assert.doesNotMatch(rv, /_entering/, "D12 priority 3: the re-render path must never set it");
 });
 t("T11: restore yields to an explicit target and never writes an empty anchor", () => {
-  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "D12 priority 1 beats 2: a search hit's line suppresses the anchor scroll");
+  // 033 Req-5: an id jump is the second kind of explicit target, and suppresses the restore the same way.
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && \(p\._view\.line \|\| p\._view\.xid\)\)\);/, "D12 priority 1 beats 2: an explicit target suppresses the anchor scroll");
   // Review #12: only the re-render path rescans here. Entering replaces the terms from memory and
   // rescans inside restoreView, so scanning first would be a full pass with the outgoing view's term.
-  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\); else reindex\(side\);/, "one scan per render, not two");
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && \(p\._view\.line \|\| p\._view\.xid\)\)\); else reindex\(side\);/, "one scan per render, not two");
   assert.doesNotMatch(html.match(/function afterRender\(side, blockSel, tocFilter\) \{[\s\S]*?\n  \}/)[0], /^\s*reindex\(side\);\s*\/\//m, "no unconditional rescan ahead of the entering check");
   assert.match(html, /if \(!v \|\| !p\._blockSel \|\| !blockEls\(p\)\.length\) return;/, "an error panel has no blocks — don't overwrite good memory");
   assert.match(html, /if \(!e\) return;   \/\/ nothing remembered for this view yet/, "a field write can't conjure an entry out of nothing");
@@ -920,7 +922,7 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
   // the term of the view being LEFT — so an already-open box must be told what this view remembers.
   assert.match(rv, /else \{ var inp = p\.querySelector\("\[data-find-input\]"\); if \(inp\) inp\.value = h\.q; \}/, "an already-open box is resynced instead of keeping the previous view's word");
   assert.match(rv, /if \(h\.q \|\| h\.pins\.length\) reindex\(side\); else reset\(side\);/, "entering a view that remembers nothing must unregister the last view's highlights — reindex returns early there");
-  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && p\._view\.line\)\);/, "the explicit target suppresses only the scroll, not the term reflow");
+  assert.match(html, /if \(entering\) restoreView\(side, !\(p\._view && \(p\._view\.line \|\| p\._view\.xid\)\)\);/, "the explicit target suppresses only the scroll, not the term reflow");
 });
 
 t("T13: every exit from a view writes through the one named hook", () => {
@@ -951,12 +953,19 @@ t("R17: the find box seeds from the selection, remembers past queries, and waits
 console.log("\n" + pass + " shell-helper tests passed");
 
 // --- 026 T16: doc-native id anchors (SV pure half) + xid extension behavior ---
-t("xidHead parses block headings, rejects near-misses", () => {
+t("xidHead marks a definition site whatever its status word", () => {
   assert.deepEqual(SV.xidHead("Req-1 approved — 标题"), { id: "Req-1", state: "approved" });
   assert.deepEqual(SV.xidHead("LLD-8 proposed"), { id: "LLD-8", state: "proposed" });
-  assert.equal(SV.xidHead("Req-1 frozen — 坏状态词"), null);
+  // 033 Req-5: a lite card's status words are Chinese and Inv blocks carry none at all — the id is
+  // what anchors the block; only the four English words still colour the dot.
+  assert.deepEqual(SV.xidHead("Req-1 待验证 — 标题"), { id: "Req-1", state: "" });
+  assert.deepEqual(SV.xidHead("Inv-2 导航历史与前进后退栈的分工"), { id: "Inv-2", state: "" });
+  assert.deepEqual(SV.xidHead("Fact-1 [VERIFIED] gitweb 的默认端口是 8791"), { id: "Fact-1", state: "" });
+  assert.deepEqual(SV.xidHead("Req-1 frozen — 坏状态词"), { id: "Req-1", state: "" });
   assert.equal(SV.xidHead("REQ-1 approved — case 错"), null);
   assert.equal(SV.xidHead("需求 026: 普通标题"), null);
+  assert.equal(SV.xidHead("[Fact-1] 这是引用不是定义"), null);
+  assert.equal(SV.xidHead("Req-12-a 子句不是块"), null);
 });
 t("xidCite matches the exact citation grammar only (zero false links)", () => {
   assert.equal(SV.xidCite("[Req-12] …").id, "Req-12");
@@ -965,6 +974,24 @@ t("xidCite matches the exact citation grammar only (zero false links)", () => {
   assert.equal(SV.xidCite("[025:F3] cross-card"), null);
   assert.equal(SV.xidCite("[R1](./requirement.md)"), null);     // legacy link form untouched
   assert.equal(SV.xidCite("[wiki/x]"), null);
+  assert.equal(SV.xidCite("[Inv-2] 不变量").id, "Inv-2");       // 033 Req-5: lite cards cite Inv blocks
+  // a citation that is already a markdown link must stay one — swallowing the id would leave the
+  // "(./adr/0001-x.md)" dangling as text
+  assert.equal(SV.xidCite("[ADR-0001](./adr/0001-x.md)"), null);
+  assert.equal(SV.xidCite("[Req-1](./design.md)"), null);
+});
+
+t("xidHomeRel sends a Fact citation to the card's facts.md, and nothing else anywhere", () => {
+  assert.equal(SV.xidHomeRel("xg-skills/033-viewer-fixes/design.md", "Fact-1"), "xg-skills/033-viewer-fixes/facts.md");
+  assert.equal(SV.xidHomeRel("xg-skills/033-viewer-fixes/adr/0001-x.md", "Fact-12"), "xg-skills/033-viewer-fixes/facts.md");
+  assert.equal(SV.xidHomeRel("xg-skills/033-viewer-fixes/notes/lens.md", "Fact-2"), "xg-skills/033-viewer-fixes/facts.md");
+  // a Req / HLD / Inv is defined where it is used — never navigate away on its behalf
+  assert.equal(SV.xidHomeRel("xg-skills/033-viewer-fixes/design.md", "Req-1"), null);
+  assert.equal(SV.xidHomeRel("xg-skills/033-viewer-fixes/design.md", "Inv-2"), null);
+  assert.equal(SV.xidHomeRel("xg-skills/index.md", "Fact-1"), null);
+  assert.equal(SV.xidHomeRel("xg-skills/notes/2026-09-16-x.md", "Fact-1"), null);
+  assert.equal(SV.xidHomeRel("wiki/xg-skills/architecture.md", "Fact-1"), null);
+  assert.equal(SV.xidHomeRel("", "Fact-1"), null);
 });
 t("marked xid extension renders in-pane anchors; legacy content untouched", () => {
   const markedSrc = readFileSync(join(here, "marked.min.js"), "utf8");
@@ -973,6 +1000,7 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   const reg = html.match(/window\.marked\.use\(\{[\s\S]*?\}\] \}\);/);
   const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);
   vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
+  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // 033: the tokenizer reads the one grammar from SV, as it does in the page
   vm.runInContext(reg[0], box);
   const out = box.marked.parse("见 [HLD-3] 与 [Req-12-a]。");
   assert.ok(out.includes('<a class="xid" href="#xid:HLD-3">[HLD-3]</a>'), out);
@@ -981,6 +1009,9 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   assert.ok(!legacy.includes("class=\"xid\""), "legacy forms must not linkify: " + legacy);
   const fenced = box.marked.parse("```\n[Req-1]\n```");
   assert.ok(!fenced.includes("class=\"xid\""), "no linkify inside code fences");
+  const linked = box.marked.parse("见 [ADR-0001](./adr/0001-x.md) 与 [Req-1](./design.md)。");
+  assert.ok(!linked.includes("class=\"xid\""), "a citation that is already a link stays a link: " + linked);
+  assert.ok(linked.includes('href="./adr/0001-x.md"'), linked);
 });
 
 // --- 033: pane history dropdown (Req-3) ---

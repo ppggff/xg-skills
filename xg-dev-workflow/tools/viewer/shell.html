@@ -431,6 +431,13 @@
     background: var(--accent); color: var(--badge-fg); border-radius: var(--radius); padding: 5px 15px; font-size: 12.5px;
     cursor: pointer; box-shadow: 0 2px 12px #0004; }
   #stale.show { display: block; }
+  /* 033 Req-5: an id jump lands below the sticky head like every other target, and a jump that
+     cannot land says so — a click that does nothing is indistinguishable from "already here". */
+  [data-xid] { scroll-margin-top: 56px; }
+  #flash { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 30; display: none;
+    background: var(--chip); color: var(--fg); border: 1px solid var(--line2); border-radius: var(--radius);
+    padding: 5px 15px; font-size: 12.5px; box-shadow: 0 2px 12px #0004; }
+  #flash.show { display: block; }
   ::selection { background: var(--sel); }
   /* R5: quick-open palette (⌘K) */
   #qo-back { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; }
@@ -544,6 +551,7 @@
   <aside id="toc" class="pane"></aside>
 </div>
 <div id="stale">📄 内容已更新 · 点击刷新</div>
+<div id="flash"></div>
 <button id="cmt" class="iconbtn">💬 comment</button>
 <div id="basket"><b>comment basket</b>
   <button id="basket-copy">copy all</button> <button id="basket-clear">clear</button>
@@ -1135,16 +1143,30 @@ var SV = (function () {
     return Math.max(0, Math.min(top, trackH - 2));
   }
 
-  // ---- doc-native id anchors (026 T16): block-head parse + bracket-cite grammar ----
-  var XID_HEAD = /^(Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-(\d+) (proposed|approved|superseded|retired)(?: — .*)?$/;
-  var XID_CITE = /^\[((?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d+)(-[a-z])?\]/;
+  // ---- doc-native id anchors (026 T16): definition-site parse + bracket-cite grammar ----
+  // 033 Req-5: the id is what anchors a block, not its status word — lite cards write Chinese ones
+  // (待验证 …), Inv blocks write none, and a Fact is a list item in facts.md, never a heading.
+  var XID_ID = "(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer|Inv)";
+  var XID_HEAD = new RegExp("^(" + XID_ID + "-\\d+)(?![\\w-])\\s*(\\S*)");
+  var XID_STATE = /^(proposed|approved|superseded|retired)$/;   // the four that still colour the dot
+  // `(?!\()` keeps a citation that is already a markdown link — [ADR-0001](./adr/0001-x.md) — a link:
+  // tokenizing the bracket alone would leave its target dangling as text.
+  var XID_CITE = new RegExp("^\\[(" + XID_ID + "-\\d+)(-[a-z])?\\](?!\\()");
   function stepFace(label, state, governance) {   // 031: a lite card's one cell shows its status string on the face
     if (governance === "lite" && state) return { text: state, title: label + ": " + state };
     return { text: label, title: label + (state ? ": " + state : "") };
   }
   function xidHead(text) {
     var m = XID_HEAD.exec((text || "").trim());
-    return m ? { id: m[1] + "-" + m[2], state: m[3] } : null;
+    return m ? { id: m[1], state: XID_STATE.test(m[2]) ? m[2] : "" } : null;
+  }
+  // 033 Req-5: the file that, by convention, holds an id the current doc does not — a card's Fact-n
+  // blocks live in its facts.md. Only Fact ids have such a home: every other id is defined where it
+  // is used, so pointing elsewhere would navigate away for nothing.
+  function xidHomeRel(rel, id) {
+    var parts = String(rel || "").split("/");
+    if (!/^Fact-\d+$/.test(id || "")) return null;
+    return parts.length > 2 && /^\d{3}-/.test(parts[1]) ? parts[0] + "/" + parts[1] + "/facts.md" : null;
   }
   function xidCite(src) {
     var m = XID_CITE.exec(src);
@@ -1162,7 +1184,7 @@ var SV = (function () {
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
-           xidHead: xidHead, xidCite: xidCite, stepFace: stepFace };
+           xidHead: xidHead, xidCite: xidCite, xidHomeRel: xidHomeRel, stepFace: stepFace };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
@@ -1309,9 +1331,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // 026 T16 id-linkify: exact three-letter grammar only (HLD-10 — precise match,
     // no heuristics); clause suffix rides the display, the anchor is the block id
     name: "xid", level: "inline",
-    start: function (src) { var m = /\[(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d/.exec(src); return m ? m.index : -1; },
-    tokenizer: function (src) { var m = /^\[((?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer)-\d+)(-[a-z])?\]/.exec(src);
-      if (m) return { type: "xid", raw: m[0], id: m[1], clause: m[2] || "" }; },
+    start: function (src) { var m = /\[(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer|Inv)-\d/.exec(src); return m ? m.index : -1; },
+    tokenizer: function (src) { var m = SV.xidCite(src);   // one grammar, shared with the anchor side
+      if (m) return { type: "xid", raw: m.raw, id: m.id, clause: m.clause }; },
     renderer: function (t) { return '<a class="xid" href="#xid:' + esc(t.id) + '">' + esc(t.raw) + "</a>"; },
   }] });
 
@@ -1345,6 +1367,27 @@ if (typeof window !== "undefined" && window.marked) (function () {
     else if (v.kind === "trace") renderTraceView(side, v);
     else renderBoard(side, v);
     if (side === "left") highlightNav();
+  }
+  // 033 Req-5: scroll this pane to a definition; false = this document does not hold it.
+  function xidScroll(side, id) {
+    var el = PANES[side].querySelector('[data-xid="' + cssEsc(id) + '"]');
+    if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+    return !!el;
+  }
+  // In-document first, then the one file boundary the convention defines: a card's Fact-n blocks
+  // live in its facts.md, so a [Fact-n] cited from design.md is a cross-file jump by design.
+  function xidJump(side, id) {
+    if (xidScroll(side, id)) return;
+    var v = PANES[side]._view, rel = v && v.kind === "doc" ? SV.xidHomeRel(v.rel, id) : null;
+    var canon = rel && TREES[v.tree] && TREES[v.tree].get(rel.toLowerCase());
+    if (canon) { navigate(side, { kind: "doc", tree: v.tree, rel: canon, xid: id }); return; }
+    flash("未找到 " + id + " 的定义");
+  }
+  var flashT = null;
+  function flash(msg) {
+    var el = document.getElementById("flash"); if (!el) return;
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(flashT); flashT = setTimeout(function () { el.classList.remove("show"); }, 2200);
   }
   function histTitle(v) {   // the option's tooltip: the full path, which the 12em select cannot show
     return v && v.kind === "doc" ? v.tree + "/" + v.rel : SV.histLabel(v);
@@ -1441,12 +1484,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
       lineGutter([].slice.call(pane.querySelectorAll(".docbody > *")), window.marked.lexer(fm.body), pane._doc.fmLines);   // R9
       var hs = [].slice.call(pane.querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
-      hs.forEach(function (h) { var x = SV.xidHead(h.textContent);   // 026 T16: block anchors
-        if (x) { h.setAttribute("data-xid", x.id); h.classList.add("xhead", "xstate-" + x.state); } });
+      markXids(pane.querySelector(".docbody"));   // 026 T16 + 033 Req-5: block anchors
       markLinks(pane.querySelector(".docbody"), v.tree, v.rel); renderMermaid(side, pane.querySelector(".docbody"));
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
       if (v.line) scrollToLine(side, v.line);   // R4: a search hit carried a line → jump to its section
+      if (v.xid && !xidScroll(side, v.xid)) flash("未找到 " + v.xid + " 的定义");   // 033: cross-file id jump
     }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
       var is404 = / → 404$/.test(e.message);
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
@@ -1469,6 +1512,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var out = []; body.split("\n").forEach(function (l, i) {
       var m = l.match(/^(#{1,6})\s+(.+?)\s*#*$/); if (m) out.push({ depth: m[1].length, text: m[2].trim(), line: i }); });
     return out;
+  }
+  // 026 T16 + 033 Req-5: a definition site is a heading or a list item whose text STARTS with the id —
+  // the same walk covers a lite card's Chinese-status blocks and facts.md's `- Fact-n …` lines. Only a
+  // heading takes the .xhead dot; a list item already has a marker of its own.
+  function markXids(body) {
+    if (!body) return;
+    body.querySelectorAll("h1,h2,h3,h4,h5,h6,li").forEach(function (el) {
+      var x = SV.xidHead(el.textContent);
+      if (!x) return;
+      el.setAttribute("data-xid", x.id);
+      if (/^H[1-6]$/.test(el.tagName)) {
+        el.classList.add("xhead");
+        if (x.state) el.classList.add("xstate-" + x.state);
+      }
+    });
   }
   function markLinks(body, tree, rel) {
     body.querySelectorAll("a[href]").forEach(function (a) {
@@ -2364,7 +2422,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // S1/S2: rescan this pane's query/pins against the fresh content — but only when the terms are
     // staying. Entering a view replaces them from that view's memory and rescans there, so scanning
     // here first would be a full pass with the term of the view being left.
-    if (entering) restoreView(side, !(p._view && p._view.line)); else reindex(side);
+    if (entering) restoreView(side, !(p._view && (p._view.line || p._view.xid))); else reindex(side);
   }
   ["left", "right"].forEach(function (s) {            // R6: scrolling no longer moves the marker / TOC
     PANES[s].addEventListener("click", function (e) {   // R2/R40/R52: a click sets the current block
@@ -2610,10 +2668,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
   document.addEventListener("click", function (e) {
     var t;
-    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // 026 T16: in-pane block jump
-      var xs = sideOf(t) || focus, xp = PANES[xs],
-          xh = xp && xp.querySelector('[data-xid="' + (t.getAttribute("href") || "").slice(5) + '"]');
-      if (xh) xh.scrollIntoView({ block: "start", behavior: "smooth" });
+    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // 026 T16 / 033 Req-5: id jump
+      xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
       return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
@@ -3084,7 +3140,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         var rm = document.createElement("i"); rm.className = "mrule"; rm.dataset.resize = "measure-right";
         pane.appendChild(bar); pane.appendChild(lm); pane.appendChild(rm); pane.appendChild(docbody);
         applyMeasure(side);   // R1/R2: size the measure box + position its two lines
-        markLinks(docbody, tree, rel); renderMermaid(side, docbody);
+        markLinks(docbody, tree, rel); renderMermaid(side, docbody); markXids(docbody);
         var hs = [].slice.call(docbody.querySelectorAll("h1,h2,h3,h4,h5,h6"));
         tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
         afterRender(side, ".docbody > *");
