@@ -1,7 +1,7 @@
 # xg-skills
 
-Two [Claude Code](https://claude.com/claude-code) skill packages for grounding
-substantive engineering work in durable, reusable knowledge. They are siblings:
+Three [Claude Code](https://claude.com/claude-code) skill packages for grounding
+substantive engineering work in durable, reusable knowledge. The first two are siblings:
 the workflow *orchestrates* code work and links out to the knowledge base for
 reusable module knowledge; the knowledge base never stores workflow state.
 
@@ -31,6 +31,17 @@ A cross-project code-knowledge base with two layers (after Karpathy's
 truth — are compiled into `wiki/<project>/<concept>.md` concept articles.
 
 Actions: Write, Compile, Query, Orient, Lint.
+
+### [`xg-codemap/`](xg-codemap/)
+
+A shared intent map between a human and a coding agent (v0, value trial): the
+agent draws what the software *is* — nodes anchored to real symbols, commits
+and files, claims marked verified or inferred, nothing in scope omitted by
+accident — and the human marks on the same map what it *should become*, each
+wish with an acceptance predicate. Standalone by design: it knows nothing about
+the other two packages and reads no shared configuration; they may call it, it
+never calls them. Hand-drawn Markdown + Mermaid today; a checker, resolvers and
+an interactive surface are later stages, gated on the trial.
 
 ## Layout
 
