@@ -316,7 +316,7 @@
      Compact (one-line rows only — task/trace detail lives on the trace page), so the sticky
      float covers little. */
   .card.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .card-detail { position: sticky; bottom: -20px; margin: auto -28px -20px; padding: 0 28px 4px; background: var(--side);
+  .card-detail { position: sticky; bottom: calc(-20px + var(--findh, 0px)); margin: auto -28px -20px; padding: 0 28px 4px; background: var(--side);
     border-top: 1px solid var(--line2); box-shadow: 0 -6px 16px -12px rgba(0,0,0,.6); }   /* margin-top:auto pins to the bottom when the board is short; bottom:-20 + sticky pins it while scrolling a tall board */
   .cd-bar { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; cursor: pointer; }
   .cd-caret { flex: none; width: .8em; color: var(--muted); }
@@ -1784,9 +1784,21 @@ if (typeof window !== "undefined" && window.marked) (function () {
     // spacer above the sticky drawer, sized to it: content can always scroll clear of the
     // temporary overlap while the drawer stays pinned to the viewport bottom.
     var cd = pane.querySelector(".card-detail"), sp = pane.querySelector(".cd-spacer");
+    var bar = pane.querySelector(".findbar");
     if (cd && !sp) { cd.insertAdjacentHTML("beforebegin", '<div class="cd-spacer"></div>'); sp = pane.querySelector(".cd-spacer"); }
-    if (sp) { if (cd) sp.style.height = cd.offsetHeight + "px"; else sp.remove(); }
+    if (sp) { if (cd) sp.style.height = (cd.offsetHeight + barH(bar)) + "px"; else sp.remove(); }
   }
+  // Both the find bar and the drawer are pinned to the pane's bottom edge, so the drawer has to be
+  // told how tall the bar is — otherwise they share the same band and the bar covers the drawer's
+  // last row. Re-run wherever either one appears, disappears or is re-rendered.
+  function syncFindH(side) {
+    var p = PANES[side];
+    p.style.setProperty("--findh", barH(p.querySelector(".findbar")) + "px");
+    padForDrawer(p);
+  }
+  // the fractional height, not offsetHeight: rounding down leaves the bar's border over the
+  // drawer's last sub-pixel row
+  function barH(bar) { return bar ? bar.getBoundingClientRect().height : 0; }
   function updateDetail(side) {
     var pane = PANES[side];
     pane.querySelectorAll(".card").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
@@ -2204,6 +2216,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     head.insertAdjacentHTML("afterend", findBarHtml(side));
     var input = p.querySelector("[data-find-input]"); if (!quiet) { input.focus(); input.select(); }
     updateFindCount(side);
+    syncFindH(side);
   }
   function selectedIn(side) {
     var sel = window.getSelection();
@@ -2234,6 +2247,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     findHistPush(p._hits.q); p._histAt = null;   // R17: remember what was searched, not that it was closed
     p._findOpen = false;
     var bar = p.querySelector(".findbar"); if (bar) bar.remove();
+    syncFindH(side);
     p._hits.q = ""; p._hits.hits = []; p._hits.cur = -1;
     writeField(side, "q", "");   // R13: the query is gone for good — coming back must not revive it
     paint(side);
@@ -2415,6 +2429,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // block. `blockSel` is the view's clickable-unit selector; the click listener below reuses it.
   function afterRender(side, blockSel, tocFilter) {
     var p = PANES[side]; p._blockSel = blockSel; p._tocFilter = tocFilter || null;   // R61
+    syncFindH(side);
     if (focus === side) renderToc();
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
     var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
