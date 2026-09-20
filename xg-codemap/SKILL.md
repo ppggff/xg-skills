@@ -44,7 +44,12 @@ Facts are not yours to decide: every element in scope is accounted for, every ed
    words, with the acceptance wording attached. Every changed node hangs under one. Changed code that
    serves no item is listed as *unaccounted* — candidate creep or a missing item — never silently folded.
 6. **Presentation.** One Mermaid diagram per question: the top diagram (items → changed nodes), then one
-   expansion per item or subsystem. Labels carry name and size; markers ride the label as text tags:
+   expansion per item or subsystem. **Under each diagram's heading, one line names its kind, the question
+   it answers and what an edge means** (`图类型 · 回答 · 边`); a change map's diagrams are structure /
+   dependency diagrams, never control-flow, and the reader is told so up front. **Keep a diagram legible**:
+   about 15 nodes at most, labels of one or two short lines (name · size · test count), `direction TB` inside
+   subgraphs so groups stack instead of spreading; when a diagram would exceed that, split it by group and
+   move the type names and details into a table beside it. Markers ride the label as text tags:
    `[+test]` a test changed with it · `[no-test]` code changed, no test changed · `[new]` · `[removed]` ·
    `[moved]`. After each diagram: a short prose block — traps, decisions, what is folded, what is elided.
    List the **blast radius** (callers of changed nodes at `head`, one level) as a table, not a diagram.
