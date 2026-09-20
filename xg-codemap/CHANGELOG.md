@@ -3,6 +3,16 @@
 Behavior-level history of the skill (the curated view; `git log` is the full one). Prepend a dated
 entry, newest first, whenever the skill's behavior changes.
 
+## 2026-09-20 — the note is organised by function; glossary and function-name sentences required
+
+Fourth reviewer round on the same map, five comments: undefined terms and mixed spellings (ledger,
+视界 / horizon), bare function names, no flow for verification, no principles behind a package, and —
+the structural one — a spine of "where the diff landed" where the reader wanted "what the software
+does and how each function works, changed where, verified how". Step 5 now makes function the spine
+and the code-area view an appendix; a new step 7 requires a glossary, one spelling per concept and a
+subject-verb-object sentence after every function name; step 6 adds a verification flow diagram.
+Model (standard v0) unchanged: this is all Presentation-layer procedure.
+
 ## 2026-09-20 — a change map also shows how the thing runs; every section opens with an intro
 
 Third reviewer comment on the same real map: structure and dependency diagrams answered "what is

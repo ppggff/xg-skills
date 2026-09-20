@@ -40,9 +40,14 @@ Facts are not yours to decide: every element in scope is accounted for, every ed
    auto letter; anchors = the symbol paths / commits it stands for (a node may carry several). Each
    claim (exists · size · call or dependency edge · tests touching it · a structural judgment) is
    `verified` with its provenance (commit SHA, file read) or `inferred`. Draw no edge you have not read.
-5. **Intent layer.** Top-level nodes are the requirement items the change serves, in the host's ids and
-   words, with the acceptance wording attached. Every changed node hangs under one. Changed code that
-   serves no item is listed as *unaccounted* — candidate creep or a missing item — never silently folded.
+5. **Intent layer, and the spine of the note.** Top-level nodes are the requirement items the change
+   serves, in the host's ids and words, with the acceptance wording attached. Every changed node hangs
+   under one. Changed code that serves no item is listed as *unaccounted* — candidate creep or a missing
+   item — never silently folded. **The note itself is organised by function, not by code area**: after a
+   glossary and a one-diagram overview of what the software does and what the change added, one section
+   per function, each in the same five parts — one sentence · how it works (principles, from code comments,
+   the repository's own docs and the knowledge base, cited) · flow · where the change landed · how it was
+   verified. The code-area view (packages, dependency graph, modified files, accounting) is an appendix.
 6. **Presentation.** One Mermaid diagram per question: the top diagram (items → changed nodes), then one
    expansion per item or subsystem. **Under each diagram's heading, one line names its kind, the question
    it answers and what an edge means** (`图类型 · 回答 · 边`); a change map's diagrams are structure /
@@ -51,14 +56,22 @@ Facts are not yours to decide: every element in scope is accounted for, every ed
    subgraphs so groups stack instead of spreading; when a diagram would exceed that, split it by group and
    move the type names and details into a table beside it. **Structure is not enough**: a change map
    also carries at least one control-flow diagram per entry point that matters (the command path from
-   invocation to the subcommand body, the highest-risk run), drawn from the code at `head` and marked
-   as a flowchart, so the reader learns how the thing runs and where it refuses, not only what exists.
+   invocation to the subcommand body, the highest-risk run) **and one for how the change is verified**
+   (fixture, replay, comparison), drawn from the code at `head` and marked as a flowchart, so the reader
+   learns how the thing runs, where it refuses and how it was proven, not only what exists.
    **Every section opens with two sentences** saying what it is about and which diagram to read first.
    Markers ride the label as text tags:
    `[+test]` a test changed with it · `[no-test]` code changed, no test changed · `[new]` · `[removed]` ·
    `[moved]`. After each diagram: a short prose block — traps, decisions, what is folded, what is elided.
    List the **blast radius** (callers of changed nodes at `head`, one level) as a table, not a diagram.
-7. **Honesty lines.** Date the note, keep the SHAs in the frontmatter, mark anything measured (`实测`)
+7. **Words.** The note opens with a glossary: every domain term the reader will meet (the ledger, the
+   horizon, a candidate, a gate …) in one sentence with its source, and one spelling per concept
+   thereafter — pick the Chinese or the English form once and keep identifiers as identifiers. **Every
+   function name is followed by a sentence saying what it does**, with a subject, a verb and an object
+   (`buildReport` turns the sweep into the report and decides whether a candidate may be claimed); a bare
+   name is not an explanation. A package that appears in a diagram gets a paragraph on how it works, not a
+   list of its functions.
+8. **Honesty lines.** Date the note, keep the SHAs in the frontmatter, mark anything measured (`实测`)
    apart from anything read. When the code moves, the note stays true to its SHAs and says so.
 
 ## Handling comments on the map
