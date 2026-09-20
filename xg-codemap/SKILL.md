@@ -49,7 +49,12 @@ Facts are not yours to decide: every element in scope is accounted for, every ed
    dependency diagrams, never control-flow, and the reader is told so up front. **Keep a diagram legible**:
    about 15 nodes at most, labels of one or two short lines (name · size · test count), `direction TB` inside
    subgraphs so groups stack instead of spreading; when a diagram would exceed that, split it by group and
-   move the type names and details into a table beside it. Markers ride the label as text tags:
+   move the type names and details into a table beside it. **Structure is not enough**: a change map
+   also carries at least one control-flow diagram per entry point that matters (the command path from
+   invocation to the subcommand body, the highest-risk run), drawn from the code at `head` and marked
+   as a flowchart, so the reader learns how the thing runs and where it refuses, not only what exists.
+   **Every section opens with two sentences** saying what it is about and which diagram to read first.
+   Markers ride the label as text tags:
    `[+test]` a test changed with it · `[no-test]` code changed, no test changed · `[new]` · `[removed]` ·
    `[moved]`. After each diagram: a short prose block — traps, decisions, what is folded, what is elided.
    List the **blast radius** (callers of changed nodes at `head`, one level) as a table, not a diagram.

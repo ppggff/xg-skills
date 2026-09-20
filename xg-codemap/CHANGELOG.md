@@ -3,6 +3,13 @@
 Behavior-level history of the skill (the curated view; `git log` is the full one). Prepend a dated
 entry, newest first, whenever the skill's behavior changes.
 
+## 2026-09-20 — a change map also shows how the thing runs; every section opens with an intro
+
+Third reviewer comment on the same real map: structure and dependency diagrams answered "what is
+there" but not "how does it run". Step 6 now requires at least one control-flow diagram per entry
+point that matters (the invocation path and the highest-risk run), read from the code at `head`,
+plus a two-sentence intro per section. Model (standard v0) unchanged.
+
 ## 2026-09-20 — every diagram declares its kind; legibility rule for hand-drawn diagrams
 
 From the first review of a real change map (158 commits): the reviewer could not tell what kind of
