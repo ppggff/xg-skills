@@ -92,7 +92,7 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
    snapshot's `CLAUDE.md` and design docs.
 3. There: `claude -p --setting-sources project,local --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
    --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
-   "<task line> <problem.md>"` — the task line only asks to analyse against the code here, cite `func()` in `file`
+   "<task line> <problem.md>" < /dev/null` — the task line only asks to analyse against the code here, cite `func()` in `file`
    per claim, mark what could not be verified, report in Chinese. Never add `--dangerously-skip-permissions`,
    `--permission-mode bypassPermissions` or `--add-dir`: `-p`'s default permissions do the isolating. `--bare`
    needs an API key and a subagent carries the global CLAUDE.md — neither substitutes.
