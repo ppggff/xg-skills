@@ -47,12 +47,12 @@ that could sink the approach gets a bounded investigation or narrows the ask.
 
 ## The go ask (one message, receipts first)
 
-Commit the card (`commit-data-repos.py --card <project>/<NNN>`), then ask with: 摘要 · the commitment list
-(Req ids, one line each) · scope and not-in-scope · impact forecast (labelled) · risks and thin evidence ·
-what the authorization includes and excludes · the **收敛行** `已定 n 项 · 待定 <…> · 未探索 <…> · grill: k 轮
-/ 未做（原因）· lens: 已做 n / 未做（原因）· review: <tier>（原因）` · the judgment split: **已验证** (Claude checked
-— say how) vs **待你判** (only the human can decide — each as 问题 · 选项与代价 · 推荐 · 不决的后果, plain language,
-ids only in brackets). A partial go names the Req ids covered; the rest stay 讨论中. **What counts as go**: the
+Commit the card (`commit-data-repos.py --card <project>/<NNN>`), then ask, in this order: the receipts (paths + dev_root
+commit) · **待你判** (only the human can decide — each as 问题 · 选项与代价 · 推荐 · 不决的后果, plain language, ids
+only in brackets; none → 无) · 摘要 · the commitment list (Req ids, one line each) · scope and not-in-scope · impact
+forecast (labelled) · risks and thin evidence · what the authorization includes and excludes · the **收敛行** `已定 n 项 ·
+待定 <…> · 未探索 <…> · grill: k 轮 / 未做（原因）· lens: 已做 n / 未做（原因）· review: <tier>（原因）` · **已验证**
+(Claude checked — say how). A partial go names the Req ids covered; the rest stay 讨论中. **What counts as go**: the
 word, or a reply **to this ask** that settles every 待你判 item and raises no new question — a discussion round's
 closing reply never is; the 授权记录 line quotes the human verbatim (`constraints.md` Go-1); an unanswered item
 gets asked for by itself, never "please say go". On go: the 授权记录 line (carrying the 收敛行's `lens:` / `review:` fields)
@@ -137,8 +137,8 @@ a run; a promised run that cannot happen is a blocker or a negotiated cut; (4) `
 triage, usage log `--action lite`, and the **observation note** (`notes/observations.md`): places synced per change ·
 interruptions — including the model's own stops to ask 「继续？」— each with its reason · test mode per slice · questions
 per ask · doc time and lines read at go · missed commitments · unauthorized changes, each 变更 line checked against
-Go-2 rather than self-assessed · verification gaps · **quality steps skipped and why** · handoff gaps. Asking about a
-real doc gap is not a failure.
+Go-2 rather than self-assessed · verification gaps · **quality steps skipped and why** · handoff gaps. The close-out
+message opens with the 待人判 items (none → 无), then (3)'s results. Asking about a real doc gap is not a failure.
 
 ## Triggers — what the content switches on (no size tiers)
 

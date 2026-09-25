@@ -84,7 +84,8 @@ and the report carries the per-row verdict.
    alternatives gets **是** plus the choices and your recommendation; flag rows whose files need explicit
    approval under the repo's scope rules. Items judged not worth fixing → a 明确不修 line with the reason.
    A review-born Future / deferred item states its provenance (evidence-cited / 推断 / 假设) like any
-   claim. Chat reply ≤10 lines pointing at the report, **with receipts** (path + dev_root commit — write
-   first, then reply); echo the table only when the human asks to choose.
+   claim. Chat reply ≤10 lines, opening with what needs the human — one plain line (item · recommendation)
+   per 修复决策表 row marked 是, its row number in brackets; none → 无 — then the report pointer **with
+   receipts** (path + dev_root commit — write first, then reply); echo the table only when the human asks to choose.
 
 7. **Log usage** — `--action review` in both contexts (a review inside a card is still a review).

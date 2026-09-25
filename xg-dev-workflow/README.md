@@ -44,9 +44,10 @@ each row script- or reader-checkable.
   with costs; key feasibility rests on code, a derivation or a spike; thin evidence is stated. Shape or
   environment clauses in the ask are constraint commitments; a redo imports the old card's verbatim human
   messages and the roadmap's rulings.
-- **The go ask is one message with receipts**: commit first, then 摘要 · commitments · scope · impact forecast
-  · risks · what the authorization includes and excludes · the 收敛行 · the split between what Claude
-  verified and what only the human can decide. A reply **to that ask** that settles every open judgment and raises
+- **The go ask is one message with receipts**: commit first, then the receipts and what only the human can
+  decide, followed by 摘要 · commitments · scope · impact forecast · risks · what the authorization includes
+  and excludes · the 收敛行 · what Claude verified. The close-out message and a review's reply likewise open
+  with what waits on the human. A reply **to that ask** that settles every open judgment and raises
   no new question is a go; the 授权记录 quotes the human verbatim — never an inferred 「视为 go」.
 - **Execution is continuous.** Approach changes, added tests, reordering and review fixes are ordinary work
   (an A→B walk with one reason line); only three kinds of change come back to the human. Destructive or
