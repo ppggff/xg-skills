@@ -60,8 +60,8 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   `notes/human-messages.md` at the first human message): lite.md「Card files」, then「Drafting」.
 - `resume [<slug>]` · `park [<slug>]` — lite.md「Park / resume」(存量 cards: legacy/SKILL.md).
 - `check [<slug>]` — the lite check subset above (存量 cards: legacy's M3).
-- `investigate <topic>` — the front door for any code-behavior question; KB-first, evidence-cited,
-  read-only: `references/steps/investigate.md`.
+- `investigate <topic>` — the front door for any code-behavior question; KB-first and recorded unless
+  skipped (the step says when), evidence-cited, read-only: `references/steps/investigate.md`.
 - `diagnose <symptom>` — defect localization, repro loop before any theory: `references/steps/diagnose.md`.
 - `review <target>` — judging new/changed code; also the lite close-out review: `references/steps/review.md`.
 - `improve <project> [<region>…]` — read-only deepening scan, picks graduate via the roadmap:

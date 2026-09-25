@@ -1,9 +1,10 @@
 # Step: investigate — the front door for any code-behavior question
 
 "调查 X", "how does Y behave", a concurrency / runtime / feasibility question, an open question on a
-card: it all routes here. Read-only on product code, never advances a card; the deliverable is a
-recorded evidence trail plus a **logical analysis** — grep and read gather evidence, they are not the
-answer. Two disciplines compose: the evidence rule below and concept-first understanding.
+card: it all routes here. Read-only on product code, never advances a card; the deliverable is an
+evidence trail — recorded unless answer-only (step 3) — plus a **logical analysis**: grep and read
+gather evidence, they are not the answer. Two disciplines compose: the evidence rule below and
+concept-first understanding.
 
 ## The evidence rule (non-negotiable)
 
@@ -84,7 +85,10 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
 
 1. **KB first** — an xg-knowledge-lite Orient pass (project section of `wiki/index.md` · `CONTEXT-MAP.md`
    · uncompiled-raw count), then Query the relevant concepts and drill into their raw sources; don't
-   re-investigate what is recorded. Orient is this run's warm-up, not a separate log record.
+   re-investigate what is recorded. Orient is this run's warm-up, not a separate log record. Skipped only
+   on the human's word (「别查 KB」), never on your own — whether the KB covers the question is unknown until
+   you look; the reply says 「调查未参考 KB（你要求）」, and any KB write from this run, now or later, first
+   runs a Query on its topic and says so.
 2. **Investigate read-only** — an Explore subagent for targeted grep / read, a broader layered survey for
    a sprawling question. A dispatched agent gets the negative-results checklist **in its prompt**
    (`lenses.md`); re-check every load-bearing negative it returns with a broader grep and re-derive any
@@ -104,14 +108,21 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
      concept); scratch and phase notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix —
      the dir says it; a multi-phase campaign graduates to `investigations/<topic>/` with charter + phase
      notes), **never into the repo**. Log `--action investigate`.
+   - **Answer-only** (standalone only) — on the human's word (「不用记」), or your call on a single unphased
+     question whose answer is a one-off lookup (where X is defined, a default) or already in the KB with
+     nothing to add (not open when the KB was skipped); a conclusion that needed a claims table or a causal
+     chain is never a lookup — unsure → record. No notes, no KB write; still log `--action investigate`
+     with `answer-only` in the note; a later 「记下来」 records through the Standalone branch, no second record.
 4. **Large question → phases.** Name the phases up front (e.g. 1 registration sites · 2 execution context
    · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file,
    say so in the message that starts the next phase, and go on. **Pause for the human** only when a verdict
    adds, drops or rescopes a named phase, the next phase needs what only the human knows, or the first
    recording is torn on anchoring (step 3); never pre-conclude a later phase. A single question skips the
-   phasing.
+   phasing. On the human's 「不用记」 the phase notes are still written — they carry progress across a
+   context summary; only the KB write is skipped, and the closing reply says so.
 5. **Receipts — write first, then reply**: the closing reply (or a phase pause) names the notes / KB paths
-   and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped.
+   and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped —
+   unless it ends with 「未落盘（原因）；要记就说『记下来』」 (answer-only, step 3).
 
 A finding in a notes file is a **field block** — stable labels 现象 · 规范 (or 机理) · 改法 (or 结论), each a label
 line with free-form indented content; a further field only for an independent point (`conventions-core.md`「Form」).
