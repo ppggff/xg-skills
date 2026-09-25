@@ -41,7 +41,13 @@ frozen legacy step files (the 存量 flow keeps them).
   findings go back to the KB.
 - Present it **for judgment**: the understanding, the uncertainties, the information gaps. The human corrects
   it before any candidate is weighed. A prior note or card that already reached design depth is consumed, not
-  re-derived; a `learn` report is non-binding input — claims to test, not settled ground.
+  re-derived; a `learn` report, a skill-less or external-model analysis and an independent run are non-binding
+  input — claims to test, not settled ground.
+- **A card opened from an evolving dir** (`investigate.md` step 3) maps role to role: problem → 当前摘要 ·
+  目标与边界, linking the dir; current conclusion → 当前方案; facts renumbered into `facts.md` with their origin — a
+  skill fact with a source line is spot-checked, any other re-verified before `[VERIFIED]`; the dir's
+  `human-messages.md` lines copied into the card's, dates kept, under one source line; analyses stay in the dir,
+  linked, never copied; `current.md` gets `→ 已转入卡片 NNN（date）` and the discussion moves to the card.
 
 ## 3. Fresh-context lenses
 

@@ -81,6 +81,27 @@ prints the observed state; the run output upgrades the claims row to VERIFIED, l
 routing, and the probe is deleted. A probe that needs product-code changes is implementation — escalate.
 A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`.
 
+## Independent run — an investigator who has not seen what we believe
+
+Only on the human's 「独立调查」; you may suggest it once (a KB conclusion in doubt, candidates to compare), never
+start it. It runs in an evolving dir (step 3; on an active card, in the card's `notes/`, conclusions into
+「待解问题与证据」).
+1. Write `problem.md` and self-check it — no candidate, no conclusion, no KB wording or slug, no card / Req id;
+   show it with the ref and the export paths (default: the whole repo) and wait — the run's one stop.
+2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete the
+   snapshot's `CLAUDE.md` and design docs.
+3. There: `claude -p --setting-sources project,local --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
+   --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
+   "<task line> <problem.md>"` — the task line only asks to analyse against the code here, cite `func()` in `file`
+   per claim, mark what could not be verified, report in Chinese. Never add `--dangerously-skip-permissions`,
+   `--permission-mode bypassPermissions` or `--add-dir`: `-p`'s default permissions do the isolating. `--bare`
+   needs an API key and a subagent carries the global CLAUDE.md — neither substitutes.
+4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files · the full command.
+5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`); list the
+   disagreements in `current.md` and settle each in the code — the disagreements are the run's output.
+6. Its conclusions are claims to test until checked in the code. Limits: comments still carry old conclusions;
+   the isolation is missing pointers plus a read deny, not a sandbox; the run cannot execute scripts (no spikes).
+
 ## Procedure
 
 1. **KB first** — an xg-knowledge-lite Orient pass (project section of `wiki/index.md` · `CONTEXT-MAP.md`
@@ -105,16 +126,28 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
      `[[wiki/<project>/<slug>]]` — design.md links it, never duplicates it. No separate usage record
      (the card's lite events cover it); 存量 cards record per `references/legacy/SKILL.md`.
    - **Standalone** → reusable findings to the KB (xg-knowledge-lite Write: raw, compile if it shifts a
-     concept); scratch and phase notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix —
-     the dir says it; a multi-phase campaign graduates to `investigations/<topic>/` with charter + phase
-     notes), **never into the repo**. Log `--action investigate`.
+     concept); notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix — the dir says it),
+     **never into the repo**. Log `--action investigate`.
+   - **Evolving dir（演进目录）** — a doc set whose current conclusion can always be regenerated from the rest;
+     ordinary and independent runs share it. A multi-phase campaign, a topic discussed past one round, or a
+     second analysis graduates the note to `investigations/<topic>/`, one file per role: the problem
+     (`problem.md` — state · goals · constraints, no solution or conclusion, readable without background) ·
+     facts (`facts.md` — evidence-cited; a correction strikes and says why) · the human's messages
+     (`human-messages.md`, verbatim and dated, as on a card) · analyses (`analysis-<source>-<date>.md`, `-2` on
+     a same-day repeat — skill · independent · an external model — headed by source and evidence mode,
+     appended while its run lasts, frozen once it ends; a phase is a run) · the current conclusion
+     (`current.md`, present tense, rewritten freely; when messy, regenerate it from the other four — list the
+     semantic points first, tick them off after). Commit dev_root at each round's end. A card holds the same
+     roles (design.md summary and goals · `facts.md` · `notes/human-messages.md` · `notes/` · 当前方案);
+     opening one from this dir: `discuss.md` §2.
    - **Answer-only** (standalone only) — on the human's word (「不用记」), or your call on a single unphased
      question whose answer is a one-off lookup (where X is defined, a default) or already in the KB with
      nothing to add (not open when the KB was skipped); a conclusion that needed a claims table or a causal
      chain is never a lookup — unsure → record. No notes, no KB write; still log `--action investigate`
      with `answer-only` in the note; a later 「记下来」 records through the Standalone branch, no second record.
 4. **Large question → phases.** Name the phases up front (e.g. 1 registration sites · 2 execution context
-   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file,
+   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file (in
+   an evolving dir, the phase's analysis file),
    say so in the message that starts the next phase, and go on. **Pause for the human** only when a verdict
    adds, drops or rescopes a named phase, the next phase needs what only the human knows, or the first
    recording is torn on anchoring (step 3); never pre-conclude a later phase. A single question skips the
