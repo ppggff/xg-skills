@@ -18,7 +18,10 @@ repos as they are instead, then to write that back as a variant. Every part of i
   Grep, which still returns lines from a denied `CLAUDE.md`, hence the precondition.
 - `--add-dir` moves from "never" to "only the live repo roots"; the step warns that zsh does not split a variable,
   which silently broke one probe (every read denied, the deny rules concatenated).
-- **体量行**: SKILL.md 89 · 流程 8 files / 819 · 约束 128 · lite face otherwise unchanged.
+- The run now passes `--model` and `--effort` from the session: `--setting-sources project,local` skips the user
+  settings that hold them, and the first issue602 run came out at medium effort (opus without 1m) against an xhigh
+  KB-informed run, which would have confounded the comparison; it was rerun at xhigh (card 038, second re-open).
+- **体量行**: SKILL.md 89 · 流程 8 files / 820 · 约束 128 · lite face otherwise unchanged.
 
 ## 2026-09-26 — investigate: evolving dirs, independent runs, cards opened from a dir (card xg-skills/038)
 
