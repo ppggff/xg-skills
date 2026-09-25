@@ -76,6 +76,7 @@ and the report carries the per-row verdict.
    same-day second round appends `-2`); standalone → `<dev_root>/<project>/reviews/YYYY-MM-DD-<slug>.md`.
    Shape: 总体结论 (approve when the change definitely improves overall code health, not when it is
    perfect; the saturation one-liner) → findings by severity, each a field block (现象 · 依据 with `file:line` ·
+   触发 when it claims the code misbehaves at run time — the input, sequence or red test that makes it fail ·
    改法 — label line + indented free-form content, never one long bullet) → 误报澄清
    → **确认正确的关键点** (what was checked and confirmed against the invariants — for invariant-heavy
    code this positive half carries as much value as the findings) → **修复决策表** → suggested

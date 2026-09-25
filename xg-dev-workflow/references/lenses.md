@@ -13,10 +13,11 @@ prompt shapes live here and nowhere else.
   each) · dead findings (refuted claim + why)}. Load-bearing premises come **only** from the pack —
   anything else the dispatcher writes is marked `UNVERIFIED` or left out; "it appears in a doc"
   never launders a premise in. Agents treat packed facts as given (spot-check on contradiction).
-- **Mandate**: attack from first principles — what here is unnecessary, what is missing, what
-  already exists. Verify each finding against actual file content before reporting; structured
-  findings (severity · `file:line` · issue · why · suggested fix); ≤400 words, keep the highest
-  severity and state the count omitted on overflow; **return empty if none — never invent**.
+- **Mandate**: attack from first principles — what here is unnecessary, what is missing, what already
+  exists. Verify each finding against actual file content before reporting; structured findings
+  (severity · `file:line` · issue · why · trigger — the input, sequence or red test that makes it
+  fail, for a claim that the code misbehaves at run time · suggested fix); ≤400 words, keep the
+  highest severity and state the count omitted on overflow; **return empty if none — never invent**.
 - **Negative results** state query and scope ("not found with query Q over scope S"); a lens never
   restricts grep by extension; an inherited negative is re-checked before it becomes a fact.
 - **Report** in Chinese, domain terms / file names / ids in English, diagrams Mermaid only.
@@ -80,17 +81,16 @@ evidence — the author being the satisfier is the failure mode this lens exists
   helpers or abstractions; skip what tooling enforces. **Invariants** (session model) — the pack's
   Inv rows, concurrency, fail-safe symmetry, security.
 - **Deep tier menu** (start lean: correctness · the trio · the sweep, plus what the diff plainly
-  indicates; expand only on a singleton-heavy verdict): correctness vs invariants (opus cap) ·
-  the **adversarial trio** = the falsifier's three moves run from the problem, not the diff (opus
-  cap) · conventions conformance (sonnet) · tests — assertions match spec semantics, no hardcoded
-  dates / paths (sonnet) · security / input validation / privilege (opus cap) · **lifted fail-safe
-  symmetry** — a removed or relaxed rejection path: did the symmetric surface (build ↔ dump /
-  reverse path) pick up the load, do type-wrapper boundaries (RelabelType, coercions) still fire? ·
-  performance — hot paths, N+1 dispatch, lock scope · git history — blame, prior fixes (sonnet) ·
-  **quality / simplify** — one bundled sonnet agent, deep only, `smell-catalog.md` pasted in
-  (Speculative Generality · Duplicated Code · Middle Man · locality · single-adapter seams ·
-  efficiency-hoist); it reads the diff for local cleanups and never double-reports the trio ·
-  docs accuracy (sonnet).
+  indicates; expand only on a singleton-heavy verdict): correctness vs invariants (opus cap) · the
+  **adversarial trio** = the falsifier's three moves run from the problem, not the diff (opus cap) ·
+  conventions conformance (sonnet) · tests — assertions match spec semantics, no hardcoded dates /
+  paths (sonnet) · security / input validation / privilege (opus cap) · **lifted fail-safe symmetry**
+  — a removed or relaxed rejection path: did the symmetric surface (build ↔ dump / reverse path) pick
+  up the load, do type-wrapper boundaries (RelabelType, coercions) still fire? · performance — hot
+  paths, N+1 dispatch, lock scope · git history — blame, prior fixes (sonnet) · **quality /
+  simplify** — one bundled sonnet agent, deep only, `smell-catalog.md` pasted in (Speculative
+  Generality · Duplicated Code · Middle Man · locality · single-adapter seams · efficiency-hoist); it
+  reads the diff for local cleanups and never double-reports the trio · docs accuracy (sonnet).
 - **Model-diversity sweep** (deep only, `model: sonnet`): fresh-eyes framing — pack + intentional-changes
   list + exemplars + "report only what you are confident is real; zero findings is a good outcome".
 - **Test adequacy** (close-out fixed member): target list = the Req blocks' 验证 lines; per
