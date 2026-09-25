@@ -21,7 +21,11 @@ repos as they are instead, then to write that back as a variant. Every part of i
 - The run now passes `--model` and `--effort` from the session: `--setting-sources project,local` skips the user
   settings that hold them, and the first issue602 run came out at medium effort (opus without 1m) against an xhigh
   KB-informed run, which would have confounded the comparison; it was rerun at xhigh (card 038, second re-open).
-- **体量行**: SKILL.md 89 · 流程 8 files / 821 · 约束 128 · lite face otherwise unchanged.
+- The KB-informed run, when a subagent does it, returns the analysis as text: the harness refuses a subagent's
+  report file ("Subagents should return findings as text"), so the step says to save it verbatim with its model,
+  effort and read paths, checked in its transcript since only the prompt keeps it off the independent output
+  (card 038, third re-open).
+- **体量行**: SKILL.md 89 · 流程 8 files / 823 · 约束 128 · lite face otherwise unchanged.
 
 ## 2026-09-26 — investigate: evolving dirs, independent runs, cards opened from a dir (card xg-skills/038)
 
