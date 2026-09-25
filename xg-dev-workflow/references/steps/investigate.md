@@ -97,7 +97,8 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
    `**/CLAUDE.md` · `AGENTS.md` · `**/AGENTS.md` · `.claude/**` · `**/.claude/**` · `.git/**`, plus `Bash(git:*)` —
    a relative `**/` rule does not reach an added dir.
 3. There: `claude -p --model <session model> --effort <session effort> --setting-sources project,local
-   --strict-mcp-config --disallowedTools "ListAgents,SendMessage" --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
+   --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
+   --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
    "<task line> <problem.md>" < /dev/null` — the task line only asks to analyse against the code given, cite
    `func()` in `file` per claim, mark what could not be verified, report in Chinese. Never add
    `--dangerously-skip-permissions` or `--permission-mode bypassPermissions`, nor an `--add-dir` beyond the live
