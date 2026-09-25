@@ -15,8 +15,8 @@ three kinds of change come back to the human (「Executing」).
 - **Impact forecast ≠ authorization boundary**: expected modules / files / tests move with investigation —
   no pause when they grow, but the triggers are re-checked (「Triggers」); hard boundaries exist only when the
   human set them, and are marked as the human's.
-- **Re-read** SKILL.md · this file · `constraints.md` before the go ask, before close-out and on resume; the
-  frontmatter `skill:` records the HEAD read — a moved HEAD means the rules may have changed under you.
+- **Re-read** SKILL.md · this file · `constraints.md` before the go ask, before close-out, on resume and after a
+  context summary; the frontmatter `skill:` records the HEAD read — a moved HEAD means the rules may have changed under you.
 
 ## Card files
 
