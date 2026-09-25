@@ -4,6 +4,34 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — investigate: evolving dirs, independent runs, cards opened from a dir (card xg-skills/038)
+
+The human works a topic in rounds before any card — investigate (with and without the skill), discuss, rewrite, then
+open a card — and asked how to keep such docs from turning messy, how to run an investigation that has not seen the
+KB, the docs or the git history, and whether that needs its own skill. Four gaps sat under the rounds: the human's
+words said before a card had no home, opening a card from notes had no procedure, a skill-less or external-model
+analysis had no trust rule, and nothing asked for a commit per round.
+
+- **Evolving dir（演进目录）**, defined once by role and shared by ordinary and independent runs (human ruling): a
+  topic past one round of discussion, a second analysis or a multi-phase campaign graduates to `investigations/<topic>/`
+  with the problem (no solution) · facts · the human's messages · analyses (one file each, frozen when their run ends)
+  · the current conclusion (rewritten freely, regenerated from the rest when messy). One commit per round. It replaces
+  the campaign dir's charter + phase notes. A card holds the same roles, which is what makes the import mechanical.
+- **Independent run** (a section in `investigate.md`, not a skill — the run must load no skill): only on the human's
+  「独立调查」; `problem.md` is shown with the ref and paths first (the run's one stop, human ruling); the code is exported
+  with `git archive` and analysed by `claude -p --setting-sources project,local --strict-mcp-config --disallowedTools
+  "ListAgents,SendMessage"` with auto-memory off and the KB / dev_root read-denied; the KB-informed run goes on the same
+  problem by default and the disagreements are the output (human ruling). Every flag was probed first: `--bare`
+  needs an API key, a subagent carries the global CLAUDE.md, and the pre-go falsifier found two leaks the first
+  command left open — auto-memory by cwd path, and tools that reach the parent session.
+- **A card opened from an evolving dir** maps role to role (`discuss.md` §2): the human's messages are copied with
+  their dates, facts are renumbered with their origin and re-verified unless a skill run cited them, analyses stay
+  linked, and `current.md` points at the card. Skill-less and external-model analyses join `learn` reports as claims
+  to test.
+- Not taken: a helper script for the independent run (the commands live in the step until it is used often); the
+  evolving dir for review / improve / learn reports is a roadmap candidate.
+- **体量行**: SKILL.md 89 · 流程 8 files / 811 · 约束 128 · lite face otherwise unchanged.
+
 ## 2026-09-26 — investigate: answer-only and skip-the-KB opt-outs (card xg-skills/037)
 
 The human asked for two options on `investigate`: answer without recording, and skip the KB read. The evidence
