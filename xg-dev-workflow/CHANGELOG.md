@@ -4,6 +4,22 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — investigate: independent runs can read the live repos (card xg-skills/038, re-opened)
+
+The first real independent run (cbdb issue602) would have exported about 1 GB of code; the human asked to read the
+repos as they are instead, then to write that back as a variant. Every part of it was probed before the run.
+
+- **Live repos** become the default code mode when no repo's working tree holds uncommitted work on the topic and
+  its `CLAUDE.md` / `AGENTS.md` say nothing on it; otherwise the run exports as before. The mode is shown in the
+  run's one stop, where the human can switch it (human ruling).
+- The run sits in a new empty dir with each repo root as its own `--add-dir` — a symlinked repo resolves outside the
+  dir and every read is denied. Per repo, absolute-path denies cover `CLAUDE.md`, `AGENTS.md`, `.claude/` and `.git/`,
+  plus `git` commands: a relative `**/` rule was probed to miss an added dir entirely. The one leak left is a content
+  Grep, which still returns lines from a denied `CLAUDE.md`, hence the precondition.
+- `--add-dir` moves from "never" to "only the live repo roots"; the step warns that zsh does not split a variable,
+  which silently broke one probe (every read denied, the deny rules concatenated).
+- **体量行**: SKILL.md 89 · 流程 8 files / 819 · 约束 128 · lite face otherwise unchanged.
+
 ## 2026-09-26 — investigate: evolving dirs, independent runs, cards opened from a dir (card xg-skills/038)
 
 The human works a topic in rounds before any card — investigate (with and without the skill), discuss, rewrite, then
