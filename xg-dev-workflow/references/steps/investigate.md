@@ -87,8 +87,8 @@ Only on the human's 「独立调查」; you may suggest it once (a KB conclusion
 start it. It runs in an evolving dir (step 3; on an active card, in the card's `notes/`, conclusions into
 「待解问题与证据」).
 1. Write `problem.md` and self-check it — no candidate, no conclusion, no KB wording or slug, no card / Req id;
-   show it with the ref, the code mode (step 2) and the paths (default: the whole repo) and wait — the run's one
-   stop. `problem.md` names the code locations the run will see.
+   show it with the ref, the code mode (step 2; the human may switch it) and the paths (default: the whole repo)
+   and wait — the run's one stop. `problem.md` names the code locations the run will see.
 2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete the
    snapshot's `CLAUDE.md` and design docs. **Live repos** instead — the default when no repo's `git status` shows
    uncommitted work on the topic and its `CLAUDE.md` / `AGENTS.md` say nothing on it (a Grep still reads them):
