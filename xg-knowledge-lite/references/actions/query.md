@@ -16,6 +16,9 @@
    `compiled_to:` back-annotation; Lint §1 (`lint.md`) owns the check (incl. the
    deferred marker); the marker's semantics live in `$KB/FORMAT.md`.
 3. Contradictory hits → flag to the user.
+4. **Say what the KB doesn't cover**: an answer that leaves part of the question uncovered names that part and
+   what was searched — the concepts read, the grep pattern and its scope ("not found with query Q over scope S",
+   `conventions-core.md`「Negative statements」), so a caller never reads the silence as "the KB has nothing".
 
 Don't write files during Query. Asked to save the answer → distill the **durable findings**
 into raw via `write.md` (a synthesized answer is not itself raw — save what was learned, not the
