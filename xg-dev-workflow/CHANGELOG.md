@@ -4,6 +4,26 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — investigate: answer-only and skip-the-KB opt-outs (card xg-skills/037)
+
+The human asked for two options on `investigate`: answer without recording, and skip the KB read. The evidence
+rule stays untouched — the usage log's 24 low-scored investigate runs were conclusions stated too strongly, none
+blamed the KB read or the recording as a burden — so only the two procedural steps gain an exit.
+
+- **Answer-only** (standalone runs only): on the human's word (「不用记」), or the model's call on a single unphased
+  question whose answer is a one-off lookup or already in the KB. A conclusion that needed a claims table or a
+  causal chain is never a lookup, and unsure means record. The reply ends with 「未落盘（原因）；要记就说『记下来』」,
+  the usage record still lands with `answer-only` in its note, and a later 「记下来」 records through the Standalone
+  branch without a second record. A phased run keeps its phase notes on 「不用记」 (they carry progress across a
+  context summary); only the KB write is skipped (human ruling).
+- **Skip the KB** only on the human's word (human ruling): the model cannot tell the KB has nothing until it looks.
+  The reply says so, and any KB write from that run — now or later — first queries its topic to avoid a
+  duplicate or a silent contradiction.
+- The pre-go falsifier found four gaps in the first draft — a phased run against step 4's unconditional notes,
+  the KB write in the same run, the log record on a later 「记下来」, and no test for "one-off lookup" — all
+  closed before go. `learn` / `improve` / `diagnose` / `review` keep their own KB-first and recording.
+- **体量行**: SKILL.md 87 · 流程 8 files / 772 · 约束 128 · lite face otherwise unchanged.
+
 ## 2026-09-26 — fewer non-blocking stops, what waits on the human first, trigger on run-time findings (card xg-skills/036)
 
 Source: an audit of the three skills against Anthropic's Opus 5.5 usage guide (dev_root
