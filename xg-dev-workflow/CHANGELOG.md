@@ -30,7 +30,7 @@ analysis had no trust rule, and nothing asked for a commit per round.
   to test.
 - Not taken: a helper script for the independent run (the commands live in the step until it is used often); the
   evolving dir for review / improve / learn reports is a roadmap candidate.
-- **体量行**: SKILL.md 89 · 流程 8 files / 811 · 约束 128 · lite face otherwise unchanged.
+- **体量行**: SKILL.md 89 · 流程 8 files / 813 · 约束 128 · lite face otherwise unchanged.
 
 ## 2026-09-26 — investigate: answer-only and skip-the-KB opt-outs (card xg-skills/037)
 
