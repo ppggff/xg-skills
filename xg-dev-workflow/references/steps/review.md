@@ -27,8 +27,9 @@ and the report carries the per-row verdict.
    reviewed-through SHA in every report); ad-hoc with only a branch → its merge-base with trunk.
    **Fail fast before any dispatch**: `git rev-parse <target>` and a non-empty diff.
    **Anchoring**: active card (named, or resumed into) → the card's `notes/`; no active card but the
-   target is plainly one card's work (its branch / commits implement a board slug) → **ask one question**
-   (这是 card NNN 的实现，报告挂它的 notes/ 还是走 standalone?) rather than defaulting; neither →
+   target is plainly one card's work (its branch / commits implement a board slug) → that card, without
+   asking: its docs feed the pack, its last `notes/review-*.md` sets a repeat review's base, the report lands
+   in its `notes/` and the reply's receipts line names it (the human may move it); neither →
    standalone, `<project>/reviews/`. Looser than `investigate`'s anchoring on purpose: a review target
    objectively *is* some card's implementation.
 
