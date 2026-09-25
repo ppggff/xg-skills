@@ -107,8 +107,10 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
    and effort, so both are passed: left to defaults the run drops to medium and the two runs stop being comparable.
 4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files (live: each repo's
    HEAD and dirty state, the deny set) · the full command (task line included).
-5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`); list the
-   disagreements in `current.md` and settle each in the code — the disagreements are the run's output.
+5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`). A subagent cannot
+   write a report file: have it return the analysis as text and save it verbatim, headed by its model, effort and
+   the paths it read — it stays off the independent output only on the prompt's word, so check those paths in its
+   transcript. List the disagreements in `current.md` and settle each in the code — they are the run's output.
 6. Its conclusions are claims to test until checked in the code. Limits: comments still carry old conclusions;
    the isolation is missing pointers plus a read deny, not a sandbox; the run cannot execute scripts (no spikes).
 
