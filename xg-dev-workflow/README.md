@@ -50,7 +50,8 @@ each row script- or reader-checkable.
   with what waits on the human. A reply **to that ask** that settles every open judgment and raises
   no new question is a go; the 授权记录 quotes the human verbatim — never an inferred 「视为 go」.
 - **Execution is continuous.** Approach changes, added tests, reordering and review fixes are ordinary work
-  (an A→B walk with one reason line); only three kinds of change come back to the human. Destructive or
+  (an A→B walk with one reason line); only three kinds of change come back to the human. A goal the human adds
+  mid-run is its own authorization (a `go（续）` quoting it), unless it hits one of those three. Destructive or
   outward operations (live environments, push, range deletes) always need their own authorization.
 - **Verification names object, method, outcome and environment** (concurrent load included); a test name
   is not a run. Close-out: simplify when the change is large, review (`review` standard tier by default; a
