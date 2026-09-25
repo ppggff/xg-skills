@@ -87,18 +87,24 @@ Only on the human's 「独立调查」; you may suggest it once (a KB conclusion
 start it. It runs in an evolving dir (step 3; on an active card, in the card's `notes/`, conclusions into
 「待解问题与证据」).
 1. Write `problem.md` and self-check it — no candidate, no conclusion, no KB wording or slug, no card / Req id;
-   show it with the ref and the export paths (default: the whole repo) and wait — the run's one stop.
+   show it with the ref, the code mode (step 2) and the paths (default: the whole repo) and wait — the run's one
+   stop. `problem.md` names the code locations the run will see.
 2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete the
-   snapshot's `CLAUDE.md` and design docs.
+   snapshot's `CLAUDE.md` and design docs. **Live repos** instead — the default when no repo's `git status` shows
+   uncommitted work on the topic and its `CLAUDE.md` / `AGENTS.md` say nothing on it (a Grep still reads them):
+   run in a new empty dir, each repo root its own `--add-dir` (a symlink resolves outside the dir and is denied;
+   pass the paths one by one — zsh does not split a variable), and deny per repo by absolute path `CLAUDE.md` ·
+   `**/CLAUDE.md` · `AGENTS.md` · `**/AGENTS.md` · `.claude/**` · `**/.claude/**` · `.git/**`, plus `Bash(git:*)` —
+   a relative `**/` rule does not reach an added dir.
 3. There: `claude -p --setting-sources project,local --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
    --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
-   "<task line> <problem.md>" < /dev/null` — the task line only asks to analyse against the code here, cite
+   "<task line> <problem.md>" < /dev/null` — the task line only asks to analyse against the code given, cite
    `func()` in `file` per claim, mark what could not be verified, report in Chinese. Never add
-   `--dangerously-skip-permissions`, `--permission-mode bypassPermissions` or `--add-dir`: `-p`'s default
-   permissions do the isolating. `--bare` needs an API key and a subagent carries the global CLAUDE.md — neither
-   substitutes.
-4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files · the full command
-   (task line included).
+   `--dangerously-skip-permissions` or `--permission-mode bypassPermissions`, nor an `--add-dir` beyond the live
+   repo roots: `-p`'s default permissions do the isolating. `--bare` needs an API key and a subagent carries the
+   global CLAUDE.md — neither substitutes.
+4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files (live: each repo's
+   HEAD and dirty state, the deny set) · the full command (task line included).
 5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`); list the
    disagreements in `current.md` and settle each in the code — the disagreements are the run's output.
 6. Its conclusions are claims to test until checked in the code. Limits: comments still carry old conclusions;
