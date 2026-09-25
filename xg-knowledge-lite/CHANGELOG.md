@@ -4,6 +4,14 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — Query names what the KB didn't cover (card xg-skills/036)
+
+Source: the Opus 5.5 usage-guide audit (dev_root `xg-skills/notes/2026-09-25-opus55-guide-audit.md`) — ask for
+what could not be confirmed and where it was looked for. A Query answer said nothing about the part of a
+question the KB left uncovered, and xg-dev-workflow's `investigate` decides what not to re-derive from that
+answer. `actions/query.md` step 4: the answer names the uncovered part and what was searched (concepts read,
+grep pattern and scope), in the negative-statement form `conventions-core.md` already sets for docs.
+
 ## 2026-09-14 — SKILL.md becomes a router; procedures move to `references/actions/`
 
 Source: the GPT-6 Astra「Better skills」audit (dev_root `xg-skills/reviews/2026-09-14-astra-better-skills-audit.md`),

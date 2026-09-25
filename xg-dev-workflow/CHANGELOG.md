@@ -4,6 +4,40 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — fewer non-blocking stops, what waits on the human first, trigger on run-time findings (card xg-skills/036)
+
+Source: an audit of the three skills against Anthropic's Opus 5.5 usage guide (dev_root
+`xg-skills/notes/2026-09-25-opus55-guide-audit.md`). No misuse was found — no "think harder" lines, no request to
+replay reasoning in a reply — but the guide's long-run advice (stop only when blocked, read what the run needs
+from you first, a review names how a problem fails, a task file survives context summaries, add to a running task
+rather than restart) exposed six gaps in this skill. Two pre-go lenses rewrote four of the six before go.
+
+- **Re-read after a context summary**: a fourth re-read point for SKILL.md · lite.md · constraints.md, beside
+  go ask, close-out and resume.
+- **What waits on the human comes first**: the go ask now opens with the receipts and 待你判, and ends with
+  已验证; the close-out message opens with the 待人判 items; a review reply opens with one plain line per
+  decision-table row that needs the human (human ruling on the audit's recommendation).
+- **A goal the human adds mid-run is its own `go（续）`** while the card is executing or closing: land it as a
+  Req block or a 变更 + 确认 pair, write a go（续） line quoting the message, continue; stop only when it
+  conflicts with a commitment, touches what the go excluded, or needs an Ops authorization. Go-1 / Go-2 gain
+  the matching clauses. The lens found that without the go（续） line the new Req stayed 讨论中 by the
+  partial-go sentence and no check could see the human's words go unrecorded (human ruling).
+- **review anchors a plainly-one-card target without asking**: the card feeds the pack and a repeat review's
+  base, the report lands in its `notes/`, the reply names it. Moving the question to report time (the audit's
+  first idea) would have left the report waiting on the answer; anchoring when torn is already the model's
+  call (human ruling).
+- **A finding that claims run-time failure names its trigger** — the input, sequence or red test that makes it
+  fail — in the shared lens mandate and the review report's finding block; conventions / naming / docs findings
+  are exempt. The deep-tier menu is rewrapped so the lenses dimension stays at its cap.
+- **investigate pauses between phases only when the human is needed**: a phase that adds, drops or rescopes
+  a named phase, needs what only the human knows, or is torn on anchoring at the first recording (human
+  ruling); otherwise the phase is recorded and the next one starts in the same message.
+- Not taken: re-tiering the review lenses' models (left to the next retro's per-model survive tally) and
+  fanning out `improve` beyond 200 files.
+- **体量行**: SKILL.md 87 · 流程 8 files / 761 · 约束 127 · 模版 6 files / 167 · 视角 2 files / 200 · 元 77.
+  Totals: lite face 1,539 md lines (incl. the two synced refs); whole skill 7,296 md lines (legacy 5,692 +
+  ask-routing-core 65); tools unchanged.
+
 ## 2026-09-17 — status viewer: the reading measure follows the pane again (card xg-skills/033, re-opened)
 
 The width the ↔ button picks is a derived value, but it was only ever computed when a document rendered, when the
