@@ -105,9 +105,11 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
      the dir says it; a multi-phase campaign graduates to `investigations/<topic>/` with charter + phase
      notes), **never into the repo**. Log `--action investigate`.
 4. **Large question → phases.** Name the phases up front (e.g. 1 registration sites · 2 execution context
-   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file
-   and **pause for the human** before the next; don't pre-conclude across the pause. A single question
-   skips the phasing.
+   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file,
+   say so in the message that starts the next phase, and go on. **Pause for the human** only when a verdict
+   adds, drops or rescopes a named phase, the next phase needs what only the human knows, or the first
+   recording is torn on anchoring (step 3); never pre-conclude a later phase. A single question skips the
+   phasing.
 5. **Receipts — write first, then reply**: the closing reply (or a phase pause) names the notes / KB paths
    and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped.
 
