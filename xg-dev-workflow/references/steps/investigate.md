@@ -102,7 +102,7 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
 3. There: `claude -p --model <model> --effort <effort> --setting-sources project,local
    --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
    --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
-   [--add-dir <repo root>…] -- "<task line> <problem.md>" < /dev/null` — the `--` keeps the variadic `--add-dir`
+   [--add-dir <repo root>…] -- "<task line> <the full text of problem.md>" < /dev/null` — the `--` keeps the variadic `--add-dir`
    from swallowing the prompt; the task line only asks to analyse against the code given, cite
    `func()` in `file` per claim, mark what could not be verified, report in Chinese. Never add
    `--dangerously-skip-permissions` or `--permission-mode bypassPermissions`, nor an `--add-dir` beyond the live
@@ -113,10 +113,11 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
    session's run at fable against a subagent at opus confounds the comparison the same way.
 4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files (live: each repo's
    HEAD and dirty state, the deny set) · the full command (task line included).
-5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`). A subagent cannot
+5. By default, run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`). A subagent cannot
    write a report file: have it return the analysis as text and save it verbatim, headed by its model, effort and
    the paths it read — it stays off the independent output only on the prompt's word, so check those paths in its
-   transcript. List the disagreements in `current.md` and settle each in the code — they are the run's output.
+   transcript. List the disagreements in `current.md` (on a card: 「待解问题与证据」) and settle each in the code —
+   into `facts.md` or an open question; they are the run's output.
 6. Its conclusions are claims to test until checked in the code. Limits: comments still carry old conclusions;
    the isolation is missing pointers plus a read deny, not a sandbox; the run cannot execute scripts (no spikes).
 
@@ -126,8 +127,8 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
    · uncompiled-raw count), then Query the relevant concepts and drill into their raw sources; don't
    re-investigate what is recorded. Orient is this run's warm-up, not a separate log record. Skipped only
    on the human's word (「别查 KB」), never on your own — whether the KB covers the question is unknown until
-   you look; the reply says 「调查未参考 KB（你要求）」, and any KB write from this run, now or later, first
-   runs a Query on its topic and says so.
+   you look; the reply says 「调查未参考 KB（你要求）」, the conclusions cite only code, tests or runs, and any KB
+   write from this run, now or later, first runs a Query on its topic and says so.
 2. **Investigate read-only** — an Explore subagent for targeted grep / read, a broader layered survey for
    a sprawling question. A dispatched agent gets the negative-results checklist **in its prompt**
    (`lenses.md`); re-check every load-bearing negative it returns with a broader grep and re-derive any
@@ -150,9 +151,9 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
      ordinary and independent runs share it. A multi-phase campaign, a topic discussed past one round, or a
      second analysis graduates the note to `investigations/<topic>/`, one file per role: the problem
      (`problem.md` — state · goals · constraints, no solution or conclusion, readable without background) ·
-     facts (`facts.md` — evidence-cited; a correction strikes and says why) · the human's messages
-     (`human-messages.md`, verbatim and dated, as on a card) · analyses (`analysis-<source>-<date>.md`, `-2` on
-     a same-day repeat — skill · independent · an external model — headed by source and evidence mode,
+     facts (`facts.md` — evidence-cited, each with its verification mark; a correction strikes and says why) · the
+     human's messages (`human-messages.md`, verbatim and dated, as on a card) · analyses (`analysis-<source>-<date>.md`,
+     `-2` on a same-day repeat — skill · independent · an external model — headed by source and evidence mode,
      appended while its run lasts, frozen once it ends; a phase is a run) · the current conclusion
      (`current.md`, present tense, rewritten freely; when messy, regenerate it from the other four — list the
      semantic points first, tick them off after). Commit dev_root at each round's end. A card holds the same
