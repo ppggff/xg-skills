@@ -47,7 +47,7 @@ frozen legacy step files (the 存量 flow keeps them).
   目标与边界, linking the dir; current conclusion → 当前方案; facts renumbered into `facts.md` with their origin — a
   skill fact with a source line is spot-checked, any other re-verified before `[VERIFIED]`; the dir's
   `human-messages.md` lines copied into the card's, dates kept, under one source line; analyses stay in the dir,
-  linked, never copied; `current.md` gets `→ 已转入卡片 NNN（date）` and the discussion moves to the card.
+  linked, never copied; `current.md` gets `→ 已转入卡片 NNN（date）` at the top and the discussion moves to the card.
 
 ## 3. Fresh-context lenses
 
