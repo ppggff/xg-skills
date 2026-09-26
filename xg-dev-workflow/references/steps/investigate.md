@@ -165,13 +165,12 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
      chain is never a lookup — unsure → record. No notes, no KB write; still log `--action investigate`
      with `answer-only` in the note; a later 「记下来」 records through the Standalone branch, no second record.
 4. **Large question → phases.** Name the phases up front (e.g. 1 registration sites · 2 execution context
-   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file (in
-   an evolving dir, the phase's analysis file),
-   say so in the message that starts the next phase, and go on. **Pause for the human** only when a verdict
-   adds, drops or rescopes a named phase, the next phase needs what only the human knows, or the first
-   recording is torn on anchoring (step 3); never pre-conclude a later phase. A single question skips the
-   phasing. On the human's 「不用记」 the phase notes are still written — they carry progress across a
-   context summary; only the KB write is skipped, and the closing reply says so.
+   · 3 lock path); after each, append its claims table + verdict-so-far + open items to the notes file (in an
+   evolving dir, the phase's analysis file), say so in the message that starts the next phase, and go on. **Pause
+   for the human** only when a verdict adds, drops or rescopes a named phase, the next phase needs what only the
+   human knows, or the first recording is torn on anchoring (step 3); never pre-conclude a later phase. A single
+   question skips the phasing. On the human's 「不用记」 the phase notes are still written — they carry progress
+   across a context summary; only the KB write is skipped, and the closing reply says so.
 5. **Receipts — write first, then reply**: the closing reply (or a phase pause) names the notes / KB paths
    and the dev_root / KB commit; an answer with no named artifact means the recording step was skipped —
    unless it ends with 「未落盘（原因）；要记就说『记下来』」 (answer-only, step 3).
