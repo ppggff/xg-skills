@@ -11,6 +11,7 @@
 //   node tools/viewer/shots.mjs --out /tmp/shots/before
 //   node tools/viewer/shots.mjs --compare /tmp/shots/before /tmp/shots/after
 //   node tools/viewer/shots.mjs --scenario crossing,overlay     (behavioural checks, no files)
+//   node tools/viewer/shots.mjs --viewports 390x844 --views doc --eval "<js>"   (print an expression per viewport/view)
 // Options: --url http://127.0.0.1:8790/  --viewports 390x844,768x1024,1024x768,1920x1080
 //   --views board,doc,search,diff,recent  --doc dev/<rel> (default: the newest card's design.md)
 //   --card <project>/<NNN> (default: derived from --doc)  --q <term>
@@ -32,7 +33,7 @@ const DEF = {
 };
 
 function parseArgs(argv) {
-  const o = { ...DEF, compare: null, out: null, scenario: null, keepStorage: false };
+  const o = { ...DEF, compare: null, out: null, scenario: null, eval: null, keepStorage: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--compare") { o.compare = [argv[++i], argv[++i]]; continue; }
@@ -236,6 +237,22 @@ const SCENARIO = {
     check("tapping the scrim closes it", await ctx.eval("!document.querySelector('#toc').classList.contains('open') && !document.querySelector('#scrim').classList.contains('show')"));
     check("390: head does not overflow", (await ctx.measure()).headOverflow === 0);
   },
+  // Every hotkey action has a button in the pane head, at every width, and the head never overflows.
+  async buttons(ctx, check) {
+    for (const [w, h] of [[390, 844], [1024, 768]]) {
+      await ctx.viewport(w, h); await ctx.load(); await ctx.go("doc");
+      check(`${w}: doc head does not overflow`, (await ctx.measure()).headOverflow === 0);
+      await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
+      check(`${w}: ⌕ opens the find bar`, true);
+      await ctx.click("[data-help]"); check(`${w}: ? opens help`, await ctx.eval("document.querySelector('#help').classList.contains('show')"));
+      await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+      await ctx.click("[data-quick]"); check(`${w}: ⌘K button opens quick open`, await ctx.eval("document.querySelector('#qo').classList.contains('show')"));
+      await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'viewer'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
+      await ctx.wait("!!document.querySelector('#qo .qrow.qfall')");
+      await ctx.click("#qo .qrow.qfall"); await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
+      check(`${w}: the last quick-open row runs a content search`, true);
+    }
+  },
 };
 async function scenarios(o) {
   let fails = 0;
@@ -271,5 +288,7 @@ function compare([a, b]) {
 const o = parseArgs(process.argv.slice(2));
 if (o.compare) process.exit(compare(o.compare));
 if (o.scenario) process.exit(await scenarios(o));
+if (o.eval) { await session(o, async (ctx) => { for (const vp of o.viewports.split(",")) { const [w, h] = vp.split("x").map(Number); await ctx.viewport(w, h); await ctx.load();
+  for (const name of o.views.split(",")) { await ctx.go(name); console.log(`${vp} ${name}:`, JSON.stringify(await ctx.eval(o.eval))); } } }); process.exit(0); }
 if (!o.out) { console.error("usage: shots.mjs --out <dir> | --compare <dirA> <dirB> | --scenario <names>"); process.exit(2); }
 await shoot(o);

@@ -84,6 +84,9 @@
     overflow: auto; box-shadow: -4px 0 24px rgba(0, 0, 0, .25); }
   html.narrow .gutter, html.narrow #reopen, html.narrow #right { display: none !important; }
   html.narrow #left { padding: 0 14px 20px; }
+  html.narrow .doc-head { margin: 0 -14px 0; padding: 12px 14px 8px; }   /* tracks #left's narrower padding */
+  html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
+  html.narrow select.iconbtn { max-width: 5em; }   /* leaves the crumb its file name; the dropdown still opens in full */
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
@@ -142,7 +145,8 @@
   .iconbtn:hover { color: var(--fg); border-color: var(--accent); }
   .iconbtn:disabled { opacity: .35; cursor: default; }
   /* history <select> styled as an iconbtn: drop native chrome so its height matches the buttons */
-  select.iconbtn { -webkit-appearance: none; appearance: none; font-family: var(--chrome); line-height: 1.6; max-width: 12em; }
+  select.iconbtn { -webkit-appearance: none; appearance: none; font-family: var(--chrome); line-height: 1.6; max-width: 12em;
+    flex: 0 1 auto; min-width: 4em; }   /* shrinks before the head overflows; the crumb (basis 0) gives way first */
   h1 { font-size: 21px; margin: 0 0 14px; } h2 { font-size: 16px; margin: 20px 0 9px; }
   h2.sec { font-family: var(--chrome); font-size: 13px; letter-spacing: .04em; }   /* R8: board/search section headers = mono chrome */
   /* board project separator: small uppercase muted label + a trailing hairline rule (matches comp) */
@@ -576,7 +580,7 @@
 <!-- R5: quick-open palette (⌘K / Ctrl-K). Filename/path fuzzy jump; separate from the content search box. -->
 <div id="qo-back"></div>
 <div id="qo" role="dialog" aria-label="quick open">
-  <div class="qhead"><span class="qmag">⌕</span><input id="qoInput" type="text" placeholder="quick open — file name / path…" aria-label="quick open" autocomplete="off"></div>
+  <div class="qhead"><span class="qmag">⌕</span><input id="qoInput" type="text" placeholder="quick open — file name / path… (last row: search contents)" aria-label="quick open" autocomplete="off"></div>
   <div class="qlist" id="qoList"></div>
   <div class="qfoot"><span><kbd>↑↓</kbd> select</span><span><kbd>↵</kbd> open</span><span><kbd>⇧↵</kbd> right</span><span><kbd>⌘↵</kbd> search</span><span><kbd>esc</kbd> close</span><span class="qclear" id="qoClear" title="clear recent history">clear history</span></div>
 </div>
@@ -602,6 +606,7 @@
       <div class="help-row"><span class="key"><kbd>↺</kbd></span><span class="desc">重置面板宽度；右侧目录宽度固定</span></div>
       <div class="help-row"><span class="key act">主题</span><span class="desc">亮 / 暗 / 跟随（顶部切换）</span></div>
       <div class="help-row"><span class="key"><kbd>?</kbd></span><span class="desc">本帮助；<kbd>esc</kbd> 关闭</span></div>
+      <div class="help-row"><span class="key act">按钮</span><span class="desc">文档头：<kbd>⌕</kbd> 查找 · <kbd>⌘K</kbd> 快速打开 · <kbd>☷</kbd> 目录 · <kbd>?</kbd> 帮助；窄屏时 <kbd>☰</kbd> 文件树</span></div>
     </div>
   </div>
 </div>
@@ -1459,7 +1464,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
         ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select>" : "";
     var sideBtn = side === "left" ? '<button class="iconbtn" data-side="1" title="files">☰</button>' : "";
-    var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button>' : "";
+    var actions = '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">⌕</button>' +
+      (side === "left" ? '<button class="iconbtn" data-quick="1" title="quick open (⌘K)">⌘K</button>' : "");
+    var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button><button class="iconbtn" data-help="1" title="help (?)">?</button>' : "";
     var tools = side === "left"
       ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
@@ -1467,7 +1474,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
     return '<div class="rail"></div>' +   // S6: pane's first child, every view kind, via this one shared choke point
       '<div class="doc-head">' + sideBtn + back + hist + '<span class="crumb" title="' + esc(crumb) + '"><span class="full">' + esc(crumb) +
-      '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" + (extra || "") + tocBtn + tools + "</div>" +
+      '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" + (extra || "") + actions + tocBtn + tools + "</div>" +
       (p._findOpen ? findBarHtml(side) : "");   // R3/R5: same choke point for the find bar
   }
   function findBarHtml(side) {
@@ -2781,6 +2788,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); toggleSide(); return; }
     if ((t = e.target.closest("[data-tocbtn]"))) { e.preventDefault(); toggleToc(); return; }
+    if ((t = e.target.closest("[data-find]"))) { e.preventDefault(); findOpen(t.dataset.find); return; }   // the button twins of f / ⌘K / ?
+    if ((t = e.target.closest("[data-quick]"))) { e.preventDefault(); openQuick(); return; }
+    if ((t = e.target.closest("[data-help]"))) { e.preventDefault(); openHelp(); return; }
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
     if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 3 of 4
       PANES.right.innerHTML = ""; PANES.right._view = null;

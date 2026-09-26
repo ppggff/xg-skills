@@ -1108,3 +1108,11 @@ t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint 
   assert.match(html, /if \(narrow && side === "right"\) side = "left";/, "navigate lands on the left below the breakpoint");
   assert.match(html, /showToc\(!narrow && tocUser !== false\)/, "desktop TOC visibility honours the session toggle; narrow uses the overlay flag");
 });
+t("every hotkey action has a pane-head button twin (find · quick open · TOC · help · files)", () => {
+  const head = html.match(/function paneHead\(side, crumb, extra\) \{[\s\S]*?\n  \}/)[0];
+  for (const attr of ["data-side", "data-find", "data-quick", "data-tocbtn", "data-help"]) assert.ok(head.includes(attr + "="), attr + " rendered by paneHead");
+  assert.match(html, /closest\("\[data-find\]"\)\)\) \{ e\.preventDefault\(\); findOpen\(t\.dataset\.find\); return; \}/, "⌕ opens find for its pane");
+  assert.match(html, /closest\("\[data-quick\]"\)\)\) \{ e\.preventDefault\(\); openQuick\(\); return; \}/, "⌘K button opens quick open");
+  assert.match(html, /closest\("\[data-help\]"\)\)\) \{ e\.preventDefault\(\); openHelp\(\); return; \}/, "? button opens help");
+  assert.match(html, /placeholder="quick open — file name \/ path… \(last row: search contents\)"/, "quick open says its last row searches contents");
+});
