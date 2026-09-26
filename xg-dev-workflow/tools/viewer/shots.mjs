@@ -110,7 +110,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // a synthetic anchor through the document-level `[data-nav]` click handler, Enter in the
 // search box. `ready` is the predicate that says the view has rendered.
 const VIEW = {
-  board:  (o) => ({ drive: `document.querySelector('[data-go="board"]').click()`, ready: "!!document.querySelector('#left .card, #left .board')" }),
+  board:  (o) => ({ drive: `document.querySelector('[data-go="board"]').click()`, ready: "!!document.querySelector('#left .card, #left .row, #left .board, #left .rows')" }),
   recent: (o) => ({ drive: `document.querySelector('[data-go="recent"]').click()`, ready: "!!document.querySelector('#left h2.commit')" }),
   doc:    (o) => { const [tree, ...rest] = o.doc.split("/"); return { drive: navAnchor({ nav: "doc", tree, rel: rest.join("/") }), ready: "!!document.querySelector('#left .docbody')" }; },
   search: (o) => ({ drive: `(() => { const s = document.getElementById("search"); s.value = ${JSON.stringify(o.q)};
@@ -252,6 +252,22 @@ const SCENARIO = {
       await ctx.click("#qo .qrow.qfall"); await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
       check(`${w}: the last quick-open row runs a content search`, true);
     }
+  },
+  // The board has a rows form: the default below the breakpoint, a remembered pick anywhere,
+  // and the old boolean kanban key still read.
+  async rows(ctx, check) {
+    await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
+    check("390: rows by default", await ctx.eval("!!document.querySelector('#left .row') && !document.querySelector('#left .card')"));
+    check("390: a row shows id, title, progress and a time", await ctx.eval("(() => { const r = document.querySelector('#left .row'); return ['.rid','.rtitle','.rprog','.rwhen'].every(s => r.querySelector(s)); })()"));
+    check("390: rows do not overflow the pane", await ctx.eval("[...document.querySelectorAll('#left .row')].every(r => r.scrollWidth <= r.clientWidth + 1)"));
+    await ctx.click('[data-bmode="kanban"]'); await ctx.wait("!!document.querySelector('#left .board.kanban')");
+    check("picking kanban is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
+    await ctx.click('[data-bmode="rows"]'); await ctx.wait("!!document.querySelector('#left .row')");
+    await ctx.click("#left .row"); check("tapping a row opens the detail drawer", await ctx.eval("!!document.querySelector('#left .card-detail')"));
+    await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
+    check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
+    await ctx.eval("localStorage.setItem('sv-board-kanban', '1'); true"); await ctx.eval("location.reload(); true"); await ctx.wait("!!document.querySelector('#left .board.kanban')");
+    check("1920: the old kanban boolean still selects kanban", true);
   },
 };
 async function scenarios(o) {

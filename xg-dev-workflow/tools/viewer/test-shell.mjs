@@ -1116,3 +1116,28 @@ t("every hotkey action has a pane-head button twin (find · quick open · TOC ·
   assert.match(html, /closest\("\[data-help\]"\)\)\) \{ e\.preventDefault\(\); openHelp\(\); return; \}/, "? button opens help");
   assert.match(html, /placeholder="quick open — file name \/ path… \(last row: search contents\)"/, "quick open says its last row searches contents");
 });
+
+// --- board rows form (third form) + its memory migration ---
+t("SV.boardMode: stored form wins, the old kanban boolean maps to one of the first two, else no preference", () => {
+  assert.equal(SV.boardMode("rows", "1"), "rows");
+  assert.equal(SV.boardMode("kanban", null), "kanban");
+  assert.equal(SV.boardMode(null, "1"), "kanban");
+  assert.equal(SV.boardMode(null, "0"), "grid");
+  assert.equal(SV.boardMode(null, null), null);
+  assert.equal(SV.boardMode("bogus", "1"), "kanban");
+});
+t("SV.cardMtimes: newest file mtime per <project>/<NNN-slug> dir", () => {
+  const m = SV.cardMtimes([{ path: "p/001-a/design.md", mtime: 5 }, { path: "p/001-a/notes/x.md", mtime: 9 }, { path: "p/index.md", mtime: 99 }, { path: "q/002-b/design.md", mtime: 3 }]);
+  assert.deepEqual(m, { "p/001-a": 9, "q/002-b": 3 });
+});
+t("SV.liteProgress: the part after the label of a lite card's step cell", () => {
+  assert.equal(SV.liteProgress(["设计:executing · Req 6 / 已验证 2"]), "executing · Req 6 / 已验证 2");
+  assert.equal(SV.liteProgress([]), "");
+});
+t("the board renders rows below the breakpoint by default, keeps a chosen form, and writes only sv-board-mode", () => {
+  assert.match(html, /mode = boardMode \|\| \(narrow \? "rows" : "grid"\)/, "default form follows the width when nothing is stored");
+  assert.match(html, /lsSet\("sv-board-mode", boardMode\)/, "the pick is stored under the new key");
+  assert.doesNotMatch(html, /lsSet\("sv-board-kanban"/, "the old boolean key is read for migration, never written");
+  assert.match(html, /function rowHtml\(c, mtime\)/, "rows have their own renderer");
+  assert.match(html, /closest\("\.card, \.row"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
+});
