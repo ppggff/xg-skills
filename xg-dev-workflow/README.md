@@ -83,7 +83,8 @@ each row script- or reader-checkable.
 
 `xg-dev-workflow new <slug>` opens a lite card by hand (directory, `design.md` from
 `templates/design-lite.md`, board row); then draft, ask for go, execute, close out — all per
-`references/steps/lite.md`. `investigate <topic>` is the single front door for any code investigation;
+`references/steps/lite.md`. `investigate <topic>` is the single front door for any code investigation (an
+evolving dir for a topic worked over rounds; an independent run on the human's word);
 `diagnose <symptom>` for defect localization (repro loop first, fix via Prove-It); `review <target>` for
 judging new or changed code and for the lite close-out; `improve <project> [<region>…]` for a read-only
 deepening scan whose picks graduate via the roadmap; `learn <card>…` distills redo-input from existing
