@@ -64,9 +64,9 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 ## Go (Go)
 
 - Go-1 (H · S: aj) — go is the word, or a reply **to the go ask** that settles every 待你判 item and raises no new question — a discussion round's
-  closing reply is never a go; while executing or closing, a message in which the human adds or tightens a goal is a `go（续）` for the Req ids it
-  touches (lite.md「Executing」); the 授权记录 line quotes the human verbatim (`人原话：「…」`, present in `notes/human-messages.md`), never an inference (「视为
-  go」); then `status: executing`, `go: <dev_root commit>` and each covered block's 确认 line, committed.
+  closing reply is never a go; while executing or closing, a message in which the human adds a goal, or tightens one a go already covers, is a
+  `go（续）` for those Req ids (lite.md「Executing」); the 授权记录 line quotes the human verbatim (`人原话：「…」`, present in `notes/human-messages.md`),
+  never an inference (「视为 go」); then `status: executing`, `go: <dev_root commit>` (kept by a go（续）) and each covered block's 确认 line, committed.
 - Go-2 (H · S: aj) — a partial go names the Req ids it covers; a commitment changes only through a 待确认 proposal the human confirms,
   or the human's own change (its words confirm it), written as a 变更 line that cites the confirming words — without them it stays a
   proposal and the old commitment stands.
