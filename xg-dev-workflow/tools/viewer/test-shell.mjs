@@ -1141,3 +1141,13 @@ t("the board renders rows below the breakpoint by default, keeps a chosen form, 
   assert.match(html, /function rowHtml\(c, mtime\)/, "rows have their own renderer");
   assert.match(html, /closest\("\.card, \.row"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
 });
+
+// --- reading surface below the breakpoint ---
+t("dvh pair, kanban snap, full-width body below the breakpoint", () => {
+  assert.match(html, /#layout \{ display: flex; height: 100vh; height: 100dvh;/, "layout height: vh fallback then dvh");
+  assert.match(html, /height: 100vh; height: 100dvh;\n    margin: 0 -10px -100vh 0; margin-bottom: -100dvh;/, "the rail's height and negative bottom margin change together");
+  assert.match(html, /scroll-snap-type: x mandatory;/, "kanban snaps per column");
+  assert.match(html, /scroll-snap-align: start; \}/, "columns are snap targets");
+  assert.match(html, /if \(narrow\) \{[^\n]*\n\s+db\.style\.setProperty\("--m-l", "0px"\); db\.style\.removeProperty\("--m-w"\); db\.classList\.add\("gutter-in"\); return;/, "applyMeasure bypasses the tiers below the breakpoint");
+  assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 0 100%; order: 9; \}/, "the crumb takes its own line below the breakpoint");
+});

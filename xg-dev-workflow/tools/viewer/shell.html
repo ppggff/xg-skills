@@ -49,7 +49,7 @@
   html, body { height: 100%; }
   body { margin: 0; background: var(--bg); color: var(--fg);
     font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
-  #layout { display: flex; height: 100vh; overflow: hidden; }
+  #layout { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }   /* dvh: the visible height under a mobile browser's toolbars; vh is the fallback */
   .pane { overflow: auto; height: 100%; position: relative; }
   #side { background: var(--side); width: 280px; flex: none; padding: 12px; display: flex;
     flex-direction: column; gap: 10px; }
@@ -86,7 +86,10 @@
   html.narrow #left { padding: 0 14px 20px; }
   html.narrow .doc-head { margin: 0 -14px 0; padding: 12px 14px 8px; }   /* tracks #left's narrower padding */
   html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
-  html.narrow select.iconbtn { max-width: 5em; }   /* leaves the crumb its file name; the dropdown still opens in full */
+  html.narrow .mrule { display: none; }
+  html.narrow .doc-head { flex-wrap: wrap; row-gap: 4px; }   /* buttons on the first line, the file name on its own line */
+  html.narrow .doc-head .crumb { flex: 1 0 100%; order: 9; }
+  html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
@@ -124,8 +127,8 @@
      The pane is a flex column, so `float` would be ignored and this 100vh item would push the whole
      document a viewport down — align-self puts it at the right edge and the negative margins keep
      it from taking either width or height from the content. */
-  .rail { position: sticky; top: 0; align-self: flex-end; width: 10px; height: 100vh;
-    margin: 0 -10px -100vh 0; z-index: 2; }
+  .rail { position: sticky; top: 0; align-self: flex-end; width: 10px; height: 100vh; height: 100dvh;
+    margin: 0 -10px -100vh 0; margin-bottom: -100dvh; z-index: 2; }   /* height and the negative bottom margin are a pair */
   /* Marks are a map, not an alarm — muted enough to scan past, and every colour is set with
      background-COLOR: the shorthand would reset background-clip and paint the 8px hit area. */
   .rail i { position: absolute; left: 0; right: 0; height: 8px; margin-top: -3px; cursor: pointer;
@@ -283,8 +286,9 @@
   /* R1: cards keep a bounded, consistent width (matching the kanban lane width) instead of stretching
      to fill — so a card looks identical in list and kanban; wide screens gain more columns. */
   .board { display: grid; grid-template-columns: repeat(auto-fill, 368px); justify-content: start; gap: 10px; align-items: stretch; }
-  .board.kanban { display: flex; flex-direction: row; align-items: flex-start; gap: 14px; overflow-x: auto; padding-bottom: 10px; }
-  .board.kanban .col { flex: 0 0 368px; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+  .board.kanban { display: flex; flex-direction: row; align-items: flex-start; gap: 14px; overflow-x: auto; padding-bottom: 10px;
+    scroll-snap-type: x mandatory; }   /* a horizontal swipe lands on a column */
+  .board.kanban .col { flex: 0 0 368px; min-width: 0; display: flex; flex-direction: column; gap: 9px; scroll-snap-align: start; }
   /* kanban lane header (variant B — minimal): status swatch + name + count badge over a status-colored rule.
      --lane (the status color) is set per column at render time. */
   .col h3 { display: flex; align-items: center; gap: 8px; margin: 0; padding-bottom: 8px; font-family: var(--chrome);
@@ -1355,6 +1359,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function applyMeasure(side) {   // R1/R2: write the two docbody measure vars + reposition that pane's mrule lines
     var pane = PANES[side], db = pane.querySelector(".docbody"); if (!db) return;
+    if (narrow) {   // below the breakpoint the body is full width: no measure, gutter folded inline, rules hidden by CSS
+      db.style.setProperty("--m-l", "0px"); db.style.removeProperty("--m-w"); db.classList.add("gutter-in"); return;
+    }
     // S8: default and full keep GUTTER_PAD of measure-left offset so the source-line gutter has a
     // strip to hang in — the pane's own 28px padding isn't enough, and without it every default
     // view falls back to the inline gutter that crowds the first line.
