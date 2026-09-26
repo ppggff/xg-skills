@@ -10,6 +10,7 @@
 // Run (viewer already up, or it is started on the url's port and stopped on exit):
 //   node tools/viewer/shots.mjs --out /tmp/shots/before
 //   node tools/viewer/shots.mjs --compare /tmp/shots/before /tmp/shots/after
+//   node tools/viewer/shots.mjs --scenario crossing,overlay     (behavioural checks, no files)
 // Options: --url http://127.0.0.1:8790/  --viewports 390x844,768x1024,1024x768,1920x1080
 //   --views board,doc,search,diff,recent  --doc dev/<rel> (default: the newest card's design.md)
 //   --card <project>/<NNN> (default: derived from --doc)  --q <term>
@@ -31,7 +32,7 @@ const DEF = {
 };
 
 function parseArgs(argv) {
-  const o = { ...DEF, compare: null, out: null, keepStorage: false };
+  const o = { ...DEF, compare: null, out: null, scenario: null, keepStorage: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--compare") { o.compare = [argv[++i], argv[++i]]; continue; }
@@ -147,38 +148,106 @@ async function resolveDoc(o) {
   if (!o.card) { const m = o.doc.match(/^dev\/([^/]+)\/(\d{3})-/); if (!m) throw new Error("cannot derive --card from " + o.doc); o.card = m[1] + "/" + m[2]; }
 }
 
-async function shoot(o) {
-  mkdirSync(o.out, { recursive: true });
+// --- browser session -----------------------------------------------------------
+async function session(o, fn) {
   const viewer = await ensureViewer(o.url);
   await resolveDoc(o);
   const { child, wsUrl } = await launchChrome(o.chrome);
   const cdp = await CDP.connect(wsUrl);
-  const manifest = { taken: new Date().toISOString(), url: o.url, viewerRev: viewer.rev, node: process.version,
-    chrome: (await cdp.send("Browser.getVersion")).product, viewports: o.viewports, views: o.views, doc: o.doc, card: o.card, q: o.q, shots: {} };
   try {
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
     const { sessionId: sid } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
     await cdp.send("Page.enable", {}, sid); await cdp.send("Runtime.enable", {}, sid);
+    const ctx = {
+      viewer, chrome: (await cdp.send("Browser.getVersion")).product,
+      eval: (expr) => evalIn(cdp, sid, expr),
+      wait: (pred, timeout) => waitFor(cdp, sid, pred, timeout),
+      viewport: (w, h) => cdp.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false }, sid),
+      load: async () => {
+        await cdp.send("Page.navigate", { url: o.url }, sid); await cdp.waitEvent("Page.loadEventFired", sid);
+        if (!o.keepStorage) { await evalIn(cdp, sid, "localStorage.clear(); true"); await cdp.send("Page.reload", {}, sid); await cdp.waitEvent("Page.loadEventFired", sid); }
+        await waitFor(cdp, sid, "!!document.querySelector('#tree a.file')");
+      },
+      go: async (name) => { const { drive, ready } = VIEW[name](o); await evalIn(cdp, sid, drive + "; true"); await waitFor(cdp, sid, ready); await sleep(400); },
+      click: (sel) => evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.click(); return true; })()`),
+      shot: async () => Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" }, sid)).data, "base64"),
+      measure: () => evalIn(cdp, sid, MEASURE),
+    };
+    return await fn(ctx);
+  } finally { cdp.close(); child.kill(); viewer.stop(); }
+}
+
+async function shoot(o) {
+  mkdirSync(o.out, { recursive: true });
+  const manifest = await session(o, async (ctx) => {
+    const manifest = { taken: new Date().toISOString(), url: o.url, viewerRev: ctx.viewer.rev, node: process.version, chrome: ctx.chrome,
+      viewports: o.viewports, views: o.views, doc: o.doc, card: o.card, q: o.q, shots: {} };
     for (const vp of o.viewports.split(",")) {
       const [w, h] = vp.split("x").map(Number);
-      await cdp.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false }, sid);
-      await cdp.send("Page.navigate", { url: o.url }, sid); await cdp.waitEvent("Page.loadEventFired", sid);
-      if (!o.keepStorage) { await evalIn(cdp, sid, "localStorage.clear(); true"); await cdp.send("Page.reload", {}, sid); await cdp.waitEvent("Page.loadEventFired", sid); }
-      await waitFor(cdp, sid, "!!document.querySelector('#tree a.file')");
+      await ctx.viewport(w, h); await ctx.load();
       for (const name of o.views.split(",")) {
-        const { drive, ready } = VIEW[name](o);
-        await evalIn(cdp, sid, drive + "; true");
-        await waitFor(cdp, sid, ready); await sleep(400);
+        await ctx.go(name);
         const file = `${vp}-${name}.png`;
-        const { data } = await cdp.send("Page.captureScreenshot", { format: "png" }, sid);
-        writeFileSync(join(o.out, file), Buffer.from(data, "base64"));
-        manifest.shots[file] = await evalIn(cdp, sid, MEASURE);
+        writeFileSync(join(o.out, file), await ctx.shot());
+        manifest.shots[file] = await ctx.measure();
         process.stdout.write(`${file}  overflow=${manifest.shots[file].pageOverflow} head=${manifest.shots[file].headOverflow}\n`);
       }
     }
-  } finally { cdp.close(); child.kill(); viewer.stop(); }
+    return manifest;
+  });
   writeFileSync(join(o.out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   console.log("wrote " + join(o.out, "manifest.json"));
+}
+
+// --- scenarios: behaviour that a cold screenshot cannot show -----------------------
+const SCENARIO = {
+  // A tablet rotating crosses the breakpoint without a reload: the right pane closes on the way
+  // down and comes back on the way up; inline column widths never survive below the breakpoint.
+  async crossing(ctx, check) {
+    await ctx.viewport(1024, 768); await ctx.load(); await ctx.go("doc");
+    await ctx.click("[data-mirror]"); await ctx.wait("document.querySelector('#right').classList.contains('show')");
+    check("1024: mirror opened the right pane", await ctx.eval("document.querySelector('#right').classList.contains('show')"));
+    check("1024: #left carries an inline width while the right pane is open", await ctx.eval("document.querySelector('#left').style.width !== ''"));
+    await ctx.viewport(768, 1024); await ctx.wait("document.documentElement.classList.contains('narrow')");
+    check("768: html.narrow set by the change listener", true);
+    check("768: right pane hidden", await ctx.eval("getComputedStyle(document.querySelector('#right')).display === 'none'"));
+    check("768: sidebar hidden (overlay closed)", await ctx.eval("getComputedStyle(document.querySelector('#side')).display === 'none'"));
+    check("768: inline widths cleared", await ctx.eval("['#left','#toc','#side'].every(s => document.querySelector(s).style.width === '')"));
+    check("768: content pane spans the viewport", await ctx.eval("Math.abs(document.querySelector('#left').getBoundingClientRect().width - 768) < 2"));
+    await ctx.viewport(1024, 768); await ctx.wait("!document.documentElement.classList.contains('narrow')");
+    check("1024 again: right pane restored", await ctx.eval("document.querySelector('#right').classList.contains('show')"));
+    check("1024 again: sidebar back as a column", await ctx.eval("getComputedStyle(document.querySelector('#side')).position !== 'fixed' && getComputedStyle(document.querySelector('#side')).display !== 'none'"));
+  },
+  // Below the breakpoint the sidebar and the TOC open as overlays from their buttons and close on a pick.
+  async overlay(ctx, check) {
+    await ctx.viewport(390, 844); await ctx.load(); await ctx.go("doc");
+    check("390: sidebar starts hidden", await ctx.eval("getComputedStyle(document.querySelector('#side')).display === 'none'"));
+    await ctx.click("[data-side]");
+    check("☰ opens the sidebar overlay with a scrim", await ctx.eval("document.querySelector('#side').classList.contains('open') && document.querySelector('#scrim').classList.contains('show') && getComputedStyle(document.querySelector('#side')).position === 'fixed'"));
+    await ctx.click('#side [data-go="recent"]'); await ctx.wait("!!document.querySelector('#left h2.commit')");
+    check("picking Recent inside it navigates and closes the overlay", await ctx.eval("!document.querySelector('#side').classList.contains('open') && !document.querySelector('#scrim').classList.contains('show')"));
+    await ctx.go("doc");
+    await ctx.click("[data-tocbtn]");
+    check("☷ opens the TOC overlay", await ctx.eval("document.querySelector('#toc').classList.contains('open') && getComputedStyle(document.querySelector('#toc')).position === 'fixed'"));
+    check("TOC overlay has entries", await ctx.eval("document.querySelectorAll('#toc a[data-toc]').length > 3"));
+    await ctx.click("#toc a[data-toc]");
+    check("picking an entry closes the TOC overlay", await ctx.eval("!document.querySelector('#toc').classList.contains('open')"));
+    await ctx.click("[data-tocbtn]"); await ctx.click("#scrim");
+    check("tapping the scrim closes it", await ctx.eval("!document.querySelector('#toc').classList.contains('open') && !document.querySelector('#scrim').classList.contains('show')"));
+    check("390: head does not overflow", (await ctx.measure()).headOverflow === 0);
+  },
+};
+async function scenarios(o) {
+  let fails = 0;
+  await session(o, async (ctx) => {
+    for (const name of o.scenario.split(",")) {
+      const check = (label, ok) => { fails += ok ? 0 : 1; console.log(`${ok ? "ok " : "FAIL"} - ${name}: ${label}`); };
+      if (!SCENARIO[name]) throw new Error("unknown scenario " + name);
+      await SCENARIO[name](ctx, check);
+    }
+  });
+  console.log(fails ? `${fails} failed` : "all scenarios passed");
+  return fails ? 1 : 0;
 }
 
 function compare([a, b]) {
@@ -201,5 +270,6 @@ function compare([a, b]) {
 
 const o = parseArgs(process.argv.slice(2));
 if (o.compare) process.exit(compare(o.compare));
-if (!o.out) { console.error("usage: shots.mjs --out <dir> | --compare <dirA> <dirB>"); process.exit(2); }
+if (o.scenario) process.exit(await scenarios(o));
+if (!o.out) { console.error("usage: shots.mjs --out <dir> | --compare <dirA> <dirB> | --scenario <names>"); process.exit(2); }
 await shoot(o);

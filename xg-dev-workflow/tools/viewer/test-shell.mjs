@@ -1090,3 +1090,21 @@ t("a pane-width change without a re-render still reaches the geometry hook", () 
   const layout = html.match(/function applyLayout\(\) \{[\s\S]*?\n  \}/)[0];
   assert.match(layout, /panesResized\(\);/, "applyLayout reuses it");
 });
+
+// --- narrow mode: one width query, mirrored onto html.narrow; CSS reads the class, never a width ---
+t("narrow mode is decided by one matchMedia width query and nothing device-shaped", () => {
+  const mq = html.match(/matchMedia\("\(max-width: \d+px\)"\)/g) || [];
+  assert.equal(mq.length, 1, "exactly one width query defines the breakpoint");
+  assert.doesNotMatch(html, /@media \(max-width/, "CSS never reads the width itself");
+  assert.doesNotMatch(html, /navigator\.userAgent|navigator\.platform|maxTouchPoints|pointer: coarse|hover: none/, "no device or pointer sniffing");
+  assert.match(html, /html\.narrow #side\.open \{ display: flex; position: fixed/, "sidebar is an overlay below the breakpoint");
+  assert.match(html, /html\.narrow #toc\.open \{ display: block; position: fixed/, "TOC is an overlay below the breakpoint");
+  assert.match(html, /html\.narrow \.gutter, html\.narrow #reopen, html\.narrow #right \{ display: none !important; \}/, "no gutters, no right pane");
+});
+t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
+  assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
+  assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
+  assert.match(html, /if \(rightOpenBefore && PANES\.right\._hist\.length\) \{ showRight\(true\); render\("right"\); \}/, "the right pane comes back on the way up");
+  assert.match(html, /if \(narrow && side === "right"\) side = "left";/, "navigate lands on the left below the breakpoint");
+  assert.match(html, /showToc\(!narrow && tocUser !== false\)/, "desktop TOC visibility honours the session toggle; narrow uses the overlay flag");
+});

@@ -74,6 +74,21 @@
   /* re-open affordance when #side is collapsed (R26) */
   #reopen { position: fixed; top: 8px; left: 8px; z-index: 20; display: none; }
   #reopen.show { display: block; }
+  /* Narrow mode: one width breakpoint, mirrored by JS onto html.narrow from a matchMedia — the CSS
+     reads the class, never a width, so the number lives in one place. Below it the sidebar and the
+     TOC are overlays over a single content pane, the right pane never shows and the gutters vanish. */
+  html.narrow #side, html.narrow #toc { display: none; }
+  html.narrow #side.open { display: flex; position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); z-index: 30;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, .25); }
+  html.narrow #toc.open { display: block; position: fixed; top: 0; bottom: 0; right: 0; width: min(300px, 86vw); z-index: 30;
+    overflow: auto; box-shadow: -4px 0 24px rgba(0, 0, 0, .25); }
+  html.narrow .gutter, html.narrow #reopen, html.narrow #right { display: none !important; }
+  html.narrow #left { padding: 0 14px 20px; }
+  #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
+  html.narrow #scrim.show { display: block; }
+  html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
+  [data-side] { display: none; } html.narrow [data-side] { display: inline-block; }
+  .crumb .base { display: none; } html.narrow .crumb .full { display: none; } html.narrow .crumb .base { display: inline; }
   /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
      the body and the current-line band) while the body scrolls under it. The pane has no top
      padding, so top:0 sticks flush; negative side margins let it span the pane's full width. */
@@ -120,7 +135,7 @@
   /* R12 on the rail: same size as every other mark — it reaches further left and takes the
      foreground colour, which is enough to find yourself without the track jumping around. */
   .rail i.cur { right: -7px; background-color: var(--fg); z-index: 1; }   /* reaches right, away from the text; -color, not the shorthand — that would reset background-clip */
-  .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1;
+  .crumb { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1; min-width: 0;   /* min-width: a flex item's auto minimum is its content — the head overflowed instead of the crumb shrinking */
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
     background: var(--bg); color: var(--muted); border-radius: var(--radius); padding: 1px 7px; }
@@ -549,6 +564,7 @@
   <section id="right" class="pane"></section>
   <div class="gutter" data-resize="toc"></div>
   <aside id="toc" class="pane"></aside>
+  <div id="scrim"></div>
 </div>
 <div id="stale">📄 内容已更新 · 点击刷新</div>
 <div id="flash"></div>
@@ -1246,6 +1262,41 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function saveLayout() { lsSet("sv-layout", JSON.stringify({
     leftW: layoutState.leftW, tocW: layoutState.tocW, leftCustom: layoutState.leftCustom, sideW: layoutState.sideW,
     m: layoutState.m })); }
+  // Narrow mode: the one breakpoint. Overlay and pane state below it are these flags, never inline
+  // widths (which would beat the media-query CSS); crossing the breakpoint in either direction is a
+  // real event (a tablet rotating), handled in onNarrowChange.
+  var NARROW_MQ = window.matchMedia("(max-width: 899px)");
+  var narrow = NARROW_MQ.matches, sideOpen = false, tocOpen = false, tocUser = null, rightOpenBefore = false, sideWasCollapsed = false;
+  document.documentElement.classList.toggle("narrow", narrow);
+  function setOverlays() {
+    document.getElementById("side").classList.toggle("open", narrow && sideOpen);
+    tocPane.classList.toggle("open", narrow && tocOpen);
+    document.getElementById("scrim").classList.toggle("show", narrow && (sideOpen || tocOpen));
+  }
+  function closeOverlays() { sideOpen = false; tocOpen = false; setOverlays(); }
+  function toggleSide() { sideOpen = !sideOpen; if (sideOpen) tocOpen = false; setOverlays(); }
+  function toggleToc() {
+    if (narrow) { tocOpen = !tocOpen; if (tocOpen) { sideOpen = false; renderToc(); } setOverlays(); return; }
+    tocUser = !tocPane.classList.contains("show"); renderToc();   // desktop: a session-only preference, like the sidebar's collapse
+  }
+  function onNarrowChange() {
+    var was = narrow; narrow = NARROW_MQ.matches; if (narrow === was) return;
+    document.documentElement.classList.toggle("narrow", narrow);
+    var sideEl = document.getElementById("side");
+    if (narrow) {
+      closeOverlays();
+      sideWasCollapsed = sideEl.classList.contains("collapsed"); sideEl.classList.remove("collapsed");
+      rightOpenBefore = PANES.right.classList.contains("show");
+      if (rightOpenBefore) { showRight(false); if (focus === "right") setFocus("left"); }   // its history stays for the way back
+    } else {
+      if (sideWasCollapsed) sideEl.classList.add("collapsed");
+      if (layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
+      if (rightOpenBefore && PANES.right._hist.length) { showRight(true); render("right"); }
+      rightOpenBefore = false;
+    }
+    applyLayout(); renderToc();
+  }
+  NARROW_MQ.addEventListener("change", onNarrowChange);
   (function () {                             // R6: on load, restore #side width + apply persisted left/toc
     var sideEl = document.getElementById("side");
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
@@ -1348,11 +1399,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // (R4). setFocus no longer touches the TOC, so the old TOC stays put during the fetch gap
   // instead of collapsing the column and reflowing both panes.
   function navigate(side, view, push) {
+    if (narrow && side === "right") side = "left";   // one pane below the breakpoint
     var p = PANES[side];
     leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
     p._mru = SV.mruPut(p._mru, mruKey(view), view, MRU_CAP);   // the dropdown's own list
-    if (side === "right") showRight(true);
+    if (side === "right") showRight(true);   // a no-op in narrow mode: the caller already landed on the left
     p._entering = true;   // S12
     setFocus(side); render(side);
   }
@@ -1406,13 +1458,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var hist = mru.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
         ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select>" : "";
+    var sideBtn = side === "left" ? '<button class="iconbtn" data-side="1" title="files">☰</button>' : "";
+    var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button>' : "";
     var tools = side === "left"
       ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
         '<button class="iconbtn" data-resetlayout="1" title="reset pane widths (equal / fill)">↺</button>'
       : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
     return '<div class="rail"></div>' +   // S6: pane's first child, every view kind, via this one shared choke point
-      '<div class="doc-head">' + back + hist + '<span class="crumb">' + esc(crumb) + "</span>" + (extra || "") + tools + "</div>" +
+      '<div class="doc-head">' + sideBtn + back + hist + '<span class="crumb" title="' + esc(crumb) + '"><span class="full">' + esc(crumb) +
+      '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" + (extra || "") + tocBtn + tools + "</div>" +
       (p._findOpen ? findBarHtml(side) : "");   // R3/R5: same choke point for the find bar
   }
   function findBarHtml(side) {
@@ -2003,7 +2058,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- TOC (R23/R29/R32): the focused pane's sections; scroll-spy = current line
   function renderToc() {
     var p = PANES[focus], secs = p._sections || [], tf = p._tocFilter;
-    if (!secs.length) { showToc(false); tocPane.innerHTML = ""; return; }
+    if (!secs.length) { showToc(false); tocPane.innerHTML = narrow ? '<div class="toc-inner"><div class="toc-title">contents</div><div class="none">—</div></div>' : ""; return; }
     tocPane.innerHTML = '<div class="toc-inner"><div class="toc-title">' + (tf ? "filter · contents" : "contents") + "</div>" +
       secs.map(function (s, i) {
         var a = '<a data-toc="' + i + '" style="padding-left:' + ((s.depth - 1) * 10) + 'px">' + esc(s.text) + "</a>";
@@ -2011,7 +2066,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         return '<div class="toc-row"><input type="checkbox" class="tocf" data-tocf="' + i + '"' +
           (tf.set[tf.keys[i]] ? "" : " checked") + ">" + a + "</div>";
       }).join("") + "</div>";
-    showToc(true); markCurrent();
+    showToc(!narrow && tocUser !== false); markCurrent();   // narrow: visibility is the overlay flag, not .show
   }
   function markCurrent() {                       // sync the TOC's active entry to pane._cur (R29)
     tocPane.querySelectorAll("a.cur").forEach(function (a) { a.classList.remove("cur"); });
@@ -2599,6 +2654,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
   //   right closed → LEFT fills;   toc = tocW (fixed). Closing the right pane hands its width to LEFT,
   //                                so #toc stays put instead of ballooning (R8).
   function applyLayout() {
+    if (narrow) {   // overlays and one filler pane: no inline widths, or they would beat the CSS
+      [PANES.left, PANES.right, tocPane, document.getElementById("side")].forEach(function (el) { el.style.flex = ""; el.style.width = ""; });
+      panesResized(); return;
+    }
     var L = PANES.left, open = PANES.right.classList.contains("show"), tw = layoutState.tocW || 240;
     if (open && !layoutState.leftW) layoutState.leftW = Math.max(200, Math.round(L.getBoundingClientRect().width / 2));
     tocPane.style.flex = "none"; tocPane.style.width = tw + "px";   // R8: #toc never fills
@@ -2619,6 +2678,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     invalidateGeometry("left"); invalidateGeometry("right");
   }
   function showRight(on) {
+    if (on && narrow) return;
     var was = PANES.right.classList.contains("show");
     if (on && !was && !layoutState.leftCustom)          // auto: equal-split from the current fill width
       layoutState.leftW = Math.max(200, Math.round((PANES.left.getBoundingClientRect().width - 6) / 2));
@@ -2642,6 +2702,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     PANES.left.classList.toggle("focused", side === "left" && PANES.left._hi >= 0);
     PANES.right.classList.toggle("focused", side === "right" && PANES.right._hi >= 0);
   }
+  document.addEventListener("click", function (e) {   // narrow: the scrim, or picking a target inside an overlay, closes it
+    if (!narrow || !(sideOpen || tocOpen)) return;
+    if (e.target.closest("#scrim")) { closeOverlays(); return; }
+    if (e.target.closest("#side, #toc") && e.target.closest("[data-nav], [data-go], a[data-toc]")) closeOverlays();
+  });
   document.querySelectorAll("[data-collapse]").forEach(function (b) {
     b.onclick = function () {
       var el = document.getElementById(b.dataset.collapse); el.classList.toggle("collapsed");
@@ -2714,6 +2779,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
+    if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); toggleSide(); return; }
+    if ((t = e.target.closest("[data-tocbtn]"))) { e.preventDefault(); toggleToc(); return; }
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
     if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 3 of 4
       PANES.right.innerHTML = ""; PANES.right._view = null;
@@ -3037,6 +3104,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "Escape" && PANES[focus]._findOpen) { findClose(focus); return; }   // R5/R13: find closes first, ahead of help/change-history
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
     if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
+    if (e.key === "Escape" && narrow && (sideOpen || tocOpen)) { closeOverlays(); return; }   // narrow: overlays close after the dialogs above them
     var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
