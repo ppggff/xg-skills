@@ -99,7 +99,7 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
    pass the paths one by one — zsh does not split a variable), and deny per repo by absolute path `CLAUDE.md` ·
    `**/CLAUDE.md` · `AGENTS.md` · `**/AGENTS.md` · `.claude/**` · `**/.claude/**` · `.git/**`, plus `Bash(git:*)` —
    a relative `**/` rule does not reach an added dir.
-3. There: `claude -p --model <session model> --effort <session effort> --setting-sources project,local
+3. There: `claude -p --model <model> --effort <effort> --setting-sources project,local
    --strict-mcp-config --disallowedTools "ListAgents,SendMessage"
    --settings '{"autoMemoryEnabled":false,"permissions":{"deny":["Read(//<KB root>/**)","Read(//<dev_root>/**)"]}}'
    [--add-dir <repo root>…] -- "<task line> <problem.md>" < /dev/null` — the `--` keeps the variadic `--add-dir`
@@ -108,7 +108,9 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
    `--dangerously-skip-permissions` or `--permission-mode bypassPermissions`, nor an `--add-dir` beyond the live
    repo roots: `-p`'s default permissions do the isolating. `--bare` needs an API key and a subagent carries the
    global CLAUDE.md — neither substitutes. `--setting-sources` also skips the user settings that hold the model
-   and effort, so both are passed: left to defaults the run drops to medium and the two runs stop being comparable.
+   and effort, so both are passed, and both are what the KB-informed run (item 5) gets — the session model capped
+   at opus (SKILL.md「Subagents」) and the session effort: left to defaults the run drops to medium, and a fable
+   session's run at fable against a subagent at opus confounds the comparison the same way.
 4. Save the output as `analysis-independent-<date>.md`, headed by ref · paths · deleted files (live: each repo's
    HEAD and dirty state, the deny set) · the full command (task line included).
 5. Run the KB-informed investigation on the same `problem.md` (`analysis-skill-<date>.md`). A subagent cannot
