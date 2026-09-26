@@ -84,10 +84,10 @@ A **defect** (observed-wrong behavior) is not a spike question — `diagnose.md`
 ## Independent run — an investigator who has not seen what we believe
 
 Only on the human's 「独立调查」; you may suggest it once (a KB conclusion in doubt, candidates to compare), never
-start it. It runs in an evolving dir (step 3; on an active card, in the card's `notes/`, conclusions into
+start it. It runs in an evolving dir (Procedure step 3; on an active card, in the card's `notes/`, conclusions into
 「待解问题与证据」).
 1. Write `problem.md` and self-check it — no candidate, no conclusion, no KB wording or slug, no card / Req id;
-   show it with the ref, the code mode (step 2; the human may switch it) and the paths (default: the whole repo)
+   show it with the ref, the code mode (item 2 below; the human may switch it) and the paths (default: the whole repo)
    and wait — the run's one stop. `problem.md` names the code locations the run will see.
 2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete every
    `CLAUDE.md`, `AGENTS.md` and `.claude/` in the snapshot (`find <dir> \( -name CLAUDE.md -o -name AGENTS.md -o
