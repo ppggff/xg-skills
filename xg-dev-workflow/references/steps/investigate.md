@@ -145,16 +145,16 @@ start it. It runs in an evolving dir (Procedure step 3; on an active card, in th
      `[[wiki/<project>/<slug>]]` — design.md links it, never duplicates it. No separate usage record
      (the card's lite events cover it); 存量 cards record per `references/legacy/SKILL.md`.
    - **Standalone** → reusable findings to the KB (xg-knowledge-lite Write: raw, compile if it shifts a
-     concept); notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix — the dir says it),
-     **never into the repo**. Log `--action investigate`.
+     concept); notes to `<dev_root>/<project>/investigations/<topic>.md` (no prefix — the dir says it; headed by
+     session model · effort, unknown → say so), **never into the repo**. Log `--action investigate`.
    - **Evolving dir（演进目录）** — a doc set whose current conclusion can always be regenerated from the rest;
      ordinary and independent runs share it. A multi-phase campaign, a topic discussed past one round, or a
      second analysis graduates the note to `investigations/<topic>/`, one file per role: the problem
      (`problem.md` — state · goals · constraints, no solution or conclusion, readable without background) ·
      facts (`facts.md` — evidence-cited, each with its verification mark; a correction strikes and says why) · the
      human's messages (`human-messages.md`, verbatim and dated, as on a card) · analyses (`analysis-<source>-<date>.md`,
-     `-2` on a same-day repeat — skill · independent · an external model — headed by source and evidence mode,
-     appended while its run lasts, frozen once it ends; a phase is a run) · the current conclusion
+     `-2` on a same-day repeat — skill · independent · an external model — headed by source · evidence mode ·
+     model · effort, appended while its run lasts, frozen once it ends; a phase is a run) · the current conclusion
      (`current.md`, present tense, rewritten freely; when messy, regenerate it from the other four — list the
      semantic points first, tick them off after). Commit dev_root at each round's end. A card holds the same
      roles (design.md summary and goals · `facts.md` · `notes/human-messages.md` · `notes/` · 当前方案);

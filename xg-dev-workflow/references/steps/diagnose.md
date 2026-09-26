@@ -6,8 +6,9 @@ investigate's spike. Forked from **diagnosing-bugs** (feedback-loop-first), with
 evidence rule on every causal claim, and the fix landing through Prove-It as an ordinary slice.
 
 **Context**: on an active card (defect found while executing) the fix is an ordinary slice and the
-findings land in `design.md`「待解问题与证据」/ the plan; standalone → report + KB capture, and the fix
-waits for an explicit go (propose the diff, don't apply). Anchoring as in `investigate.md` step 3.
+findings land in `design.md`「待解问题与证据」/ the plan; standalone → report (headed by session model ·
+effort, unknown → say so) + KB capture, and the fix waits for an explicit go (propose the diff, don't
+apply). Anchoring as in `investigate.md` step 3.
 
 ## Phase 1 — build the feedback loop (this is the skill)
 

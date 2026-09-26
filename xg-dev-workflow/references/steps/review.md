@@ -75,7 +75,8 @@ and the report carries the per-row verdict.
 6. **Report — lands in dev_root, never the repo.** Card → `<card>/notes/review-YYYY-MM-DD-<target>.md`
    (the `review-` prefix and the date are load-bearing — multi-round reviews sort and don't collide; a
    same-day second round appends `-2`); standalone → `<dev_root>/<project>/reviews/YYYY-MM-DD-<slug>.md`.
-   Shape: 总体结论 (approve when the change definitely improves overall code health, not when it is
+   Shape: a header line — base ref · tier · session model · effort (unknown → say so; the per-lens model sits in
+   误报澄清) → 总体结论 (approve when the change definitely improves overall code health, not when it is
    perfect; the saturation one-liner) → findings by severity, each a field block (现象 · 依据 with `file:line` ·
    触发 when it claims the code misbehaves at run time — the input, sequence or red test that makes it fail ·
    改法 — label line + indented free-form content, never one long bullet) → 误报澄清

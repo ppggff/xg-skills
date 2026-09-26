@@ -4,6 +4,15 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-27 — reports open with the session model and effort
+
+A review report, a standalone diagnose report, an investigate note and every evolving-dir analysis file now open
+with the session model and effort (unknown → said so); the review header also carries the base ref and tier it
+already had to state. Why: the effort audit (dev_root `xg-skills/notes/2026-09-27-effort-guide-audit.md`, after
+claude.dev「Spending your effort」) found no per-report record of either, so the retro's per-model survive tally
+(the 2026-09-25 audit's P3-8) cannot be read against effort. The skill cannot switch effort itself; recording it is
+the one zero-stop move. No card — three clauses across `steps/review.md` · `diagnose.md` · `investigate.md`.
+
 ## 2026-09-27 — status viewer: small screens and touch, decided by width (card xg-skills/039)
 
 The human reads the viewer on a phone and an iPad, read-only; only iPad landscape was usable — the three-column layout
