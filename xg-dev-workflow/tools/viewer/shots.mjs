@@ -173,6 +173,20 @@ async function session(o, fn) {
       click: (sel) => evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.click(); return true; })()`),
       shot: async () => Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" }, sid)).data, "base64"),
       measure: () => evalIn(cdp, sid, MEASURE),
+      touch: (on) => cdp.send("Emulation.setTouchEmulationEnabled", { enabled: on, maxTouchPoints: 1 }, sid),
+      tap: async (sel) => {   // a finger tap at the element's centre (touchStart + touchEnd)
+        const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
+          const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+        if (!c) throw new Error("tap: no element " + sel);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c[0], y: c[1] }] }, sid);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }, sid);
+      },
+      mouseMove: async (sel) => {
+        const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
+          const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+        if (!c) throw new Error("mouseMove: no element " + sel);
+        await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid);
+      },
     };
     return await fn(ctx);
   } finally { cdp.close(); child.kill(); viewer.stop(); }
@@ -268,6 +282,35 @@ const SCENARIO = {
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
     await ctx.eval("localStorage.setItem('sv-board-kanban', '1'); true"); await ctx.eval("location.reload(); true"); await ctx.wait("!!document.querySelector('#left .board.kanban')");
     check("1920: the old kanban boolean still selects kanban", true);
+  },
+  // Below the breakpoint a tap on a doc link navigates without the hover preview; above it the
+  // preview still opens on a real mouse hover.
+  async touch(ctx, check) {
+    const link = '#left .docbody a[data-nav="doc"]';
+    await ctx.viewport(390, 844); await ctx.load(); await ctx.touch(true); await ctx.go("doc");
+    const before = await ctx.eval("document.querySelector('#left .crumb .base').textContent");
+    await ctx.tap(link); await sleep(700);
+    check("390 + touch: tapping a doc link navigates", await ctx.eval("document.querySelector('#left .crumb .base').textContent") !== before);
+    check("390 + touch: no hover preview pops up", await ctx.eval("!document.getElementById('lp') || getComputedStyle(document.getElementById('lp')).display === 'none'"));
+    await ctx.click("[data-quick]"); await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'viewer'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
+    await ctx.wait("!!document.querySelector('#qo .qrow.qfall')"); await ctx.tap("#qo .qrow.qfall"); await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
+    check("390 + touch: tapping quick open's last row runs a content search", true);
+    await ctx.touch(false); await ctx.viewport(1024, 768); await ctx.load(); await ctx.go("doc");
+    await ctx.mouseMove(link); await sleep(600);
+    check("1024 + mouse: the hover preview still opens", await ctx.eval("getComputedStyle(document.getElementById('lp')).display !== 'none'"));
+  },
+  // Hit areas below the breakpoint: head buttons and tree rows ≥ 40px, board rows ≥ 44px.
+  async targets(ctx, check) {
+    await ctx.viewport(390, 844); await ctx.load(); await ctx.go("doc");
+    const h = (sel) => ctx.eval(`Math.min(...[...document.querySelectorAll(${JSON.stringify(sel)})].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().height))`);
+    check("390: every visible head button ≥ 40px", (await h("#left .doc-head .iconbtn")) >= 40);
+    await ctx.click("[data-side]");
+    check("390: sidebar nav buttons ≥ 40px", (await h("#side .navbtn")) >= 40);
+    check("390: tree rows ≥ 40px", (await h("#tree summary")) >= 40);
+    await ctx.click("#scrim"); await ctx.go("board");
+    check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
+    await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("doc");
+    check("1920: head buttons keep their desktop size", (await h("#left .doc-head .iconbtn")) < 40);
   },
 };
 async function scenarios(o) {

@@ -1151,3 +1151,12 @@ t("dvh pair, kanban snap, full-width body below the breakpoint", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n\s+db\.style\.setProperty\("--m-l", "0px"\); db\.style\.removeProperty\("--m-w"\); db\.classList\.add\("gutter-in"\); return;/, "applyMeasure bypasses the tiers below the breakpoint");
   assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 0 100%; order: 9; \}/, "the crumb takes its own line below the breakpoint");
 });
+
+// --- touch items below the breakpoint, decided by width ---
+t("hovercard is gated by width, touch targets grow by width — no pointer or hover media query", () => {
+  assert.match(html, /document\.addEventListener\("mouseover", function \(e\) \{\n    if \(narrow\) return;/, "mouseover preview returns early below the breakpoint");
+  assert.match(html, /html\.narrow \.iconbtn \{ min-height: 40px; min-width: 40px; font-size: 13px; \}/, "buttons ≥ 40px");
+  assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 40px;/, "tree rows ≥ 40px");
+  assert.match(html, /html\.narrow \.row \{ min-height: 44px; \}/, "board rows ≥ 44px");
+  assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
+});

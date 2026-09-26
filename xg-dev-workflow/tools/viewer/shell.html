@@ -90,6 +90,20 @@
   html.narrow .doc-head { flex-wrap: wrap; row-gap: 4px; }   /* buttons on the first line, the file name on its own line */
   html.narrow .doc-head .crumb { flex: 1 0 100%; order: 9; }
   html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
+  /* Touch targets below the breakpoint: hit areas of at least 40px and chrome text at 13–14px. Decided by
+     width like everything else here — a narrow desktop window gets the same. */
+  html.narrow .iconbtn { min-height: 40px; min-width: 40px; font-size: 13px; }
+  html.narrow .navbtn { font-size: 14px; padding: 10px 12px; min-height: 40px; }
+  html.narrow .ctl, html.narrow #filterbox input { font-size: 16px; min-height: 40px; }   /* 16px: mobile browsers stop zooming into the field */
+  html.narrow .tree { font-size: 14px; }
+  html.narrow .tree summary, html.narrow .tree .file { min-height: 40px; padding: 4px 6px; }
+  html.narrow .tree > details > summary { font-size: 11.5px; }
+  html.narrow .fchip { min-height: 36px; font-size: 13px; }
+  html.narrow .row { min-height: 44px; }
+  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 12px; }
+  html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
+  html.narrow #toc a { display: block; padding: 8px 0; font-size: 14px; }
+  html.narrow .crumb, html.narrow .hint { font-size: 13px; }
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
@@ -3234,6 +3248,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     }).catch(function () { if (lpCur === key) lpRender(a, "", "无法预览 " + label, true); });
   }
   document.addEventListener("mouseover", function (e) {
+    if (narrow) return;   // below the breakpoint a tap synthesizes mouseover; the preview would pop over the page just navigated to
     var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
     clearTimeout(lpHideT); clearTimeout(lpShowT); lpShowT = setTimeout(function () { lpOpen(a); }, 250);
   });
