@@ -2,10 +2,11 @@
 
 `investigate` answers "how does existing code behave"; `review` judges **new / changed code** — a
 commit range, branch, PR or working diff — with a KB-first context pack, parallel lens fan-out and
-adjudicated, confidence-scored findings. Read-only: never edits product code. On a lite card, fixes
-are ordinary execution — apply and commit them (one concern each) without a further go unless a fix
-touches a commitment (then lite.md「Executing」's ask); a fix that changes behavior updates the Req's
-验证 line / a test like any slice.
+adjudicated, confidence-scored findings. Read-only: never edits product code. On a card the human named or
+resumed into, while it is executing, fixes are ordinary execution — apply and commit them (one concern each)
+without a further go unless a fix touches a commitment (then lite.md「Executing」's ask); a fix that changes
+behavior updates the Req's 验证 line / a test like any slice. On a card the review anchored itself to (step 1)
+or one past close-out, findings wait on the 修复决策表 — anchoring grants no fix rights.
 
 **Context pack on a lite card** = `design.md`'s Req blocks + 当前方案 (its 契约与不变量 rows feed the
 invariants axis); the test-adequacy lens's target list is the Req blocks' 验证 lines.
