@@ -89,9 +89,12 @@ start it. It runs in an evolving dir (step 3; on an active card, in the card's `
 1. Write `problem.md` and self-check it — no candidate, no conclusion, no KB wording or slug, no card / Req id;
    show it with the ref, the code mode (step 2; the human may switch it) and the paths (default: the whole repo)
    and wait — the run's one stop. `problem.md` names the code locations the run will see.
-2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete the
-   snapshot's `CLAUDE.md` and design docs. **Live repos** instead — the default when no repo's `git status` shows
-   uncommitted work on the topic and its `CLAUDE.md` / `AGENTS.md` say nothing on it (a Grep still reads them):
+2. `git archive <ref> [<paths>] | tar -x -C <new temp dir>` — no `.git`, outside the `projects:` map; delete every
+   `CLAUDE.md`, `AGENTS.md` and `.claude/` in the snapshot (`find <dir> \( -name CLAUDE.md -o -name AGENTS.md -o
+   -name .claude \) -prune -exec rm -rf {} +` — a nested `CLAUDE.md` loads once its dir is read; `.claude/` holds the
+   hooks, skills and settings that `project,local` keeps) and the design docs. **Live repos** instead — the default
+   when no repo's `git status` shows uncommitted work on the topic and its `CLAUDE.md` / `AGENTS.md` say nothing on
+   it (a Grep still reads them):
    run in a new empty dir, each repo root its own `--add-dir` (a symlink resolves outside the dir and is denied;
    pass the paths one by one — zsh does not split a variable), and deny per repo by absolute path `CLAUDE.md` ·
    `**/CLAUDE.md` · `AGENTS.md` · `**/AGENTS.md` · `.claude/**` · `**/.claude/**` · `.git/**`, plus `Bash(git:*)` —
