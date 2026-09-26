@@ -16,8 +16,11 @@
 //   --views board,doc,search,diff,recent  --doc dev/<rel> (default: the newest card's design.md)
 //   --card <project>/<NNN> (default: derived from --doc)  --q <term>
 //   --chrome <path>  --keep-storage (default clears localStorage per viewport for a cold start)
+//   --mask-head (hide the pane header before each shot: the one region allowed to differ across a change)
+//   --no-freeze (by default Date.now is pinned per run so relative times render the same in a re-run)
+//   --touch <file> (the refresh scenario bumps this file's mtime to trigger the live refresh)
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, utimesSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -33,11 +36,13 @@ const DEF = {
 };
 
 function parseArgs(argv) {
-  const o = { ...DEF, compare: null, out: null, scenario: null, eval: null, keepStorage: false };
+  const o = { ...DEF, compare: null, out: null, scenario: null, eval: null, keepStorage: false, maskHead: false, freeze: true, touch: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--compare") { o.compare = [argv[++i], argv[++i]]; continue; }
     if (a === "--keep-storage") { o.keepStorage = true; continue; }
+    if (a === "--mask-head") { o.maskHead = true; continue; }
+    if (a === "--no-freeze") { o.freeze = false; continue; }
     if (a.startsWith("--")) { o[a.slice(2)] = argv[++i]; continue; }
     throw new Error("unexpected argument: " + a);
   }
@@ -159,6 +164,8 @@ async function session(o, fn) {
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
     const { sessionId: sid } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
     await cdp.send("Page.enable", {}, sid); await cdp.send("Runtime.enable", {}, sid);
+    const frozenNow = Date.now();
+    if (o.freeze) await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `Date.now = () => ${frozenNow};` }, sid);
     const ctx = {
       viewer, chrome: (await cdp.send("Browser.getVersion")).product,
       eval: (expr) => evalIn(cdp, sid, expr),
@@ -171,7 +178,12 @@ async function session(o, fn) {
       },
       go: async (name) => { const { drive, ready } = VIEW[name](o); await evalIn(cdp, sid, drive + "; true"); await waitFor(cdp, sid, ready); await sleep(400); },
       click: (sel) => evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.click(); return true; })()`),
-      shot: async () => Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" }, sid)).data, "base64"),
+      shot: async () => {
+        if (o.maskHead) await evalIn(cdp, sid, "document.querySelectorAll('.doc-head, .findbar').forEach(h => h.style.visibility = 'hidden'); true");
+        const png = Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" }, sid)).data, "base64");
+        if (o.maskHead) await evalIn(cdp, sid, "document.querySelectorAll('.doc-head, .findbar').forEach(h => h.style.visibility = ''); true");
+        return png;
+      },
       measure: () => evalIn(cdp, sid, MEASURE),
       touch: (on) => cdp.send("Emulation.setTouchEmulationEnabled", { enabled: on, maxTouchPoints: 1 }, sid),
       tap: async (sel) => {   // a finger tap at the element's centre (touchStart + touchEnd)
@@ -196,7 +208,7 @@ async function shoot(o) {
   mkdirSync(o.out, { recursive: true });
   const manifest = await session(o, async (ctx) => {
     const manifest = { taken: new Date().toISOString(), url: o.url, viewerRev: ctx.viewer.rev, node: process.version, chrome: ctx.chrome,
-      viewports: o.viewports, views: o.views, doc: o.doc, card: o.card, q: o.q, shots: {} };
+      viewports: o.viewports, views: o.views, doc: o.doc, card: o.card, q: o.q, maskHead: o.maskHead, frozenClock: o.freeze, shots: {} };
     for (const vp of o.viewports.split(",")) {
       const [w, h] = vp.split("x").map(Number);
       await ctx.viewport(w, h); await ctx.load();
@@ -312,6 +324,21 @@ const SCENARIO = {
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("doc");
     check("1920: head buttons keep their desktop size", (await h("#left .doc-head .iconbtn")) < 40);
   },
+  // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
+  async refresh(ctx, check, o) {
+    if (!o.touch) throw new Error("refresh scenario needs --touch <file under the viewer's dev root>");
+    await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
+    await ctx.click('[data-bmode="rows"]'); await ctx.wait("!!document.querySelector('#left .row')");
+    await ctx.go("doc"); await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
+    const rev0 = await ctx.eval("fetch('/api/rev').then(r => r.json()).then(j => j.dev)");
+    const now = new Date(); utimesSync(o.touch, now, now);
+    await ctx.wait(`fetch('/api/rev').then(r => r.json()).then(j => j.dev !== ${JSON.stringify(rev0)})`, 8000);
+    await sleep(3500);   // the page polls every 2.5s and refreshes the tree on a new token
+    check("after the live refresh: TOC overlay still open", await ctx.eval("document.querySelector('#toc').classList.contains('open')"));
+    check("after the live refresh: still narrow, one pane", await ctx.eval("document.documentElement.classList.contains('narrow') && getComputedStyle(document.querySelector('#side')).display === 'none'"));
+    await ctx.click("#scrim"); await ctx.go("board");
+    check("after the live refresh: the rows pick survives", await ctx.eval("!!document.querySelector('#left .row')"));
+  },
 };
 async function scenarios(o) {
   let fails = 0;
@@ -319,7 +346,7 @@ async function scenarios(o) {
     for (const name of o.scenario.split(",")) {
       const check = (label, ok) => { fails += ok ? 0 : 1; console.log(`${ok ? "ok " : "FAIL"} - ${name}: ${label}`); };
       if (!SCENARIO[name]) throw new Error("unknown scenario " + name);
-      await SCENARIO[name](ctx, check);
+      await SCENARIO[name](ctx, check, o);
     }
   });
   console.log(fails ? `${fails} failed` : "all scenarios passed");
