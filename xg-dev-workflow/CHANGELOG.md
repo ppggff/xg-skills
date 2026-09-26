@@ -4,6 +4,32 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-27 — status viewer: small screens and touch, decided by width (card xg-skills/039)
+
+The human reads the viewer on a phone and an iPad, read-only; only iPad landscape was usable — the three-column layout
+could collapse the sidebar but never the TOC, cards were too big, and find / quick open / help existed only as hotkeys.
+The card was opened from a four-round evolving-dir discussion (the first trial of that dir for a pre-card direction talk);
+the ruling was to adapt by width, never by recognizing the device.
+
+- **One breakpoint (900px)**, a `matchMedia` mirrored onto `html.narrow` so the CSS reads a class, never a width. Below it
+  the sidebar and the TOC are overlays over a single pane, gutters vanish and the right pane never shows; crossing it
+  without a reload (a tablet rotating) closes the right pane on the way down and brings it back on the way up, and inline
+  column widths never survive below — they would beat the media-query CSS.
+- **Pane-head buttons** for find, quick open, contents and help (☰ files below the breakpoint). The head can no longer
+  overflow: the crumb gets `min-width: 0`, the history dropdown shrinks before the head does, and below the breakpoint the
+  file name takes its own line while the dropdown hides (◀ and quick open cover it).
+- **Board rows form** — dot · id · title · progress · newest mtime of the card dir (from the tree already on the client) —
+  the default below the breakpoint; the pick lives in `sv-board-mode`, the old `sv-board-kanban` boolean is read for
+  migration and never written.
+- **Below the breakpoint**: no hover preview (a tap synthesizes mouseover), ≥ 40px hit areas, 13–16px chrome text,
+  full-width body with the reading-width tiers bypassed, `100dvh` heights with the vh fallback; kanban snaps per column.
+- **Verification** is a zero-dependency screenshot harness (`tools/viewer/shots.mjs`: system Chrome headless + CDP + Node's
+  WebSocket) — per-shot layout measurements, seven behavioural scenarios, a frozen clock for byte-exact re-runs and head
+  masking for a before/after comparison: 10/10 desktop shots identical to the pre-change viewer. `viewer.py` untouched.
+- Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell,
+  LAN listening. A real-device pass gates `done`.
+- **体量行**: unchanged (tools only).
+
 ## 2026-09-26 — review fixes: snapshot isolation, the run command, model parity, go（续） scope, review fix rights
 
 A standalone review of the day's 25 commits (dev_root `xg-skills/reviews/2026-09-26-cards-036-038-skill-changes.md`)
