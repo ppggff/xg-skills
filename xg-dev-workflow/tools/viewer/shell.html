@@ -87,8 +87,9 @@
   html.narrow .doc-head { margin: 0 -14px 0; padding: 12px 14px 8px; }   /* tracks #left's narrower padding */
   html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
   html.narrow .mrule { display: none; }
-  html.narrow .doc-head { flex-wrap: wrap; row-gap: 4px; }   /* buttons on the first line, the file name on its own line */
-  html.narrow .doc-head .crumb { flex: 1 0 100%; order: 9; }
+  html.narrow .board.kanban { scroll-snap-type: x mandatory; }
+  html.narrow .doc-head .crumb { flex: 1 0 100%; order: 9; }   /* buttons on the first line, the file name on its own line */
+  html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
   /* Touch targets below the breakpoint: hit areas of at least 40px and chrome text at 13–14px. Decided by
      width like everything else here — a narrow desktop window gets the same. */
@@ -97,10 +98,11 @@
   html.narrow .ctl, html.narrow #filterbox input { font-size: 16px; min-height: 40px; }   /* 16px: mobile browsers stop zooming into the field */
   html.narrow .tree { font-size: 14px; }
   html.narrow .tree summary, html.narrow .tree .file { min-height: 40px; padding: 4px 6px; }
-  html.narrow .tree > details > summary { font-size: 11.5px; }
-  html.narrow .fchip { min-height: 36px; font-size: 13px; }
+  html.narrow .tree > details > summary { font-size: 13px; }
+  html.narrow .fchip { min-height: 40px; font-size: 13px; }
   html.narrow .row { min-height: 44px; }
-  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 12px; }
+  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 13px; }
+  html.narrow .row .rtitle { padding: 9px 0; }   /* the title link's own hit area, not just the row's */
   html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
   html.narrow #toc a { display: block; padding: 8px 0; font-size: 14px; }
   html.narrow .crumb, html.narrow .hint { font-size: 13px; }
@@ -112,7 +114,7 @@
   /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
      the body and the current-line band) while the body scrolls under it. The pane has no top
      padding, so top:0 sticks flush; negative side margins let it span the pane's full width. */
-  .doc-head { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 6;
+  .doc-head { display: flex; flex-wrap: wrap; row-gap: 4px; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 6;   /* wraps before it overflows (a narrow split pane) */
     background: var(--bg); margin: 0 -28px 0; padding: 12px 28px 8px; border-bottom: 1px solid var(--line); }
   /* S10: last in the flex column (order) and stuck to the pane's bottom edge, so the readout stays
      visible while scrolling without stacking a second sticky band under .doc-head. Both halves of
@@ -301,7 +303,7 @@
      to fill — so a card looks identical in list and kanban; wide screens gain more columns. */
   .board { display: grid; grid-template-columns: repeat(auto-fill, 368px); justify-content: start; gap: 10px; align-items: stretch; }
   .board.kanban { display: flex; flex-direction: row; align-items: flex-start; gap: 14px; overflow-x: auto; padding-bottom: 10px;
-    scroll-snap-type: x mandatory; }   /* a horizontal swipe lands on a column */
+    scroll-snap-type: x proximity; }   /* a swipe lands on a column; proximity so a mouse wheel still nudges */
   .board.kanban .col { flex: 0 0 368px; min-width: 0; display: flex; flex-direction: column; gap: 9px; scroll-snap-align: start; }
   /* kanban lane header (variant B — minimal): status swatch + name + count badge over a status-colored rule.
      --lane (the status color) is set per column at render time. */
@@ -1325,7 +1327,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // widths (which would beat the media-query CSS); crossing the breakpoint in either direction is a
   // real event (a tablet rotating), handled in onNarrowChange.
   var NARROW_MQ = window.matchMedia("(max-width: 899px)");
-  var narrow = NARROW_MQ.matches, sideOpen = false, tocOpen = false, tocUser = null, rightOpenBefore = false, sideWasCollapsed = false;
+  var narrow = NARROW_MQ.matches, sideOpen = false, tocOpen = false, tocUser = null, rightOpenBefore = false, sideWasCollapsed = false, leftWBefore = null;
   document.documentElement.classList.toggle("narrow", narrow);
   function setOverlays() {
     document.getElementById("side").classList.toggle("open", narrow && sideOpen);
@@ -1345,13 +1347,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (narrow) {
       closeOverlays();
       sideWasCollapsed = sideEl.classList.contains("collapsed"); sideEl.classList.remove("collapsed");
-      rightOpenBefore = PANES.right.classList.contains("show");
+      rightOpenBefore = PANES.right.classList.contains("show"); leftWBefore = layoutState.leftW;
       if (rightOpenBefore) { showRight(false); if (focus === "right") setFocus("left"); }   // its history stays for the way back
     } else {
       if (sideWasCollapsed) sideEl.classList.add("collapsed");
       if (layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
-      if (rightOpenBefore && PANES.right._hist.length) { showRight(true); render("right"); }
-      rightOpenBefore = false;
+      renderToc();   // the TOC column is back before showRight measures the split
+      if (rightOpenBefore && PANES.right._hist.length) {
+        showRight(true); if (leftWBefore !== null) { layoutState.leftW = leftWBefore; applyLayout(); } render("right");
+      }
+      rightOpenBefore = false; leftWBefore = null;
     }
     applyLayout(); renderToc();
   }
@@ -1461,7 +1466,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // (R4). setFocus no longer touches the TOC, so the old TOC stays put during the fetch gap
   // instead of collapsing the column and reflowing both panes.
   function navigate(side, view, push) {
-    if (narrow && side === "right") side = "left";   // one pane below the breakpoint
+    if (narrow) { side = "left"; closeOverlays(); }   // one pane below the breakpoint; any navigation closes an overlay
     var p = PANES[side];
     leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
@@ -1924,7 +1929,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function barH(bar) { return bar ? bar.getBoundingClientRect().height : 0; }
   function updateDetail(side) {
     var pane = PANES[side];
-    pane.querySelectorAll(".card").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
+    pane.querySelectorAll(".card, .row").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
@@ -2579,7 +2584,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     syncFindH(side);
     if (focus === side) renderToc();
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
-    var first = PANES[side].querySelector(".card.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
+    var first = PANES[side].querySelector(".card.selected, .row.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
     // S12/D12: the entering flag is read once and burned. That is the whole reason a poll or a
     // theme switch can't yank a reader back to the anchor they entered on — those paths re-render
@@ -2786,7 +2791,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("click", function (e) {   // narrow: the scrim, or picking a target inside an overlay, closes it
     if (!narrow || !(sideOpen || tocOpen)) return;
     if (e.target.closest("#scrim")) { closeOverlays(); return; }
-    if (e.target.closest("#side, #toc") && e.target.closest("[data-nav], [data-go], a[data-toc]")) closeOverlays();
+    if (e.target.closest("#toc a[data-toc]")) closeOverlays();   // a TOC jump does not navigate, so it closes here
   });
   document.querySelectorAll("[data-collapse]").forEach(function (b) {
     b.onclick = function () {
@@ -3185,10 +3190,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
   helpBack.addEventListener("click", closeHelp);
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
+    if (e.key === "Escape" && narrow && (sideOpen || tocOpen) && !helpEl.classList.contains("show")) { closeOverlays(); return; }   // an overlay sits over the find bar
     if (e.key === "Escape" && PANES[focus]._findOpen) { findClose(focus); return; }   // R5/R13: find closes first, ahead of help/change-history
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
     if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
-    if (e.key === "Escape" && narrow && (sideOpen || tocOpen)) { closeOverlays(); return; }   // narrow: overlays close after the dialogs above them
     var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }

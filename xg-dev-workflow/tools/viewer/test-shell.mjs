@@ -1100,12 +1100,14 @@ t("narrow mode is decided by one matchMedia width query and nothing device-shape
   assert.match(html, /html\.narrow #side\.open \{ display: flex; position: fixed/, "sidebar is an overlay below the breakpoint");
   assert.match(html, /html\.narrow #toc\.open \{ display: block; position: fixed/, "TOC is an overlay below the breakpoint");
   assert.match(html, /html\.narrow \.gutter, html\.narrow #reopen, html\.narrow #right \{ display: none !important; \}/, "no gutters, no right pane");
+  assert.match(html, /html\.narrow \[data-collapse\] \{ display: none; \}/, "the desktop collapse button is out of reach below the breakpoint");
+  assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "any navigation closes an overlay");
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
-  assert.match(html, /if \(rightOpenBefore && PANES\.right\._hist\.length\) \{ showRight\(true\); render\("right"\); \}/, "the right pane comes back on the way up");
-  assert.match(html, /if \(narrow && side === "right"\) side = "left";/, "navigate lands on the left below the breakpoint");
+  assert.match(html, /renderToc\(\);   \/\/ the TOC column is back before showRight measures the split\n\s+if \(rightOpenBefore && PANES\.right\._hist\.length\) \{\n\s+showRight\(true\); if \(leftWBefore !== null\) \{ layoutState\.leftW = leftWBefore; applyLayout\(\); \} render\("right"\);/, "the right pane comes back on the way up with the split it had, after the TOC column");
+  assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "navigate lands on the left below the breakpoint");
   assert.match(html, /showToc\(!narrow && tocUser !== false\)/, "desktop TOC visibility honours the session toggle; narrow uses the overlay flag");
 });
 t("every hotkey action has a pane-head button twin (find · quick open · TOC · help · files)", () => {
@@ -1146,7 +1148,8 @@ t("the board renders rows below the breakpoint by default, keeps a chosen form, 
 t("dvh pair, kanban snap, full-width body below the breakpoint", () => {
   assert.match(html, /#layout \{ display: flex; height: 100vh; height: 100dvh;/, "layout height: vh fallback then dvh");
   assert.match(html, /height: 100vh; height: 100dvh;\n    margin: 0 -10px -100vh 0; margin-bottom: -100dvh;/, "the rail's height and negative bottom margin change together");
-  assert.match(html, /scroll-snap-type: x mandatory;/, "kanban snaps per column");
+  assert.match(html, /scroll-snap-type: x proximity; \}/, "kanban snaps per column on the desktop without trapping the wheel");
+  assert.match(html, /html\.narrow \.board\.kanban \{ scroll-snap-type: x mandatory; \}/, "a swipe lands on a column below the breakpoint");
   assert.match(html, /scroll-snap-align: start; \}/, "columns are snap targets");
   assert.match(html, /if \(narrow\) \{[^\n]*\n\s+db\.style\.setProperty\("--m-l", "0px"\); db\.style\.removeProperty\("--m-w"\); db\.classList\.add\("gutter-in"\); return;/, "applyMeasure bypasses the tiers below the breakpoint");
   assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 0 100%; order: 9; \}/, "the crumb takes its own line below the breakpoint");

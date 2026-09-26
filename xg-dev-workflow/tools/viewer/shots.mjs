@@ -156,16 +156,26 @@ async function resolveDoc(o) {
 
 // --- browser session -----------------------------------------------------------
 async function session(o, fn) {
-  const viewer = await ensureViewer(o.url);
-  await resolveDoc(o);
-  const { child, wsUrl } = await launchChrome(o.chrome);
-  const cdp = await CDP.connect(wsUrl);
+  const cleanups = [];
+  const cleanup = () => { while (cleanups.length) { try { cleanups.pop()(); } catch {} } };
+  const onSignal = () => { cleanup(); process.exit(130); };
+  process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
+    const viewer = await ensureViewer(o.url); cleanups.push(viewer.stop);
+    await resolveDoc(o);
+    const { child, wsUrl } = await launchChrome(o.chrome); cleanups.push(() => child.kill());
+    const cdp = await CDP.connect(wsUrl); cleanups.push(() => cdp.close());
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
     const { sessionId: sid } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
     await cdp.send("Page.enable", {}, sid); await cdp.send("Runtime.enable", {}, sid);
     const frozenNow = Date.now();
     if (o.freeze) await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `Date.now = () => ${frozenNow};` }, sid);
+    const centerOf = async (sel) => {   // viewport centre of an element, scrolled into view first
+      const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
+        const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+      if (!c) throw new Error("no element " + sel);
+      return c;
+    };
     const ctx = {
       viewer, chrome: (await cdp.send("Browser.getVersion")).product,
       eval: (expr) => evalIn(cdp, sid, expr),
@@ -187,21 +197,14 @@ async function session(o, fn) {
       measure: () => evalIn(cdp, sid, MEASURE),
       touch: (on) => cdp.send("Emulation.setTouchEmulationEnabled", { enabled: on, maxTouchPoints: 1 }, sid),
       tap: async (sel) => {   // a finger tap at the element's centre (touchStart + touchEnd)
-        const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
-          const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
-        if (!c) throw new Error("tap: no element " + sel);
+        const c = await centerOf(sel);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c[0], y: c[1] }] }, sid);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }, sid);
       },
-      mouseMove: async (sel) => {
-        const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
-          const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
-        if (!c) throw new Error("mouseMove: no element " + sel);
-        await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid);
-      },
+      mouseMove: async (sel) => { const c = await centerOf(sel); await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid); },
     };
     return await fn(ctx);
-  } finally { cdp.close(); child.kill(); viewer.stop(); }
+  } finally { cleanup(); process.off("SIGINT", onSignal); process.off("SIGTERM", onSignal); }
 }
 
 async function shoot(o) {
@@ -233,10 +236,12 @@ const SCENARIO = {
   async crossing(ctx, check) {
     await ctx.viewport(1024, 768); await ctx.load(); await ctx.go("doc");
     await ctx.click("[data-mirror]"); await ctx.wait("document.querySelector('#right').classList.contains('show')");
+    const rects = "JSON.stringify(['#side','#left','#right','#toc'].map(s => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.x), Math.round(r.width)]; }))";
+    const before = await ctx.eval(rects);
     check("1024: mirror opened the right pane", await ctx.eval("document.querySelector('#right').classList.contains('show')"));
     check("1024: #left carries an inline width while the right pane is open", await ctx.eval("document.querySelector('#left').style.width !== ''"));
     await ctx.viewport(768, 1024); await ctx.wait("document.documentElement.classList.contains('narrow')");
-    check("768: html.narrow set by the change listener", true);
+    check("768: html.narrow set by the change listener", await ctx.eval("document.documentElement.classList.contains('narrow')"));
     check("768: right pane hidden", await ctx.eval("getComputedStyle(document.querySelector('#right')).display === 'none'"));
     check("768: sidebar hidden (overlay closed)", await ctx.eval("getComputedStyle(document.querySelector('#side')).display === 'none'"));
     check("768: inline widths cleared", await ctx.eval("['#left','#toc','#side'].every(s => document.querySelector(s).style.width === '')"));
@@ -244,6 +249,9 @@ const SCENARIO = {
     await ctx.viewport(1024, 768); await ctx.wait("!document.documentElement.classList.contains('narrow')");
     check("1024 again: right pane restored", await ctx.eval("document.querySelector('#right').classList.contains('show')"));
     check("1024 again: sidebar back as a column", await ctx.eval("getComputedStyle(document.querySelector('#side')).position !== 'fixed' && getComputedStyle(document.querySelector('#side')).display !== 'none'"));
+    await sleep(300);
+    const after = await ctx.eval(rects);
+    check(`1024 again: pane rects as before the round trip (${before} → ${after})`, before === after);
   },
   // Below the breakpoint the sidebar and the TOC open as overlays from their buttons and close on a pick.
   async overlay(ctx, check) {
@@ -251,8 +259,15 @@ const SCENARIO = {
     check("390: sidebar starts hidden", await ctx.eval("getComputedStyle(document.querySelector('#side')).display === 'none'"));
     await ctx.click("[data-side]");
     check("☰ opens the sidebar overlay with a scrim", await ctx.eval("document.querySelector('#side').classList.contains('open') && document.querySelector('#scrim').classList.contains('show') && getComputedStyle(document.querySelector('#side')).position === 'fixed'"));
+    check("390: the desktop collapse button is out of reach inside the overlay", await ctx.eval("getComputedStyle(document.querySelector('[data-collapse=\"side\"]')).display === 'none'"));
     await ctx.click('#side [data-go="recent"]'); await ctx.wait("!!document.querySelector('#left h2.commit')");
     check("picking Recent inside it navigates and closes the overlay", await ctx.eval("!document.querySelector('#side').classList.contains('open') && !document.querySelector('#scrim').classList.contains('show')"));
+    await ctx.click("[data-side]"); await ctx.eval("const s = document.getElementById('search'); s.value = 'viewer'; s.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true");
+    await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
+    check("searching from inside the overlay closes it too", await ctx.eval("!document.querySelector('#side').classList.contains('open')"));
+    await ctx.click("[data-side]"); await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
+    await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+    check("Escape closes the overlay before the find bar under it", await ctx.eval("!document.querySelector('#side').classList.contains('open') && !!document.querySelector('#left [data-find-input]')"));
     await ctx.go("doc");
     await ctx.click("[data-tocbtn]");
     check("☷ opens the TOC overlay", await ctx.eval("document.querySelector('#toc').classList.contains('open') && getComputedStyle(document.querySelector('#toc')).position === 'fixed'"));
@@ -269,15 +284,22 @@ const SCENARIO = {
       await ctx.viewport(w, h); await ctx.load(); await ctx.go("doc");
       check(`${w}: doc head does not overflow`, (await ctx.measure()).headOverflow === 0);
       await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
-      check(`${w}: ⌕ opens the find bar`, true);
+      check(`${w}: ⌕ opens the find bar`, await ctx.eval("!!document.querySelector('#left [data-find-input]')"));
       await ctx.click("[data-help]"); check(`${w}: ? opens help`, await ctx.eval("document.querySelector('#help').classList.contains('show')"));
       await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
       await ctx.click("[data-quick]"); check(`${w}: ⌘K button opens quick open`, await ctx.eval("document.querySelector('#qo').classList.contains('show')"));
       await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'viewer'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
       await ctx.wait("!!document.querySelector('#qo .qrow.qfall')");
       await ctx.click("#qo .qrow.qfall"); await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
-      check(`${w}: the last quick-open row runs a content search`, true);
+      check(`${w}: the last quick-open row runs a content search`, await ctx.eval("!!document.querySelector('#left .hit, #left h2.sec')"));
     }
+    await ctx.go("doc"); await ctx.click("[data-mirror]"); await ctx.wait("document.querySelector('#right').classList.contains('show')"); await sleep(300);
+    check("1024 split panes: neither head overflows", await ctx.eval("['#left','#right'].every(s => { const h = document.querySelector(s + ' .doc-head'); return h && h.scrollWidth <= h.clientWidth; })"));
+    await ctx.click("[data-closeright]"); await ctx.wait("!document.querySelector('#right').classList.contains('show')");
+    await ctx.click("[data-tocbtn]"); check("1024: ☷ hides the TOC column", await ctx.eval("!document.querySelector('#toc').classList.contains('show')"));
+    await ctx.go("board"); await ctx.go("doc");
+    check("1024: the hidden TOC stays hidden across views", await ctx.eval("!document.querySelector('#toc').classList.contains('show')"));
+    await ctx.click("[data-tocbtn]"); check("1024: ☷ shows it again", await ctx.eval("document.querySelector('#toc').classList.contains('show')"));
   },
   // The board has a rows form: the default below the breakpoint, a remembered pick anywhere,
   // and the old boolean kanban key still read.
@@ -289,7 +311,7 @@ const SCENARIO = {
     await ctx.click('[data-bmode="kanban"]'); await ctx.wait("!!document.querySelector('#left .board.kanban')");
     check("picking kanban is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
     await ctx.click('[data-bmode="rows"]'); await ctx.wait("!!document.querySelector('#left .row')");
-    await ctx.click("#left .row"); check("tapping a row opens the detail drawer", await ctx.eval("!!document.querySelector('#left .card-detail')"));
+    await ctx.click("#left .row"); check("tapping a row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .row.selected')"));
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
     await ctx.eval("localStorage.setItem('sv-board-kanban', '1'); true"); await ctx.eval("location.reload(); true"); await ctx.wait("!!document.querySelector('#left .board.kanban')");
@@ -306,7 +328,7 @@ const SCENARIO = {
     check("390 + touch: no hover preview pops up", await ctx.eval("!document.getElementById('lp') || getComputedStyle(document.getElementById('lp')).display === 'none'"));
     await ctx.click("[data-quick]"); await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'viewer'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
     await ctx.wait("!!document.querySelector('#qo .qrow.qfall')"); await ctx.tap("#qo .qrow.qfall"); await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
-    check("390 + touch: tapping quick open's last row runs a content search", true);
+    check("390 + touch: tapping quick open's last row runs a content search", await ctx.eval("!!document.querySelector('#left .hit, #left h2.sec')"));
     await ctx.touch(false); await ctx.viewport(1024, 768); await ctx.load(); await ctx.go("doc");
     await ctx.mouseMove(link); await sleep(600);
     check("1024 + mouse: the hover preview still opens", await ctx.eval("getComputedStyle(document.getElementById('lp')).display !== 'none'"));
@@ -314,13 +336,21 @@ const SCENARIO = {
   // Hit areas below the breakpoint: head buttons and tree rows ≥ 40px, board rows ≥ 44px.
   async targets(ctx, check) {
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("doc");
-    const h = (sel) => ctx.eval(`Math.min(...[...document.querySelectorAll(${JSON.stringify(sel)})].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().height))`);
+    const h = async (sel) => {   // [count, min height] over the visible matches — an empty set must not pass
+      const r = await ctx.eval(`(() => { const hs = [...document.querySelectorAll(${JSON.stringify(sel)})].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().height); return [hs.length, Math.min(...hs)]; })()`);
+      return r[0] ? r[1] : -1;
+    };
+    const fs = (sel) => ctx.eval(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? parseFloat(getComputedStyle(e).fontSize) : -1; })()`);
     check("390: every visible head button ≥ 40px", (await h("#left .doc-head .iconbtn")) >= 40);
     await ctx.click("[data-side]");
     check("390: sidebar nav buttons ≥ 40px", (await h("#side .navbtn")) >= 40);
     check("390: tree rows ≥ 40px", (await h("#tree summary")) >= 40);
+    check("390: tree text ≥ 13px", (await fs("#tree summary")) >= 13);
     await ctx.click("#scrim"); await ctx.go("board");
     check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
+    check("390: row title links ≥ 36px", (await h("#left .row .rtitle")) >= 36);
+    check("390: status chips ≥ 40px", (await h("#left .fchip")) >= 40);
+    check("390: row meta text ≥ 13px", (await fs("#left .row .rprog")) >= 13);
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("doc");
     check("1920: head buttons keep their desktop size", (await h("#left .doc-head .iconbtn")) < 40);
   },
@@ -328,7 +358,7 @@ const SCENARIO = {
   async refresh(ctx, check, o) {
     if (!o.touch) throw new Error("refresh scenario needs --touch <file under the viewer's dev root>");
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
-    await ctx.click('[data-bmode="rows"]'); await ctx.wait("!!document.querySelector('#left .row')");
+    await ctx.click('[data-bmode="kanban"]'); await ctx.wait("!!document.querySelector('#left .board.kanban')");   // not the narrow default, so a reset would show
     await ctx.go("doc"); await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
     const rev0 = await ctx.eval("fetch('/api/rev').then(r => r.json()).then(j => j.dev)");
     const now = new Date(); utimesSync(o.touch, now, now);
@@ -337,7 +367,7 @@ const SCENARIO = {
     check("after the live refresh: TOC overlay still open", await ctx.eval("document.querySelector('#toc').classList.contains('open')"));
     check("after the live refresh: still narrow, one pane", await ctx.eval("document.documentElement.classList.contains('narrow') && getComputedStyle(document.querySelector('#side')).display === 'none'"));
     await ctx.click("#scrim"); await ctx.go("board");
-    check("after the live refresh: the rows pick survives", await ctx.eval("!!document.querySelector('#left .row')"));
+    check("after the live refresh: the kanban pick survives", await ctx.eval("!!document.querySelector('#left .board.kanban')"));
   },
 };
 async function scenarios(o) {
