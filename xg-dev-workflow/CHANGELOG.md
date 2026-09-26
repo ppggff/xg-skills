@@ -4,6 +4,32 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-09-26 — review fixes: snapshot isolation, the run command, model parity, go（续） scope, review fix rights
+
+A standalone review of the day's 25 commits (dev_root `xg-skills/reviews/2026-09-26-cards-036-038-skill-changes.md`)
+found one High and two Medium; two live probes settled them. Sub-clauses the landed sentences had dropped against
+the cards' Req text are restored in the same batch.
+
+- **Snapshot mode deletes every `CLAUDE.md`, `AGENTS.md` and `.claude/`**, not just the root `CLAUDE.md`: probed,
+  a `.claude/settings.json` hook fires, `.claude/CLAUDE.md` loads at start and a nested `CLAUDE.md` loads once its
+  dir is read, all under `--setting-sources project,local` — and the snapshot is the fallback for exactly the case
+  where a repo's own docs discuss the topic (cbcloud tracks eight nested `CLAUDE.md` and a `.claude/skills/`).
+- **The run command puts `--` before the prompt**: `--add-dir` is variadic and swallowed the prompt in a probe
+  ("Input must be provided…"); the issue602 runs had used `--` without the step saying so.
+- **Model parity**: the independent run takes the model the KB-informed run gets — the session model capped at opus
+  (SKILL.md「Subagents」) — so a fable session no longer compares a fable run against an opus subagent (human ruling).
+- **`go（续）` covers a goal the human adds, or tightens where a go already covers it**; a Req a partial go left
+  讨论中 still waits for its go ask. Go-1 also says a go（续） keeps the frontmatter `go:` (038's practice).
+- **Anchoring grants no fix rights**: on a card the review anchored itself to, or one past close-out, findings wait
+  on the 修复决策表; fixes run as execution only on a card the human named or resumed into while it executes
+  (human ruling).
+- Restored sub-clauses: the facts role carries a verification mark · skip-KB conclusions cite only code, tests or
+  runs · the KB-informed run is the default second path and settled disagreements land in `facts.md` or an open
+  question, on a card in 「待解问题与证据」· the prompt carries `problem.md`'s full text · `current.md`'s hand-off
+  pointer sits at the top · the Independent run section says "Procedure step 3" / "item 2 below" · README names the
+  evolving dir and the independent run.
+- **体量行**: SKILL.md 89 · 流程 8 files / 830 · 约束 128 · lite face otherwise unchanged.
+
 ## 2026-09-26 — investigate: independent runs can read the live repos (card xg-skills/038, re-opened)
 
 The first real independent run (cbdb issue602) would have exported about 1 GB of code; the human asked to read the
@@ -18,6 +44,8 @@ repos as they are instead, then to write that back as a variant. Every part of i
   Grep, which still returns lines from a denied `CLAUDE.md`, hence the precondition.
 - `--add-dir` moves from "never" to "only the live repo roots"; the step warns that zsh does not split a variable,
   which silently broke one probe (every read denied, the deny rules concatenated).
+- `problem.md` names the code locations the run will see; a live run's output header records each repo's HEAD, its
+  dirty state and the full deny set, so the analysis can be re-read against what the run actually saw.
 - The run now passes `--model` and `--effort` from the session: `--setting-sources project,local` skips the user
   settings that hold them, and the first issue602 run came out at medium effort (opus without 1m) against an xhigh
   KB-informed run, which would have confounded the comparison; it was rerun at xhigh (card 038, second re-open).
@@ -62,7 +90,7 @@ rule stays untouched — the usage log's 24 low-scored investigate runs were con
 blamed the KB read or the recording as a burden — so only the two procedural steps gain an exit.
 
 - **Answer-only** (standalone runs only): on the human's word (「不用记」), or the model's call on a single unphased
-  question whose answer is a one-off lookup or already in the KB. A conclusion that needed a claims table or a
+  question whose answer is a one-off lookup or already in the KB with nothing to add. A conclusion that needed a claims table or a
   causal chain is never a lookup, and unsure means record. The reply ends with 「未落盘（原因）；要记就说『记下来』」,
   the usage record still lands with `answer-only` in its note, and a later 「记下来」 records through the Standalone
   branch without a second record. A phased run keeps its phase notes on 「不用记」 (they carry progress across a
