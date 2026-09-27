@@ -89,6 +89,15 @@
   html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
   html.narrow .mrule { display: none; }
   html.narrow .board.kanban { scroll-snap-type: x mandatory; }
+  html.narrow .board { grid-template-columns: repeat(auto-fill, min(368px, 100%)); }
+  html.narrow .board.kanban .col { flex-basis: min(368px, 100%); }
+  /* wide content scrolls inside its own box, never the pane (a pane that scrolls sideways drags the text and the head with it) */
+  html.narrow .docbody { overflow-wrap: break-word; }
+  html.narrow .frontmatter .fm-kv { min-width: 0; overflow-wrap: anywhere; }   /* a flex item's min-content is its longest URL */
+  html.narrow .docbody table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
+  html.narrow .mermaid { overflow-x: auto; }
+  html.narrow .mermaid svg { width: var(--nat-w, auto); max-width: none !important; }   /* mermaid inlines max-width; --nat-w is set in renderMermaid */
+  html.narrow .docbody > [data-srcline]::before { display: none; }   /* narrow forces gutter-in, whose inline number skews pre, table and hr */
   html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
@@ -1711,8 +1720,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
         // rejects WITHOUT removing it, orphaning it at the page bottom — so drop it ourselves.
         var dropTemp = function () { ["d" + gid, "i" + gid].forEach(function (id) {
           var el = document.getElementById(id); if (el && el.parentNode === document.body) el.remove(); }); };
-        mermaid.render(gid, src).then(function (res) { holder.innerHTML = res.svg; dropTemp();
+        mermaid.render(gid, src).then(function (res) {   // the svg inherits --nat-w, its width in narrow mode
+          var vb = /viewBox="[-\d.e]+ [-\d.e]+ ([\d.e]+)/.exec(res.svg);
+          if (vb) holder.style.setProperty("--nat-w", Math.ceil(+vb[1]) + "px");
+          return res; })
+          .then(function (res) { holder.innerHTML = res.svg; dropTemp();
           invalidateContent(side); })   // S9 hookpoint 4: this inner .then is where the content and its geometry actually change
+          .then(function () { if (narrow) holder.scrollLeft = (holder.scrollWidth - holder.clientWidth) / 2; })   // mermaid centres the flow in its viewBox
           .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; dropTemp(); });
       });
     }).catch(function () {});

@@ -393,6 +393,35 @@ const SCENARIO = {
     check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
     check("390: row meta text ≥ 13px", (await fs("#left .row .rprog")) >= 13);
   },
+  // Below the breakpoint wide content scrolls inside its own box and the pane never scrolls sideways;
+  // the inline source-line gutter (it would skew pre, table and hr) is not drawn. 375 = the narrowest phone.
+  async wide(ctx, check) {
+    await ctx.viewport(375, 667); await ctx.load(); await ctx.go("doc");
+    await ctx.eval(`(() => { const w = "wide_identifier_without_breaks_".repeat(4);
+      document.querySelector("#left .docbody").insertAdjacentHTML("afterbegin",
+        '<table data-srcline="1" id="wt"><tr><td>' + w + '</td><td>' + w + '</td></tr></table>' +
+        '<pre data-srcline="2" id="wp"><code>' + w + w + '</code></pre><hr data-srcline="3" id="wh">' +
+        '<p data-srcline="4" id="wl">see <code>' + w + '</code> and <a href="#">' + w + '</a></p>' +
+        '<div class="mermaid" id="wm" style="--nat-w: 900px"><svg viewBox="0 0 900 300" width="100%" style="max-width: 900px;"></svg></div>');
+      return true; })()`);
+    await sleep(200);
+    const pane = "document.querySelector('#left')";
+    check("375: the pane never scrolls sideways", await ctx.eval(`${pane}.scrollWidth <= ${pane}.clientWidth`));
+    check("375: a wide table scrolls inside itself", await ctx.eval(`(() => { const t = document.getElementById("wt"); return t.scrollWidth > t.clientWidth && t.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right; })()`));
+    check("375: a diagram keeps its natural width inside a scrolling holder", await ctx.eval(`(() => { const m = document.getElementById("wm"); return Math.round(m.querySelector("svg").getBoundingClientRect().width) === 900 && m.scrollWidth > m.clientWidth; })()`));
+    check("375: no source line number is drawn", await ctx.eval(`["wt", "wp", "wh", "wl"].every(id => getComputedStyle(document.getElementById(id), "::before").display === "none")`));
+    if (await ctx.eval("document.querySelectorAll('#left .docbody pre > code.language-mermaid, #left .docbody .mermaid:not(#wm)').length")) {
+      await ctx.wait("[...document.querySelectorAll('#left .docbody .mermaid:not(#wm)')].every(m => m.querySelector('svg, .broken'))");
+      check("375: a rendered diagram is as wide as its viewBox", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm) svg")].every(s => Math.round(s.getBoundingClientRect().width) === Math.ceil(s.viewBox.baseVal.width))`));
+      check("375: a wide rendered diagram opens on its middle", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm)")].filter(m => m.scrollWidth > m.clientWidth).every(m => Math.abs(m.scrollLeft - (m.scrollWidth - m.clientWidth) / 2) <= 1)`));
+    } else console.log("note - wide: the doc has no mermaid block; only the synthetic diagram was checked");
+    await ctx.go("board");
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    check("375: grid cards stay inside the pane", await ctx.eval(`[...document.querySelectorAll("#left .card")].every(c => c.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right) && ${pane}.scrollWidth <= ${pane}.clientWidth`));
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
+    check("375: a kanban column is no wider than the board", await ctx.eval(`(() => { const b = document.querySelector("#left .board.kanban"); return [...b.querySelectorAll(".col")].every(c => c.getBoundingClientRect().width <= b.clientWidth); })()`));
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // kanban → rows
+  },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {
     if (!o.touch) throw new Error("refresh scenario needs --touch <file under the viewer's dev root>");

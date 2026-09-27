@@ -1103,6 +1103,18 @@ t("narrow mode is decided by one matchMedia width query and nothing device-shape
   assert.match(html, /html\.narrow \[data-collapse\] \{ display: none; \}/, "the desktop collapse button is out of reach below the breakpoint");
   assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "any navigation closes an overlay");
 });
+t("narrow mode: wide content scrolls inside its own box and source line numbers are hidden", () => {
+  assert.match(html, /html\.narrow \.docbody > \[data-srcline\]::before \{ display: none; \}/, "the forced inline gutter would skew pre, table and hr");
+  assert.match(html, /html\.narrow \.docbody table \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "a wide table scrolls itself, not the pane");
+  assert.match(html, /html\.narrow \.mermaid \{ overflow-x: auto; \}/, "a wide diagram scrolls inside its holder");
+  assert.match(html, /html\.narrow \.docbody \{ overflow-wrap: break-word; \}/, "a long path or identifier in running text wraps instead of widening the pane");
+  assert.match(html, /html\.narrow \.frontmatter \.fm-kv \{ min-width: 0; overflow-wrap: anywhere; \}/, "a long frontmatter value (a URL) wraps inside its flex item");
+  assert.match(html, /html\.narrow \.mermaid svg \{ width: var\(--nat-w, auto\); max-width: none !important; \}/, "diagrams keep their natural width below the breakpoint");
+  assert.match(html, /if \(vb\) holder\.style\.setProperty\("--nat-w", Math\.ceil\(\+vb\[1\]\) \+ "px"\);\n\s+return res; \}\)\n\s+\.then\(function \(res\) \{ holder\.innerHTML = res\.svg;/, "renderMermaid records the viewBox width before the svg lands");
+  assert.match(html, /\.then\(function \(\) \{ if \(narrow\) holder\.scrollLeft = \(holder\.scrollWidth - holder\.clientWidth\) \/ 2; \}\)/, "a wide diagram opens on its middle, where mermaid centres the flow");
+  assert.match(html, /html\.narrow \.board \{ grid-template-columns: repeat\(auto-fill, min\(368px, 100%\)\); \}/, "grid cards never exceed the pane");
+  assert.match(html, /html\.narrow \.board\.kanban \.col \{ flex-basis: min\(368px, 100%\); \}/, "kanban columns never exceed the pane");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
