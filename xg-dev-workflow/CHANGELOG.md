@@ -45,8 +45,14 @@ the ruling was to adapt by width, never by recognizing the device.
 - **Verification** is a zero-dependency screenshot harness (`tools/viewer/shots.mjs`: system Chrome headless + CDP + Node's
   WebSocket) — per-shot layout measurements, seven behavioural scenarios, a frozen clock for byte-exact re-runs and head
   masking for a before/after comparison: 10/10 desktop shots identical to the pre-change viewer. `viewer.py` untouched.
-- Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell,
-  LAN listening. A real-device pass gates `done`.
+- **Real-device pass** (phone, iPad): the head and status chips back to one line (one cycling board-form button, swipeable
+  chips, the crumb after the buttons), rows give the title the width with a one-token progress column, buttons keep their
+  desktop size (the 40px enlargement crowded a phone), inputs are 16px so the phone stops zooming into them, nothing
+  scrolls sideways (find input, quick open's file names, the frontmatter bar).
+- **`--lan`** (opt-in, human ruling after the pass): the viewer and the gitweb companion bind every interface and admit
+  the machine's LAN address (+ `--host` names) on the Host allowlist; everything else still gets 403; the gitweb link is
+  built per request from the Host the browser used. The default launch is unchanged.
+- Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
 ## 2026-09-26 — review fixes: snapshot isolation, the run command, model parity, go（续） scope, review fix rights
