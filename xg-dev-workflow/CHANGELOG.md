@@ -52,6 +52,12 @@ the ruling was to adapt by width, never by recognizing the device.
 - **`--lan`** (opt-in, human ruling after the pass): the viewer and the gitweb companion bind every interface and admit
   the machine's LAN address (+ `--host` names) on the Host allowlist; everything else still gets 403; the gitweb link is
   built per request from the Host the browser used. The default launch is unchanged.
+- **Wide content at 375px** (2026-09-28, after an iPhone SE pass): below the breakpoint tables scroll inside themselves,
+  long identifiers / URLs in text and frontmatter wrap, mermaid diagrams keep their viewBox width in a scrolling holder
+  that opens on its middle (fitting them had shrunk the text to ~7.5px), and grid / kanban columns cap at the pane width —
+  the pane itself never scrolls sideways, which had dragged the text and the head with it. The inline line-number gutter
+  narrow mode forces is hidden (it skewed code blocks, tables and `<hr>`). An 8th scenario, `wide`, runs at 375×667; the
+  earlier "nothing scrolls sideways" check had measured the page, not the pane, on a doc with no wide table.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
