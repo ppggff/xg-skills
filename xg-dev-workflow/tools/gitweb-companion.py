@@ -10,7 +10,8 @@ orchestrates the external lighttpd/gitweb (subprocess), and its dependencies
 Repos come from the shared config: every `projects:` entry, dev_root, the KB, and the
 browse-only `gitweb_repos:` list (repos worth reading that are not workflow projects).
 
-Security posture: localhost bind + a lighttpd Host allowlist (DNS-rebinding guard,
+Security posture: localhost bind + a lighttpd Host allowlist (DNS-rebinding guard; the viewer's --lan
+passes a wider bind and allowlist through start(),
 needs mod_access loaded), gitweb snapshot disabled, a controlled symlink forest
 (only the chosen repos' git-dirs), read-only.
 
@@ -19,6 +20,7 @@ Sync targets: none (lives only in xg-dev-workflow/tools/).
 import argparse
 import importlib.util
 import os
+import re
 import shutil
 import signal
 import socket
@@ -163,7 +165,7 @@ def build_forest(runtime, repos):
     return root
 
 
-def write_configs(runtime, disc, port):
+def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
     (runtime / "tmp").mkdir(parents=True, exist_ok=True)
     gwcfg = runtime / "gitweb_config.perl"
     gwcfg.write_text(
@@ -176,7 +178,7 @@ def write_configs(runtime, disc, port):
     lcfg = runtime / "lighttpd.conf"
     lcfg.write_text(
         'server.document-root = "%s"\n'
-        'server.bind = "127.0.0.1"\n'
+        'server.bind = "%s"\n'
         "server.port = %d\n"
         'server.modules = ( "mod_access", "mod_cgi", "mod_setenv" )\n'  # mod_access load-bearing for the Host guard
         'server.pid-file = "%s"\n'
@@ -184,9 +186,9 @@ def write_configs(runtime, disc, port):
         'index-file.names = ( "gitweb.cgi" )\n'
         'cgi.assign = ( ".cgi" => "" )\n'
         'setenv.add-environment = ( "GITWEB_CONFIG" => "%s", "PATH" => "%s" )\n'
-        '$HTTP["host"] !~ "^(127\\.0\\.0\\.1|localhost)(:[0-9]+)?$" { url.access-deny = ( "" ) }\n'
-        % (disc["share"], port, runtime / "lighttpd.pid", runtime / "error.log",
-           gwcfg, os.environ.get("PATH", "")),
+        '$HTTP["host"] !~ "^(%s)(:[0-9]+)?$" { url.access-deny = ( "" ) }\n'
+        % (disc["share"], bind, port, runtime / "lighttpd.pid", runtime / "error.log",
+           gwcfg, os.environ.get("PATH", ""), "|".join(re.escape(h) for h in hosts)),
         encoding="utf-8")
     return lcfg
 
@@ -230,7 +232,7 @@ def reap_stale(runtime):
     return reaped
 
 
-def prepare(port=DEFAULT_PORT):
+def prepare(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
     """discover + build forest + write configs + validate. Returns a handle dict or None."""
     disc = discover()
     if not disc:
@@ -239,7 +241,7 @@ def prepare(port=DEFAULT_PORT):
     runtime.mkdir(parents=True, exist_ok=True)
     repos = collect_repos()
     build_forest(runtime, repos)
-    lcfg = write_configs(runtime, disc, port)
+    lcfg = write_configs(runtime, disc, port, bind, hosts)
     if not _validate(disc["lighttpd"], lcfg):
         return None
     return {"disc": disc, "runtime": runtime, "lcfg": lcfg, "port": port,
@@ -278,9 +280,9 @@ def _await_up(proc, port, timeout=6.0):
     return False
 
 
-def start(port=DEFAULT_PORT):
+def start(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
     """Prepare + launch lighttpd, confirming it comes up. Returns handle, or None on any failure."""
-    h = prepare(port)
+    h = prepare(port, bind, hosts)
     if not h:
         return None
     if reap_stale(h["runtime"]):

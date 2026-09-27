@@ -128,6 +128,13 @@ class TUnit(unittest.TestCase):
         self.assertIn("url.access-deny", lt)
         self.assertIn("PATH", lt)                          # git findable by the CGI
 
+    def test_write_configs_lan(self):
+        tmp = Path(tempfile.mkdtemp())
+        gwc.write_configs(tmp, {"share": "/some/gitweb"}, 8791, bind="0.0.0.0", hosts=["127.0.0.1", "localhost", "192.168.1.185"])
+        lt = (tmp / "lighttpd.conf").read_text()
+        self.assertIn('server.bind = "0.0.0.0"', lt)
+        self.assertIn('$HTTP["host"] !~ "^(127\\.0\\.0\\.1|localhost|192\\.168\\.1\\.185)(:[0-9]+)?$"', lt)   # the LAN IP joins the guard, dots escaped
+
 
 class TIntegration(unittest.TestCase):
     """Start the real lighttpd over a throwaway forest and check the Host allowlist."""

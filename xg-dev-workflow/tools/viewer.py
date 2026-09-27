@@ -9,6 +9,7 @@ All rendering lives in the shell's JS; the server never parses markdown/frontmat
 Lives only in xg-dev-workflow/tools/ (not a synced copy). stdlib-only.
 
 Security (R6): binds 127.0.0.1 only; every route checks the Host header is localhost
+(--lan binds every interface and adds the LAN IP, plus any --host, to that allowlist)
 (DNS-rebinding guard); /raw and the tree scan are confined to the two roots by realpath;
 the shell + vendored asset come from a hardcoded repo path, never a user path. Read-only:
 no write endpoints, no disk writes, no cross-request state — Ctrl-C stops it clean.
@@ -17,7 +18,7 @@ Ports are fixed by default (viewer 8790, gitweb 8791) so one `ssh -L` rule keeps
 restarts; a busy port is reported and the run stops rather than degrading to a random port.
 
 Usage:
-  viewer.py [--port N] [--no-browser] [--dev-root DIR] [--kb-root DIR]
+  viewer.py [--port N] [--no-browser] [--dev-root DIR] [--kb-root DIR] [--lan] [--host NAME]...
 """
 import errno
 import http.server
@@ -27,6 +28,7 @@ import os
 import posixpath
 import re
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -40,7 +42,8 @@ VIEWER_DIR = TOOLS_DIR / "viewer"
 SHELL_HTML = VIEWER_DIR / "shell.html"
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
           "mermaid.min.js": "text/javascript"}    # served from the hardcoded VIEWER_DIR only
-LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # server binds 127.0.0.1 (IPv4 loopback) only
+LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
+ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
 LOG_MAX = 100
@@ -97,14 +100,19 @@ def safe_join(root: Path, relpath: str):
 class Handler(http.server.BaseHTTPRequestHandler):
     dev_root: Path = None
     kb_root: Path = None
-    gitweb_url: str = ""              # 003: companion base URL injected into the shell ("" = disabled)
+    gitweb_port: int = 0              # 003: companion port; its URL is built per request from the Host used (0 = disabled)
 
     def log_message(self, fmt, *args):
         sys.stderr.write("viewer %s - %s\n" % (self.command, fmt % args))
 
     def _host_ok(self):
         host = self.headers.get("Host", "")
-        return host.split(":")[0] in LOCALHOST_HOSTS
+        return host.split(":")[0] in ALLOWED_HOSTS
+
+    def gitweb_url(self):
+        if not self.gitweb_port:
+            return ""
+        return "http://%s:%d/" % (self.headers.get("Host", "127.0.0.1").split(":")[0], self.gitweb_port)
 
     def _send(self, code, body, ctype="text/plain; charset=utf-8", extra=None):
         if isinstance(body, str):
@@ -162,8 +170,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError as e:
             self._send(500, "shell missing: %s\n" % e)
             return
-        # R63/003: inject the gitweb companion URL (empty when disabled → shell hides the code links)
-        html = html.replace("__GITWEB_URL__", self.gitweb_url)
+        # R63/003: inject the gitweb companion URL (empty when disabled → shell hides the code links);
+        # built from the Host the browser used, so a LAN client gets a LAN link (the Host passed _host_ok).
+        html = html.replace("__GITWEB_URL__", self.gitweb_url())
         self._send(200, html, "text/html; charset=utf-8")
 
     def _serve_asset(self, name):
@@ -500,11 +509,24 @@ def _viewer_on(port):
         return False
 
 
-def bind_server(port):
+def lan_ip():
+    """The interface address a LAN client reaches us on (no packet is sent), or None."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("10.255.255.255", 1))
+            return s.getsockname()[0]
+        finally:
+            s.close()
+    except OSError:
+        return None
+
+
+def bind_server(port, bind="127.0.0.1"):
     """Bind the fixed port, or name who holds it and stop — never fall back to a random port,
     which would break the ssh -L rule the fixed port exists for."""
     try:
-        httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
+        httpd = http.server.ThreadingHTTPServer((bind, port), Handler)
     except OSError as e:
         if e.errno != errno.EADDRINUSE:
             raise
@@ -516,27 +538,36 @@ def bind_server(port):
     return httpd
 
 
-def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, gitweb=True, gitweb_port=None):
+def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, gitweb=True, gitweb_port=None,
+          lan=False, hosts=()):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
-    httpd = bind_server(port)      # before the companion: a failed bind must not leave a fresh lighttpd behind
+    bind = "0.0.0.0" if lan else "127.0.0.1"
+    ip = lan_ip() if lan else None
+    if lan:
+        ALLOWED_HOSTS.update([ip] if ip else [])
+        ALLOWED_HOSTS.update(hosts)
+    httpd = bind_server(port, bind)      # before the companion: a failed bind must not leave a fresh lighttpd behind
     companion = None
     if gitweb:                                  # 003: co-launch the read-only gitweb companion
         try:
-            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT)
+            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT, bind=bind, hosts=sorted(ALLOWED_HOSTS))
         except Exception as e:
             sys.stderr.write("gitweb companion error: %s\n" % e)
         if not companion:                       # require both up by default; --no-gitweb to opt out
             sys.stderr.write("gitweb companion failed to start — viewer + gitweb are both required; "
                              "pass --no-gitweb to run the viewer alone.\n")
             sys.exit(1)
-        Handler.gitweb_url = "http://127.0.0.1:%d/" % companion["port"]
-        print("gitweb companion on %s (%d repos)" % (Handler.gitweb_url, len(companion["repos"])), file=sys.stderr)
+        Handler.gitweb_port = companion["port"]
+        print("gitweb companion on http://127.0.0.1:%d/ (%d repos)" % (companion["port"], len(companion["repos"])), file=sys.stderr)
     else:
-        Handler.gitweb_url = ""
+        Handler.gitweb_port = 0
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
     print("status viewer on %s  (dev_root=%s, kb=%s)  — Ctrl-C to stop" %
           (url, dev_root, kb_root), file=sys.stderr)
+    if lan:
+        print("--lan: also on http://%s:%d/ (Host allowlist: %s) — anyone on this network can read dev_root, the KB "
+              "and every repo" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
     # serve_forever runs in a worker thread so the main thread can shut it down from a signal
     # handler (shutdown() must be called from a different thread). Installing the handlers
     # explicitly also overrides an inherited SIG_IGN (e.g. when launched backgrounded).
@@ -563,7 +594,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
 
 def parse_args(argv):
     port, open_browser, dev_arg, kb_arg = DEFAULT_PORT, True, None, None
-    gitweb, gitweb_port = True, None
+    gitweb, gitweb_port, lan, hosts = True, None, False, []
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -579,16 +610,20 @@ def parse_args(argv):
             dev_arg = argv[i + 1]; i += 2; continue
         elif a == "--kb-root":
             kb_arg = argv[i + 1]; i += 2; continue
+        elif a == "--lan":
+            lan = True
+        elif a == "--host":
+            hosts.append(argv[i + 1]); i += 2; continue
         i += 1
     return {"port": port, "open_browser": open_browser, "dev_arg": dev_arg, "kb_arg": kb_arg,
-            "gitweb": gitweb, "gitweb_port": gitweb_port}
+            "gitweb": gitweb, "gitweb_port": gitweb_port, "lan": lan, "hosts": hosts}
 
 
 def main(argv):
     a = parse_args(argv)
     dev_root, kb_root = resolve_roots(a["dev_arg"], a["kb_arg"])
     serve(dev_root, kb_root, port=a["port"], open_browser=a["open_browser"],
-          gitweb=a["gitweb"], gitweb_port=a["gitweb_port"])
+          gitweb=a["gitweb"], gitweb_port=a["gitweb_port"], lan=a["lan"], hosts=a["hosts"])
 
 
 if __name__ == "__main__":

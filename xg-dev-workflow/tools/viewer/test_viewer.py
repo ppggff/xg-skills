@@ -300,3 +300,46 @@ class T6Port(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TLan(unittest.TestCase):
+    """--lan: every interface, the LAN IP (+ --host) on the Host allowlist, gitweb links follow the Host used."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / "dev").mkdir(); (self.tmp / "kb").mkdir()
+        self.httpd, self.base = start(self.tmp / "dev", self.tmp / "kb")
+        self.saved = set(viewer.ALLOWED_HOSTS)
+
+    def tearDown(self):
+        viewer.ALLOWED_HOSTS.clear(); viewer.ALLOWED_HOSTS.update(self.saved)
+        viewer.Handler.gitweb_port = 0
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def test_default_rejects_a_lan_host(self):
+        self.assertEqual(get(self.base, "/", host="192.168.1.185:8790")[0], 403)
+
+    def test_lan_allowlist_admits_the_lan_ip_only(self):
+        viewer.ALLOWED_HOSTS.add("192.168.1.185")
+        self.assertEqual(get(self.base, "/", host="192.168.1.185:8790")[0], 200)
+        self.assertEqual(get(self.base, "/", host="192.168.1.186:8790")[0], 403)
+        self.assertEqual(get(self.base, "/", host="evil.com")[0], 403)
+
+    def test_gitweb_url_follows_the_host_used(self):
+        viewer.ALLOWED_HOSTS.add("192.168.1.185"); viewer.Handler.gitweb_port = 8791
+        self.assertIn('window.GITWEB_URL = "http://192.168.1.185:8791/"', get(self.base, "/", host="192.168.1.185:8790")[1])
+        self.assertIn('window.GITWEB_URL = "http://127.0.0.1:8791/"', get(self.base, "/", host="127.0.0.1:8790")[1])
+        viewer.Handler.gitweb_port = 0
+        self.assertIn('window.GITWEB_URL = ""', get(self.base, "/")[1])
+
+    def test_parse_args_lan_and_hosts(self):
+        a = viewer.parse_args(["--lan", "--host", "mac.local", "--host", "10.0.0.5", "--no-browser"])
+        self.assertTrue(a["lan"]); self.assertEqual(a["hosts"], ["mac.local", "10.0.0.5"])
+        self.assertFalse(viewer.parse_args([])["lan"])
+
+    def test_lan_ip_is_dotted_or_none(self):
+        ip = viewer.lan_ip()
+        self.assertTrue(ip is None or len(ip.split(".")) == 4)
+
+
+if __name__ == "__main__":
+    unittest.main()
