@@ -41,9 +41,7 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 
 - Doc-1 (H) — `[x]` anywhere means 已验证 and nothing else; a Req 状态词 ∈ 待验证 · 已验证 · 验证失败 · 阻塞 · 仅方案 · 放弃.
 - Doc-2 (H) — a load-bearing claim carries evidence-cited / 推断 / 假设; a `Fact-n` is `[VERIFIED]` only with a source line; a
-  negative result names its query and scope; unverified never turns into a negative conclusion. Markers are the closed set
-  `[VERIFIED]` · `[推断]` · `[SUPERSEDED]`, one per block (an inference is its own `[推断]` block); a probe a lens ran and the
-  session did not re-run is `[VERIFIED]` with the runner and 未复跑 in 来源 — never a coined marker.
+  negative result names its query and scope; unverified never turns into a negative conclusion.
 - Doc-3 (H · S: aj) — a table cell or single-line field holds one plain self-contained sentence (ids as gloss); the full text lives at
   the content's home — a block field's indented continuation (two spaces) or prose in the same section, never the cell.
 - Doc-4 (H · S: aj) — a `### Req-n <状态词>` block has 陈述 (free-form; clauses line-leading per Id-1) · 验证 · 来源 lines; 变更 whenever
@@ -55,6 +53,9 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 - Doc-7 (H) — a Task deleted / merged / deferred, or a `[x]` invalidated, leaves a one-line note (plan.md or a 变更 line) — never a silent edit.
 - Doc-8 (S: aj) — a Req that mentions a lock · signal · exit code · disk format · output shape · external environment · irreversible
   operation has at least one `### Inv-n` block (lite.md「Triggers」) — or one written line `- Inv: 无（原因）` under 契约与不变量.
+- Doc-9 (H) — a `Fact-n` marker is one of the closed set `[VERIFIED]` · `[推断]` · `[SUPERSEDED]`, one per block — an inference
+  off a verified fact is its own `[推断]` block; a probe a lens or subagent ran and the session did not re-run stays `[VERIFIED]`
+  with the runner and 未复跑 named in 来源, never a coined marker (`templates/facts.md`).
 
 ## ADRs (Adr)
 
@@ -126,5 +127,5 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 
 ## Caps (Cap) — anti-ratchet, re-measured by `retro`
 
-- Cap-1 (S: wc -l) — SKILL.md ≤120 · `steps/lite.md` ≤160 · `steps/discuss.md` ≤100 · this file ≤130 · 流程 = `steps/` minus
+- Cap-1 (S: wc -l) — SKILL.md ≤120 · `steps/lite.md` ≤160 · `steps/discuss.md` ≤100 · this file ≤140 · 流程 = `steps/` minus
   `retro.md`: ≤8 files, ≤900 lines in all · `templates/` 6 files ≤250 · lenses ≤200 (one or two files) · `steps/retro.md` (元) ≤100.

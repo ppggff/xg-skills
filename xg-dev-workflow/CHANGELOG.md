@@ -8,8 +8,8 @@ Each entry says *what changed* and *why*, not the raw diff.
 
 `steps/lite.md`「Card files」now names `templates/facts.md` as facts.md's skeleton (adr/ and plan.md already had
 theirs), `steps/investigate.md` makes a note's 事实清单 the same block form so facts move into a card unchanged, and
-`constraints.md` Doc-2 closes the marker set to `[VERIFIED]` · `[推断]` · `[SUPERSEDED]`, one per block, with a
-lens-run probe staying `[VERIFIED]` and naming the runner and 未复跑 in 来源. Why: the template was wired nowhere
+`constraints.md` gains Doc-9: the marker set is closed to `[VERIFIED]` · `[推断]` · `[SUPERSEDED]`, one per block, with a
+lens-run probe staying `[VERIFIED]` and naming the runner and 未复跑 in 来源 (Cap-1 lifts this file to ≤140 for it). Why: the template was wired nowhere
 (invariant 6b), so seven of the ten lite cards since 030 wrote `- Fact-n [MARK] …` bullets in four sub-variants, with
 coined markers and 推断 sub-items inside VERIFIED blocks, and the lite-doc-form long-cell check saw none of it
 (dev_root `xg-skills/notes/2026-09-27-facts-form-drift.md`). No card — four text edits, no new mechanism.
