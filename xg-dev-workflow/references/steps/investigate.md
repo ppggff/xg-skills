@@ -179,4 +179,5 @@ A finding in a notes file is a **field block** — stable labels 现象 · 规�
 line with free-form indented content; a further field only for an independent point (`conventions-core.md`「Form」).
 Citation forms in docs: code `` `TpFrozenShmemGetMin()` in `appserver.c` `` · knowledge
 `[[wiki/cbdb/appserver-epoch-shmem]]` · external: full URL with anchor + a one-line quote for a non-obvious
-decision. A verified load-bearing fact persists as `Fact-n` (card) or in the note's 事实清单.
+decision. A verified load-bearing fact persists as `Fact-n` (card) or in the note's 事实清单 — both in the
+`templates/facts.md` block form, so a note's facts move into a card unchanged.

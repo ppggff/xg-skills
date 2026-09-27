@@ -41,7 +41,9 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 
 - Doc-1 (H) — `[x]` anywhere means 已验证 and nothing else; a Req 状态词 ∈ 待验证 · 已验证 · 验证失败 · 阻塞 · 仅方案 · 放弃.
 - Doc-2 (H) — a load-bearing claim carries evidence-cited / 推断 / 假设; a `Fact-n` is `[VERIFIED]` only with a source line; a
-  negative result names its query and scope; unverified never turns into a negative conclusion.
+  negative result names its query and scope; unverified never turns into a negative conclusion. Markers are the closed set
+  `[VERIFIED]` · `[推断]` · `[SUPERSEDED]`, one per block (an inference is its own `[推断]` block); a probe a lens ran and the
+  session did not re-run is `[VERIFIED]` with the runner and 未复跑 in 来源 — never a coined marker.
 - Doc-3 (H · S: aj) — a table cell or single-line field holds one plain self-contained sentence (ids as gloss); the full text lives at
   the content's home — a block field's indented continuation (two spaces) or prose in the same section, never the cell.
 - Doc-4 (H · S: aj) — a `### Req-n <状态词>` block has 陈述 (free-form; clauses line-leading per Id-1) · 验证 · 来源 lines; 变更 whenever
