@@ -85,21 +85,23 @@
   html.narrow .gutter, html.narrow #reopen, html.narrow #right { display: none !important; }
   html.narrow #left { padding: 0 14px 20px; }
   html.narrow .doc-head { margin: 0 -14px 0; padding: 12px 14px 8px; }   /* tracks #left's narrower padding */
+  html.narrow .frontmatter { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }   /* same: the meta bar spans the pane, not beyond it */
   html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
   html.narrow .mrule { display: none; }
   html.narrow .board.kanban { scroll-snap-type: x mandatory; }
-  html.narrow .doc-head .crumb { flex: 1 0 100%; order: 9; }   /* buttons on the first line, the file name on its own line */
+  html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
-  /* Touch targets below the breakpoint: hit areas of at least 40px and chrome text at 13–14px. Decided by
-     width like everything else here — a narrow desktop window gets the same. */
-  html.narrow .iconbtn { min-height: 40px; min-width: 40px; font-size: 13px; }
-  html.narrow .navbtn { font-size: 14px; padding: 10px 12px; min-height: 40px; }
-  html.narrow .ctl, html.narrow #filterbox input { font-size: 16px; min-height: 40px; }   /* 16px: mobile browsers stop zooming into the field */
+  /* Touch targets below the breakpoint: taller rows and 16px inputs. Buttons keep their desktop size — enlarging
+     them crowded the head and the find bar on a phone (real-device pass). Decided by width like everything else here. */
+  html.narrow .ctl, html.narrow #filterbox input, html.narrow #qo input, html.narrow .findbar input { font-size: 16px; }   /* 16px: mobile browsers stop zooming into the field */
+  html.narrow .ctl, html.narrow #filterbox input { min-height: 40px; }
+  html.narrow .board-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 8px 0; }   /* one swipeable line of status chips */
+  html.narrow .board-filters::-webkit-scrollbar { display: none; }
+  html.narrow .fchip { flex: none; }
   html.narrow .tree { font-size: 14px; }
   html.narrow .tree summary, html.narrow .tree .file { min-height: 40px; padding: 4px 6px; }
   html.narrow .tree > details > summary { font-size: 13px; }
-  html.narrow .fchip { min-height: 40px; font-size: 13px; }
   html.narrow .row { min-height: 44px; }
   html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 13px; }
   html.narrow .row .rtitle { padding: 9px 0; }   /* the title link's own hit area, not just the row's */
@@ -124,7 +126,7 @@
   .findbar { display: flex; align-items: center; gap: 6px; order: 99;
     position: sticky; bottom: 0; z-index: 4; background: var(--bg); border-top: 1px solid var(--line);
     padding: 6px 0 8px; bottom: -20px; margin-bottom: -20px; }
-  .findbar input { flex: 1; font: inherit; background: var(--bg); color: var(--fg);
+  .findbar input { flex: 1; min-width: 0; font: inherit; background: var(--bg); color: var(--fg);   /* min-width: shrinks instead of pushing the pane wider */
     border: 1px solid var(--line2); border-radius: var(--radius); padding: 3px 8px; }
   .find-count { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 3em; text-align: right; }
   .find-count.zero { color: var(--s-blocked); }   /* R14: an explicit zero-hit state, never a bare "0/0" */
@@ -325,8 +327,7 @@
   .row .rtitle { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
   .row .rprog { overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
   .row .rwhen { text-align: right; }
-  .seg { display: inline-flex; } .seg .iconbtn { border-radius: 0; } .seg .iconbtn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-  .seg .iconbtn:last-child { border-radius: 0 var(--radius) var(--radius) 0; } .seg .iconbtn[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+
   .flabel { font-family: var(--chrome); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 2px 0 8px; }
   /* R60: status chips carry the status color itself (no leading dot); off = dimmed + struck. */
   .fchip { font-family: var(--chrome); font-size: 11.5px; cursor: pointer; border: 1px solid var(--line2); background: var(--bg);
@@ -499,10 +500,10 @@
   #qo .qhead { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
   #qo .qmag { color: var(--accent); font-family: var(--chrome); }
   #qo input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--fg); font-family: var(--chrome); font-size: 15px; }
-  #qo .qlist { max-height: 54vh; overflow: auto; }
+  #qo .qlist { max-height: 54vh; overflow: auto; overflow-x: hidden; }
   #qo .qrow { display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; cursor: pointer; font-family: var(--chrome); font-size: 13px; border-left: 2px solid transparent; }
   #qo .qrow.sel { background: var(--accent-soft); border-left-color: var(--accent); }
-  #qo .qrow .qn { color: var(--fg); flex: none; }
+  #qo .qrow .qn { color: var(--fg); flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* a long file name truncates, never widens the row */
   #qo .qrow .qp { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #qo .qrow .qt { margin-left: auto; color: var(--muted); font-size: 10.5px; flex: none; padding-left: 8px; }
   #qo .qrow .qtag { flex: none; font-size: 9.5px; letter-spacing: .1em; padding: 1px 5px; border: 1px solid var(--line2); color: var(--muted); }
@@ -1248,12 +1249,24 @@ var SV = (function () {
     });
     return out;
   }
-  // A lite card's one step cell is "设计:<status> · Req n / 已验证 k"; the row shows the part after the label.
-  function liteProgress(steps) {
-    var s = (steps || [])[0] || "", i = s.indexOf(":");
-    return i === -1 ? s : s.slice(i + 1);
+  // A legacy card's current phase: the first step not yet done (its label), else the last one.
+  function legacyPhase(steps) {
+    var last = "";
+    for (var i = 0; i < (steps || []).length; i++) {
+      var s = steps[i], j = s.indexOf(":"), label = j === -1 ? s : s.slice(0, j), state = j === -1 ? "" : s.slice(j + 1);
+      if (stepFill(state) !== "done") return label;
+      last = label;
+    }
+    return last;
   }
-  return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress,
+  // A lite card's one step cell is "设计:<status> · Req n / 已验证 k"; the row shows "k/n", or the status when there are no Reqs yet.
+  function liteProgress(steps) {
+    var s = (steps || [])[0] || "", i = s.indexOf(":"), body = i === -1 ? s : s.slice(i + 1);
+    var m = /Req (\d+) \/ 已验证 (\d+)/.exec(body);
+    if (m) return m[2] + "/" + m[1];
+    return body.split(" · ")[0];
+  }
+  return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
            parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
@@ -1795,9 +1808,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
         body = mode === "rows" ? rows(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj); tf = { set: boardHideProj, keys: order };
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
+      var next = { grid: "kanban", kanban: "rows", rows: "grid" }[mode];   // one button cycles the three forms; its label is the current one
       pane.innerHTML = paneHead(side, "Board",
-        '<span class="seg">' + ["grid", "kanban", "rows"].map(function (m) {
-          return '<button class="iconbtn" data-bmode="' + m + '" aria-pressed="' + (m === mode) + '">' + m + "</button>"; }).join("") + "</span>") +
+        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → rows (now ' + mode + ')">' + mode + "</button>") +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       padForDrawer(pane);
@@ -1952,7 +1965,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function rowHtml(c, mtime) {
     var st = stClass(c.state), key = c.project + "/" + c.nnn, sel = key === boardSelected ? " selected" : "";
-    var prog = c.governance === "lite" ? esc(SV.liteProgress(c.steps)) : phasesCompact(c);
+    var prog = esc(c.governance === "lite" ? SV.liteProgress(c.steps) : SV.legacyPhase(c.steps));   // one short token: the title gets the width
     return '<div class="row ' + st + sel + '" data-key="' + esc(key) + '">' +   // the row selects (drawer); its title navigates, like a card
       '<span class="dot" style="background:var(' + stVar(c.state) + ')" title="' + esc(c.state) + '"></span>' +
       '<span class="rid">' + esc(c.nnn) + "</span>" +

@@ -308,9 +308,12 @@ const SCENARIO = {
     check("390: rows by default", await ctx.eval("!!document.querySelector('#left .row') && !document.querySelector('#left .card')"));
     check("390: a row shows id, title, progress and a time", await ctx.eval("(() => { const r = document.querySelector('#left .row'); return ['.rid','.rtitle','.rprog','.rwhen'].every(s => r.querySelector(s)); })()"));
     check("390: rows do not overflow the pane", await ctx.eval("[...document.querySelectorAll('#left .row')].every(r => r.scrollWidth <= r.clientWidth + 1)"));
-    await ctx.click('[data-bmode="kanban"]'); await ctx.wait("!!document.querySelector('#left .board.kanban')");
-    check("picking kanban is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
-    await ctx.click('[data-bmode="rows"]'); await ctx.wait("!!document.querySelector('#left .row')");
+    check("390: rows leave the title most of the width", await ctx.eval("(() => { const r = document.querySelector('#left .row'); return r.querySelector('.rtitle').getBoundingClientRect().width > r.getBoundingClientRect().width * 0.45; })()"));
+    check("390: board head and chips sit on single lines", await ctx.eval("(() => { const h = document.querySelector('#left .doc-head'), f = document.querySelector('#left .board-filters'); return h.getBoundingClientRect().height < 48 && f.getBoundingClientRect().height < 40 && f.scrollWidth >= f.clientWidth; })()"));
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
+    check("the one button cycles the forms and the pick is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // kanban → rows
     await ctx.click("#left .row"); check("tapping a row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .row.selected')"));
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
@@ -341,24 +344,28 @@ const SCENARIO = {
       return r[0] ? r[1] : -1;
     };
     const fs = (sel) => ctx.eval(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? parseFloat(getComputedStyle(e).fontSize) : -1; })()`);
-    check("390: every visible head button ≥ 40px", (await h("#left .doc-head .iconbtn")) >= 40);
+    check("390: head buttons keep their desktop size and the head stays on one line", (await h("#left .doc-head .iconbtn")) < 30 && (await ctx.eval("document.querySelector('#left .doc-head').getBoundingClientRect().height")) < 48);
+    await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
+    check("390: the find bar fits the pane", await ctx.eval("(() => { const f = document.querySelector('#left .findbar'); return f.scrollWidth <= f.clientWidth && document.querySelector('#left').scrollWidth <= document.querySelector('#left').clientWidth; })()"));
+    check("390: the find input is 16px (no zoom on focus)", (await fs("#left [data-find-input]")) >= 16);
+    await ctx.click("[data-quick]"); await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'problem-statement'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
+    await ctx.wait("document.querySelectorAll('#qo .qrow').length > 1");
+    check("390: quick open's list never scrolls sideways", await ctx.eval("(() => { const l = document.querySelector('#qo .qlist'); return l.scrollWidth <= l.clientWidth && document.querySelector('#qo').getBoundingClientRect().right <= innerWidth; })()"));
+    check("390: the quick-open input is 16px (no zoom on focus)", (await fs("#qoInput")) >= 16);
+    await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
     await ctx.click("[data-side]");
-    check("390: sidebar nav buttons ≥ 40px", (await h("#side .navbtn")) >= 40);
     check("390: tree rows ≥ 40px", (await h("#tree summary")) >= 40);
     check("390: tree text ≥ 13px", (await fs("#tree summary")) >= 13);
     await ctx.click("#scrim"); await ctx.go("board");
     check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
-    check("390: row title links ≥ 36px", (await h("#left .row .rtitle")) >= 36);
-    check("390: status chips ≥ 40px", (await h("#left .fchip")) >= 40);
     check("390: row meta text ≥ 13px", (await fs("#left .row .rprog")) >= 13);
-    await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("doc");
-    check("1920: head buttons keep their desktop size", (await h("#left .doc-head .iconbtn")) < 40);
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {
     if (!o.touch) throw new Error("refresh scenario needs --touch <file under the viewer's dev root>");
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
-    await ctx.click('[data-bmode="kanban"]'); await ctx.wait("!!document.querySelector('#left .board.kanban')");   // not the narrow default, so a reset would show
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban: not the narrow default, so a reset would show
     await ctx.go("doc"); await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
     const rev0 = await ctx.eval("fetch('/api/rev').then(r => r.json()).then(j => j.dev)");
     const now = new Date(); utimesSync(o.touch, now, now);

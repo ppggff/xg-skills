@@ -1133,14 +1133,22 @@ t("SV.cardMtimes: newest file mtime per <project>/<NNN-slug> dir", () => {
   assert.deepEqual(m, { "p/001-a": 9, "q/002-b": 3 });
 });
 t("SV.liteProgress: the part after the label of a lite card's step cell", () => {
-  assert.equal(SV.liteProgress(["设计:executing · Req 6 / 已验证 2"]), "executing · Req 6 / 已验证 2");
+  assert.equal(SV.liteProgress(["设计:executing · Req 6 / 已验证 2"]), "2/6");
+  assert.equal(SV.liteProgress(["设计:draft"]), "draft");
   assert.equal(SV.liteProgress([]), "");
+});
+t("SV.legacyPhase: the first phase not yet done, else the last", () => {
+  assert.equal(SV.legacyPhase(["需求:confirmed", "设计:frozen", "详设:—", "实现:done", "测试:passing", "评审:skipped"]), "详设");
+  assert.equal(SV.legacyPhase(["需求:confirmed", "设计:in-progress"]), "设计");
+  assert.equal(SV.legacyPhase(["需求:confirmed", "设计:frozen"]), "设计");
+  assert.equal(SV.legacyPhase([]), "");
 });
 t("the board renders rows below the breakpoint by default, keeps a chosen form, and writes only sv-board-mode", () => {
   assert.match(html, /mode = boardMode \|\| \(narrow \? "rows" : "grid"\)/, "default form follows the width when nothing is stored");
   assert.match(html, /lsSet\("sv-board-mode", boardMode\)/, "the pick is stored under the new key");
   assert.doesNotMatch(html, /lsSet\("sv-board-kanban"/, "the old boolean key is read for migration, never written");
   assert.match(html, /function rowHtml\(c, mtime\)/, "rows have their own renderer");
+  assert.match(html, /var next = \{ grid: "kanban", kanban: "rows", rows: "grid" \}\[mode\];/, "one button cycles the three board forms");
   assert.match(html, /closest\("\.card, \.row"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
 });
 
@@ -1152,13 +1160,14 @@ t("dvh pair, kanban snap, full-width body below the breakpoint", () => {
   assert.match(html, /html\.narrow \.board\.kanban \{ scroll-snap-type: x mandatory; \}/, "a swipe lands on a column below the breakpoint");
   assert.match(html, /scroll-snap-align: start; \}/, "columns are snap targets");
   assert.match(html, /if \(narrow\) \{[^\n]*\n\s+db\.style\.setProperty\("--m-l", "0px"\); db\.style\.removeProperty\("--m-w"\); db\.classList\.add\("gutter-in"\); return;/, "applyMeasure bypasses the tiers below the breakpoint");
-  assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 0 100%; order: 9; \}/, "the crumb takes its own line below the breakpoint");
+  assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 1 4em; min-width: 4em; order: 9; \}/, "the crumb sits after the buttons and wraps only when they leave it no room");
 });
 
 // --- touch items below the breakpoint, decided by width ---
 t("hovercard is gated by width, touch targets grow by width — no pointer or hover media query", () => {
   assert.match(html, /document\.addEventListener\("mouseover", function \(e\) \{\n    if \(narrow\) return;/, "mouseover preview returns early below the breakpoint");
-  assert.match(html, /html\.narrow \.iconbtn \{ min-height: 40px; min-width: 40px; font-size: 13px; \}/, "buttons ≥ 40px");
+  assert.doesNotMatch(html, /html\.narrow \.iconbtn \{/, "buttons keep their desktop size (real-device pass)");
+  assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "every input is 16px so a phone does not zoom into it");
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 40px;/, "tree rows ≥ 40px");
   assert.match(html, /html\.narrow \.row \{ min-height: 44px; \}/, "board rows ≥ 44px");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
