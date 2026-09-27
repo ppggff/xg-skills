@@ -20,7 +20,7 @@
 //   --no-freeze (by default Date.now is pinned per run so relative times render the same in a re-run)
 //   --touch <file> (the refresh scenario bumps this file's mtime to trigger the live refresh)
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, existsSync, utimesSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, utimesSync, readdirSync, rmSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,8 +81,30 @@ class CDP {
   close() { this.ws.close(); }
 }
 
+const TMP = process.env.TMPDIR || "/tmp";
+
+// Leftovers of runs that died before stopChrome (kill -9, crash). Their Chrome may still be
+// up as an orphan, so close it over its DevToolsActivePort first. A live pid is a concurrent run.
+async function sweepStaleProfiles() {
+  for (const name of readdirSync(TMP)) {
+    const m = name.match(/^sv-shots-(\d+)$/);
+    if (!m || +m[1] === process.pid) continue;
+    try { process.kill(+m[1], 0); continue; } catch (e) { if (e.code !== "ESRCH") continue; }
+    const dir = join(TMP, name);
+    try {
+      const [port, path] = readFileSync(join(dir, "DevToolsActivePort"), "utf8").split("\n");
+      const cdp = await CDP.connect(`ws://127.0.0.1:${port}${path}`);
+      const closed = new Promise((ok) => cdp.ws.addEventListener("close", ok));
+      cdp.send("Browser.close").catch(() => {});
+      await Promise.race([closed, sleep(5000)]);
+    } catch {}
+    try { rmSync(dir, { recursive: true, force: true, maxRetries: 10 }); } catch {}   // Chrome may still be exiting
+  }
+}
+
 async function launchChrome(chromePath) {
-  const userDir = join(process.env.TMPDIR || "/tmp", "sv-shots-" + process.pid);
+  await sweepStaleProfiles();
+  const userDir = join(TMP, "sv-shots-" + process.pid);
   const child = spawn(chromePath, ["--headless=new", "--remote-debugging-port=0", "--user-data-dir=" + userDir,
     "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1"],
     { stdio: ["ignore", "ignore", "pipe"] });
@@ -92,7 +114,18 @@ async function launchChrome(chromePath) {
     child.on("exit", (code) => no(new Error("chrome exited " + code + "\n" + buf)));
     setTimeout(() => no(new Error("chrome did not announce DevTools\n" + buf)), 15000);
   });
-  return { child, wsUrl };
+  return { child, wsUrl, userDir, cdp: null };
+}
+
+// A signalled Chrome skips its shutdown and leaves its code-sign clone under
+// $TMPDIR/../X/com.google.Chrome.code_sign_clone; Browser.close lets it clean up.
+async function stopChrome({ child, cdp, userDir }) {
+  const exited = child.exitCode !== null || child.signalCode !== null
+    ? Promise.resolve() : new Promise((ok) => child.once("exit", ok));
+  if (cdp) cdp.send("Browser.close").catch(() => {}); else child.kill();
+  if (!(await Promise.race([exited.then(() => true), sleep(5000).then(() => false)]))) { child.kill("SIGKILL"); await exited; }
+  cdp?.close();
+  rmSync(userDir, { recursive: true, force: true });
 }
 
 // --- viewer lifecycle ---------------------------------------------------------
@@ -157,14 +190,14 @@ async function resolveDoc(o) {
 // --- browser session -----------------------------------------------------------
 async function session(o, fn) {
   const cleanups = [];
-  const cleanup = () => { while (cleanups.length) { try { cleanups.pop()(); } catch {} } };
-  const onSignal = () => { cleanup(); process.exit(130); };
+  const cleanup = async () => { while (cleanups.length) { try { await cleanups.pop()(); } catch {} } };
+  const onSignal = () => { cleanup().finally(() => process.exit(130)); };
   process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
     const viewer = await ensureViewer(o.url); cleanups.push(viewer.stop);
     await resolveDoc(o);
-    const { child, wsUrl } = await launchChrome(o.chrome); cleanups.push(() => child.kill());
-    const cdp = await CDP.connect(wsUrl); cleanups.push(() => cdp.close());
+    const chrome = await launchChrome(o.chrome); cleanups.push(() => stopChrome(chrome));
+    const cdp = chrome.cdp = await CDP.connect(chrome.wsUrl);
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
     const { sessionId: sid } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
     await cdp.send("Page.enable", {}, sid); await cdp.send("Runtime.enable", {}, sid);
@@ -204,7 +237,7 @@ async function session(o, fn) {
       mouseMove: async (sel) => { const c = await centerOf(sel); await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid); },
     };
     return await fn(ctx);
-  } finally { cleanup(); process.off("SIGINT", onSignal); process.off("SIGTERM", onSignal); }
+  } finally { await cleanup(); process.off("SIGINT", onSignal); process.off("SIGTERM", onSignal); }
 }
 
 async function shoot(o) {
