@@ -67,6 +67,7 @@ the ruling was to adapt by width, never by recognizing the device.
   sidebar tightens (30px tree rows), hides the help hint and folds the file filter behind ⌕ (kept open while a filter is in use).
   Then: line numbers come back on a phone, 8.5px in the left margin; long tree names drag sideways per row; TOC rows match
   tree rows; the pane and page never pan sideways (a guard — the reported slide did not reproduce in emulation).
+  Then: a ↑ back-to-top button floats on a phone once the pane is a screen down.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
