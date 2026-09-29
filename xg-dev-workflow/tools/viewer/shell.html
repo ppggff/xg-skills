@@ -368,7 +368,10 @@
   .btable { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
   .btable th { text-align: left; font-family: var(--chrome); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
     color: var(--muted); padding: 4px 8px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
-  .btable td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
+  .btable td { padding: 7px 8px; vertical-align: baseline; overflow-wrap: break-word; }   /* mixed sizes (mono meta, bold title) share a first line */
+  .btable th, .btable td { border: 0; border-bottom: 1px solid var(--line); }   /* hairlines between rows only — not the global table grid */
+  .btable th { background: none; border-bottom-color: var(--line2); }
+  .btable tr:last-child td { border-bottom: 0; }
   .btable .trow { cursor: pointer; }
   .btable .trow:hover { background: var(--chip); }
   .btable .trow.selected { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }

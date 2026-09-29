@@ -1223,6 +1223,11 @@ t("tree F: fold rebuilds the tree closed; only an immediate second F restores", 
   assert.doesNotMatch(fn, /\.open = false/, "no in-place folding left");
   assert.match(html, /if \(e\.target\.closest\("summary"\) && !e\.target\.closest\("\.sx"\)\) treeSnap = \{ dev: null, kb: null \};/, "any folder click in between voids the restore");
 });
+t("board table: rows divided by hairlines only — no grid, no header fill", () => {
+  assert.match(html, /\.btable th, \.btable td \{ border: 0; border-bottom: 1px solid var\(--line\); \}/, "no vertical lines or outer frame from the global table style");
+  assert.match(html, /\.btable th \{ background: none; border-bottom-color: var\(--line2\); \}/);
+  assert.match(html, /\.btable tr:last-child td \{ border-bottom: 0; \}/);
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
