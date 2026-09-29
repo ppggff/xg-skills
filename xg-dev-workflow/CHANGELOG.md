@@ -86,6 +86,7 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: the viewer serves gitweb at /gitweb/ (forwarding to a loopback-only companion), so a client needs one port;
   sharing the origin, gitweb runs with $prevent_xss and a same-origin CSP. A stray unittest.main() in test_viewer.py had
   kept the --lan tests from ever running; they run (and pass) now.
+  Then: the board's status chips lose their 状态 label.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
