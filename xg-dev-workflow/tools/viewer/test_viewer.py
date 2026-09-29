@@ -311,9 +311,6 @@ class T6Port(unittest.TestCase):
             httpd.server_close()
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
 
 class TLan(unittest.TestCase):
     """--lan: every interface, the LAN IP (+ --host) on the Host allowlist, gitweb links follow the Host used."""
