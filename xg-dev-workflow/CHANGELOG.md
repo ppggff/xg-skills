@@ -93,6 +93,7 @@ the ruling was to adapt by width, never by recognizing the device.
   <details> in place (even innermost-first) left a phone showing a blank where a reopened folder's contents belonged.
   Then: the board table drops the cell grid and its header row for faint row hairlines inset from the id column
   (the project title keeps its full-width rule), cells on the baseline.
+  Then: the narrow pane head keeps the desktop order (navigation left, crumb between, the other groups right).
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
