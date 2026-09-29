@@ -14,13 +14,15 @@ Security (R6): binds 127.0.0.1 only; every route checks the Host header is local
 the shell + vendored asset come from a hardcoded repo path, never a user path. Read-only:
 no write endpoints, no disk writes, no cross-request state — Ctrl-C stops it clean.
 
-Ports are fixed by default (viewer 8790, gitweb 8791) so one `ssh -L` rule keeps working across
-restarts; a busy port is reported and the run stops rather than degrading to a random port.
+Ports are fixed by default (viewer 8790; the gitweb companion on loopback 8791, served by the
+viewer at /gitweb/) so one `ssh -L` rule for 8790 keeps working across restarts; a busy port is
+reported and the run stops rather than degrading to a random port.
 
 Usage:
   viewer.py [--port N] [--no-browser] [--dev-root DIR] [--kb-root DIR] [--lan] [--host NAME]...
 """
 import errno
+import http.client
 import http.server
 import importlib.util
 import json
@@ -44,6 +46,9 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "mermaid.min.js": "text/javascript"}    # served from the hardcoded VIEWER_DIR only
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
+# gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
+GITWEB_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
+              "connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'")
 DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
 LOG_MAX = 100
@@ -110,9 +115,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return host.split(":")[0] in ALLOWED_HOSTS
 
     def gitweb_url(self):
-        if not self.gitweb_port:
-            return ""
-        return "http://%s:%d/" % (self.headers.get("Host", "127.0.0.1").split(":")[0], self.gitweb_port)
+        return "/gitweb/" if self.gitweb_port else ""   # same origin: the viewer forwards to the loopback companion
 
     def _send(self, code, body, ctype="text/plain; charset=utf-8", extra=None):
         if isinstance(body, str):
@@ -143,6 +146,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_asset(path[len("/assets/"):])
         elif path.startswith("/raw/"):
             self._serve_raw(path)
+        elif path == "/gitweb" or path.startswith("/gitweb/"):
+            self._proxy_gitweb(parsed)
         elif path == "/api/tree":
             self._serve_tree()
         elif path == "/api/board":
@@ -174,6 +179,33 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # built from the Host the browser used, so a LAN client gets a LAN link (the Host passed _host_ok).
         html = html.replace("__GITWEB_URL__", self.gitweb_url())
         self._send(200, html, "text/html; charset=utf-8")
+
+    def _proxy_gitweb(self, parsed):
+        # /gitweb/<rest> → the loopback companion's /<rest>; its own redirects come back under the prefix.
+        if not self.gitweb_port:
+            self._send(404, "not found\n")
+            return
+        upstream = (parsed.path[len("/gitweb"):] or "/") + ("?" + parsed.query if parsed.query else "")
+        try:
+            c = http.client.HTTPConnection("127.0.0.1", self.gitweb_port, timeout=30)
+            c.request("GET", upstream, headers={"Host": "127.0.0.1:%d" % self.gitweb_port, "Accept-Encoding": "identity"})
+            r = c.getresponse()
+            body = r.read()
+            c.close()
+        except (OSError, http.client.HTTPException):
+            self._send(502, "gitweb companion unreachable\n")
+            return
+        extra = {"Content-Security-Policy": GITWEB_CSP, "X-Content-Type-Options": "nosniff"}
+        for k in ("Content-Disposition", "Last-Modified", "ETag", "Cache-Control", "Expires"):
+            if r.getheader(k):
+                extra[k] = r.getheader(k)
+        loc = r.getheader("Location")
+        if loc:
+            u = urllib.parse.urlsplit(loc)
+            if u.netloc in ("", "127.0.0.1:%d" % self.gitweb_port):
+                loc = "/gitweb" + (u.path or "/") + ("?" + u.query if u.query else "")
+            extra["Location"] = loc
+        self._send(r.status, body, r.getheader("Content-Type", "application/octet-stream"), extra)
 
     def _serve_asset(self, name):
         # vendored JS from the hardcoded VIEWER_DIR by an exact-name allowlist — never a user path.
@@ -558,7 +590,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
     companion = None
     if gitweb:                                  # 003: co-launch the read-only gitweb companion
         try:
-            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT, bind=bind, hosts=sorted(ALLOWED_HOSTS))
+            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT)   # loopback only, even with --lan: clients reach it through /gitweb/
         except Exception as e:
             sys.stderr.write("gitweb companion error: %s\n" % e)
         if not companion:                       # require both up by default; --no-gitweb to opt out
@@ -566,7 +598,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
                              "pass --no-gitweb to run the viewer alone.\n")
             sys.exit(1)
         Handler.gitweb_port = companion["port"]
-        print("gitweb companion on http://127.0.0.1:%d/ (%d repos)" % (companion["port"], len(companion["repos"])), file=sys.stderr)
+        print("gitweb companion on 127.0.0.1:%d, served at /gitweb/ (%d repos)" % (companion["port"], len(companion["repos"])), file=sys.stderr)
     else:
         Handler.gitweb_port = 0
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
@@ -574,7 +606,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           (url, dev_root, kb_root), file=sys.stderr)
     if lan:
         print("--lan: also on http://%s:%d/ (Host allowlist: %s) — anyone on this network can read dev_root, the KB "
-              "and every repo" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
+              "and every repo (gitweb at /gitweb/)" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
     # serve_forever runs in a worker thread so the main thread can shut it down from a signal
     # handler (shutdown() must be called from a different thread). Installing the handlers
     # explicitly also overrides an inherited SIG_IGN (e.g. when launched backgrounded).

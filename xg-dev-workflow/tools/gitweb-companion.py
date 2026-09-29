@@ -6,6 +6,8 @@ project repo + the dev_root repo + the KB repo) via lighttpd, as a co-launched
 companion of viewer.py. The viewer stays pure stdlib; this module only
 orchestrates the external lighttpd/gitweb (subprocess), and its dependencies
 (lighttpd, Perl, gitweb.cgi) never enter the viewer.
+Clients never reach it directly: the viewer forwards /gitweb/ to it on loopback, so gitweb
+is configured to prefix its own links with /gitweb/.
 
 Repos come from the shared config: every `projects:` entry, dev_root, the KB, and the
 browse-only `gitweb_repos:` list (repos worth reading that are not workflow projects).
@@ -173,6 +175,10 @@ def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "lo
         'our $projects_list = $projectroot;\n'
         'our $git_temp = "%s";\n'
         "$feature{'snapshot'}{'default'} = [];\n"  # no tarball download (shrinks bulk-exfil surface)
+        'our $my_uri = "/gitweb/";\n'           # served by the viewer under /gitweb/: gitweb's own links carry the prefix
+        'our $home_link = "/gitweb/";\n'
+        "our $prevent_xss = 1;\n"                 # same origin as the viewer: a repo's HTML is never rendered as a page
+        "our $default_text_plain_charset = 'utf-8';\n"   # raw views of CJK docs
         % (runtime / "projectroot", runtime / "tmp"),
         encoding="utf-8")
     lcfg = runtime / "lighttpd.conf"

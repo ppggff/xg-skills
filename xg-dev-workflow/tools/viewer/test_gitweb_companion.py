@@ -128,6 +128,10 @@ class TUnit(unittest.TestCase):
         self.assertIn("url.access-deny", lt)
         self.assertIn("PATH", lt)                          # git findable by the CGI
         self.assertIn("server.max-keep-alive-requests = 0", lt)   # no kept-alive connection a host-keyed proxy could reuse for the viewer's port
+        self.assertIn('our $my_uri = "/gitweb/";', gw)          # served under the viewer's /gitweb/, so its own links carry the prefix
+        self.assertIn('our $home_link = "/gitweb/";', gw)
+        self.assertIn("our $prevent_xss = 1;", gw)             # same origin as the viewer: a repo's HTML is never rendered as a page
+        self.assertIn("our $default_text_plain_charset = 'utf-8';", gw)   # raw CJK docs, not ISO-8859-1 mojibake
 
     def test_write_configs_lan(self):
         tmp = Path(tempfile.mkdtemp())
@@ -182,6 +186,7 @@ class TIntegration(unittest.TestCase):
                                    headers={"Host": "127.0.0.1:%d" % self.port}), timeout=3
         ).read().decode("utf-8", "replace")
         self.assertIn("demo", body)                                     # symlinked git-dir listed with clean projid
+        self.assertIn('href="/gitweb/?p=demo;a=summary"', body)      # gitweb's own links stay under the viewer's prefix
 
     def test_responses_close_the_connection(self):
         self.assertTrue(gwc._await_up(self.proc, self.port))

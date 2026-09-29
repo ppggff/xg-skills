@@ -334,10 +334,10 @@ class TLan(unittest.TestCase):
         self.assertEqual(get(self.base, "/", host="192.168.1.186:8790")[0], 403)
         self.assertEqual(get(self.base, "/", host="evil.com")[0], 403)
 
-    def test_gitweb_url_follows_the_host_used(self):
+    def test_gitweb_url_is_same_origin(self):
         viewer.ALLOWED_HOSTS.add("192.168.1.185"); viewer.Handler.gitweb_port = 8791
-        self.assertIn('window.GITWEB_URL = "http://192.168.1.185:8791/"', get(self.base, "/", host="192.168.1.185:8790")[1])
-        self.assertIn('window.GITWEB_URL = "http://127.0.0.1:8791/"', get(self.base, "/", host="127.0.0.1:8790")[1])
+        self.assertIn('window.GITWEB_URL = "/gitweb/"', get(self.base, "/", host="192.168.1.185:8790")[1])   # one port: the viewer forwards
+        self.assertIn('window.GITWEB_URL = "/gitweb/"', get(self.base, "/", host="127.0.0.1:8790")[1])
         viewer.Handler.gitweb_port = 0
         self.assertIn('window.GITWEB_URL = ""', get(self.base, "/")[1])
 
@@ -349,6 +349,75 @@ class TLan(unittest.TestCase):
     def test_lan_ip_is_dotted_or_none(self):
         ip = viewer.lan_ip()
         self.assertTrue(ip is None or len(ip.split(".")) == 4)
+
+
+def _free_port():
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0)); return s.getsockname()[1]
+
+
+class _FakeGitweb(http.server.BaseHTTPRequestHandler):
+    """Stands in for the loopback lighttpd: echoes what it was asked, and redirects once."""
+    def log_message(self, *a): pass
+    def do_GET(self):
+        if self.path.startswith("/go"):
+            self.send_response(302); self.send_header("Location", "http://127.0.0.1:%d/?p=x;a=summary" % self.server.server_address[1])
+            self.send_header("Content-Length", "0"); self.end_headers(); return
+        body = ("path=%s host=%s" % (self.path, self.headers.get("Host"))).encode()
+        self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+
+
+class TGitwebProxy(unittest.TestCase):
+    """/gitweb/ is forwarded to the loopback companion, so the viewer is the only port a client needs."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / "dev").mkdir(); (self.tmp / "kb").mkdir()
+        self.httpd, self.base = start(self.tmp / "dev", self.tmp / "kb")
+        self.up = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _FakeGitweb)
+        threading.Thread(target=self.up.serve_forever, daemon=True).start()
+        viewer.Handler.gitweb_port = self.up.server_address[1]
+
+    def tearDown(self):
+        viewer.Handler.gitweb_port = 0
+        self.up.shutdown(); self.up.server_close()
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def _open(self, path):
+        class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *a): return None
+        try:
+            return urllib.request.build_opener(NoRedirect).open(self.base + path, timeout=5)
+        except urllib.error.HTTPError as e:
+            return e
+
+    def test_forwards_without_the_prefix_and_with_a_loopback_host(self):
+        r = self._open("/gitweb/?p=demo;a=summary")
+        self.assertEqual(r.status, 200)
+        self.assertEqual(r.read().decode(), "path=/?p=demo;a=summary host=127.0.0.1:%d" % self.up.server_address[1])
+        self.assertEqual(r.headers.get("Content-Type"), "text/html; charset=utf-8")
+
+    def test_bare_prefix_reaches_the_root(self):
+        self.assertTrue(self._open("/gitweb").read().decode().startswith("path=/ "))
+
+    def test_same_origin_guards(self):
+        r = self._open("/gitweb/")
+        csp = r.headers.get("Content-Security-Policy", "")
+        for d in ("default-src 'self'", "connect-src 'self'", "img-src 'self' data:", "form-action 'self'"):
+            self.assertIn(d, csp)                                  # a gitweb page cannot send viewer data elsewhere
+        self.assertEqual(r.headers.get("X-Content-Type-Options"), "nosniff")
+
+    def test_redirect_stays_under_the_prefix(self):
+        r = self._open("/gitweb/go")
+        self.assertEqual(r.status, 302)
+        self.assertEqual(r.headers.get("Location"), "/gitweb/?p=x;a=summary")
+
+    def test_disabled_or_down(self):
+        viewer.Handler.gitweb_port = 0
+        self.assertEqual(self._open("/gitweb/").status, 404)
+        viewer.Handler.gitweb_port = _free_port()
+        self.assertEqual(self._open("/gitweb/").status, 502)
 
 
 if __name__ == "__main__":
