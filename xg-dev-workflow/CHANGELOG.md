@@ -78,6 +78,7 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: pane-head icon buttons share one 28×24 box; on a phone the sidebar's controls are one 24px row height.
   Then: the rows board form is retired for the table (grid → kanban → table; a stored rows pick reads as table); on a
   phone the code-browse link closes the sidebar overlay it opened from.
+  Then: no ? button in the pane head (the ? key still opens help); a failed request's message names the full URL it hit.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
