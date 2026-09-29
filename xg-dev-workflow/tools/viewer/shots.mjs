@@ -435,6 +435,8 @@ const SCENARIO = {
     check("375: scope and search start folded and the tree starts near the top", await ctx.eval("(() => { const t = document.querySelector('.side-top'); return !!t && getComputedStyle(t).display === 'none' && document.querySelector('#tree').getBoundingClientRect().top < 120; })()"));
     check("375: the fold toggle shows the scope", await ctx.eval("document.querySelector('[data-sidetop] .scope').textContent === (document.getElementById('proj').value || 'all')"));
     check("375: Board · Recent · code sit on one line", await ctx.eval("new Set([...document.querySelectorAll('#side .navbtn')].map(b => Math.round(b.getBoundingClientRect().top))).size === 1"));
+    check("375: … as equal segments", await ctx.eval("(() => { const w = [...document.querySelectorAll('#side .navbtn')].filter(b => b.offsetParent).map(b => b.getBoundingClientRect().width); return w.length === 3 && Math.max(...w) - Math.min(...w) <= 1; })()"));
+    check("375: the file-filter ⌕ sits right after the scope toggle", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]'), f = document.querySelector('[data-treefilter]'); return a.nextElementSibling === f && Math.abs(a.getBoundingClientRect().top - f.getBoundingClientRect().top) < 1; })()"));
     await ctx.click("[data-sidetop]");
     check("375: the toggle unfolds scope and search", await ctx.eval("!!document.getElementById('proj').offsetParent && !!document.getElementById('search').offsetParent"));
     check("375: tree text 13px, inputs stay 16px", (await fs("#tree a.file")) === 13 && (await fs("#search")) === 16);
@@ -482,6 +484,21 @@ const SCENARIO = {
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
     await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});
     check("375: picking an entry from the history navigates to it", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .docbody')"));
+  },
+  // Desktop chrome: the tree's scrollbar on the sidebar edge, the pane head in function groups,
+  // and a collapsed sidebar reopening from the head's ☰ (no floating button over ◀).
+  async desk(ctx, check) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
+    check("1440: the tree reaches the sidebar's right edge", await ctx.eval("Math.abs(document.getElementById('tree').getBoundingClientRect().right - document.getElementById('side').getBoundingClientRect().right) < 1"));
+    check("1440: head buttons sit in groups with a wider gap between groups", await ctx.eval(`(() => { const g = [...document.querySelectorAll("#left .doc-head .hg")].filter(x => x.getBoundingClientRect().width > 0);
+      const gaps = g.slice(1).map((x, i) => x.getBoundingClientRect().left - g[i].getBoundingClientRect().right).filter((d, i) => i > 0);
+      return g.length >= 4 && gaps.every(d => d >= 8) && g[g.length - 1].querySelector("[data-help]"); })()`));
+    check("1440: head buttons are one height", await ctx.eval("new Set([...document.querySelectorAll('#left .doc-head button.iconbtn')].filter(b => b.offsetParent).map(b => Math.round(b.getBoundingClientRect().height))).size === 1"));
+    check("1440: no ☰ in the head while the sidebar is open", await ctx.eval("getComputedStyle(document.querySelector('#left [data-side]')).display === 'none'"));
+    await ctx.click('[data-collapse="side"]');
+    check("1440: collapsed — ☰ leads the head and no floating button shows", await ctx.eval("getComputedStyle(document.querySelector('#left [data-side]')).display !== 'none' && getComputedStyle(document.getElementById('reopen')).display === 'none'"));
+    await ctx.click("#left [data-side]"); await sleep(200);
+    check("1440: the head ☰ reopens the sidebar", await ctx.eval("!document.getElementById('side').classList.contains('collapsed') && getComputedStyle(document.querySelector('#left [data-side]')).display === 'none'"));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

@@ -73,7 +73,6 @@
   .gutter.hidden { display: none; }
   /* re-open affordance when #side is collapsed (R26) */
   #reopen { position: fixed; top: 8px; left: 8px; z-index: 20; display: none; }
-  #reopen.show { display: block; }
   /* Narrow mode: one width breakpoint, mirrored by JS onto html.narrow from a matchMedia — the CSS
      reads the class, never a width, so the number lives in one place. Below it the sidebar and the
      TOC are overlays over a single content pane, the right pane never shows and the gutters vanish. */
@@ -111,7 +110,8 @@
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   .histwrap { display: contents; }
   html.narrow .histwrap { display: inline-block; position: relative; }   /* a ▾ button; the transparent native select over it is the tap target (the phone's own picker) */
-  html.narrow .histwrap::before { content: "▾"; display: inline-block; border: 1px solid var(--line2); padding: 0 5px; line-height: 21px; font-size: 12px; color: var(--muted); }
+  html.narrow .histwrap::before { content: "▼"; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; min-width: 22px;
+    border: 1px solid var(--line2); padding: 0 5px .6px; font-size: 9px; line-height: 1; color: var(--muted); }
   html.narrow .histwrap select.iconbtn { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
   /* Touch targets below the breakpoint: taller rows and 16px inputs. Buttons keep their desktop size — enlarging
      them crowded the head and the find bar on a phone (real-device pass). Decided by width like everything else here. */
@@ -134,7 +134,8 @@
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
-  [data-side] { display: none; } html.narrow [data-side] { display: inline-block; }
+  [data-side] { display: none; } html.narrow [data-side] { display: inline-flex; }
+  #side.collapsed ~ #left [data-side] { display: inline-flex; }   /* the desktop reopen lives in the head's navigation group */
   [data-sidetop] { display: none; } html.narrow [data-sidetop] { display: inline-block; }
   #totop { display: none; }
   html.narrow #totop.show { display: block; position: fixed; right: 14px; bottom: 20px; z-index: 25; width: 40px; height: 40px; font-size: 16px;
@@ -144,12 +145,13 @@
   html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
   .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
   html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
-  html.narrow .navbtns { flex-direction: row; }
+  html.narrow .navbtns { flex-direction: row; gap: 0; border: 1px solid var(--line2); }
   html.narrow #side { gap: 6px; }
   html.narrow #side .hint { display: none; }   /* the ? button in the pane head covers help */
   [data-treefilter] { display: none; } html.narrow [data-treefilter] { display: inline-block; }
   html.narrow #side:not(.filter-open) #filterbox:not(:has(input:not(:placeholder-shown))) { display: none; }   /* an active filter stays in view */
-  html.narrow .navbtn { flex: 1; min-width: 0; white-space: nowrap; }
+  html.narrow .navbtn { flex: 1 1 0; min-width: 0; white-space: nowrap; justify-content: center; border-radius: 0; }
+  html.narrow .navbtn + .navbtn { border-left: 1px solid var(--line2); }
   .crumb .base { display: none; } html.narrow .crumb .full { display: none; } html.narrow .crumb .base { display: inline; }
   /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
      the body and the current-line band) while the body scrolls under it. The pane has no top
@@ -202,6 +204,19 @@
   .iconbtn { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--line2);
     background: var(--bg); color: var(--muted); border-radius: var(--radius); padding: 1px 7px; }
   .iconbtn:hover { color: var(--fg); border-color: var(--accent); }
+  .doc-head .hg { display: inline-flex; align-items: center; gap: 4px; } .doc-head .hg ~ .hg { margin-left: 4px; }
+  :where(.doc-head button.iconbtn) { display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; }   /* :where — zero specificity, so every per-width hide rule still wins */
+  /* the head's symbols come from different fonts: sizes bring their ink to ~8.5px, padding-bottom lifts it to the box centre */
+  .doc-head [data-side], .doc-head [data-tocbtn] { font-size: 17px; padding-bottom: 3.6px; }
+  .doc-head [data-back] { font-size: 11px; padding-bottom: 1.2px; }
+  .doc-head [data-changelog] { font-size: 14px; padding-bottom: 3.8px; }
+  .doc-head [data-docwidth] { font-size: 14px; padding-bottom: 1.2px; }
+  .doc-head [data-find] { font-size: 20px; padding-bottom: 2px; }
+  .doc-head [data-mirror] { font-size: 13px; padding-bottom: 1.4px; }
+  .doc-head [data-swap] { font-size: 15px; padding-bottom: 1.4px; }
+  .doc-head [data-resetlayout] { font-size: 11px; }
+  .doc-head [data-quick], .doc-head [data-help], .doc-head [data-closeright] { font-size: 12px; padding-bottom: .6px; }
+  .doc-head [data-bmode] { font-size: 12px; padding-bottom: 2.6px; }
   .iconbtn:disabled { opacity: .35; cursor: default; }
   /* history <select> styled as an iconbtn: drop native chrome so its height matches the buttons */
   select.iconbtn { -webkit-appearance: none; appearance: none; font-family: var(--chrome); line-height: 1.6; max-width: 12em;
@@ -286,6 +301,7 @@
   .tree-tools .iconbtn { font-size: 10.5px; padding: 1px 7px; }
   .hint kbd { font-family: var(--chrome); font-size: 10px; background: var(--chip); border: 1px solid var(--line2); border-radius: var(--radius); padding: 0 5px; color: var(--body); }   /* R3: ? shortcut inline in the sidebar hint */
   .tree { font-family: var(--chrome); font-size: 12.5px; overflow: auto; flex: 1; user-select: none; }   /* R6: mono, denoised */
+  #side .tree { margin-right: -12px; padding-right: 12px; }   /* the scrollbar sits on the sidebar's edge, the rows keep their inset */
   /* dev/kb section root = a quiet side-label (uppercase muted), matching the comp */
   .tree > details > summary { text-transform: uppercase; font-size: 10.5px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
   .tree details { margin: 0; }
@@ -634,7 +650,7 @@
 <button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button>
 <div id="layout">
   <aside id="side" class="pane">
-    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
     <div class="side-top">
     <select id="proj" class="ctl" title="project scope"></select>
     <input id="search" class="ctl" type="search" list="recent-searches" placeholder="search docs… (Enter)">
@@ -645,7 +661,7 @@
       <button class="navbtn" data-go="recent"><span class="k">≡</span>Recent</button>
       <a id="gitwebEntry" class="navbtn code" target="_blank" rel="noopener" title="browse code (gitweb — all repos)"><span class="k">‹&#8288;›</span>浏览代码</a>
     </div>
-    <div class="tree-tools"><span class="side-label">files</span><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button></div>
+    <div class="tree-tools"><span class="side-label">files</span></div>
     <div id="tree" class="tree">loading…</div>
     <div class="hint">shift-click → open on the right · select text in a doc → 💬 comment · <kbd>?</kbd> 帮助 / 快捷键</div>
     <div id="filterbox">
@@ -1608,15 +1624,18 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var sideBtn = side === "left" ? '<button class="iconbtn" data-side="1" title="files">☰</button>' : "";
     var actions = '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">⌕</button>' +
       (side === "left" ? '<button class="iconbtn" data-quick="1" title="quick open (⌘K)">⌘K</button>' : "");
-    var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button><button class="iconbtn" data-help="1" title="help (?)">?</button>' : "";
+    var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button>' : "";
+    var help = side === "left" ? '<button class="iconbtn" data-help="1" title="help (?)">?</button>' : "";
     var tools = side === "left"
       ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
         '<button class="iconbtn" data-resetlayout="1" title="reset pane widths (equal / fill)">↺</button>'
       : '<button class="iconbtn" data-closeright="1" title="close">✕</button>';
+    var panes = tocBtn + tools;
     return '<div class="rail"></div>' +   // S6: pane's first child, every view kind, via this one shared choke point
-      '<div class="doc-head">' + sideBtn + back + hist + '<span class="crumb" title="' + esc(crumb) + '"><span class="full">' + esc(crumb) +
-      '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" + (extra || "") + actions + tocBtn + tools + "</div>" +
+      '<div class="doc-head"><span class="hg">' + sideBtn + back + hist + "</span>" + '<span class="crumb" title="' + esc(crumb) + '"><span class="full">' + esc(crumb) +
+      '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" +
+      (extra ? '<span class="hg">' + extra + "</span>" : "") + '<span class="hg">' + actions + "</span>" + '<span class="hg">' + panes + "</span>" + (help ? '<span class="hg">' + help + "</span>" : "") + "</div>" +
       (p._findOpen ? findBarHtml(side) : "");   // R3/R5: same choke point for the find bar
   }
   function findBarHtml(side) {
@@ -2963,7 +2982,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
-    if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); toggleSide(); return; }
+    if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); if (narrow) toggleSide(); else document.getElementById("reopen").click(); return; }
     if ((t = e.target.closest("#totop"))) { e.preventDefault(); PANES.left.scrollTop = 0; totop.classList.remove("show"); return; }
     if ((t = e.target.closest("[data-sidetop]"))) { e.preventDefault(); document.getElementById("side").classList.toggle("top-open"); return; }
     if ((t = e.target.closest("[data-treefilter]"))) { e.preventDefault();

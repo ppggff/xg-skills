@@ -1120,7 +1120,7 @@ t("narrow mode: the sidebar's scope and search fold away, the nav is one line", 
   assert.match(html, /<button class="iconbtn" data-sidetop="1"[^>]*><span class="scope">all<\/span> ▾<\/button>/, "the fold toggle carries the current scope");
   assert.match(html, /\[data-sidetop\] \{ display: none; \} html\.narrow \[data-sidetop\] \{ display: inline-block; \}/, "the toggle exists only below the breakpoint");
   assert.match(html, /html\.narrow #side:not\(\.top-open\) \.side-top \{ display: none; \}/, "folded by default below the breakpoint");
-  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; \}/, "Board · Recent · code on one line");
+  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row;/, "Board · Recent · code on one line");
   assert.match(html, /\.side-top \{ display: contents; \}/, "the wrapper leaves the desktop sidebar's flex spacing alone");
   assert.match(html, /sideTopBtn\.querySelector\("\.scope"\)\.textContent = project \|\| "all";/, "the toggle label follows the scope");
 });
@@ -1157,7 +1157,8 @@ t("narrow mode: tighter sidebar, hint hidden, file filter behind a button", () =
   assert.match(html, /html\.narrow #side \{ gap: 6px; \}/);
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px; padding: 2px 6px; \}/);
   assert.match(html, /html\.narrow #side \.hint \{ display: none; \}/, "the ? button in the pane head covers help");
-  assert.match(html, /<div class="tree-tools"><span class="side-label">files<\/span><button class="iconbtn" data-treefilter="1"[^>]*>⌕<\/button><\/div>/, "a ⌕ button in the files row");
+  assert.match(html, /<span class="brand-btns"><button class="iconbtn" data-sidetop="1"[^>]*>.*?<\/button><button class="iconbtn" data-treefilter="1"[^>]*>⌕<\/button>/, "the file-filter ⌕ sits right after the scope toggle in the brand row");
+  assert.match(html, /<div class="tree-tools"><span class="side-label">files<\/span><\/div>/, "and no longer in the files row");
   assert.match(html, /html\.narrow #side:not\(\.filter-open\) #filterbox:not\(:has\(input:not\(:placeholder-shown\)\)\) \{ display: none; \}/, "folded unless opened or a filter is active");
 });
 t("narrow mode: long tree names drag sideways per row; nothing drags the page", () => {
@@ -1171,6 +1172,26 @@ t("narrow mode: a back-to-top button shows once the pane is a screen down", () =
   assert.match(html, /html\.narrow #totop\.show \{ display: block; position: fixed;/);
   assert.match(html, /totop\.classList\.toggle\("show", narrow && PANES\.left\.scrollTop > PANES\.left\.clientHeight\)/, "a screen down, below the breakpoint");
   assert.match(html, /PANES\.left\.scrollTop = 0;/, "an instant jump — smooth scrolling a long doc is itself heavy");
+});
+t("pane head: buttons in function groups with a gap between, help last", () => {
+  assert.match(html, /'<div class="doc-head"><span class="hg">' \+ sideBtn \+ back \+ hist \+ "<\/span>" \+ '<span class="crumb"/, "navigation first");
+  assert.match(html, /\(extra \? '<span class="hg">' \+ extra \+ "<\/span>" : ""\) \+ '<span class="hg">' \+ actions \+ "<\/span>" \+ '<span class="hg">' \+ panes \+ "<\/span>" \+ \(help \? '<span class="hg">' \+ help \+ "<\/span>" : ""\)/, "view · find · panes · help");
+  assert.match(html, /\.doc-head \.hg \{ display: inline-flex; align-items: center; gap: 4px; \} \.doc-head \.hg ~ \.hg \{ margin-left: 4px; \}/, "4px inside a group, 10px between groups");
+});
+t("pane head: one button box, glyphs sized and centred by their measured ink", () => {
+  assert.match(html, /:where\(\.doc-head button\.iconbtn\) \{ display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; \}/, "zero specificity: the per-width hide rules must still win");
+  assert.match(html, /\.doc-head \[data-find\] \{ font-size: 20px; padding-bottom: 2px; \}/, "⌕ is tiny in the system font");
+  assert.match(html, /content: "▼";/, "the history caret is a glyph that has ink at 9px");
+});
+t("desktop: the tree's scrollbar sits on the sidebar edge; a collapsed sidebar reopens from the pane head", () => {
+  assert.match(html, /#side \.tree \{ margin-right: -12px; padding-right: 12px; \}/);
+  assert.match(html, /#side\.collapsed ~ #left \[data-side\] \{ display: inline-flex; \}/, "☰ joins the navigation group once the sidebar is collapsed");
+  assert.doesNotMatch(html, /#reopen\.show \{ display: block; \}/, "the floating ≡ that sat over ◀ is gone");
+  assert.match(html, /if \(narrow\) toggleSide\(\); else document\.getElementById\("reopen"\)\.click\(\);/, "the head ☰ reopens the collapsed sidebar on the desktop");
+});
+t("narrow mode: Board · Recent · code as one segmented control", () => {
+  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\); \}/);
+  assert.match(html, /html\.narrow \.navbtn \{ flex: 1 1 0; min-width: 0; white-space: nowrap; justify-content: center; border-radius: 0; \}/);
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
