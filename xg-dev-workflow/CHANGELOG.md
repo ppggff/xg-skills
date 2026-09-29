@@ -89,6 +89,7 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: the board's status chips lose their 状态 label.
   Then: coming back to a view left at the very top lands at the top again (the board's chips and a doc's frontmatter
   had been scrolled under the head by the top-block anchor).
+  Then: the tree's F folds innermost-first (on a phone, a folder switched while its parent was hidden reopened as a blank).
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
