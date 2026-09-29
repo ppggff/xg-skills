@@ -1228,6 +1228,7 @@ t("board table: rows divided by hairlines only — no grid, no header fill", () 
   assert.doesNotMatch(html, /\.btable th\b/, "no header row left to style");
   assert.match(html, /\.btable td:nth-child\(1\) \{ width: 5em; \}/, "column widths ride on the first row's cells (fixed layout)");
   assert.match(html, /\.btable tr:last-child td \{ border-bottom: 0; \}/);
+  assert.match(html, /\.btable td\.tid \{ border-bottom-color: transparent; \}/, "inset row lines start at the title column; the group rule stays full width");
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");

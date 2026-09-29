@@ -369,6 +369,7 @@
   .btable td { padding: 7px 8px; vertical-align: baseline; overflow-wrap: break-word; }   /* mixed sizes (mono meta, bold title) share a first line */
   .btable td { border: 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }   /* faint hairlines between rows only — not the global table grid; the mix follows either theme */
   .btable tr:last-child td { border-bottom: 0; }
+  .btable td.tid { border-bottom-color: transparent; }   /* inset row lines: they start at the title column, the group title's rule runs full width */
   .btable .trow { cursor: pointer; }
   .btable .trow:hover { background: var(--chip); }
   .btable .trow.selected { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
