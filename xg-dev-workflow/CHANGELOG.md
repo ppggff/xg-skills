@@ -72,6 +72,9 @@ the ruling was to adapt by width, never by recognizing the device.
   horizontal scrollers lagged on a real phone (heat, late tiles); wrapping them all was smooth, and a tap-to-scroll toggle
   tried in between lagged again as soon as one block was expanded, so it was dropped.
   Then: `/assets/` (marked, mermaid) revalidate with an ETag, so a reload no longer re-downloads the 3.3 MB mermaid.
+  Then: pane-head buttons in function groups with evenly sized, centred glyphs (all widths); on the desktop the tree's
+  scrollbar meets the sidebar edge and a collapsed sidebar reopens from the head; on a phone ⌕ sits by the scope toggle and
+  the three nav entries form one segmented control. A 10th scenario, `desk`, runs at 1440×900.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
