@@ -87,6 +87,8 @@ the ruling was to adapt by width, never by recognizing the device.
   sharing the origin, gitweb runs with $prevent_xss and a same-origin CSP. A stray unittest.main() in test_viewer.py had
   kept the --lan tests from ever running; they run (and pass) now.
   Then: the board's status chips lose their 状态 label.
+  Then: coming back to a view left at the very top lands at the top again (the board's chips and a doc's frontmatter
+  had been scrolled under the head by the top-block anchor).
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
