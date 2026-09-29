@@ -1224,7 +1224,7 @@ t("tree F: fold rebuilds the tree closed; only an immediate second F restores", 
   assert.match(html, /if \(e\.target\.closest\("summary"\) && !e\.target\.closest\("\.sx"\)\) treeSnap = \{ dev: null, kb: null \};/, "any folder click in between voids the restore");
 });
 t("board table: rows divided by hairlines only — no grid, no header fill", () => {
-  assert.match(html, /\.btable td \{ border: 0; border-bottom: 1px solid var\(--line\); \}/, "no vertical lines or outer frame from the global table style");
+  assert.match(html, /\.btable td \{ border: 0; border-bottom: 1px solid color-mix\(in srgb, var\(--line\) 50%, transparent\); \}/, "no vertical lines or outer frame from the global table style");
   assert.doesNotMatch(html, /\.btable th\b/, "no header row left to style");
   assert.match(html, /\.btable td:nth-child\(1\) \{ width: 5em; \}/, "column widths ride on the first row's cells (fixed layout)");
   assert.match(html, /\.btable tr:last-child td \{ border-bottom: 0; \}/);
