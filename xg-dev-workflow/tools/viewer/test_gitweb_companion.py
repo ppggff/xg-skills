@@ -127,6 +127,7 @@ class TUnit(unittest.TestCase):
         self.assertIn('$HTTP["host"] !~', lt)              # Host allowlist condition
         self.assertIn("url.access-deny", lt)
         self.assertIn("PATH", lt)                          # git findable by the CGI
+        self.assertIn("server.max-keep-alive-requests = 0", lt)   # no kept-alive connection a host-keyed proxy could reuse for the viewer's port
 
     def test_write_configs_lan(self):
         tmp = Path(tempfile.mkdtemp())
@@ -181,6 +182,14 @@ class TIntegration(unittest.TestCase):
                                    headers={"Host": "127.0.0.1:%d" % self.port}), timeout=3
         ).read().decode("utf-8", "replace")
         self.assertIn("demo", body)                                     # symlinked git-dir listed with clean projid
+
+    def test_responses_close_the_connection(self):
+        self.assertTrue(gwc._await_up(self.proc, self.port))
+        import http.client   # urllib always asks for Connection: close itself; a browser asks for keep-alive
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        c.request("GET", "/", headers={"Host": "127.0.0.1:%d" % self.port})
+        r = c.getresponse(); r.read(); c.close()
+        self.assertEqual((r.getheader("Connection") or "").lower(), "close")   # nothing left open to be misused
 
 
 if __name__ == "__main__":

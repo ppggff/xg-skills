@@ -180,6 +180,7 @@ def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "lo
         'server.document-root = "%s"\n'
         'server.bind = "%s"\n'
         "server.port = %d\n"
+        "server.max-keep-alive-requests = 0\n"   # close after each response: a proxy that pools by host alone reused a kept-alive gitweb connection for the viewer's port
         'server.modules = ( "mod_access", "mod_cgi", "mod_setenv" )\n'  # mod_access load-bearing for the Host guard
         'server.pid-file = "%s"\n'
         'server.errorlog = "%s"\n'
