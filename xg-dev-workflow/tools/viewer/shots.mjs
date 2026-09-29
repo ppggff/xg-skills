@@ -346,7 +346,8 @@ const SCENARIO = {
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     check("the one button cycles the forms and the pick is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // kanban → rows
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // table → rows
     await ctx.click("#left .row"); check("tapping a row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .row.selected')"));
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
@@ -391,7 +392,7 @@ const SCENARIO = {
     check("390: tree text ≥ 13px", (await fs("#tree summary")) >= 13);
     await ctx.click("#scrim"); await ctx.go("board");
     check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
-    check("390: row meta text ≥ 13px", (await fs("#left .row .rprog")) >= 13);
+    check("390: row meta text ≥ 12px", (await fs("#left .row .rprog")) >= 12);
   },
   // Below the breakpoint wide content scrolls inside its own box and the pane never scrolls sideways;
   // the inline source-line gutter (it would skew pre, table and hr) is not drawn. 375 = the narrowest phone.
@@ -420,7 +421,46 @@ const SCENARIO = {
     check("375: grid cards stay inside the pane", await ctx.eval(`[...document.querySelectorAll("#left .card")].every(c => c.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right) && ${pane}.scrollWidth <= ${pane}.clientWidth`));
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     check("375: a kanban column is no wider than the board", await ctx.eval(`(() => { const b = document.querySelector("#left .board.kanban"); return [...b.querySelectorAll(".col")].every(c => c.getBoundingClientRect().width <= b.clientWidth); })()`));
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // kanban → rows
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // table → rows
+  },
+  // The second phone pass: the sidebar top folds, the card detail stays in the pane, the visit history is a
+  // ▾ button, the board has a table form, and chrome text is back near desktop sizes (375 = the narrowest phone).
+  async phone(ctx, check, o) {
+    await ctx.viewport(375, 667); await ctx.load(); await ctx.go("board");
+    const pane = "document.querySelector('#left')", noSideways = `${pane}.scrollWidth <= ${pane}.clientWidth`;
+    const fs = (sel) => ctx.eval(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? parseFloat(getComputedStyle(e).fontSize) : -1; })()`);
+    await ctx.click("[data-side]");
+    check("375: scope and search start folded and the tree starts near the top", await ctx.eval("(() => { const t = document.querySelector('.side-top'); return !!t && getComputedStyle(t).display === 'none' && document.querySelector('#tree').getBoundingClientRect().top < 120; })()"));
+    check("375: the fold toggle shows the scope", await ctx.eval("document.querySelector('[data-sidetop] .scope').textContent === (document.getElementById('proj').value || 'all')"));
+    check("375: Board · Recent · code sit on one line", await ctx.eval("new Set([...document.querySelectorAll('#side .navbtn')].map(b => Math.round(b.getBoundingClientRect().top))).size === 1"));
+    await ctx.click("[data-sidetop]");
+    check("375: the toggle unfolds scope and search", await ctx.eval("!!document.getElementById('proj').offsetParent && !!document.getElementById('search').offsetParent"));
+    check("375: tree text 13px, inputs stay 16px", (await fs("#tree a.file")) === 13 && (await fs("#search")) === 16);
+    await ctx.click("[data-sidetop]"); await ctx.click("#scrim");
+    check("375: crumb and row meta 12px", (await fs("#left .crumb")) === 12 && (await fs("#left .row .rprog")) === 12);
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
+    check("375: the table form has id, card, state, progress, next and time per row", await ctx.eval("[...document.querySelectorAll('#left .btable .trow')].every(r => r.cells.length === 6) && !!document.querySelector('#left .btable .trow .ttitle a')"));
+    check("375: the table scrolls inside itself, the pane does not", await ctx.eval(noSideways));
+    await ctx.click("#left .btable .trow .tid");
+    check("375: tapping a table row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .trow.selected')"));
+    check("the table pick is remembered", await ctx.eval("localStorage.getItem('sv-board-mode') === 'table'"));
+    const keys = await ctx.eval("[...document.querySelectorAll('#left .trow')].map(r => r.dataset.key)");
+    let matrix = false;
+    for (const key of keys.slice(0, 8)) {
+      await ctx.eval(navAnchor({ nav: "trace", card: key }) + "; true");
+      await ctx.wait("!!document.querySelector('#left .doc-head') && !document.querySelector('#left .btable')");
+      await sleep(1500);
+      if (await ctx.eval("!!document.querySelector('#left table.trm')")) { matrix = true; break; }
+    }
+    check("375: a card detail with its trace tables stays inside the pane", matrix && await ctx.eval(`${noSideways} && [...document.querySelectorAll('#left table.trm')].every(t => t.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right + 1)`));
+    await ctx.go("doc");
+    check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
+    await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+    await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});
+    check("375: picking an entry from the history navigates to it", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .docbody')"));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

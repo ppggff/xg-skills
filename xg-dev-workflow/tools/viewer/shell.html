@@ -95,12 +95,16 @@
   html.narrow .docbody { overflow-wrap: break-word; }
   html.narrow .frontmatter .fm-kv { min-width: 0; overflow-wrap: anywhere; }   /* a flex item's min-content is its longest URL */
   html.narrow .docbody table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
+  html.narrow table.trm { display: block; width: max-content; max-width: 100%; overflow-x: auto; }   /* the card detail's matrix and task table */
   html.narrow .mermaid { overflow-x: auto; }
   html.narrow .mermaid svg { width: var(--nat-w, auto); max-width: none !important; }   /* mermaid inlines max-width; --nat-w is set in renderMermaid */
   html.narrow .docbody > [data-srcline]::before { display: none; }   /* narrow forces gutter-in, whose inline number skews pre, table and hr */
   html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
-  html.narrow select.iconbtn[data-hist] { display: none; }   /* ◀ and quick open cover it; the head keeps its budget */
+  .histwrap { display: contents; }
+  html.narrow .histwrap { display: inline-block; position: relative; }   /* a ▾ button; the transparent native select over it is the tap target (the phone's own picker) */
+  html.narrow .histwrap::before { content: "▾"; display: inline-block; border: 1px solid var(--line2); padding: 0 5px; line-height: 21px; font-size: 12px; color: var(--muted); }
+  html.narrow .histwrap select.iconbtn { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
   /* Touch targets below the breakpoint: taller rows and 16px inputs. Buttons keep their desktop size — enlarging
      them crowded the head and the find bar on a phone (real-device pass). Decided by width like everything else here. */
   html.narrow .ctl, html.narrow #filterbox input, html.narrow #qo input, html.narrow .findbar input { font-size: 16px; }   /* 16px: mobile browsers stop zooming into the field */
@@ -108,19 +112,25 @@
   html.narrow .board-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 8px 0; }   /* one swipeable line of status chips */
   html.narrow .board-filters::-webkit-scrollbar { display: none; }
   html.narrow .fchip { flex: none; }
-  html.narrow .tree { font-size: 14px; }
+  html.narrow .tree { font-size: 13px; }
   html.narrow .tree summary, html.narrow .tree .file { min-height: 40px; padding: 4px 6px; }
   html.narrow .tree > details > summary { font-size: 13px; }
   html.narrow .row { min-height: 44px; }
-  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 13px; }
+  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 12px; }
   html.narrow .row .rtitle { padding: 9px 0; }   /* the title link's own hit area, not just the row's */
   html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
-  html.narrow #toc a { display: block; padding: 8px 0; font-size: 14px; }
-  html.narrow .crumb, html.narrow .hint { font-size: 13px; }
+  html.narrow #toc a { display: block; padding: 8px 0; font-size: 13px; }
+  html.narrow .crumb, html.narrow .hint { font-size: 12px; }
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
   [data-side] { display: none; } html.narrow [data-side] { display: inline-block; }
+  [data-sidetop] { display: none; } html.narrow [data-sidetop] { display: inline-block; }
+  html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
+  .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
+  html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
+  html.narrow .navbtns { flex-direction: row; }
+  html.narrow .navbtn { flex: 1; min-width: 0; white-space: nowrap; }
   .crumb .base { display: none; } html.narrow .crumb .full { display: none; } html.narrow .crumb .base { display: inline; }
   /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
      the body and the current-line band) while the body scrolls under it. The pane has no top
@@ -336,6 +346,23 @@
   .row .rtitle { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
   .row .rprog { overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
   .row .rwhen { text-align: right; }
+  .btable { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
+  .btable th { text-align: left; font-family: var(--chrome); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); padding: 4px 8px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+  .btable td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
+  .btable .trow { cursor: pointer; }
+  .btable .trow:hover { background: var(--chip); }
+  .btable .trow.selected { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+  .btable .tid, .btable .tprog, .btable .twhen { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .btable .ttitle { min-width: 11em; }   /* the title breaks at its hyphens, never letter by letter */
+  .btable .ttitle a { font-weight: 600; color: var(--fg); }
+  .btable .tnext { color: var(--body); min-width: 12em; }
+  .btable .twhen { text-align: right; }
+  .btable { table-layout: fixed; }   /* one column grid across the per-project tables */
+  .btable th:nth-child(1) { width: 4em; } .btable th:nth-child(2) { width: 28%; } .btable th:nth-child(3) { width: 7.5em; }
+  .btable th:nth-child(4) { width: 5em; } .btable th:nth-child(6) { width: 4.5em; }
+  html.narrow .btable { display: block; overflow-x: auto; table-layout: auto; }
+  html.narrow .btable th { width: auto; }
 
   .flabel { font-family: var(--chrome); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 2px 0 8px; }
   /* R60: status chips carry the status color itself (no leading dot); off = dimmed + struck. */
@@ -583,10 +610,12 @@
 <button id="reopen" class="iconbtn" title="show sidebar">☰</button>
 <div id="layout">
   <aside id="side" class="pane">
-    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <div class="side-top">
     <select id="proj" class="ctl" title="project scope"></select>
     <input id="search" class="ctl" type="search" list="recent-searches" placeholder="search docs… (Enter)">
     <datalist id="recent-searches"></datalist>
+    </div>
     <div class="navbtns">
       <button class="navbtn" data-go="board"><span class="k">▦</span>Board</button>
       <button class="navbtn" data-go="recent"><span class="k">≡</span>Recent</button>
@@ -1244,7 +1273,7 @@ var SV = (function () {
   // preference wins; the pre-rows boolean key is read as one of the first two; null = no preference,
   // and the renderer then picks rows below the width breakpoint, the grid above it.
   function boardMode(stored, legacyKanban) {
-    if (stored === "grid" || stored === "kanban" || stored === "rows") return stored;
+    if (stored === "grid" || stored === "kanban" || stored === "rows" || stored === "table") return stored;
     if (legacyKanban === "1") return "kanban";
     if (legacyKanban === "0") return "grid";
     return null;
@@ -1305,6 +1334,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function sideOf(el) { return el.closest("#left") ? "left" : "right"; }
   var tocPane = document.getElementById("toc"), treeEl = document.getElementById("tree");
   var projSel = document.getElementById("proj"), searchBox = document.getElementById("search");
+  var sideTopBtn = document.querySelector("[data-sidetop]");
+  function showScope() { sideTopBtn.querySelector(".scope").textContent = project || "all"; }
   var TREES = { dev: new Map(), kb: new Map() }, RAW = { dev: [], kb: [] };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -1544,9 +1575,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var p = PANES[side];
     var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back">◀</button>';
     var mru = p._mru || [], curKey = mruKey(p._view);
-    var hist = mru.length > 1 ? '<select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
+    var hist = mru.length > 1 ? '<span class="histwrap"><select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
-        ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select>" : "";
+        ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select></span>" : "";
     var sideBtn = side === "left" ? '<button class="iconbtn" data-side="1" title="files">☰</button>' : "";
     var actions = '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">⌕</button>' +
       (side === "left" ? '<button class="iconbtn" data-quick="1" title="quick open (⌘K)">⌘K</button>' : "");
@@ -1819,12 +1850,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
       } else {                                      // grid and rows group by project; TOC checkboxes hide groups
         var byProj = {}, order = [];
         cards.forEach(function (c) { if (!byProj[c.project]) { byProj[c.project] = []; order.push(c.project); } byProj[c.project].push(c); });
-        body = mode === "rows" ? rows(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj); tf = { set: boardHideProj, keys: order };
+        body = mode === "rows" ? rows(order, byProj, SV.cardMtimes(RAW.dev))
+          : mode === "table" ? boardTable(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj);
+        tf = { set: boardHideProj, keys: order };
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
-      var next = { grid: "kanban", kanban: "rows", rows: "grid" }[mode];   // one button cycles the three forms; its label is the current one
+      var next = { grid: "kanban", kanban: "table", table: "rows", rows: "grid" }[mode];   // one button cycles the four forms; its label is the current one
       pane.innerHTML = paneHead(side, "Board",
-        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → rows (now ' + mode + ')">' + mode + "</button>") +
+        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → table → rows (now ' + mode + ')">' + mode + "</button>") +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       padForDrawer(pane);
@@ -1835,7 +1868,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
           lsSet("sv-board-hide", JSON.stringify(boardHideState)); render(side); }; });
       var secs = [].slice.call(pane.querySelectorAll(isKanban ? ".col h3" : "h2.sec"));
       tagSections(side, secs, secs.map(function (s) { return { text: s.textContent, depth: 1 }; }));
-      afterRender(side, ".card, .row, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
+      afterRender(side, ".card, .row, .trow, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
     }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 3
   }
   function boardFilters(states) {                   // R60: status chips only (no dots), colored by status
@@ -1956,7 +1989,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function barH(bar) { return bar ? bar.getBoundingClientRect().height : 0; }
   function updateDetail(side) {
     var pane = PANES[side];
-    pane.querySelectorAll(".card, .row").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
+    pane.querySelectorAll(".card, .row, .trow").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
@@ -1986,6 +2019,22 @@ if (typeof window !== "undefined" && window.marked) (function () {
       '<a class="rtitle" data-nav="trace" data-card="' + esc(key) + '" title="' + esc(c.dir) + ' — 打开详情">' + esc(c.dir.replace(/^\d+-/, "")) + "</a>" +
       '<span class="rprog">' + prog + "</span>" +
       '<span class="rwhen">' + (mtime ? relTime(mtime) : "") + "</span></div>";
+  }
+  function boardTable(order, byProj, mtimes) {      // rows as a table: same groups, the title wraps instead of truncating
+    return order.map(function (p) {
+      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
+        ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
+        '<table class="btable"><tr><th>#</th><th>卡片</th><th>状态</th><th>进度</th><th>下一步</th><th>更新</th></tr>' +
+        byProj[p].map(function (c) {
+          var key = c.project + "/" + c.nnn, mt = mtimes[c.project + "/" + c.dir];
+          var prog = esc(c.governance === "lite" ? SV.liteProgress(c.steps) : SV.legacyPhase(c.steps));
+          return '<tr class="trow ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '">' +
+            '<td class="tid">' + esc(c.nnn) + "</td>" +
+            '<td class="ttitle"><a data-nav="trace" data-card="' + esc(key) + '" title="打开详情">' + esc(c.dir.replace(/^\d+-/, "")) + "</a></td>" +
+            '<td><span class="badge state ' + stClass(c.state) + '">' + esc(c.state) + "</span></td>" +
+            '<td class="tprog">' + prog + "</td>" +
+            '<td class="tnext">' + esc(c.effective_next || "") + "</td>" +
+            '<td class="twhen">' + (mt ? relTime(mt) : "") + "</td></tr>"; }).join("") + "</table></section>"; }).join("");
   }
   function kanban(cards) {
     var cols = {}, order = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
@@ -2611,7 +2660,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     syncFindH(side);
     if (focus === side) renderToc();
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
-    var first = PANES[side].querySelector(".card.selected, .row.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
+    var first = PANES[side].querySelector(".card.selected, .row.selected, .trow.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
     // S12/D12: the entering flag is read once and burned. That is the whole reason a poll or a
     // theme switch can't yank a reader back to the anchor they entered on — those paths re-render
@@ -2644,6 +2693,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     projSel.innerHTML = ['<option value="">all projects</option>'].concat(
       SV.projectsFromTree(dp, kp).map(function (p) { return "<option>" + esc(p) + "</option>"; })).join("");
     projSel.value = project; project = projSel.value;   // R65: reflect the persisted scope; reconcile if it no longer exists
+    showScope();
   }
   function renderTree() {
     function scope(items) { return items.filter(function (it) { return inProject(it.path); }); }
@@ -2893,6 +2943,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); toggleSide(); return; }
+    if ((t = e.target.closest("[data-sidetop]"))) { e.preventDefault(); document.getElementById("side").classList.toggle("top-open"); return; }
     if ((t = e.target.closest("[data-tocbtn]"))) { e.preventDefault(); toggleToc(); return; }
     if ((t = e.target.closest("[data-find]"))) { e.preventDefault(); findOpen(t.dataset.find); return; }   // the button twins of f / ⌘K / ?
     if ((t = e.target.closest("[data-quick]"))) { e.preventDefault(); openQuick(); return; }
@@ -2945,7 +2996,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden);
         invalidateGeometry(sideOf(t)); }   // S9 hookpoint 3: the revealed row pushes every mark below it down
       return; }
-    if ((t = e.target.closest(".card, .row")) && t.dataset.key) {           // R64: select a card (or a row) → detail drawer
+    if ((t = e.target.closest(".card, .row, .trow")) && t.dataset.key) {           // R64: select a card (or a row) → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
       try { localStorage.setItem("sv-detail-card", boardSelected); localStorage.setItem("sv-detail-open", "1"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
@@ -3056,7 +3107,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
 
   // --- wiring ----------------------------------------------------------------
-  projSel.onchange = function () { project = projSel.value; lsSet("sv-project", project); renderTree(); navigate("left", PANES.left._view || { kind: "board" }); };
+  projSel.onchange = function () { project = projSel.value; lsSet("sv-project", project); showScope(); renderTree(); navigate("left", PANES.left._view || { kind: "board" }); };
   treeEl.addEventListener("toggle", persistTreeOpen, true);   // R65: persist folder open/closed on user toggle (toggle doesn't bubble → capture)
   function sxActivate(c, e) {   // R1/R2: activate a section sort/collapse control (click or Enter/Space); preventDefault stops the <details> toggle
     e.preventDefault(); e.stopPropagation();

@@ -1115,6 +1115,39 @@ t("narrow mode: wide content scrolls inside its own box and source line numbers 
   assert.match(html, /html\.narrow \.board \{ grid-template-columns: repeat\(auto-fill, min\(368px, 100%\)\); \}/, "grid cards never exceed the pane");
   assert.match(html, /html\.narrow \.board\.kanban \.col \{ flex-basis: min\(368px, 100%\); \}/, "kanban columns never exceed the pane");
 });
+t("narrow mode: the sidebar's scope and search fold away, the nav is one line", () => {
+  assert.match(html, /<div class="side-top">\s*<select id="proj"[^>]*><\/select>\s*<input id="search"/, "scope and search share one foldable block");
+  assert.match(html, /<button class="iconbtn" data-sidetop="1"[^>]*><span class="scope">all<\/span> ▾<\/button>/, "the fold toggle carries the current scope");
+  assert.match(html, /\[data-sidetop\] \{ display: none; \} html\.narrow \[data-sidetop\] \{ display: inline-block; \}/, "the toggle exists only below the breakpoint");
+  assert.match(html, /html\.narrow #side:not\(\.top-open\) \.side-top \{ display: none; \}/, "folded by default below the breakpoint");
+  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; \}/, "Board · Recent · code on one line");
+  assert.match(html, /\.side-top \{ display: contents; \}/, "the wrapper leaves the desktop sidebar's flex spacing alone");
+  assert.match(html, /sideTopBtn\.querySelector\("\.scope"\)\.textContent = project \|\| "all";/, "the toggle label follows the scope");
+});
+t("narrow mode: the card detail's tables scroll inside themselves", () => {
+  assert.match(html, /html\.narrow table\.trm \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "the trace matrix and task table do not widen the pane");
+});
+t("narrow mode: the visit history is a ▾ button over the native select", () => {
+  assert.match(html, /'<span class="histwrap"><select class="iconbtn" data-hist="' \+ side/, "the history select sits in a wrapper");
+  assert.match(html, /\.histwrap \{ display: contents; \}/, "the wrapper is layout-neutral on the desktop");
+  assert.match(html, /html\.narrow \.histwrap \{ display: inline-block; position: relative; \}/, "below the breakpoint it becomes the button");
+  assert.match(html, /html\.narrow \.histwrap select\.iconbtn \{ position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; \}/, "the native select is the button's tap target");
+  assert.doesNotMatch(html, /html\.narrow select\.iconbtn\[data-hist\] \{ display: none; \}/, "no longer hidden below the breakpoint");
+});
+t("board: a fourth form, table, between kanban and rows", () => {
+  assert.equal(SV.boardMode("table", null), "table");
+  assert.match(html, /var next = \{ grid: "kanban", kanban: "table", table: "rows", rows: "grid" \}\[mode\];/, "one button cycles the four forms");
+  assert.match(html, /mode === "table" \? boardTable\(order, byProj, SV\.cardMtimes\(RAW\.dev\)\)/, "table groups by project like rows");
+  assert.match(html, /e\.target\.closest\("\.card, \.row, \.trow"\)/, "a table row selects the card like a row");
+  assert.match(html, /pane\.querySelectorAll\("\.card, \.row, \.trow"\)\.forEach\(function \(el\) \{ el\.classList\.toggle\("selected"/, "and is marked selected");
+});
+t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
+  assert.match(html, /html\.narrow \.tree \{ font-size: 13px; \}/);
+  assert.match(html, /html\.narrow #toc a \{ display: block; padding: 8px 0; font-size: 13px; \}/);
+  assert.match(html, /html\.narrow \.crumb, html\.narrow \.hint \{ font-size: 12px; \}/);
+  assert.match(html, /html\.narrow \.row \.rid, html\.narrow \.row \.rprog, html\.narrow \.row \.rwhen \{ font-size: 12px; \}/);
+  assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
@@ -1160,8 +1193,8 @@ t("the board renders rows below the breakpoint by default, keeps a chosen form, 
   assert.match(html, /lsSet\("sv-board-mode", boardMode\)/, "the pick is stored under the new key");
   assert.doesNotMatch(html, /lsSet\("sv-board-kanban"/, "the old boolean key is read for migration, never written");
   assert.match(html, /function rowHtml\(c, mtime\)/, "rows have their own renderer");
-  assert.match(html, /var next = \{ grid: "kanban", kanban: "rows", rows: "grid" \}\[mode\];/, "one button cycles the three board forms");
-  assert.match(html, /closest\("\.card, \.row"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
+  assert.match(html, /var next = \{ grid: "kanban", kanban: "table", table: "rows", rows: "grid" \}\[mode\];/, "one button cycles the board forms");
+  assert.match(html, /closest\("\.card, \.row, \.trow"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
 });
 
 // --- reading surface below the breakpoint ---
