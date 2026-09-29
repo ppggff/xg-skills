@@ -1217,8 +1217,11 @@ t("board: the status filter row is chips only, no label", () => {
 t("returning to a view left at the very top lands at the top, not on its first block", () => {
   assert.match(html, /if \(!scroll\) return;\n\s+if \(e\.y === 0\) return;/, "what sits above the first block (board filters, frontmatter) stays in view");
 });
-t("tree F: folders fold innermost-first, so none is changed while already hidden", () => {
-  assert.match(html, /\[\]\.slice\.call\(folders\)\.reverse\(\)\.forEach\(function \(d\) \{ d\.open = false; \}\);/);
+t("tree F: fold rebuilds the tree closed; only an immediate second F restores", () => {
+  const fn = html.match(/function collapseSection\(tree\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(fn, /renderTree\(\);/, "fresh <details> elements, never ones switched while hidden (a blank on WebKit)");
+  assert.doesNotMatch(fn, /\.open = false/, "no in-place folding left");
+  assert.match(html, /if \(e\.target\.closest\("summary"\) && !e\.target\.closest\("\.sx"\)\) treeSnap = \{ dev: null, kb: null \};/, "any folder click in between voids the restore");
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");

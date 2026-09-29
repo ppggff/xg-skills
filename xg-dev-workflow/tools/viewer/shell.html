@@ -3137,11 +3137,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
 
   // --- wiring ----------------------------------------------------------------
   projSel.onchange = function () { project = projSel.value; lsSet("sv-project", project); showScope(); renderTree(); navigate("left", PANES.left._view || { kind: "board" }); };
-  treeEl.addEventListener("toggle", persistTreeOpen, true);   // R65: persist folder open/closed on user toggle (toggle doesn't bubble → capture)
+  treeEl.addEventListener("toggle", persistTreeOpen, true);
+  treeEl.addEventListener("click", function (e) {   // a folder toggled by hand between two F presses voids the restore
+    if (e.target.closest("summary") && !e.target.closest(".sx")) treeSnap = { dev: null, kb: null };
+  }, true);   // R65: persist folder open/closed on user toggle (toggle doesn't bubble → capture)
   function sxActivate(c, e) {   // R1/R2: activate a section sort/collapse control (click or Enter/Space); preventDefault stops the <details> toggle
     e.preventDefault(); e.stopPropagation();
     var tree = c.parentNode.dataset.tree, act = c.dataset.act;
-    if (act === "collapse") { collapseSection(tree, c.closest("details[data-name]")); return; }   // no renderTree → focus stays
+    if (act === "collapse") { collapseSection(tree); return; }
     var s = treeSort[tree];
     if (act === "key") { s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; }
     else { s.dir = -s.dir; }
@@ -3153,18 +3156,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // R2: F collapses this section's folders; if already fully collapsed, restores the pre-collapse set.
   // Decision keys off live DOM state (any folder open?), NOT a flag — <details> toggle events are async,
   // so a flag reset synchronously would be clobbered when the programmatic toggles fire later.
-  function collapseSection(tree, sectionDet) {
-    var folders = sectionDet.querySelectorAll("details");   // descendants only (not the section <details> itself)
-    var anyOpen = false; folders.forEach(function (d) { if (d.open) anyOpen = true; });
-    if (anyOpen) {                                            // snapshot the open set, then collapse
-      var cur = {}; folders.forEach(function (d) { if (d.open) cur[treePathKey(d)] = 1; });
-      treeSnap[tree] = cur;
-      [].slice.call(folders).reverse().forEach(function (d) { d.open = false; });   // innermost first: WebKit left a folder closed while hidden laid out as open (a blank gap)
-    } else if (treeSnap[tree]) {                              // fully collapsed + have a snapshot → restore
-      var snap = treeSnap[tree]; treeSnap[tree] = null;
-      folders.forEach(function (d) { d.open = !!snap[treePathKey(d)]; });
-    }
-    persistTreeOpen();
+  function collapseSection(tree) {
+    // F rebuilds the tree rather than folding <details> in place: a folder switched while its parent was
+    // hidden reopened as a blank on WebKit. A fold remembers what was open; only the very next F restores it.
+    var sec = treeEl.querySelector('details[data-name="' + tree + '"]'), open = [];
+    sec.querySelectorAll("details").forEach(function (d) { if (d.open) open.push(treePathKey(d)); });
+    var saved = []; try { saved = JSON.parse(lsGet("sv-tree-open") || "[]"); } catch (e) { saved = []; }
+    var mine = function (k) { return k.indexOf(tree + "/") === 0; };
+    if (open.length) { treeSnap[tree] = open; saved = saved.filter(function (k) { return !mine(k); }); }
+    else if (treeSnap[tree]) { saved = saved.filter(function (k) { return !mine(k); }).concat(treeSnap[tree]); treeSnap[tree] = null; }
+    else return;
+    lsSet("sv-tree-open", JSON.stringify(saved));
+    renderTree();
+    var f = treeEl.querySelector('.secctl[data-tree="' + tree + '"] .sx[data-act="collapse"]'); if (f) f.focus();   // keyboard focus on the rebuilt control
   }
   var treeFilterEl = document.getElementById("treeFilter");   // R3: bottom filename filter
   treeFilterEl.addEventListener("input", function () { treeFilter = treeFilterEl.value.trim(); renderTree(); });
