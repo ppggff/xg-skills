@@ -96,10 +96,22 @@
   /* wide content scrolls inside its own box, never the pane (a pane that scrolls sideways drags the text and the head with it) */
   html.narrow .docbody { overflow-wrap: break-word; }
   html.narrow .frontmatter .fm-kv { min-width: 0; overflow-wrap: anywhere; }   /* a flex item's min-content is its longest URL */
-  html.narrow .docbody table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
-  html.narrow table.trm { display: block; width: max-content; max-width: 100%; overflow-x: auto; }   /* the card detail's matrix and task table */
-  html.narrow .mermaid { overflow-x: auto; }
-  html.narrow .mermaid svg { width: var(--nat-w, auto); max-width: none !important; }   /* mermaid inlines max-width; --nat-w is set in renderMermaid */
+  /* wide blocks wrap by default: a large doc with dozens of nested horizontal scrollers lagged on a phone. A tapped block
+     (.hscroll, one at a time) takes its natural width and scrolls itself; the trace tables expand on click, so they only wrap. */
+  html.narrow .docbody pre, html.narrow .docbody pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
+  html.narrow .docbody pre { overflow: visible; }
+  html.narrow .docbody td, html.narrow .docbody th, html.narrow table.trm td, html.narrow table.trm th { overflow-wrap: anywhere; }
+  html.narrow .docbody table { max-width: 100%; }
+  html.narrow table.trm { width: 100%; }
+  html.narrow .trm .name { white-space: normal; max-width: none; }   /* the requirement text wraps instead of widening the matrix */
+  html.narrow .trm .tstat { max-width: 100%; }
+  html.narrow .docbody pre.hscroll, html.narrow .docbody pre.hscroll code { white-space: pre; overflow-wrap: normal; }
+  html.narrow .docbody pre.hscroll { overflow-x: auto; }
+  html.narrow .docbody table.hscroll { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
+  html.narrow .docbody table.hscroll td, html.narrow .docbody table.hscroll th { overflow-wrap: normal; }
+  html.narrow .mermaid.hscroll { overflow-x: auto; }
+  html.narrow .mermaid.hscroll svg { width: var(--nat-w, auto); max-width: none !important; }   /* mermaid inlines max-width; --nat-w is set in renderMermaid */
+  html.narrow .hscroll { box-shadow: inset 0 0 0 1px var(--accent); }
   html.narrow .docbody { padding-left: 10px; }
   html.narrow .docbody > [data-srcline]::before { position: absolute; display: block; left: -24px; width: 22px; min-width: 0; margin: 0; text-align: right; font-size: 8.5px; }   /* hung in #left's padding + the body's: narrow forces gutter-in, whose inline number skews pre, table and hr */
   html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
@@ -136,13 +148,6 @@
     background: var(--bg); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
   html.narrow:has(#left .findbar) #totop.show { bottom: 72px; }   /* clear of the find bar */
   html.narrow:has(#left .card-detail) #totop { display: none; }   /* the board drawer owns the bottom */
-  /* temporary A/B for the phone lag on one large doc (?wrap=off): no nested scrollers — remove once the cause is fixed */
-  html.narrow.ab-wrap-off .docbody pre { white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; }
-  html.narrow.ab-wrap-off .docbody pre code { white-space: pre-wrap; }
-  html.narrow.ab-wrap-off .docbody table, html.narrow.ab-wrap-off table.trm { display: table; width: 100%; max-width: 100%; overflow: visible; table-layout: fixed; }
-  html.narrow.ab-wrap-off .docbody td, html.narrow.ab-wrap-off .docbody th, html.narrow.ab-wrap-off table.trm td, html.narrow.ab-wrap-off table.trm th { overflow-wrap: anywhere; }
-  html.narrow.ab-wrap-off .mermaid { overflow: visible; }
-  html.narrow.ab-wrap-off .mermaid svg { width: 100%; max-width: 100% !important; }
   html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
   .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
   html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
@@ -695,6 +700,7 @@
     <div class="help-sec"><h4>阅读</h4>
       <div class="help-row"><span class="key"><kbd>↔</kbd></span><span class="desc">阅读宽度 measure / full</span></div>
       <div class="help-row"><span class="key act">悬停</span><span class="desc">内部链接 → 预览浮层</span></div>
+      <div class="help-row"><span class="key act">点击</span><span class="desc">窄屏：代码块 / 表格 / 图 → 原宽横滑（再点复原）</span></div>
       <div class="help-row"><span class="key act">历史</span><span class="desc">文档头「历史」→ 选一次变更看增 / 删</span></div>
       <div class="help-row"><span class="key act">点击</span><span class="desc">右侧目录条目 → 跳转</span></div>
     </div>
@@ -1355,9 +1361,6 @@ if (typeof window !== "undefined") window.SV = SV;
 // ---------------------------------------------------------------------------
 if (typeof window !== "undefined" && window.marked) (function () {
   var PANES = { left: document.getElementById("left"), right: document.getElementById("right") };
-  // Temporary A/B switches for the phone lag on one large doc (?diag=off · ?wrap=off); remove once the cause is fixed.
-  var AB = new URLSearchParams(location.search);
-  if (AB.get("wrap") === "off") document.documentElement.classList.add("ab-wrap-off");
   // Which content pane an event landed in. Delegated handlers all need this, and the `.pane` class is
   // on #side/#toc too, so the question is always "#left or the other one" — never a class lookup.
   function sideOf(el) { return el.closest("#left") ? "left" : "right"; }
@@ -1446,6 +1449,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   NARROW_MQ.addEventListener("change", onNarrowChange);
   PANES.left.addEventListener("scroll", syncTotop, { passive: true }); NARROW_MQ.addEventListener("change", syncTotop);
+  document.addEventListener("click", function (e) {   // below the breakpoint a tapped wide block scrolls; the others wrap
+    if (!narrow || e.defaultPrevented || e.target.closest("a, button, input, select, summary, [data-nav]") || String(getSelection())) return;
+    var b = e.target.closest("#left .docbody pre, #left .docbody table, #left .docbody .mermaid"); if (!b) return;
+    var on = !b.classList.contains("hscroll");
+    PANES.left.querySelectorAll(".hscroll").forEach(function (x) { x.classList.remove("hscroll"); });
+    if (on) { b.classList.add("hscroll"); if (b.classList.contains("mermaid")) b.scrollLeft = (b.scrollWidth - b.clientWidth) / 2; }
+  });
   (function () {                             // R6: on load, restore #side width + apply persisted left/toc
     var sideEl = document.getElementById("side");
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
@@ -1771,7 +1781,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return mermaidLoading;
   }
   function renderMermaid(side, body) {
-    if (AB.get("diag") === "off") return;
     var blocks = body.querySelectorAll("pre > code.language-mermaid");
     if (!blocks.length) return;
     ensureMermaid().then(function (mermaid) {
@@ -1790,7 +1799,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
           return res; })
           .then(function (res) { holder.innerHTML = res.svg; dropTemp();
           invalidateContent(side); })   // S9 hookpoint 4: this inner .then is where the content and its geometry actually change
-          .then(function () { if (narrow) holder.scrollLeft = (holder.scrollWidth - holder.clientWidth) / 2; })   // mermaid centres the flow in its viewBox
           .catch(function (e) { holder.innerHTML = "<pre class='broken'>mermaid error: " + esc(e.message) + "</pre>"; dropTemp(); });
       });
     }).catch(function () {});

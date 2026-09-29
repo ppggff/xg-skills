@@ -408,14 +408,25 @@ const SCENARIO = {
     await sleep(200);
     const pane = "document.querySelector('#left')";
     check("375: the pane never scrolls sideways", await ctx.eval(`${pane}.scrollWidth <= ${pane}.clientWidth`));
-    check("375: a wide table scrolls inside itself", await ctx.eval(`(() => { const t = document.getElementById("wt"); return t.scrollWidth > t.clientWidth && t.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right; })()`));
-    check("375: a diagram keeps its natural width inside a scrolling holder", await ctx.eval(`(() => { const m = document.getElementById("wm"); return Math.round(m.querySelector("svg").getBoundingClientRect().width) === 900 && m.scrollWidth > m.clientWidth; })()`));
+    const fits = (id) => `(() => { const e = document.getElementById("${id}"); return e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right + 1; })()`;
+    check("375: by default a wide table and code block wrap to the pane — no nested scrollers", (await ctx.eval(fits("wt"))) && (await ctx.eval(fits("wp"))));
+    check("375: by default a diagram fits the pane", await ctx.eval(`(() => { const m = document.getElementById("wm"); return m.querySelector("svg").getBoundingClientRect().width <= m.clientWidth + 1; })()`));
+    await ctx.click("#wp");
+    check("375: a tapped code block keeps its lines and scrolls itself; the pane does not", await ctx.eval(`(() => { const e = document.getElementById("wp"); return e.classList.contains("hscroll") && e.scrollWidth > e.clientWidth; })() && ${pane}.scrollWidth <= ${pane}.clientWidth`));
+    await ctx.click("#wt");
+    check("375: tapping a table scrolls it and returns the code block to wrapping (one at a time)", await ctx.eval(`(() => { const t = document.getElementById("wt"); return t.classList.contains("hscroll") && t.scrollWidth > t.clientWidth && document.querySelectorAll("#left .hscroll").length === 1; })()`));
+    await ctx.click("#wt");
+    check("375: tapping it again wraps it back", await ctx.eval(`document.querySelectorAll("#left .hscroll").length === 0`));
+    await ctx.click("#wm");
+    check("375: a tapped diagram takes its natural width in a scrolling holder, opened on its middle", await ctx.eval(`(() => { const m = document.getElementById("wm"); return Math.round(m.querySelector("svg").getBoundingClientRect().width) === 900 && m.scrollWidth > m.clientWidth && Math.abs(m.scrollLeft - (m.scrollWidth - m.clientWidth) / 2) <= 1; })()`));
+    await ctx.click("#wm");
     check("375: source line numbers hang in the left margin, off the text", await ctx.eval(`["wt", "wp", "wh", "wl"].every(id => { const e = document.getElementById(id), b = getComputedStyle(e, "::before");
       return b.position === "absolute" && b.display !== "none" && parseFloat(b.left) + e.getBoundingClientRect().left >= ${pane}.getBoundingClientRect().left && parseFloat(b.left) + parseFloat(b.width) <= 0; })`));
     if (await ctx.eval("document.querySelectorAll('#left .docbody pre > code.language-mermaid, #left .docbody .mermaid:not(#wm)').length")) {
       await ctx.wait("[...document.querySelectorAll('#left .docbody .mermaid:not(#wm)')].every(m => m.querySelector('svg, .broken'))");
-      check("375: a rendered diagram is as wide as its viewBox", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm) svg")].every(s => Math.round(s.getBoundingClientRect().width) === Math.ceil(s.viewBox.baseVal.width))`));
-      check("375: a wide rendered diagram opens on its middle", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm)")].filter(m => m.scrollWidth > m.clientWidth).every(m => Math.abs(m.scrollLeft - (m.scrollWidth - m.clientWidth) / 2) <= 1)`));
+      check("375: a rendered diagram fits the pane until tapped", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm)")].every(m => m.querySelector("svg, .broken").getBoundingClientRect().width <= m.clientWidth + 1)`));
+      await ctx.click("#left .docbody .mermaid:not(#wm)");
+      check("375: a tapped rendered diagram is as wide as its viewBox", await ctx.eval(`(() => { const s = document.querySelector("#left .docbody .mermaid.hscroll svg"); return !!s && Math.round(s.getBoundingClientRect().width) === Math.ceil(s.viewBox.baseVal.width); })()`));
     } else console.log("note - wide: the doc has no mermaid block; only the synthetic diagram was checked");
     await ctx.go("board");
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid

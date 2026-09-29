@@ -1103,16 +1103,21 @@ t("narrow mode is decided by one matchMedia width query and nothing device-shape
   assert.match(html, /html\.narrow \[data-collapse\] \{ display: none; \}/, "the desktop collapse button is out of reach below the breakpoint");
   assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "any navigation closes an overlay");
 });
-t("narrow mode: wide content scrolls inside its own box and source line numbers are hidden", () => {
+t("narrow mode: wide content wraps by default and one tapped block scrolls; line numbers hang in the margin", () => {
   assert.match(html, /html\.narrow \.docbody > \[data-srcline\]::before \{ position: absolute; display: block; left: -24px; width: 22px; min-width: 0; margin: 0; text-align: right; font-size: 8\.5px; \}/, "line numbers hang in the left margin, never inline (inline skews pre, table and hr)");
   assert.match(html, /html\.narrow \.docbody \{ padding-left: 10px; \}/, "the body leaves room for the hanging numbers");
-  assert.match(html, /html\.narrow \.docbody table \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "a wide table scrolls itself, not the pane");
-  assert.match(html, /html\.narrow \.mermaid \{ overflow-x: auto; \}/, "a wide diagram scrolls inside its holder");
+  assert.match(html, /html\.narrow \.docbody pre, html\.narrow \.docbody pre code \{ white-space: pre-wrap; overflow-wrap: anywhere; \}/, "code wraps by default — nested scrollers made a large doc lag on a phone");
+  assert.match(html, /html\.narrow \.docbody td, html\.narrow \.docbody th, html\.narrow table\.trm td, html\.narrow table\.trm th \{ overflow-wrap: anywhere; \}/, "table cells wrap so a table fits the pane");
+  assert.match(html, /html\.narrow \.docbody pre\.hscroll, html\.narrow \.docbody pre\.hscroll code \{ white-space: pre; overflow-wrap: normal; \}/, "a tapped code block keeps its lines");
+  assert.match(html, /html\.narrow \.docbody table\.hscroll \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "a tapped table scrolls itself, not the pane");
+  assert.match(html, /html\.narrow \.mermaid\.hscroll \{ overflow-x: auto; \}/, "a tapped diagram scrolls inside its holder");
   assert.match(html, /html\.narrow \.docbody \{ overflow-wrap: break-word; \}/, "a long path or identifier in running text wraps instead of widening the pane");
   assert.match(html, /html\.narrow \.frontmatter \.fm-kv \{ min-width: 0; overflow-wrap: anywhere; \}/, "a long frontmatter value (a URL) wraps inside its flex item");
-  assert.match(html, /html\.narrow \.mermaid svg \{ width: var\(--nat-w, auto\); max-width: none !important; \}/, "diagrams keep their natural width below the breakpoint");
+  assert.match(html, /html\.narrow \.mermaid\.hscroll svg \{ width: var\(--nat-w, auto\); max-width: none !important; \}/, "a tapped diagram takes its natural width");
   assert.match(html, /if \(vb\) holder\.style\.setProperty\("--nat-w", Math\.ceil\(\+vb\[1\]\) \+ "px"\);\n\s+return res; \}\)\n\s+\.then\(function \(res\) \{ holder\.innerHTML = res\.svg;/, "renderMermaid records the viewBox width before the svg lands");
-  assert.match(html, /\.then\(function \(\) \{ if \(narrow\) holder\.scrollLeft = \(holder\.scrollWidth - holder\.clientWidth\) \/ 2; \}\)/, "a wide diagram opens on its middle, where mermaid centres the flow");
+  assert.match(html, /if \(b\.classList\.contains\("mermaid"\)\) b\.scrollLeft = \(b\.scrollWidth - b\.clientWidth\) \/ 2;/, "a tapped diagram opens on its middle, where mermaid centres the flow");
+  assert.match(html, /PANES\.left\.querySelectorAll\("\.hscroll"\)\.forEach\(function \(x\) \{ x\.classList\.remove\("hscroll"\); \}\);/, "one scrolling block at a time");
+  assert.match(html, /e\.target\.closest\("a, button, input, select, summary, \[data-nav\]"\) \|\| String\(getSelection\(\)\)/, "links, controls and a text selection never toggle a block");
   assert.match(html, /html\.narrow \.board \{ grid-template-columns: repeat\(auto-fill, min\(368px, 100%\)\); \}/, "grid cards never exceed the pane");
   assert.match(html, /html\.narrow \.board\.kanban \.col \{ flex-basis: min\(368px, 100%\); \}/, "kanban columns never exceed the pane");
 });
@@ -1125,8 +1130,8 @@ t("narrow mode: the sidebar's scope and search fold away, the nav is one line", 
   assert.match(html, /\.side-top \{ display: contents; \}/, "the wrapper leaves the desktop sidebar's flex spacing alone");
   assert.match(html, /sideTopBtn\.querySelector\("\.scope"\)\.textContent = project \|\| "all";/, "the toggle label follows the scope");
 });
-t("narrow mode: the card detail's tables scroll inside themselves", () => {
-  assert.match(html, /html\.narrow table\.trm \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "the trace matrix and task table do not widen the pane");
+t("narrow mode: the card detail's tables wrap to the pane", () => {
+  assert.match(html, /html\.narrow table\.trm \{ width: 100%; \}/, "the trace matrix and task table do not widen the pane (their rows expand on click, so they never toggle)");
 });
 t("narrow mode: the visit history is a ▾ button over the native select", () => {
   assert.match(html, /'<span class="histwrap"><select class="iconbtn" data-hist="' \+ side/, "the history select sits in a wrapper");
@@ -1172,13 +1177,6 @@ t("narrow mode: a back-to-top button shows once the pane is a screen down", () =
   assert.match(html, /html\.narrow #totop\.show \{ display: block; position: fixed;/);
   assert.match(html, /totop\.classList\.toggle\("show", narrow && PANES\.left\.scrollTop > PANES\.left\.clientHeight\)/, "a screen down, below the breakpoint");
   assert.match(html, /PANES\.left\.scrollTop = 0;/, "an instant jump — smooth scrolling a long doc is itself heavy");
-});
-// Temporary A/B switches for the phone lag on one large doc; remove with their case once the cause is fixed.
-t("temporary A/B switches: ?diag=off skips mermaid, ?wrap=off makes no nested scrollers", () => {
-  assert.match(html, /var AB = new URLSearchParams\(location\.search\);/);
-  assert.match(html, /if \(AB\.get\("diag"\) === "off"\) return;/, "renderMermaid leaves the source");
-  assert.match(html, /if \(AB\.get\("wrap"\) === "off"\) document\.documentElement\.classList\.add\("ab-wrap-off"\);/);
-  assert.match(html, /html\.narrow\.ab-wrap-off \.docbody pre \{ white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; \}/);
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
