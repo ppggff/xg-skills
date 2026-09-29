@@ -342,6 +342,11 @@ const SCENARIO = {
     check("390: the table has row hairlines only and no header row", await ctx.eval("(() => { const td = getComputedStyle(document.querySelector('#left .btable td')); return td.borderLeftWidth === '0px' && td.borderRightWidth === '0px' && !document.querySelector('#left .btable th'); })()"));
     check("390: row lines are inset — none under the id cell, one under the title", await ctx.eval("(() => { const r = [...document.querySelectorAll('#left .btable .trow')].find(x => x.nextElementSibling); if (!r) return false; const a = getComputedStyle(r.cells[0]), b = getComputedStyle(r.cells[1]); return a.borderBottomColor === 'rgba(0, 0, 0, 0)' && b.borderBottomColor !== 'rgba(0, 0, 0, 0)'; })()"));
     check("390: the table fits the pane", await ctx.eval("[...document.querySelectorAll('#left .btable')].every(t => t.scrollWidth <= t.clientWidth + 1) && document.querySelector('#left').scrollWidth <= document.querySelector('#left').clientWidth"));
+    const aligned = `(() => { const ts = [...document.querySelectorAll("#left .btable")], pane = document.querySelector("#left .btable").parentElement.getBoundingClientRect().width;
+      const lefts = t => [...t.rows[0].cells].map(c => Math.round(c.getBoundingClientRect().left));
+      const one = t => [...t.rows].every(r => [0, 2, 4].every(i => { const g = document.createRange(); g.selectNodeContents(r.cells[i]); return g.getBoundingClientRect().height < 20; }));
+      return ts.length > 1 && ts.every(t => lefts(t).join() === lefts(ts[0]).join() && Math.abs(t.getBoundingClientRect().width - pane) < 2 && one(t)); })()`;
+    check("390: columns line up across the project groups, each table spans the pane, id, progress and time on one line", await ctx.eval(aligned));
     check("390: board head and chips sit on single lines", await ctx.eval("(() => { const h = document.querySelector('#left .doc-head'), f = document.querySelector('#left .board-filters'); return h.getBoundingClientRect().height < 48 && f.getBoundingClientRect().height < 40 && f.scrollWidth >= f.clientWidth; })()"));
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // table → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
@@ -351,6 +356,8 @@ const SCENARIO = {
     await ctx.click("#left .btable .trow .tid"); check("tapping a table row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .trow.selected')"));
     await ctx.eval("localStorage.setItem('sv-board-mode', 'rows'); location.reload(); true"); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board");
     check("a stored rows pick (retired) reads as the table", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .row')"));
+    await ctx.viewport(768, 1024); await ctx.load(); await ctx.go("board");
+    check("768: columns line up across the project groups, each table spans the pane, id, progress and time on one line", await ctx.eval(aligned));
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
     await ctx.eval("localStorage.setItem('sv-board-kanban', '1'); true"); await ctx.eval("location.reload(); true"); await ctx.wait("!!document.querySelector('#left .board.kanban')");

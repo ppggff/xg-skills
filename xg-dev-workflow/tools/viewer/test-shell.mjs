@@ -1152,7 +1152,9 @@ t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
 t("board table: no state column, the state is the dot before the id; it fits a phone", () => {
   assert.match(html, /'<table class="btable">' \+\n\s+byProj\[p\]\.map/, "no header row (tried without it); five cells per row");
   assert.match(html, /'<td class="tid"><span class="dot" style="background:var\(' \+ stVar\(c\.state\) \+ '\)" title="' \+ esc\(c\.state\) \+ '"><\/span>' \+ esc\(c\.nnn\)/, "the state rides on a dot, like rows");
-  assert.match(html, /html\.narrow \.btable \.tnext \{ min-width: 0; overflow-wrap: anywhere; \}/, "next may shrink so the table fits 375px");
+  assert.match(html, /html\.narrow \.btable \.tnext, html\.narrow \.btable \.ttitle \{ min-width: 0; overflow-wrap: anywhere; \}/, "title and next may shrink so the table fits 375px");
+  assert.match(html, /html\.narrow \.btable td:nth-child\(1\) \{ width: 3\.8em; \}/, "narrow keeps the fixed layout with its own widths, so the groups line up");
+  assert.doesNotMatch(html, /html\.narrow \.btable \{[^}]*table-layout: auto/, "no per-group auto layout below the breakpoint");
 });
 t("narrow mode: tighter sidebar, hint hidden, file filter behind a button", () => {
   assert.match(html, /html\.narrow #side \{ gap: 6px; \}/);
