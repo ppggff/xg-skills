@@ -1285,7 +1285,8 @@ t("dvh pair, kanban snap, full-width body below the breakpoint", () => {
   assert.match(html, /html\.narrow \.board\.kanban \{ scroll-snap-type: x mandatory; \}/, "a swipe lands on a column below the breakpoint");
   assert.match(html, /scroll-snap-align: start; \}/, "columns are snap targets");
   assert.match(html, /if \(narrow\) \{[^\n]*\n\s+db\.style\.setProperty\("--m-l", "0px"\); db\.style\.removeProperty\("--m-w"\); db\.classList\.add\("gutter-in"\); return;/, "applyMeasure bypasses the tiers below the breakpoint");
-  assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 1 4em; min-width: 4em; order: 9; \}/, "the crumb sits after the buttons and wraps only when they leave it no room");
+  assert.match(html, /html\.narrow \.doc-head \.crumb \{ flex: 1 1 0; min-width: 0; \}/, "the crumb sits between the navigation group and the rest, as on the desktop, and truncates");
+  assert.match(html, /html\.narrow \.doc-head \{ flex-wrap: nowrap; \}/, "one line: the crumb gives way, the buttons stay right");
 });
 
 // --- touch items below the breakpoint, decided by width ---

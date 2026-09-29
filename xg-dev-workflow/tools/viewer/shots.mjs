@@ -487,6 +487,10 @@ const SCENARIO = {
     check("375: a screen down, the back-to-top button shows", await ctx.eval(totopShown));
     await ctx.tap("#totop"); await sleep(300);
     check("375: tapping it jumps to the top and hides it", await ctx.eval(`document.querySelector('#left').scrollTop === 0 && !(${totopShown})`));
+    check("375: head in desktop order — navigation left, crumb between, the rest flush right", await ctx.eval(`(() => { const h = document.querySelector("#left .doc-head"), c = h.querySelector(".crumb").getBoundingClientRect();
+      const nav = h.querySelector(".hg").getBoundingClientRect(), find = h.querySelector("[data-find]").getBoundingClientRect(), g = [...h.querySelectorAll(".hg")].filter(x => x.getBoundingClientRect().width > 0).pop().getBoundingClientRect();
+      const inner = h.getBoundingClientRect().right - parseFloat(getComputedStyle(h).paddingRight);
+      return c.left >= nav.right && c.right <= find.left && Math.abs(g.right - inner) <= 2 && c.width >= 40 && h.getBoundingClientRect().height < 48; })()`));
     check("375: the history ▼ box is the size of its neighbours", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap').getBoundingClientRect(), f = document.querySelector('#left [data-find]').getBoundingClientRect(); return Math.abs(w.height - f.height) < .5 && Math.abs(w.width - f.width) < .5; })()"));
     check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");

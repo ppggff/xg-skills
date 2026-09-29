@@ -106,7 +106,8 @@
   html.narrow .trm .tstat { max-width: 100%; }
   html.narrow .docbody { padding-left: 10px; }
   html.narrow .docbody > [data-srcline]::before { position: absolute; display: block; left: -24px; width: 22px; min-width: 0; margin: 0; text-align: right; font-size: 8.5px; }   /* hung in #left's padding + the body's: narrow forces gutter-in, whose inline number skews pre, table and hr */
-  html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
+  html.narrow .doc-head { flex-wrap: nowrap; }   /* desktop order on a phone too: navigation left, crumb between, the other groups right */
+  html.narrow .doc-head .crumb { flex: 1 1 0; min-width: 0; }
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   .histwrap { display: contents; }
   html.narrow .histwrap { display: inline-block; position: relative; }   /* a caret button; the transparent native select over it is the tap target (the phone's own picker) */
