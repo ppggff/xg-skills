@@ -388,7 +388,7 @@ const SCENARIO = {
     check("390: the quick-open input is 16px (no zoom on focus)", (await fs("#qoInput")) >= 16);
     await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
     await ctx.click("[data-side]");
-    check("390: tree rows ≥ 40px", (await h("#tree summary")) >= 40);
+    check("390: tree rows ≥ 30px", (await h("#tree summary")) >= 30);
     check("390: tree text ≥ 13px", (await fs("#tree summary")) >= 13);
     await ctx.click("#scrim"); await ctx.go("board");
     check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
@@ -437,13 +437,21 @@ const SCENARIO = {
     await ctx.click("[data-sidetop]");
     check("375: the toggle unfolds scope and search", await ctx.eval("!!document.getElementById('proj').offsetParent && !!document.getElementById('search').offsetParent"));
     check("375: tree text 13px, inputs stay 16px", (await fs("#tree a.file")) === 13 && (await fs("#search")) === 16);
-    await ctx.click("[data-sidetop]"); await ctx.click("#scrim");
+    await ctx.click("[data-sidetop]");
+    check("375: tree rows 30px, the help hint and the file filter are out of the way", await ctx.eval("(() => { const r = document.querySelector('#tree summary').getBoundingClientRect().height; return r <= 31 && getComputedStyle(document.querySelector('#side .hint')).display === 'none' && getComputedStyle(document.getElementById('filterbox')).display === 'none'; })()"));
+    await ctx.click("[data-treefilter]");
+    check("375: ⌕ opens the file filter", await ctx.eval("!!document.getElementById('treeFilter').offsetParent"));
+    await ctx.eval("(() => { const i = document.getElementById('treeFilter'); i.value = 'design'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+    await ctx.click("[data-treefilter]");
+    check("375: an active filter stays in view after ⌕ folds it", await ctx.eval("!!document.getElementById('treeFilter').offsetParent"));
+    await ctx.eval("(() => { const i = document.getElementById('treeFilter'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+    await ctx.click("#scrim");
     check("375: crumb and row meta 12px", (await fs("#left .crumb")) === 12 && (await fs("#left .row .rprog")) === 12);
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
-    check("375: the table form has id, card, state, progress, next and time per row", await ctx.eval("[...document.querySelectorAll('#left .btable .trow')].every(r => r.cells.length === 6) && !!document.querySelector('#left .btable .trow .ttitle a')"));
-    check("375: the table scrolls inside itself, the pane does not", await ctx.eval(noSideways));
+    check("375: the table form has id (with the state dot), card, progress, next and time per row", await ctx.eval("[...document.querySelectorAll('#left .btable .trow')].every(r => r.cells.length === 5 && r.cells[0].querySelector('.dot')) && !!document.querySelector('#left .btable .trow .ttitle a')"));
+    check("375: the table fits the pane without scrolling sideways", await ctx.eval(`${noSideways} && [...document.querySelectorAll("#left .btable")].every(t => t.scrollWidth <= t.clientWidth + 1)`));
     await ctx.click("#left .btable .trow .tid");
     check("375: tapping a table row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .trow.selected')"));
     check("the table pick is remembered", await ctx.eval("localStorage.getItem('sv-board-mode') === 'table'"));

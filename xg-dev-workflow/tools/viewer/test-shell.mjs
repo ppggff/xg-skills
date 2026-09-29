@@ -1148,6 +1148,18 @@ t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
   assert.match(html, /html\.narrow \.row \.rid, html\.narrow \.row \.rprog, html\.narrow \.row \.rwhen \{ font-size: 12px; \}/);
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
 });
+t("board table: no state column, the state is the dot before the id; it fits a phone", () => {
+  assert.match(html, /<tr><th>#<\/th><th>卡片<\/th><th>进度<\/th><th>下一步<\/th><th>更新<\/th><\/tr>/, "five columns, no 状态");
+  assert.match(html, /'<td class="tid"><span class="dot" style="background:var\(' \+ stVar\(c\.state\) \+ '\)" title="' \+ esc\(c\.state\) \+ '"><\/span>' \+ esc\(c\.nnn\)/, "the state rides on a dot, like rows");
+  assert.match(html, /html\.narrow \.btable \.tnext \{ min-width: 0; overflow-wrap: anywhere; \}/, "next may shrink so the table fits 375px");
+});
+t("narrow mode: tighter sidebar, hint hidden, file filter behind a button", () => {
+  assert.match(html, /html\.narrow #side \{ gap: 6px; \}/);
+  assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px; padding: 2px 6px; \}/);
+  assert.match(html, /html\.narrow #side \.hint \{ display: none; \}/, "the ? button in the pane head covers help");
+  assert.match(html, /<div class="tree-tools"><span class="side-label">files<\/span><button class="iconbtn" data-treefilter="1"[^>]*>⌕<\/button><\/div>/, "a ⌕ button in the files row");
+  assert.match(html, /html\.narrow #side:not\(\.filter-open\) #filterbox:not\(:has\(input:not\(:placeholder-shown\)\)\) \{ display: none; \}/, "folded unless opened or a filter is active");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
@@ -1213,7 +1225,7 @@ t("hovercard is gated by width, touch targets grow by width — no pointer or ho
   assert.match(html, /document\.addEventListener\("mouseover", function \(e\) \{\n    if \(narrow\) return;/, "mouseover preview returns early below the breakpoint");
   assert.doesNotMatch(html, /html\.narrow \.iconbtn \{/, "buttons keep their desktop size (real-device pass)");
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "every input is 16px so a phone does not zoom into it");
-  assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 40px;/, "tree rows ≥ 40px");
+  assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px;/, "tree rows 30px (tightened after the real-device pass)");
   assert.match(html, /html\.narrow \.row \{ min-height: 44px; \}/, "board rows ≥ 44px");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
 });
