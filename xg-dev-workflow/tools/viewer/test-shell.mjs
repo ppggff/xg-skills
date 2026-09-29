@@ -1134,18 +1134,19 @@ t("narrow mode: the visit history is a ▾ button over the native select", () =>
   assert.match(html, /html\.narrow \.histwrap select\.iconbtn \{ position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; \}/, "the native select is the button's tap target");
   assert.doesNotMatch(html, /html\.narrow select\.iconbtn\[data-hist\] \{ display: none; \}/, "no longer hidden below the breakpoint");
 });
-t("board: a fourth form, table, between kanban and rows", () => {
+t("board: the table form (rows retired)", () => {
   assert.equal(SV.boardMode("table", null), "table");
-  assert.match(html, /var next = \{ grid: "kanban", kanban: "table", table: "rows", rows: "grid" \}\[mode\];/, "one button cycles the four forms");
+  assert.match(html, /var next = \{ grid: "kanban", kanban: "table", table: "grid" \}\[mode\];/, "one button cycles the three forms");
   assert.match(html, /mode === "table" \? boardTable\(order, byProj, SV\.cardMtimes\(RAW\.dev\)\)/, "table groups by project like rows");
-  assert.match(html, /e\.target\.closest\("\.card, \.row, \.trow"\)/, "a table row selects the card like a row");
-  assert.match(html, /pane\.querySelectorAll\("\.card, \.row, \.trow"\)\.forEach\(function \(el\) \{ el\.classList\.toggle\("selected"/, "and is marked selected");
+  assert.match(html, /e\.target\.closest\("\.card, \.trow"\)/, "a table row selects the card like a card does");
+  assert.match(html, /pane\.querySelectorAll\("\.card, \.trow"\)\.forEach\(function \(el\) \{ el\.classList\.toggle\("selected"/, "and is marked selected");
+  assert.doesNotMatch(html, /function rowHtml|function rows\(|\.row \{|\.row\.selected/, "the rows form and its styles are gone");
 });
 t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
   assert.match(html, /html\.narrow \.tree \{ font-size: 13px; \}/);
   assert.match(html, /html\.narrow #toc a \{ display: flex; align-items: center; min-height: 30px; padding-top: 2px; padding-bottom: 2px; font-size: 13px; \}/, "TOC rows match the tree rows");
   assert.match(html, /html\.narrow \.crumb, html\.narrow \.hint \{ font-size: 12px; \}/);
-  assert.match(html, /html\.narrow \.row \.rid, html\.narrow \.row \.rprog, html\.narrow \.row \.rwhen \{ font-size: 12px; \}/);
+  assert.match(html, /html\.narrow \.btable \.tid, html\.narrow \.btable \.tprog, html\.narrow \.btable \.twhen \{ font-size: 12px; \}/, "table-row meta keeps the 12px the rows had");
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
 });
 t("board table: no state column, the state is the dot before the id; it fits a phone", () => {
@@ -1193,8 +1194,12 @@ t("desktop: the tree's scrollbar sits on the sidebar edge; a collapsed sidebar r
   assert.match(html, /if \(narrow\) toggleSide\(\); else document\.getElementById\("reopen"\)\.click\(\);/, "the head ☰ reopens the collapsed sidebar on the desktop");
 });
 t("narrow mode: Board · Recent · code as one segmented control", () => {
-  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\); \}/);
+  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\);/);
   assert.match(html, /html\.narrow \.navbtn \{ flex: 1 1 0; min-width: 0; white-space: nowrap; justify-content: center; border-radius: 0; \}/);
+});
+t("narrow mode: the code-browse link closes the sidebar overlay; the nav row sits a little lower", () => {
+  assert.match(html, /if \(e\.target\.closest\("#gitwebEntry"\)\) closeOverlays\(\);/, "a new tab opens, so nothing else would close the overlay");
+  assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\); margin-top: 4px; \}/);
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
@@ -1212,9 +1217,10 @@ t("every hotkey action has a pane-head button twin (find · quick open · TOC ·
   assert.match(html, /placeholder="quick open — file name \/ path… \(last row: search contents\)"/, "quick open says its last row searches contents");
 });
 
-// --- board rows form (third form) + its memory migration ---
+// --- board form memory and its migrations ---
 t("SV.boardMode: stored form wins, the old kanban boolean maps to one of the first two, else no preference", () => {
-  assert.equal(SV.boardMode("rows", "1"), "rows");
+  assert.equal(SV.boardMode("rows", "1"), "table", "a stored rows pick reads as table (rows retired)");
+  assert.equal(SV.boardMode("table", null), "table");
   assert.equal(SV.boardMode("kanban", null), "kanban");
   assert.equal(SV.boardMode(null, "1"), "kanban");
   assert.equal(SV.boardMode(null, "0"), "grid");
@@ -1236,13 +1242,11 @@ t("SV.legacyPhase: the first phase not yet done, else the last", () => {
   assert.equal(SV.legacyPhase(["需求:confirmed", "设计:frozen"]), "设计");
   assert.equal(SV.legacyPhase([]), "");
 });
-t("the board renders rows below the breakpoint by default, keeps a chosen form, and writes only sv-board-mode", () => {
-  assert.match(html, /mode = boardMode \|\| \(narrow \? "rows" : "grid"\)/, "default form follows the width when nothing is stored");
+t("the board renders the table below the breakpoint by default, keeps a chosen form, and writes only sv-board-mode", () => {
+  assert.match(html, /mode = boardMode \|\| \(narrow \? "table" : "grid"\)/, "default form follows the width when nothing is stored");
   assert.match(html, /lsSet\("sv-board-mode", boardMode\)/, "the pick is stored under the new key");
   assert.doesNotMatch(html, /lsSet\("sv-board-kanban"/, "the old boolean key is read for migration, never written");
-  assert.match(html, /function rowHtml\(c, mtime\)/, "rows have their own renderer");
-  assert.match(html, /var next = \{ grid: "kanban", kanban: "table", table: "rows", rows: "grid" \}\[mode\];/, "one button cycles the board forms");
-  assert.match(html, /closest\("\.card, \.row, \.trow"\)\) && t\.dataset\.key/, "a row selects the card for the detail drawer like a card does");
+  assert.match(html, /closest\("\.card, \.trow"\)\) && t\.dataset\.key/, "a table row selects the card for the detail drawer like a card does");
 });
 
 // --- reading surface below the breakpoint ---
@@ -1262,6 +1266,5 @@ t("hovercard is gated by width, touch targets grow by width — no pointer or ho
   assert.doesNotMatch(html, /html\.narrow \.iconbtn \{/, "buttons keep their desktop size (real-device pass)");
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "every input is 16px so a phone does not zoom into it");
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px;/, "tree rows 30px (tightened after the real-device pass)");
-  assert.match(html, /html\.narrow \.row \{ min-height: 44px; \}/, "board rows ≥ 44px");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
 });

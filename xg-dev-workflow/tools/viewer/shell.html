@@ -125,9 +125,7 @@
   html.narrow .tree summary, html.narrow .tree .file { overflow-x: auto; scrollbar-width: none; }   /* a long name drags sideways on its own row */
   html.narrow .tree summary::-webkit-scrollbar, html.narrow .tree .file::-webkit-scrollbar { display: none; }
   html.narrow .tree > details > summary { font-size: 13px; }
-  html.narrow .row { min-height: 44px; }
-  html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 12px; }
-  html.narrow .row .rtitle { padding: 9px 0; }   /* the title link's own hit area, not just the row's */
+  html.narrow .btable .tid, html.narrow .btable .tprog, html.narrow .btable .twhen { font-size: 12px; }
   html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
   html.narrow #toc a { display: flex; align-items: center; min-height: 30px; padding-top: 2px; padding-bottom: 2px; font-size: 13px; }   /* rows as tall as the tree's */
   html.narrow .crumb, html.narrow .hint { font-size: 12px; }
@@ -145,7 +143,7 @@
   html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
   .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
   html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
-  html.narrow .navbtns { flex-direction: row; gap: 0; border: 1px solid var(--line2); }
+  html.narrow .navbtns { flex-direction: row; gap: 0; border: 1px solid var(--line2); margin-top: 4px; }
   html.narrow #side { gap: 6px; }
   html.narrow #side .hint { display: none; }   /* the ? button in the pane head covers help */
   [data-treefilter] { display: none; } html.narrow [data-treefilter] { display: inline-block; }
@@ -373,16 +371,6 @@
     color: var(--muted); border: 1px solid var(--line2); padding: 0 7px; }
   /* R56: in-board filters (status + project) — display-only, independent of the sidebar scope */
   .board-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
-  /* rows form: one line per card — dot · id · title · progress · updated; the phone's default */
-  .rows { display: flex; flex-direction: column; gap: 4px; }
-  .row { display: grid; grid-template-columns: 8px 3em minmax(0, 1fr) auto 3.2em; align-items: center; gap: 8px; min-height: 34px;
-    padding: 4px 10px; border: 1px solid var(--line2); border-radius: var(--radius); background: var(--side); cursor: pointer; }
-  .row.selected { border-color: var(--accent); }
-  .row .dot { width: 8px; height: 8px; border-radius: 50%; }
-  .row .rid, .row .rprog, .row .rwhen { font-family: var(--chrome); font-size: 11px; color: var(--muted); white-space: nowrap; }
-  .row .rtitle { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
-  .row .rprog { overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
-  .row .rwhen { text-align: right; }
   .btable { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
   .btable th { text-align: left; font-family: var(--chrome); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
     color: var(--muted); padding: 4px 8px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
@@ -1315,7 +1303,8 @@ var SV = (function () {
   // preference wins; the pre-rows boolean key is read as one of the first two; null = no preference,
   // and the renderer then picks rows below the width breakpoint, the grid above it.
   function boardMode(stored, legacyKanban) {
-    if (stored === "grid" || stored === "kanban" || stored === "rows" || stored === "table") return stored;
+    if (stored === "rows") return "table";   // the rows form was retired for the table
+    if (stored === "grid" || stored === "kanban" || stored === "table") return stored;
     if (legacyKanban === "1") return "kanban";
     if (legacyKanban === "0") return "grid";
     return null;
@@ -1887,20 +1876,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
       boardCardMap = {}; all.forEach(function (c) { boardCardMap[c.project + "/" + c.nnn] = c; });   // R64: detail-drawer lookup
       var states = []; all.forEach(function (c) { if (states.indexOf(c.state) === -1) states.push(c.state); });
       var cards = all.filter(function (c) { return !boardHideState[c.state]; });   // bar handles status
-      var body, tf, mode = boardMode || (narrow ? "rows" : "grid"), isKanban = mode === "kanban";
+      var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "kanban";
       if (isKanban) {                               // kanban groups by status; project filter still applies
         body = kanban(cards.filter(function (c) { return !boardHideProj[c.project]; })); tf = null;
       } else {                                      // grid and rows group by project; TOC checkboxes hide groups
         var byProj = {}, order = [];
         cards.forEach(function (c) { if (!byProj[c.project]) { byProj[c.project] = []; order.push(c.project); } byProj[c.project].push(c); });
-        body = mode === "rows" ? rows(order, byProj, SV.cardMtimes(RAW.dev))
-          : mode === "table" ? boardTable(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj);
+        body = mode === "table" ? boardTable(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj);
         tf = { set: boardHideProj, keys: order };
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
-      var next = { grid: "kanban", kanban: "table", table: "rows", rows: "grid" }[mode];   // one button cycles the four forms; its label is the current one
+      var next = { grid: "kanban", kanban: "table", table: "grid" }[mode];   // one button cycles the three forms; its label is the current one
       pane.innerHTML = paneHead(side, "Board",
-        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → table → rows (now ' + mode + ')">' + mode + "</button>") +
+        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → table (now ' + mode + ')">' + mode + "</button>") +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       padForDrawer(pane);
@@ -1911,7 +1899,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
           lsSet("sv-board-hide", JSON.stringify(boardHideState)); render(side); }; });
       var secs = [].slice.call(pane.querySelectorAll(isKanban ? ".col h3" : "h2.sec"));
       tagSections(side, secs, secs.map(function (s) { return { text: s.textContent, depth: 1 }; }));
-      afterRender(side, ".card, .row, .trow, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
+      afterRender(side, ".card, .trow, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
     }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 3
   }
   function boardFilters(states) {                   // R60: status chips only (no dots), colored by status
@@ -2032,7 +2020,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function barH(bar) { return bar ? bar.getBoundingClientRect().height : 0; }
   function updateDetail(side) {
     var pane = PANES[side];
-    pane.querySelectorAll(".card, .row, .trow").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
+    pane.querySelectorAll(".card, .trow").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
@@ -2047,23 +2035,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
         '<div class="board">' + byProj[p].map(cardHtml).join("") + "</div></section>"; }).join("");
   }
-  function rows(order, byProj, mtimes) {            // one compact line per card, grouped like the grid
-    return order.map(function (p) {
-      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
-        ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
-        '<div class="rows">' + byProj[p].map(function (c) { return rowHtml(c, mtimes[c.project + "/" + c.dir]); }).join("") + "</div></section>"; }).join("");
-  }
-  function rowHtml(c, mtime) {
-    var st = stClass(c.state), key = c.project + "/" + c.nnn, sel = key === boardSelected ? " selected" : "";
-    var prog = esc(c.governance === "lite" ? SV.liteProgress(c.steps) : SV.legacyPhase(c.steps));   // one short token: the title gets the width
-    return '<div class="row ' + st + sel + '" data-key="' + esc(key) + '">' +   // the row selects (drawer); its title navigates, like a card
-      '<span class="dot" style="background:var(' + stVar(c.state) + ')" title="' + esc(c.state) + '"></span>' +
-      '<span class="rid">' + esc(c.nnn) + "</span>" +
-      '<a class="rtitle" data-nav="trace" data-card="' + esc(key) + '" title="' + esc(c.dir) + ' — 打开详情">' + esc(c.dir.replace(/^\d+-/, "")) + "</a>" +
-      '<span class="rprog">' + prog + "</span>" +
-      '<span class="rwhen">' + (mtime ? relTime(mtime) : "") + "</span></div>";
-  }
-  function boardTable(order, byProj, mtimes) {      // rows as a table: same groups, the title wraps instead of truncating
+  function boardTable(order, byProj, mtimes) {      // one table per project group; the title wraps instead of truncating
     return order.map(function (p) {
       return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
         ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
@@ -2702,7 +2674,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     syncFindH(side);
     if (focus === side) renderToc();
     // R64: start the current-line marker on the selected card (if any) rather than the first block.
-    var first = PANES[side].querySelector(".card.selected, .row.selected, .trow.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
+    var first = PANES[side].querySelector(".card.selected, .trow.selected") || (blockSel ? PANES[side].querySelector(blockSel) : null);
     if (first) setCurLine(side, first);
     // S12/D12: the entering flag is read once and burned. That is the whole reason a poll or a
     // theme switch can't yank a reader back to the anchor they entered on — those paths re-render
@@ -2911,6 +2883,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (!narrow || !(sideOpen || tocOpen)) return;
     if (e.target.closest("#scrim")) { closeOverlays(); return; }
     if (e.target.closest("#toc a[data-toc]")) closeOverlays();   // a TOC jump does not navigate, so it closes here
+    if (e.target.closest("#gitwebEntry")) closeOverlays();   // gitweb opens in a new tab: nothing else would close the overlay
   });
   document.querySelectorAll("[data-collapse]").forEach(function (b) {
     b.onclick = function () {
@@ -3041,7 +3014,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden);
         invalidateGeometry(sideOf(t)); }   // S9 hookpoint 3: the revealed row pushes every mark below it down
       return; }
-    if ((t = e.target.closest(".card, .row, .trow")) && t.dataset.key) {           // R64: select a card (or a row) → detail drawer
+    if ((t = e.target.closest(".card, .trow")) && t.dataset.key) {           // R64: select a card (or a table row) → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
       try { localStorage.setItem("sv-detail-card", boardSelected); localStorage.setItem("sv-detail-open", "1"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }

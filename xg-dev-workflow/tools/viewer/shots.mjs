@@ -148,7 +148,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // a synthetic anchor through the document-level `[data-nav]` click handler, Enter in the
 // search box. `ready` is the predicate that says the view has rendered.
 const VIEW = {
-  board:  (o) => ({ drive: `document.querySelector('[data-go="board"]').click()`, ready: "!!document.querySelector('#left .card, #left .row, #left .board, #left .rows')" }),
+  board:  (o) => ({ drive: `document.querySelector('[data-go="board"]').click()`, ready: "!!document.querySelector('#left .card, #left .btable, #left .board')" }),
   recent: (o) => ({ drive: `document.querySelector('[data-go="recent"]').click()`, ready: "!!document.querySelector('#left h2.commit')" }),
   doc:    (o) => { const [tree, ...rest] = o.doc.split("/"); return { drive: navAnchor({ nav: "doc", tree, rel: rest.join("/") }), ready: "!!document.querySelector('#left .docbody')" }; },
   search: (o) => ({ drive: `(() => { const s = document.getElementById("search"); s.value = ${JSON.stringify(o.q)};
@@ -334,21 +334,22 @@ const SCENARIO = {
     check("1024: the hidden TOC stays hidden across views", await ctx.eval("!document.querySelector('#toc').classList.contains('show')"));
     await ctx.click("[data-tocbtn]"); check("1024: ☷ shows it again", await ctx.eval("document.querySelector('#toc').classList.contains('show')"));
   },
-  // The board has a rows form: the default below the breakpoint, a remembered pick anywhere,
-  // and the old boolean kanban key still read.
-  async rows(ctx, check) {
+  // The board's forms: the table below the breakpoint, grid above, one button cycling grid → kanban → table,
+  // the pick remembered; a stored pick of the retired rows form reads as the table.
+  async forms(ctx, check) {
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
-    check("390: rows by default", await ctx.eval("!!document.querySelector('#left .row') && !document.querySelector('#left .card')"));
-    check("390: a row shows id, title, progress and a time", await ctx.eval("(() => { const r = document.querySelector('#left .row'); return ['.rid','.rtitle','.rprog','.rwhen'].every(s => r.querySelector(s)); })()"));
-    check("390: rows do not overflow the pane", await ctx.eval("[...document.querySelectorAll('#left .row')].every(r => r.scrollWidth <= r.clientWidth + 1)"));
-    check("390: rows leave the title most of the width", await ctx.eval("(() => { const r = document.querySelector('#left .row'); return r.querySelector('.rtitle').getBoundingClientRect().width > r.getBoundingClientRect().width * 0.45; })()"));
+    check("390: the table form by default", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .card') && !document.querySelector('#left .row')"));
+    check("390: a table row shows id (with the state dot), card, progress, next and time", await ctx.eval("[...document.querySelectorAll('#left .btable .trow')].every(r => r.cells.length === 5 && r.cells[0].querySelector('.dot'))"));
+    check("390: the table fits the pane", await ctx.eval("[...document.querySelectorAll('#left .btable')].every(t => t.scrollWidth <= t.clientWidth + 1) && document.querySelector('#left').scrollWidth <= document.querySelector('#left').clientWidth"));
     check("390: board head and chips sit on single lines", await ctx.eval("(() => { const h = document.querySelector('#left .doc-head'), f = document.querySelector('#left .board-filters'); return h.getBoundingClientRect().height < 48 && f.getBoundingClientRect().height < 40 && f.scrollWidth >= f.clientWidth; })()"));
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // table → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     check("the one button cycles the forms and the pick is remembered under sv-board-mode", await ctx.eval("localStorage.getItem('sv-board-mode') === 'kanban' && localStorage.getItem('sv-board-kanban') === null"));
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // table → rows
-    await ctx.click("#left .row"); check("tapping a row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .row.selected')"));
+    check("three forms: kanban leads back to the table", await ctx.eval("document.querySelector('[data-bmode]').textContent.trim() === 'table'"));
+    await ctx.click("#left .btable .trow .tid"); check("tapping a table row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .trow.selected')"));
+    await ctx.eval("localStorage.setItem('sv-board-mode', 'rows'); location.reload(); true"); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board");
+    check("a stored rows pick (retired) reads as the table", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .row')"));
     await ctx.viewport(1920, 1080); await ctx.load(); await ctx.go("board");
     check("1920: grid by default", await ctx.eval("!!document.querySelector('#left .board:not(.kanban) .card')"));
     await ctx.eval("localStorage.setItem('sv-board-kanban', '1'); true"); await ctx.eval("location.reload(); true"); await ctx.wait("!!document.querySelector('#left .board.kanban')");
@@ -370,7 +371,7 @@ const SCENARIO = {
     await ctx.mouseMove(link); await sleep(600);
     check("1024 + mouse: the hover preview still opens", await ctx.eval("getComputedStyle(document.getElementById('lp')).display !== 'none'"));
   },
-  // Hit areas below the breakpoint: head buttons and tree rows ≥ 40px, board rows ≥ 44px.
+  // Hit areas below the breakpoint: head buttons at desktop size, tree rows ≥ 30px, board table rows ≥ 30px.
   async targets(ctx, check) {
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("doc");
     const h = async (sel) => {   // [count, min height] over the visible matches — an empty set must not pass
@@ -391,8 +392,8 @@ const SCENARIO = {
     check("390: tree rows ≥ 30px", (await h("#tree summary")) >= 30);
     check("390: tree text ≥ 13px", (await fs("#tree summary")) >= 13);
     await ctx.click("#scrim"); await ctx.go("board");
-    check("390: board rows ≥ 44px", (await h("#left .row")) >= 44);
-    check("390: row meta text ≥ 12px", (await fs("#left .row .rprog")) >= 12);
+    check("390: board table rows ≥ 30px", (await h("#left .btable .trow")) >= 30);
+    check("390: table-row meta text ≥ 12px", (await fs("#left .btable .tprog")) >= 12);
   },
   // Below the breakpoint wide content scrolls inside its own box and the pane never scrolls sideways;
   // the inline source-line gutter (it would skew pre, table and hr) is not drawn. 375 = the narrowest phone.
@@ -418,12 +419,11 @@ const SCENARIO = {
       check("375: a rendered diagram fits the pane", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm)")].every(m => m.querySelector("svg, .broken").getBoundingClientRect().width <= m.clientWidth + 1)`));
     } else console.log("note - wide: the doc has no mermaid block; only the synthetic diagram was checked");
     await ctx.go("board");
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // table → grid
     check("375: grid cards stay inside the pane", await ctx.eval(`[...document.querySelectorAll("#left .card")].every(c => c.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right) && ${pane}.scrollWidth <= ${pane}.clientWidth`));
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     check("375: a kanban column is no wider than the board", await ctx.eval(`(() => { const b = document.querySelector("#left .board.kanban"); return [...b.querySelectorAll(".col")].every(c => c.getBoundingClientRect().width <= b.clientWidth); })()`));
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .row')");                        // table → rows
   },
   // The second phone pass: the sidebar top folds, the card detail stays in the pane, the visit history is a
   // ▾ button, the board has a table form, and chrome text is back near desktop sizes (375 = the narrowest phone).
@@ -438,6 +438,10 @@ const SCENARIO = {
     check("375: the desktop collapse button stays out of the phone's brand row", await ctx.eval("getComputedStyle(document.querySelector('#side [data-collapse]')).display === 'none'"));
     check("375: the nav entries are as tall as the scope button", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]').getBoundingClientRect().height; return [...document.querySelectorAll('#side .navbtn')].filter(b => b.offsetParent).every(b => Math.abs(b.getBoundingClientRect().height - a) < .5); })()"));
     check("375: … as equal segments", await ctx.eval("(() => { const w = [...document.querySelectorAll('#side .navbtn')].filter(b => b.offsetParent).map(b => b.getBoundingClientRect().width); return w.length === 3 && Math.max(...w) - Math.min(...w) <= 1; })()"));
+    check("375: the nav row sits a little below the brand row", await ctx.eval("document.querySelector('#side .navbtns').getBoundingClientRect().top - document.querySelector('#side .brand').getBoundingClientRect().bottom >= 10"));
+    await ctx.eval("(() => { const g = document.getElementById('gitwebEntry'); g.addEventListener('click', (e) => e.preventDefault(), { once: true }); g.click(); return true; })()");
+    check("375: tapping 浏览代码 closes the sidebar overlay", await ctx.eval("!document.getElementById('side').classList.contains('open') && !document.getElementById('scrim').classList.contains('show')"));
+    await ctx.click("[data-side]");
     check("375: the file-filter ⌕ sits right after the scope toggle", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]'), f = document.querySelector('[data-treefilter]'); return a.nextElementSibling === f && Math.abs(a.getBoundingClientRect().top - f.getBoundingClientRect().top) < 1; })()"));
     await ctx.click("[data-sidetop]");
     check("375: the toggle unfolds scope and search", await ctx.eval("!!document.getElementById('proj').offsetParent && !!document.getElementById('search').offsetParent"));
@@ -454,8 +458,8 @@ const SCENARIO = {
     check("375: an active filter stays in view after ⌕ folds it", await ctx.eval("!!document.getElementById('treeFilter').offsetParent"));
     await ctx.eval("(() => { const i = document.getElementById('treeFilter'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
     await ctx.click("#scrim");
-    check("375: crumb and row meta 12px", (await fs("#left .crumb")) === 12 && (await fs("#left .row .rprog")) === 12);
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    check("375: crumb and table-row meta 12px", (await fs("#left .crumb")) === 12 && (await fs("#left .btable .tprog")) === 12);
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // table → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
     check("375: the table form has id (with the state dot), card, progress, next and time per row", await ctx.eval("[...document.querySelectorAll('#left .btable .trow')].every(r => r.cells.length === 5 && r.cells[0].querySelector('.dot')) && !!document.querySelector('#left .btable .trow .ttitle a')"));
@@ -485,7 +489,7 @@ const SCENARIO = {
     check("375: the history ▼ box is the size of its neighbours", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap').getBoundingClientRect(), f = document.querySelector('#left [data-find]').getBoundingClientRect(); return Math.abs(w.height - f.height) < .5 && Math.abs(w.width - f.width) < .5; })()"));
     check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
-    await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});
+    await ctx.wait("!!document.querySelector('#left .btable, #left .card')", 5000).catch(() => {});
     check("375: picking an entry from the history navigates to it", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .docbody')"));
   },
   // Desktop chrome: the tree's scrollbar on the sidebar edge, the pane head in function groups,
@@ -507,7 +511,7 @@ const SCENARIO = {
   async refresh(ctx, check, o) {
     if (!o.touch) throw new Error("refresh scenario needs --touch <file under the viewer's dev root>");
     await ctx.viewport(390, 844); await ctx.load(); await ctx.go("board");
-    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // rows → grid
+    await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board:not(.kanban) .card')");   // table → grid
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .board.kanban')");                // grid → kanban: not the narrow default, so a reset would show
     await ctx.go("doc"); await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
     const rev0 = await ctx.eval("fetch('/api/rev').then(r => r.json()).then(j => j.dev)");
