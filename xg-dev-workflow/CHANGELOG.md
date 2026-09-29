@@ -71,6 +71,7 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: on a phone wide code blocks and tables always wrap and diagrams always fit the pane. Why: a doc with 75 nested
   horizontal scrollers lagged on a real phone (heat, late tiles); wrapping them all was smooth, and a tap-to-scroll toggle
   tried in between lagged again as soon as one block was expanded, so it was dropped.
+  Then: `/assets/` (marked, mermaid) revalidate with an ETag, so a reload no longer re-downloads the 3.3 MB mermaid.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
