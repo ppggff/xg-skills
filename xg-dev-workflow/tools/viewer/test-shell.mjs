@@ -1181,7 +1181,10 @@ t("pane head: buttons in function groups with a gap between, help last", () => {
 t("pane head: one button box, glyphs sized and centred by their measured ink", () => {
   assert.match(html, /:where\(\.doc-head button\.iconbtn\) \{ display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; \}/, "zero specificity: the per-width hide rules must still win");
   assert.match(html, /\.doc-head \[data-find\] \{ font-size: 20px; padding-bottom: 2px; \}/, "⌕ is tiny in the system font");
-  assert.match(html, /content: "▼";/, "the history caret is a glyph that has ink at 9px");
+  assert.match(html, /\.doc-head :is\(\[data-side\], \[data-back\],[^)]*\[data-help\], \[data-closeright\]\) \{ width: 28px; padding-left: 0; padding-right: 0; \}/, "icon buttons share one 28×24 box");
+  assert.match(html, /content: "▼"; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; width: 28px;/, "the history ▼ box matches the other head buttons");
+  assert.match(html, /padding: 0 0 \.8px; font-size: 13px; line-height: 1; color: var\(--muted\); \}/, "13px ▼ has ~8px of ink, like its neighbours");
+  assert.match(html, /html\.narrow \.brand-btns \.iconbtn, html\.narrow \.navbtn \{ box-sizing: border-box; height: 24px; padding-top: 0; padding-bottom: 0; \}/, "nav entries as tall as the scope button");
 });
 t("desktop: the tree's scrollbar sits on the sidebar edge; a collapsed sidebar reopens from the pane head", () => {
   assert.match(html, /#side \.tree \{ margin-right: -12px; padding-right: 12px; \}/);

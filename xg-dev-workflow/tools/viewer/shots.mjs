@@ -435,6 +435,8 @@ const SCENARIO = {
     check("375: scope and search start folded and the tree starts near the top", await ctx.eval("(() => { const t = document.querySelector('.side-top'); return !!t && getComputedStyle(t).display === 'none' && document.querySelector('#tree').getBoundingClientRect().top < 120; })()"));
     check("375: the fold toggle shows the scope", await ctx.eval("document.querySelector('[data-sidetop] .scope').textContent === (document.getElementById('proj').value || 'all')"));
     check("375: Board · Recent · code sit on one line", await ctx.eval("new Set([...document.querySelectorAll('#side .navbtn')].map(b => Math.round(b.getBoundingClientRect().top))).size === 1"));
+    check("375: the desktop collapse button stays out of the phone's brand row", await ctx.eval("getComputedStyle(document.querySelector('#side [data-collapse]')).display === 'none'"));
+    check("375: the nav entries are as tall as the scope button", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]').getBoundingClientRect().height; return [...document.querySelectorAll('#side .navbtn')].filter(b => b.offsetParent).every(b => Math.abs(b.getBoundingClientRect().height - a) < .5); })()"));
     check("375: … as equal segments", await ctx.eval("(() => { const w = [...document.querySelectorAll('#side .navbtn')].filter(b => b.offsetParent).map(b => b.getBoundingClientRect().width); return w.length === 3 && Math.max(...w) - Math.min(...w) <= 1; })()"));
     check("375: the file-filter ⌕ sits right after the scope toggle", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]'), f = document.querySelector('[data-treefilter]'); return a.nextElementSibling === f && Math.abs(a.getBoundingClientRect().top - f.getBoundingClientRect().top) < 1; })()"));
     await ctx.click("[data-sidetop]");
@@ -480,6 +482,7 @@ const SCENARIO = {
     check("375: a screen down, the back-to-top button shows", await ctx.eval(totopShown));
     await ctx.tap("#totop"); await sleep(300);
     check("375: tapping it jumps to the top and hides it", await ctx.eval(`document.querySelector('#left').scrollTop === 0 && !(${totopShown})`));
+    check("375: the history ▼ box is the size of its neighbours", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap').getBoundingClientRect(), f = document.querySelector('#left [data-find]').getBoundingClientRect(); return Math.abs(w.height - f.height) < .5 && Math.abs(w.width - f.width) < .5; })()"));
     check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
     await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});
