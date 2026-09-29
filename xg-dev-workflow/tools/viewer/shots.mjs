@@ -491,6 +491,21 @@ const SCENARIO = {
     await ctx.wait("!!document.querySelector('#left .btable, #left .card')", 5000).catch(() => {});
     check("375: picking an entry from the history navigates to it", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .docbody')"));
   },
+  // Tree F folds a section innermost-first (WebKit left a folder closed while hidden laid out as open) and
+  // restores what was open on a second press.
+  async treefold(ctx, check) {
+    await ctx.viewport(375, 667); await ctx.load(); await ctx.go("board"); await ctx.click("[data-side]");
+    const SEC = `document.querySelector('#tree > details[data-name="dev"]')`, OUTER = `${SEC}.querySelector(":scope > details.kids")`, INNER = `${OUTER}.querySelector(":scope > details.kids")`;
+    const tap = async (expr) => { await ctx.eval(`${expr}.click(); true`); await sleep(250); };
+    await tap(`${OUTER}.querySelector("summary")`); await tap(`${INNER}.querySelector("summary")`);
+    await tap(`${SEC}.querySelector('.sx[data-act="collapse"]')`);
+    check("375: F folds the whole section", await ctx.eval(`[...${SEC}.querySelectorAll("details")].every(d => !d.open)`));
+    await tap(`${OUTER}.querySelector("summary")`);
+    check("375: re-opening the outer folder shows the inner one folded, rows packed", await ctx.eval(`(() => { const k = [...${OUTER}.children]; let g = 0;
+      for (let i = 1; i < k.length; i++) g = Math.max(g, k[i].getBoundingClientRect().top - k[i - 1].getBoundingClientRect().bottom); return !${INNER}.open && g <= 1; })()`));
+    await tap(`${OUTER}.querySelector("summary")`); await tap(`${SEC}.querySelector('.sx[data-act="collapse"]')`);
+    check("375: F again restores what was open", await ctx.eval(`${OUTER}.open && ${INNER}.open`));
+  },
   // Coming back to a view that was left at the very top lands at the top (the board's filters and a doc's
   // frontmatter above the first block stay in view); a view left mid-way still returns to its top block (not the pixel).
   async revisit(ctx, check) {

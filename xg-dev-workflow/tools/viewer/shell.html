@@ -3159,7 +3159,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (anyOpen) {                                            // snapshot the open set, then collapse
       var cur = {}; folders.forEach(function (d) { if (d.open) cur[treePathKey(d)] = 1; });
       treeSnap[tree] = cur;
-      folders.forEach(function (d) { d.open = false; });
+      [].slice.call(folders).reverse().forEach(function (d) { d.open = false; });   // innermost first: WebKit left a folder closed while hidden laid out as open (a blank gap)
     } else if (treeSnap[tree]) {                              // fully collapsed + have a snapshot → restore
       var snap = treeSnap[tree]; treeSnap[tree] = null;
       folders.forEach(function (d) { d.open = !!snap[treePathKey(d)]; });
