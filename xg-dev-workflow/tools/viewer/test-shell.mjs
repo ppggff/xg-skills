@@ -1210,6 +1210,10 @@ t("a failed request names the full URL it went to", () => {
   assert.match(html, /var where = p \+ " → " \+ r\.status \+ " \(" \+ \(r\.url \|\| new URL\(p, location\.href\)\.href\) \+ ", server: " \+ \(r\.headers\.get\("Server"\) \|\| "\?"\) \+ "\)";/, "shows which host:port and which server answered");
   assert.match(html, /throw new Error\(where \+ " " \+ JSON\.stringify\(b\.slice\(0, 80\)\)\)/, "and the start of the body it sent");
 });
+t("board: the status filter row is chips only, no label", () => {
+  assert.match(html, /return '<div class="board-filters">' \+ st \+ "<\/div>";/);
+  assert.doesNotMatch(html, /class="flabel"|\.flabel \{/, "the 状态 label and its style are gone");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
