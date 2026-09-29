@@ -472,6 +472,12 @@ const SCENARIO = {
     await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
     check("375: a one-line TOC entry is as tall as a tree row", await ctx.eval("(() => { const hs = [...document.querySelectorAll('#toc a[data-toc]')].map(a => a.getBoundingClientRect().height); return hs.length > 0 && Math.abs(Math.min(...hs) - 30) <= 1; })()"));
     await ctx.click("#scrim");
+    const totopShown = "getComputedStyle(document.getElementById('totop')).display !== 'none'";
+    check("375: no back-to-top button at the top of a doc", !(await ctx.eval(totopShown)));
+    await ctx.eval("(() => { const l = document.querySelector('#left'); l.scrollTop = l.clientHeight * 2; return true; })()"); await sleep(300);
+    check("375: a screen down, the back-to-top button shows", await ctx.eval(totopShown));
+    await ctx.tap("#totop"); await sleep(300);
+    check("375: tapping it jumps to the top and hides it", await ctx.eval(`document.querySelector('#left').scrollTop === 0 && !(${totopShown})`));
     check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
     await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});

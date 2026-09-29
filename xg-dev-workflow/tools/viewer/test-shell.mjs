@@ -1166,6 +1166,20 @@ t("narrow mode: long tree names drag sideways per row; nothing drags the page", 
   assert.match(html, /html\.narrow #left \{ overflow-x: hidden; \}/, "the content pane never pans sideways");
   assert.match(html, /html\.narrow, html\.narrow body \{ overflow-x: hidden; \}/, "nor does the page");
 });
+t("narrow mode: a back-to-top button shows once the pane is a screen down", () => {
+  assert.match(html, /<button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑<\/button>/);
+  assert.match(html, /#totop \{ display: none; \}/, "never on the desktop");
+  assert.match(html, /html\.narrow #totop\.show \{ display: block; position: fixed;/);
+  assert.match(html, /totop\.classList\.toggle\("show", narrow && PANES\.left\.scrollTop > PANES\.left\.clientHeight\)/, "a screen down, below the breakpoint");
+  assert.match(html, /PANES\.left\.scrollTop = 0;/, "an instant jump — smooth scrolling a long doc is itself heavy");
+});
+// Temporary A/B switches for the phone lag on one large doc; remove with their case once the cause is fixed.
+t("temporary A/B switches: ?diag=off skips mermaid, ?wrap=off makes no nested scrollers", () => {
+  assert.match(html, /var AB = new URLSearchParams\(location\.search\);/);
+  assert.match(html, /if \(AB\.get\("diag"\) === "off"\) return;/, "renderMermaid leaves the source");
+  assert.match(html, /if \(AB\.get\("wrap"\) === "off"\) document\.documentElement\.classList\.add\("ab-wrap-off"\);/);
+  assert.match(html, /html\.narrow\.ab-wrap-off \.docbody pre \{ white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; \}/);
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");

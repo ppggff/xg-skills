@@ -131,6 +131,18 @@
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
   [data-side] { display: none; } html.narrow [data-side] { display: inline-block; }
   [data-sidetop] { display: none; } html.narrow [data-sidetop] { display: inline-block; }
+  #totop { display: none; }
+  html.narrow #totop.show { display: block; position: fixed; right: 14px; bottom: 20px; z-index: 25; width: 40px; height: 40px; font-size: 16px;
+    background: var(--bg); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
+  html.narrow:has(#left .findbar) #totop.show { bottom: 72px; }   /* clear of the find bar */
+  html.narrow:has(#left .card-detail) #totop { display: none; }   /* the board drawer owns the bottom */
+  /* temporary A/B for the phone lag on one large doc (?wrap=off): no nested scrollers — remove once the cause is fixed */
+  html.narrow.ab-wrap-off .docbody pre { white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; }
+  html.narrow.ab-wrap-off .docbody pre code { white-space: pre-wrap; }
+  html.narrow.ab-wrap-off .docbody table, html.narrow.ab-wrap-off table.trm { display: table; width: 100%; max-width: 100%; overflow: visible; table-layout: fixed; }
+  html.narrow.ab-wrap-off .docbody td, html.narrow.ab-wrap-off .docbody th, html.narrow.ab-wrap-off table.trm td, html.narrow.ab-wrap-off table.trm th { overflow-wrap: anywhere; }
+  html.narrow.ab-wrap-off .mermaid { overflow: visible; }
+  html.narrow.ab-wrap-off .mermaid svg { width: 100%; max-width: 100% !important; }
   html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
   .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
   html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
@@ -621,6 +633,7 @@
 </head>
 <body>
 <button id="reopen" class="iconbtn" title="show sidebar">☰</button>
+<button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button>
 <div id="layout">
   <aside id="side" class="pane">
     <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
@@ -1342,12 +1355,17 @@ if (typeof window !== "undefined") window.SV = SV;
 // ---------------------------------------------------------------------------
 if (typeof window !== "undefined" && window.marked) (function () {
   var PANES = { left: document.getElementById("left"), right: document.getElementById("right") };
+  // Temporary A/B switches for the phone lag on one large doc (?diag=off · ?wrap=off); remove once the cause is fixed.
+  var AB = new URLSearchParams(location.search);
+  if (AB.get("wrap") === "off") document.documentElement.classList.add("ab-wrap-off");
   // Which content pane an event landed in. Delegated handlers all need this, and the `.pane` class is
   // on #side/#toc too, so the question is always "#left or the other one" — never a class lookup.
   function sideOf(el) { return el.closest("#left") ? "left" : "right"; }
   var tocPane = document.getElementById("toc"), treeEl = document.getElementById("tree");
   var projSel = document.getElementById("proj"), searchBox = document.getElementById("search");
   var sideTopBtn = document.querySelector("[data-sidetop]");
+  var totop = document.getElementById("totop");
+  function syncTotop() { totop.classList.toggle("show", narrow && PANES.left.scrollTop > PANES.left.clientHeight); }
   function showScope() { sideTopBtn.querySelector(".scope").textContent = project || "all"; }
   var TREES = { dev: new Map(), kb: new Map() }, RAW = { dev: [], kb: [] };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -1427,6 +1445,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     applyLayout(); renderToc();
   }
   NARROW_MQ.addEventListener("change", onNarrowChange);
+  PANES.left.addEventListener("scroll", syncTotop, { passive: true }); NARROW_MQ.addEventListener("change", syncTotop);
   (function () {                             // R6: on load, restore #side width + apply persisted left/toc
     var sideEl = document.getElementById("side");
     if (sideEl && layoutState.sideW) { sideEl.style.flex = "none"; sideEl.style.width = layoutState.sideW + "px"; }
@@ -1752,6 +1771,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return mermaidLoading;
   }
   function renderMermaid(side, body) {
+    if (AB.get("diag") === "off") return;
     var blocks = body.querySelectorAll("pre > code.language-mermaid");
     if (!blocks.length) return;
     ensureMermaid().then(function (mermaid) {
@@ -2955,6 +2975,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); toggleSide(); return; }
+    if ((t = e.target.closest("#totop"))) { e.preventDefault(); PANES.left.scrollTop = 0; totop.classList.remove("show"); return; }
     if ((t = e.target.closest("[data-sidetop]"))) { e.preventDefault(); document.getElementById("side").classList.toggle("top-open"); return; }
     if ((t = e.target.closest("[data-treefilter]"))) { e.preventDefault();
       if (document.getElementById("side").classList.toggle("filter-open")) document.getElementById("treeFilter").focus(); return; }
