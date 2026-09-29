@@ -68,8 +68,9 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: line numbers come back on a phone, 8.5px in the left margin; long tree names drag sideways per row; TOC rows match
   tree rows; the pane and page never pan sideways (a guard — the reported slide did not reproduce in emulation).
   Then: a ↑ back-to-top button floats on a phone once the pane is a screen down.
-  Then: on a phone wide code blocks and tables wrap and diagrams fit by default; a tapped block alone scrolls at its natural
-  width. Why: a doc with 75 nested horizontal scrollers lagged on a real phone (heat, late tiles); wrapping them all was smooth.
+  Then: on a phone wide code blocks and tables always wrap and diagrams always fit the pane. Why: a doc with 75 nested
+  horizontal scrollers lagged on a real phone (heat, late tiles); wrapping them all was smooth, and a tap-to-scroll toggle
+  tried in between lagged again as soon as one block was expanded, so it was dropped.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
