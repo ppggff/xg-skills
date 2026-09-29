@@ -1229,11 +1229,6 @@ t("board table: rows divided by hairlines only — no grid, no header fill", () 
   assert.match(html, /\.btable td:nth-child\(1\) \{ width: 5em; \}/, "column widths ride on the first row's cells (fixed layout)");
   assert.match(html, /\.btable tr:last-child td \{ border-bottom: 0; \}/);
 });
-t("board table: group titles drop their rule — lines only divide rows", () => {
-  assert.match(html, /'<section class="grp" data-key="' \+ esc\(p\) \+ '"><h2 class="sec sec-proj sec-tab">'/, "the table form marks its group titles");
-  assert.match(html, /h2\.sec\.sec-proj\.sec-tab::after \{ display: none; \}/);
-  assert.match(html, /h2\.sec\.sec-proj\.sec-tab \{ margin: 22px 0 4px; font-weight: 600; color: var\(--fg\); \}/, "weight and space carry the grouping");
-});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");

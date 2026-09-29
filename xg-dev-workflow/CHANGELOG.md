@@ -92,7 +92,6 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: the tree's F rebuilds its section with every folder closed and only the very next F restores it — folding
   <details> in place (even innermost-first) left a phone showing a blank where a reopened folder's contents belonged.
   Then: the board table drops the cell grid and its header row for faint row hairlines, cells on the baseline.
-  Then: its project titles lose their rule for a bold name and space, so lines only divide rows.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
