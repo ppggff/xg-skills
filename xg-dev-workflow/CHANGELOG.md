@@ -91,7 +91,7 @@ the ruling was to adapt by width, never by recognizing the device.
   had been scrolled under the head by the top-block anchor).
   Then: the tree's F rebuilds its section with every folder closed and only the very next F restores it — folding
   <details> in place (even innermost-first) left a phone showing a blank where a reopened folder's contents belonged.
-  Then: the board table drops the cell grid and its header row for row hairlines, cells on the baseline.
+  Then: the board table drops the cell grid and its header row for faint row hairlines, cells on the baseline.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
