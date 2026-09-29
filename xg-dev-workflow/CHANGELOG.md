@@ -94,6 +94,7 @@ the ruling was to adapt by width, never by recognizing the device.
   Then: the board table drops the cell grid and its header row for faint row hairlines inset from the id column
   (the project title keeps its full-width rule), cells on the baseline.
   Then: the narrow pane head keeps the desktop order (navigation left, crumb between, the other groups right).
+  Then: below the breakpoint the board table keeps a fixed layout with narrow column widths, so the project groups line up.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
