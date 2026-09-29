@@ -205,7 +205,7 @@ async function session(o, fn) {
     if (o.freeze) await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `Date.now = () => ${frozenNow};` }, sid);
     const centerOf = async (sel) => {   // viewport centre of an element, scrolled into view first
       const c = await evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: "center" });
-        const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+        const r = e.getClientRects()[0] || e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);   // first line box: a link wrapped over two lines has empty space at its bounding-box centre
       if (!c) throw new Error("no element " + sel);
       return c;
     };
