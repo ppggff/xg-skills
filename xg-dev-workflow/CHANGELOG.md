@@ -83,6 +83,9 @@ the ruling was to adapt by width, never by recognizing the device.
   message also names the responding server and the start of its body.
   Then: the gitweb companion's lighttpd closes each connection after its response — a phone-side proxy pooling by host had
   reused a kept-alive gitweb connection for the viewer's port, so /api/board came back as lighttpd's 404.
+  Then: the viewer serves gitweb at /gitweb/ (forwarding to a loopback-only companion), so a client needs one port;
+  sharing the origin, gitweb runs with $prevent_xss and a same-origin CSP. A stray unittest.main() in test_viewer.py had
+  kept the --lan tests from ever running; they run (and pass) now.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
