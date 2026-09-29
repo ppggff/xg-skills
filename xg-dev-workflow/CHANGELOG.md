@@ -58,6 +58,11 @@ the ruling was to adapt by width, never by recognizing the device.
   the pane itself never scrolls sideways, which had dragged the text and the head with it. The inline line-number gutter
   narrow mode forces is hidden (it skewed code blocks, tables and `<hr>`). An 8th scenario, `wide`, runs at 375×667; the
   earlier "nothing scrolls sideways" check had measured the page, not the pane, on a doc with no wide table.
+- **Second phone pass** (2026-09-29, real-device feedback): below the breakpoint the sidebar's scope + search fold behind
+  a toggle that shows the scope and the nav sits on one line; the card detail's trace tables scroll inside themselves;
+  the visit history is back as a ▾ button over the native select (the phone's own picker); chrome text drops back near
+  desktop sizes (inputs stay 16px for iOS). The board gains a fourth form, `table` (grid → kanban → table → rows).
+  A 9th scenario, `phone`, runs at 375×667.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
