@@ -76,6 +76,8 @@ the ruling was to adapt by width, never by recognizing the device.
   scrollbar meets the sidebar edge and a collapsed sidebar reopens from the head; on a phone ⌕ sits by the scope toggle and
   the three nav entries form one segmented control. A 10th scenario, `desk`, runs at 1440×900.
   Then: pane-head icon buttons share one 28×24 box; on a phone the sidebar's controls are one 24px row height.
+  Then: the rows board form is retired for the table (grid → kanban → table; a stored rows pick reads as table); on a
+  phone the code-browse link closes the sidebar overlay it opened from.
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
