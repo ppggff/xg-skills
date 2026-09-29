@@ -182,7 +182,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(404, "not found\n")
             return
         try:
-            self._send(200, (VIEWER_DIR / name).read_bytes(), ctype + "; charset=utf-8")
+            path = VIEWER_DIR / name
+            st = path.stat()
+            etag = '"%x-%x"' % (st.st_size, st.st_mtime_ns)
+            cache = {"ETag": etag, "Cache-Control": "no-cache"}   # revalidate every time: a 304 spares the 3 MB mermaid
+            if self.headers.get("If-None-Match") == etag:
+                self._send(304, b"", extra=cache)
+                return
+            self._send(200, path.read_bytes(), ctype + "; charset=utf-8", extra=cache)
         except OSError:
             self._send(404, "not found\n")
 

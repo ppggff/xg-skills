@@ -228,6 +228,19 @@ class T345Endpoints(unittest.TestCase):
         # gate subject shows and the snapshot subject does not head any commit block.
         self.assertIn("foo/001: gate", body)
 
+    def test_assets_revalidate_with_etag(self):
+        r = urllib.request.urlopen(self.base + "/assets/marked.min.js", timeout=3)
+        etag = r.headers.get("ETag")
+        self.assertTrue(etag)
+        self.assertEqual(r.headers.get("Cache-Control"), "no-cache")   # always revalidate: an upgraded asset shows at once
+        req = urllib.request.Request(self.base + "/assets/marked.min.js", headers={"If-None-Match": etag})
+        with self.assertRaises(urllib.error.HTTPError) as cm:           # urllib surfaces 304 as an HTTPError
+            urllib.request.urlopen(req, timeout=3)
+        self.assertEqual(cm.exception.code, 304)
+        self.assertEqual(cm.exception.read(), b"")
+        req = urllib.request.Request(self.base + "/assets/marked.min.js", headers={"If-None-Match": '"stale"'})
+        self.assertEqual(urllib.request.urlopen(req, timeout=3).status, 200)
+
     def test_assets_allowlist_and_traversal(self):
         self.assertEqual(get(self.base, "/assets/marked.min.js")[0], 200)
         self.assertEqual(get(self.base, "/assets/mermaid.min.js")[0], 200)
