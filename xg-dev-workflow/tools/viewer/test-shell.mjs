@@ -1214,6 +1214,9 @@ t("board: the status filter row is chips only, no label", () => {
   assert.match(html, /return '<div class="board-filters">' \+ st \+ "<\/div>";/);
   assert.doesNotMatch(html, /class="flabel"|\.flabel \{/, "the 状态 label and its style are gone");
 });
+t("returning to a view left at the very top lands at the top, not on its first block", () => {
+  assert.match(html, /if \(!scroll\) return;\n\s+if \(e\.y === 0\) return;/, "what sits above the first block (board filters, frontmatter) stays in view");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");

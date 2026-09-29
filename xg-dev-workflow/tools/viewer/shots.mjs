@@ -491,6 +491,21 @@ const SCENARIO = {
     await ctx.wait("!!document.querySelector('#left .btable, #left .card')", 5000).catch(() => {});
     check("375: picking an entry from the history navigates to it", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .docbody')"));
   },
+  // Coming back to a view that was left at the very top lands at the top (the board's filters and a doc's
+  // frontmatter above the first block stay in view); a view left mid-way still returns to its top block (not the pixel).
+  async revisit(ctx, check) {
+    for (const [w, h] of [[375, 667], [1440, 900]]) {
+      await ctx.viewport(w, h); await ctx.load(); await ctx.go("board"); await ctx.go("doc"); await ctx.go("board");
+      check(`${w}: back on the board at the top, the status chips in view`, await ctx.eval("document.querySelector('#left').scrollTop === 0 && document.querySelector('#left .board-filters').getBoundingClientRect().top >= document.querySelector('#left .doc-head').getBoundingClientRect().bottom - 1"));
+      await ctx.go("doc");
+      check(`${w}: back on the doc at the top, the frontmatter in view`, await ctx.eval("document.querySelector('#left').scrollTop === 0"));
+      await ctx.eval("(() => { const l = document.querySelector('#left'); l.scrollTop = Math.round(l.scrollHeight / 3); return true; })()"); await sleep(200);
+      const topBlock = "(() => { const l = document.querySelector('#left'), edge = l.getBoundingClientRect().top + 56; return [...l.querySelectorAll('.docbody > *')].findIndex(b => b.getBoundingClientRect().bottom > edge); })()";
+      const left = await ctx.eval(topBlock);
+      await ctx.go("board"); await ctx.go("doc"); await sleep(300);
+      check(`${w}: a doc left mid-way comes back to the block that was at the top (block ${left})`, left > 0 && (await ctx.eval(`(() => { const l = document.querySelector('#left'), b = l.querySelectorAll('.docbody > *')[${left}]; return Math.abs(b.getBoundingClientRect().top - l.getBoundingClientRect().top - 56) <= 2; })()`)));
+    }
+  },
   // Desktop chrome: the tree's scrollbar on the sidebar edge, the pane head in function groups,
   // and a collapsed sidebar reopening from the head's ☰ (no floating button over ◀).
   async desk(ctx, check) {

@@ -2674,6 +2674,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (h.q || h.pins.length) reindex(side); else reset(side);
     updateFindCount(side);
     if (!scroll) return;
+    if (e.y === 0) return;   // left at the very top: what sits above the first block (filters, frontmatter) stays in view
     var i = SV.anchorFind(blockPrefixes(p), e.a), els = blockEls(p);
     if (i >= 0 && els[i]) p.scrollTop += els[i].getBoundingClientRect().top - p.getBoundingClientRect().top - HEAD_PAD;
     else if (typeof e.y === "number") p.scrollTop = e.y;   // D5: the anchor is gone — pixel fallback
