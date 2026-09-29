@@ -1104,7 +1104,8 @@ t("narrow mode is decided by one matchMedia width query and nothing device-shape
   assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "any navigation closes an overlay");
 });
 t("narrow mode: wide content scrolls inside its own box and source line numbers are hidden", () => {
-  assert.match(html, /html\.narrow \.docbody > \[data-srcline\]::before \{ display: none; \}/, "the forced inline gutter would skew pre, table and hr");
+  assert.match(html, /html\.narrow \.docbody > \[data-srcline\]::before \{ position: absolute; display: block; left: -24px; width: 22px; min-width: 0; margin: 0; text-align: right; font-size: 8\.5px; \}/, "line numbers hang in the left margin, never inline (inline skews pre, table and hr)");
+  assert.match(html, /html\.narrow \.docbody \{ padding-left: 10px; \}/, "the body leaves room for the hanging numbers");
   assert.match(html, /html\.narrow \.docbody table \{ display: block; width: max-content; max-width: 100%; overflow-x: auto; \}/, "a wide table scrolls itself, not the pane");
   assert.match(html, /html\.narrow \.mermaid \{ overflow-x: auto; \}/, "a wide diagram scrolls inside its holder");
   assert.match(html, /html\.narrow \.docbody \{ overflow-wrap: break-word; \}/, "a long path or identifier in running text wraps instead of widening the pane");
@@ -1143,7 +1144,7 @@ t("board: a fourth form, table, between kanban and rows", () => {
 });
 t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
   assert.match(html, /html\.narrow \.tree \{ font-size: 13px; \}/);
-  assert.match(html, /html\.narrow #toc a \{ display: block; padding: 8px 0; font-size: 13px; \}/);
+  assert.match(html, /html\.narrow #toc a \{ display: flex; align-items: center; min-height: 30px; padding-top: 2px; padding-bottom: 2px; font-size: 13px; \}/, "TOC rows match the tree rows");
   assert.match(html, /html\.narrow \.crumb, html\.narrow \.hint \{ font-size: 12px; \}/);
   assert.match(html, /html\.narrow \.row \.rid, html\.narrow \.row \.rprog, html\.narrow \.row \.rwhen \{ font-size: 12px; \}/);
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
@@ -1159,6 +1160,11 @@ t("narrow mode: tighter sidebar, hint hidden, file filter behind a button", () =
   assert.match(html, /html\.narrow #side \.hint \{ display: none; \}/, "the ? button in the pane head covers help");
   assert.match(html, /<div class="tree-tools"><span class="side-label">files<\/span><button class="iconbtn" data-treefilter="1"[^>]*>⌕<\/button><\/div>/, "a ⌕ button in the files row");
   assert.match(html, /html\.narrow #side:not\(\.filter-open\) #filterbox:not\(:has\(input:not\(:placeholder-shown\)\)\) \{ display: none; \}/, "folded unless opened or a filter is active");
+});
+t("narrow mode: long tree names drag sideways per row; nothing drags the page", () => {
+  assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ overflow-x: auto; scrollbar-width: none; \}/, "each row scrolls on its own");
+  assert.match(html, /html\.narrow #left \{ overflow-x: hidden; \}/, "the content pane never pans sideways");
+  assert.match(html, /html\.narrow, html\.narrow body \{ overflow-x: hidden; \}/, "nor does the page");
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");

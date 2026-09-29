@@ -84,6 +84,8 @@
     overflow: auto; box-shadow: -4px 0 24px rgba(0, 0, 0, .25); }
   html.narrow .gutter, html.narrow #reopen, html.narrow #right { display: none !important; }
   html.narrow #left { padding: 0 14px 20px; }
+  html.narrow #left { overflow-x: hidden; }   /* wide content scrolls in its own box; the pane itself never pans */
+  html.narrow, html.narrow body { overflow-x: hidden; }
   html.narrow .doc-head { margin: 0 -14px 0; padding: 12px 14px 8px; }   /* tracks #left's narrower padding */
   html.narrow .frontmatter { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }   /* same: the meta bar spans the pane, not beyond it */
   html.narrow [data-docwidth] { display: none; }   /* reading-width tiers are bypassed below the breakpoint */
@@ -98,7 +100,8 @@
   html.narrow table.trm { display: block; width: max-content; max-width: 100%; overflow-x: auto; }   /* the card detail's matrix and task table */
   html.narrow .mermaid { overflow-x: auto; }
   html.narrow .mermaid svg { width: var(--nat-w, auto); max-width: none !important; }   /* mermaid inlines max-width; --nat-w is set in renderMermaid */
-  html.narrow .docbody > [data-srcline]::before { display: none; }   /* narrow forces gutter-in, whose inline number skews pre, table and hr */
+  html.narrow .docbody { padding-left: 10px; }
+  html.narrow .docbody > [data-srcline]::before { position: absolute; display: block; left: -24px; width: 22px; min-width: 0; margin: 0; text-align: right; font-size: 8.5px; }   /* hung in #left's padding + the body's: narrow forces gutter-in, whose inline number skews pre, table and hr */
   html.narrow .doc-head .crumb { flex: 1 1 4em; min-width: 4em; order: 9; }   /* after the buttons; wraps to its own line only when they leave it no room */
   html.narrow [data-collapse] { display: none; }   /* the desktop collapse would win over the overlay (!important) and strand it */
   .histwrap { display: contents; }
@@ -114,12 +117,14 @@
   html.narrow .fchip { flex: none; }
   html.narrow .tree { font-size: 13px; }
   html.narrow .tree summary, html.narrow .tree .file { min-height: 30px; padding: 2px 6px; }
+  html.narrow .tree summary, html.narrow .tree .file { overflow-x: auto; scrollbar-width: none; }   /* a long name drags sideways on its own row */
+  html.narrow .tree summary::-webkit-scrollbar, html.narrow .tree .file::-webkit-scrollbar { display: none; }
   html.narrow .tree > details > summary { font-size: 13px; }
   html.narrow .row { min-height: 44px; }
   html.narrow .row .rid, html.narrow .row .rprog, html.narrow .row .rwhen { font-size: 12px; }
   html.narrow .row .rtitle { padding: 9px 0; }   /* the title link's own hit area, not just the row's */
   html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
-  html.narrow #toc a { display: block; padding: 8px 0; font-size: 13px; }
+  html.narrow #toc a { display: flex; align-items: center; min-height: 30px; padding-top: 2px; padding-bottom: 2px; font-size: 13px; }   /* rows as tall as the tree's */
   html.narrow .crumb, html.narrow .hint { font-size: 12px; }
   #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
   html.narrow #scrim.show { display: block; }

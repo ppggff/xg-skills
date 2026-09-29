@@ -410,7 +410,8 @@ const SCENARIO = {
     check("375: the pane never scrolls sideways", await ctx.eval(`${pane}.scrollWidth <= ${pane}.clientWidth`));
     check("375: a wide table scrolls inside itself", await ctx.eval(`(() => { const t = document.getElementById("wt"); return t.scrollWidth > t.clientWidth && t.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right; })()`));
     check("375: a diagram keeps its natural width inside a scrolling holder", await ctx.eval(`(() => { const m = document.getElementById("wm"); return Math.round(m.querySelector("svg").getBoundingClientRect().width) === 900 && m.scrollWidth > m.clientWidth; })()`));
-    check("375: no source line number is drawn", await ctx.eval(`["wt", "wp", "wh", "wl"].every(id => getComputedStyle(document.getElementById(id), "::before").display === "none")`));
+    check("375: source line numbers hang in the left margin, off the text", await ctx.eval(`["wt", "wp", "wh", "wl"].every(id => { const e = document.getElementById(id), b = getComputedStyle(e, "::before");
+      return b.position === "absolute" && b.display !== "none" && parseFloat(b.left) + e.getBoundingClientRect().left >= ${pane}.getBoundingClientRect().left && parseFloat(b.left) + parseFloat(b.width) <= 0; })`));
     if (await ctx.eval("document.querySelectorAll('#left .docbody pre > code.language-mermaid, #left .docbody .mermaid:not(#wm)').length")) {
       await ctx.wait("[...document.querySelectorAll('#left .docbody .mermaid:not(#wm)')].every(m => m.querySelector('svg, .broken'))");
       check("375: a rendered diagram is as wide as its viewBox", await ctx.eval(`[...document.querySelectorAll("#left .docbody .mermaid:not(#wm) svg")].every(s => Math.round(s.getBoundingClientRect().width) === Math.ceil(s.viewBox.baseVal.width))`));
@@ -439,6 +440,9 @@ const SCENARIO = {
     check("375: tree text 13px, inputs stay 16px", (await fs("#tree a.file")) === 13 && (await fs("#search")) === 16);
     await ctx.click("[data-sidetop]");
     check("375: tree rows 30px, the help hint and the file filter are out of the way", await ctx.eval("(() => { const r = document.querySelector('#tree summary').getBoundingClientRect().height; return r <= 31 && getComputedStyle(document.querySelector('#side .hint')).display === 'none' && getComputedStyle(document.getElementById('filterbox')).display === 'none'; })()"));
+    await ctx.eval("document.querySelectorAll('#tree details').forEach(d => d.open = true); true"); await sleep(300);
+    check("375: a long file name drags sideways on its own row, the tree does not", await ctx.eval("(() => { const f = [...document.querySelectorAll('#tree a.file')].sort((a, b) => b.scrollWidth - a.scrollWidth)[0], t = document.getElementById('tree'); return f.scrollWidth > f.clientWidth && getComputedStyle(f).overflowX === 'auto' && t.scrollWidth <= t.clientWidth; })()"));
+    await ctx.eval("document.querySelectorAll('#tree details').forEach(d => d.open = false); true");
     await ctx.click("[data-treefilter]");
     check("375: ⌕ opens the file filter", await ctx.eval("!!document.getElementById('treeFilter').offsetParent"));
     await ctx.eval("(() => { const i = document.getElementById('treeFilter'); i.value = 'design'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
@@ -465,6 +469,9 @@ const SCENARIO = {
     }
     check("375: a card detail with its trace tables stays inside the pane", matrix && await ctx.eval(`${noSideways} && [...document.querySelectorAll('#left table.trm')].every(t => t.getBoundingClientRect().right <= ${pane}.getBoundingClientRect().right + 1)`));
     await ctx.go("doc");
+    await ctx.click("[data-tocbtn]"); await ctx.wait("document.querySelector('#toc').classList.contains('open')");
+    check("375: a one-line TOC entry is as tall as a tree row", await ctx.eval("(() => { const hs = [...document.querySelectorAll('#toc a[data-toc]')].map(a => a.getBoundingClientRect().height); return hs.length > 0 && Math.abs(Math.min(...hs) - 30) <= 1; })()"));
+    await ctx.click("#scrim");
     check("375: after two views the history ▾ shows and the head stays one line", await ctx.eval("(() => { const w = document.querySelector('#left .histwrap'); return !!w && w.getBoundingClientRect().width > 0 && document.querySelector('#left .doc-head').getBoundingClientRect().height < 48; })()"));
     await ctx.eval("(() => { const s = document.querySelector('#left select[data-hist]'); const i = [...s.options].findIndex(x => /board/i.test(x.textContent)); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
     await ctx.wait("!!document.querySelector('#left .btable, #left .row, #left .card')", 5000).catch(() => {});
