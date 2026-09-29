@@ -366,11 +366,8 @@
   /* R56: in-board filters (status + project) — display-only, independent of the sidebar scope */
   .board-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
   .btable { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
-  .btable th { text-align: left; font-family: var(--chrome); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--muted); padding: 4px 8px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
   .btable td { padding: 7px 8px; vertical-align: baseline; overflow-wrap: break-word; }   /* mixed sizes (mono meta, bold title) share a first line */
-  .btable th, .btable td { border: 0; border-bottom: 1px solid var(--line); }   /* hairlines between rows only — not the global table grid */
-  .btable th { background: none; border-bottom-color: var(--line2); }
+  .btable td { border: 0; border-bottom: 1px solid var(--line); }   /* hairlines between rows only — not the global table grid */
   .btable tr:last-child td { border-bottom: 0; }
   .btable .trow { cursor: pointer; }
   .btable .trow:hover { background: var(--chip); }
@@ -381,14 +378,14 @@
   .btable .tnext { color: var(--body); min-width: 12em; }
   .btable .twhen { text-align: right; }
   .btable { table-layout: fixed; }   /* one column grid across the per-project tables */
-  .btable th:nth-child(1) { width: 5em; } .btable th:nth-child(2) { width: 30%; } .btable th:nth-child(3) { width: 5em; }
-  .btable th:nth-child(5) { width: 4.5em; }
+  .btable td:nth-child(1) { width: 5em; } .btable td:nth-child(2) { width: 30%; } .btable td:nth-child(3) { width: 5em; }
+  .btable td:nth-child(5) { width: 4.5em; }
   .btable .tid .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
   html.narrow .btable { display: block; overflow-x: auto; table-layout: auto; }
-  html.narrow .btable th { width: auto; }
+  html.narrow .btable td { width: auto; }
   html.narrow .btable .tnext { min-width: 0; overflow-wrap: anywhere; }   /* its longest word must not set the table's width */
   html.narrow .btable .ttitle { min-width: 8em; }
-  html.narrow .btable td, html.narrow .btable th { padding-left: 5px; padding-right: 5px; }
+  html.narrow .btable td { padding-left: 5px; padding-right: 5px; }
 
   /* R60: status chips carry the status color itself (no leading dot); off = dimmed + struck. */
   .fchip { font-family: var(--chrome); font-size: 11.5px; cursor: pointer; border: 1px solid var(--line2); background: var(--bg);
@@ -2053,7 +2050,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return order.map(function (p) {
       return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
         ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
-        '<table class="btable"><tr><th>#</th><th>卡片</th><th>进度</th><th>下一步</th><th>更新</th></tr>' +
+        '<table class="btable">' +
         byProj[p].map(function (c) {
           var key = c.project + "/" + c.nnn, mt = mtimes[c.project + "/" + c.dir];
           var prog = esc(c.governance === "lite" ? SV.liteProgress(c.steps) : SV.legacyPhase(c.steps));

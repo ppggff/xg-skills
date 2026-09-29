@@ -1150,7 +1150,7 @@ t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
 });
 t("board table: no state column, the state is the dot before the id; it fits a phone", () => {
-  assert.match(html, /<tr><th>#<\/th><th>卡片<\/th><th>进度<\/th><th>下一步<\/th><th>更新<\/th><\/tr>/, "five columns, no 状态");
+  assert.match(html, /'<table class="btable">' \+\n\s+byProj\[p\]\.map/, "no header row (tried without it); five cells per row");
   assert.match(html, /'<td class="tid"><span class="dot" style="background:var\(' \+ stVar\(c\.state\) \+ '\)" title="' \+ esc\(c\.state\) \+ '"><\/span>' \+ esc\(c\.nnn\)/, "the state rides on a dot, like rows");
   assert.match(html, /html\.narrow \.btable \.tnext \{ min-width: 0; overflow-wrap: anywhere; \}/, "next may shrink so the table fits 375px");
 });
@@ -1224,8 +1224,9 @@ t("tree F: fold rebuilds the tree closed; only an immediate second F restores", 
   assert.match(html, /if \(e\.target\.closest\("summary"\) && !e\.target\.closest\("\.sx"\)\) treeSnap = \{ dev: null, kb: null \};/, "any folder click in between voids the restore");
 });
 t("board table: rows divided by hairlines only — no grid, no header fill", () => {
-  assert.match(html, /\.btable th, \.btable td \{ border: 0; border-bottom: 1px solid var\(--line\); \}/, "no vertical lines or outer frame from the global table style");
-  assert.match(html, /\.btable th \{ background: none; border-bottom-color: var\(--line2\); \}/);
+  assert.match(html, /\.btable td \{ border: 0; border-bottom: 1px solid var\(--line\); \}/, "no vertical lines or outer frame from the global table style");
+  assert.doesNotMatch(html, /\.btable th\b/, "no header row left to style");
+  assert.match(html, /\.btable td:nth-child\(1\) \{ width: 5em; \}/, "column widths ride on the first row's cells (fixed layout)");
   assert.match(html, /\.btable tr:last-child td \{ border-bottom: 0; \}/);
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
