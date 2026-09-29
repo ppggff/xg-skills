@@ -63,6 +63,8 @@ the ruling was to adapt by width, never by recognizing the device.
   the visit history is back as a ▾ button over the native select (the phone's own picker); chrome text drops back near
   desktop sizes (inputs stay 16px for iOS). The board gains a fourth form, `table` (grid → kanban → table → rows).
   A 9th scenario, `phone`, runs at 375×667.
+  Then (same day): the table form drops its state column (the dot before the id carries it) and fits 375px; the phone
+  sidebar tightens (30px tree rows), hides the help hint and folds the file filter behind ⌕ (kept open while a filter is in use).
 - Not done: a bottom action bar (human ruling), touch drag for gutters and rules (read-only use), a separate mobile shell.
 - **体量行**: unchanged (tools only).
 
