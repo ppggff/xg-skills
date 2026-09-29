@@ -1128,7 +1128,7 @@ t("narrow mode: the card detail's tables wrap to the pane", () => {
   assert.match(html, /html\.narrow table\.trm \{ width: 100%; \}/, "the trace matrix and task table do not widen the pane (their rows expand on click, so they never toggle)");
 });
 t("narrow mode: the visit history is a ▾ button over the native select", () => {
-  assert.match(html, /'<span class="histwrap"><select class="iconbtn" data-hist="' \+ side/, "the history select sits in a wrapper");
+  assert.match(html, /'<span class="histwrap"><span class="hcaret">' \+ ICON\.caret \+ '<\/span><select class="iconbtn" data-hist="' \+ side/, "the history select sits in a wrapper with its caret icon");
   assert.match(html, /\.histwrap \{ display: contents; \}/, "the wrapper is layout-neutral on the desktop");
   assert.match(html, /html\.narrow \.histwrap \{ display: inline-block; position: relative; \}/, "below the breakpoint it becomes the button");
   assert.match(html, /html\.narrow \.histwrap select\.iconbtn \{ position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; \}/, "the native select is the button's tap target");
@@ -1182,10 +1182,14 @@ t("pane head: buttons in function groups with a gap between; no ? button", () =>
 });
 t("pane head: one button box, glyphs sized and centred by their measured ink", () => {
   assert.match(html, /:where\(\.doc-head button\.iconbtn\) \{ display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; \}/, "zero specificity: the per-width hide rules must still win");
-  assert.match(html, /\.doc-head \[data-find\] \{ font-size: 20px; padding-bottom: 2px; \}/, "⌕ is tiny in the system font");
-  assert.match(html, /\.doc-head :is\(\[data-side\], \[data-back\],[^)]*\[data-closeright\]\) \{ width: 28px; padding-left: 0; padding-right: 0; \}/, "icon buttons share one 28×24 box");
-  assert.match(html, /content: "▼"; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; width: 28px;/, "the history ▼ box matches the other head buttons");
-  assert.match(html, /padding: 0 0 \.8px; font-size: 13px; line-height: 1; color: var\(--muted\); \}/, "13px ▼ has ~8px of ink, like its neighbours");
+  assert.match(html, /\.ic \{ fill: none; stroke: currentColor; stroke-width: 1\.5; stroke-linecap: round; stroke-linejoin: round; \}/, "one line-icon style");
+  assert.match(html, /\.doc-head \.iconbtn \.ic \{ width: 14px; height: 14px; \}/);
+  for (const k of ["files", "back", "caret", "clock", "width", "find", "quick", "toc", "mirror", "swap", "reset", "close"]) assert.match(html, new RegExp("\\b" + k + ": ic\\("), "icon " + k);
+  assert.match(html, /data-quick="1" title="quick open \(⌘K\)">' \+ ICON\.quick \+ "<\/button>"/, "⌘K is an icon too");
+  assert.doesNotMatch(html, /\.doc-head \[data-find\] \{ font-size/, "no per-glyph font sizing left");
+  assert.match(html, /\.doc-head :is\(\[data-side\], \[data-back\],[^)]*\[data-quick\],[^)]*\[data-closeright\][^)]*\) \{ width: 28px; padding-left: 0; padding-right: 0; \}/, "icon buttons share one 28×24 box");
+  assert.match(html, /html\.narrow \.histwrap \.hcaret \{ display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; width: 28px;/, "the history caret box matches the other head buttons");
+  assert.match(html, /\.hcaret \.ic \{ width: 12px; height: 12px; \}/, "the caret is drawn a size smaller than the icons");
   assert.match(html, /html\.narrow \.brand-btns \.iconbtn, html\.narrow \.navbtn \{ box-sizing: border-box; height: 24px; padding-top: 0; padding-bottom: 0; \}/, "nav entries as tall as the scope button");
 });
 t("desktop: the tree's scrollbar sits on the sidebar edge; a collapsed sidebar reopens from the pane head", () => {
@@ -1203,7 +1207,8 @@ t("narrow mode: the code-browse link closes the sidebar overlay; the nav row sit
   assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\); margin-top: 4px; \}/);
 });
 t("a failed request names the full URL it went to", () => {
-  assert.match(html, /if \(!r\.ok\) throw new Error\(p \+ " → " \+ r\.status \+ " \(" \+ \(r\.url \|\| new URL\(p, location\.href\)\.href\) \+ "\)"\);/, "shows which host:port answered");
+  assert.match(html, /var where = p \+ " → " \+ r\.status \+ " \(" \+ \(r\.url \|\| new URL\(p, location\.href\)\.href\) \+ ", server: " \+ \(r\.headers\.get\("Server"\) \|\| "\?"\) \+ "\)";/, "shows which host:port and which server answered");
+  assert.match(html, /throw new Error\(where \+ " " \+ JSON\.stringify\(b\.slice\(0, 80\)\)\)/, "and the start of the body it sent");
 });
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
