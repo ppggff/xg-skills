@@ -1293,9 +1293,9 @@ var SV = (function () {
     return m ? m.index : -1;
   }
 
-  // Board form: "grid" (card grid) · "kanban" · "rows" (one compact line per card). The stored
-  // preference wins; the pre-rows boolean key is read as one of the first two; null = no preference,
-  // and the renderer then picks rows below the width breakpoint, the grid above it.
+  // Board form: "grid" (card grid) · "kanban" · "table" (one row per card). The stored
+  // preference wins; the old boolean key is read as one of the first two; null = no preference,
+  // and the renderer then picks the table below the width breakpoint, the grid above it.
   function boardMode(stored, legacyKanban) {
     if (stored === "rows") return "table";   // the rows form was retired for the table
     if (stored === "grid" || stored === "kanban" || stored === "table") return stored;
