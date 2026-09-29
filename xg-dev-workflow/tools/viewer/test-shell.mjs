@@ -1174,15 +1174,16 @@ t("narrow mode: a back-to-top button shows once the pane is a screen down", () =
   assert.match(html, /totop\.classList\.toggle\("show", narrow && PANES\.left\.scrollTop > PANES\.left\.clientHeight\)/, "a screen down, below the breakpoint");
   assert.match(html, /PANES\.left\.scrollTop = 0;/, "an instant jump — smooth scrolling a long doc is itself heavy");
 });
-t("pane head: buttons in function groups with a gap between, help last", () => {
+t("pane head: buttons in function groups with a gap between; no ? button", () => {
   assert.match(html, /'<div class="doc-head"><span class="hg">' \+ sideBtn \+ back \+ hist \+ "<\/span>" \+ '<span class="crumb"/, "navigation first");
-  assert.match(html, /\(extra \? '<span class="hg">' \+ extra \+ "<\/span>" : ""\) \+ '<span class="hg">' \+ actions \+ "<\/span>" \+ '<span class="hg">' \+ panes \+ "<\/span>" \+ \(help \? '<span class="hg">' \+ help \+ "<\/span>" : ""\)/, "view · find · panes · help");
+  assert.match(html, /\(extra \? '<span class="hg">' \+ extra \+ "<\/span>" : ""\) \+ '<span class="hg">' \+ actions \+ "<\/span>" \+ '<span class="hg">' \+ panes \+ "<\/span>" \+ "<\/div>"/, "view · find · panes");
+  assert.doesNotMatch(html, /data-help="1"/, "the ? button is gone (the ? key still opens help on a keyboard)");
   assert.match(html, /\.doc-head \.hg \{ display: inline-flex; align-items: center; gap: 4px; \} \.doc-head \.hg ~ \.hg \{ margin-left: 4px; \}/, "4px inside a group, 10px between groups");
 });
 t("pane head: one button box, glyphs sized and centred by their measured ink", () => {
   assert.match(html, /:where\(\.doc-head button\.iconbtn\) \{ display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; \}/, "zero specificity: the per-width hide rules must still win");
   assert.match(html, /\.doc-head \[data-find\] \{ font-size: 20px; padding-bottom: 2px; \}/, "⌕ is tiny in the system font");
-  assert.match(html, /\.doc-head :is\(\[data-side\], \[data-back\],[^)]*\[data-help\], \[data-closeright\]\) \{ width: 28px; padding-left: 0; padding-right: 0; \}/, "icon buttons share one 28×24 box");
+  assert.match(html, /\.doc-head :is\(\[data-side\], \[data-back\],[^)]*\[data-closeright\]\) \{ width: 28px; padding-left: 0; padding-right: 0; \}/, "icon buttons share one 28×24 box");
   assert.match(html, /content: "▼"; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; width: 28px;/, "the history ▼ box matches the other head buttons");
   assert.match(html, /padding: 0 0 \.8px; font-size: 13px; line-height: 1; color: var\(--muted\); \}/, "13px ▼ has ~8px of ink, like its neighbours");
   assert.match(html, /html\.narrow \.brand-btns \.iconbtn, html\.narrow \.navbtn \{ box-sizing: border-box; height: 24px; padding-top: 0; padding-bottom: 0; \}/, "nav entries as tall as the scope button");
@@ -1201,6 +1202,9 @@ t("narrow mode: the code-browse link closes the sidebar overlay; the nav row sit
   assert.match(html, /if \(e\.target\.closest\("#gitwebEntry"\)\) closeOverlays\(\);/, "a new tab opens, so nothing else would close the overlay");
   assert.match(html, /html\.narrow \.navbtns \{ flex-direction: row; gap: 0; border: 1px solid var\(--line2\); margin-top: 4px; \}/);
 });
+t("a failed request names the full URL it went to", () => {
+  assert.match(html, /if \(!r\.ok\) throw new Error\(p \+ " → " \+ r\.status \+ " \(" \+ \(r\.url \|\| new URL\(p, location\.href\)\.href\) \+ "\)"\);/, "shows which host:port answered");
+});
 t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint is handled", () => {
   assert.match(html, /if \(narrow\) \{[^\n]*\n[^\n]*el\.style\.flex = ""; el\.style\.width = "";/, "inline widths cleared below the breakpoint");
   assert.match(html, /NARROW_MQ\.addEventListener\("change", onNarrowChange\)/, "a change listener handles rotation");
@@ -1208,12 +1212,11 @@ t("narrow mode: applyLayout writes no inline widths and crossing the breakpoint 
   assert.match(html, /if \(narrow\) \{ side = "left"; closeOverlays\(\); \}/, "navigate lands on the left below the breakpoint");
   assert.match(html, /showToc\(!narrow && tocUser !== false\)/, "desktop TOC visibility honours the session toggle; narrow uses the overlay flag");
 });
-t("every hotkey action has a pane-head button twin (find · quick open · TOC · help · files)", () => {
+t("the pane head carries find · quick open · TOC · files buttons", () => {
   const head = html.match(/function paneHead\(side, crumb, extra\) \{[\s\S]*?\n  \}/)[0];
-  for (const attr of ["data-side", "data-find", "data-quick", "data-tocbtn", "data-help"]) assert.ok(head.includes(attr + "="), attr + " rendered by paneHead");
+  for (const attr of ["data-side", "data-find", "data-quick", "data-tocbtn"]) assert.ok(head.includes(attr + "="), attr + " rendered by paneHead");
   assert.match(html, /closest\("\[data-find\]"\)\)\) \{ e\.preventDefault\(\); findOpen\(t\.dataset\.find\); return; \}/, "⌕ opens find for its pane");
   assert.match(html, /closest\("\[data-quick\]"\)\)\) \{ e\.preventDefault\(\); openQuick\(\); return; \}/, "⌘K button opens quick open");
-  assert.match(html, /closest\("\[data-help\]"\)\)\) \{ e\.preventDefault\(\); openHelp\(\); return; \}/, "? button opens help");
   assert.match(html, /placeholder="quick open — file name \/ path… \(last row: search contents\)"/, "quick open says its last row searches contents");
 });
 

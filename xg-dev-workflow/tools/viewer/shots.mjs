@@ -311,15 +311,14 @@ const SCENARIO = {
     check("tapping the scrim closes it", await ctx.eval("!document.querySelector('#toc').classList.contains('open') && !document.querySelector('#scrim').classList.contains('show')"));
     check("390: head does not overflow", (await ctx.measure()).headOverflow === 0);
   },
-  // Every hotkey action has a button in the pane head, at every width, and the head never overflows.
+  // The pane head's buttons work at every width (no ? button: the ? key opens help), and the head never overflows.
   async buttons(ctx, check) {
     for (const [w, h] of [[390, 844], [1024, 768]]) {
       await ctx.viewport(w, h); await ctx.load(); await ctx.go("doc");
       check(`${w}: doc head does not overflow`, (await ctx.measure()).headOverflow === 0);
       await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
       check(`${w}: ⌕ opens the find bar`, await ctx.eval("!!document.querySelector('#left [data-find-input]')"));
-      await ctx.click("[data-help]"); check(`${w}: ? opens help`, await ctx.eval("document.querySelector('#help').classList.contains('show')"));
-      await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+      check(`${w}: no ? button in the head`, await ctx.eval("!document.querySelector('#left [data-help]')"));
       await ctx.click("[data-quick]"); check(`${w}: ⌘K button opens quick open`, await ctx.eval("document.querySelector('#qo').classList.contains('show')"));
       await ctx.eval("const i = document.getElementById('qoInput'); i.value = 'viewer'; i.dispatchEvent(new Event('input', { bubbles: true })); true");
       await ctx.wait("!!document.querySelector('#qo .qrow.qfall')");
@@ -499,7 +498,7 @@ const SCENARIO = {
     check("1440: the tree reaches the sidebar's right edge", await ctx.eval("Math.abs(document.getElementById('tree').getBoundingClientRect().right - document.getElementById('side').getBoundingClientRect().right) < 1"));
     check("1440: head buttons sit in groups with a wider gap between groups", await ctx.eval(`(() => { const g = [...document.querySelectorAll("#left .doc-head .hg")].filter(x => x.getBoundingClientRect().width > 0);
       const gaps = g.slice(1).map((x, i) => x.getBoundingClientRect().left - g[i].getBoundingClientRect().right).filter((d, i) => i > 0);
-      return g.length >= 4 && gaps.every(d => d >= 8) && g[g.length - 1].querySelector("[data-help]"); })()`));
+      return g.length >= 4 && gaps.every(d => d >= 8) && g[g.length - 1].querySelector("[data-tocbtn]"); })()`));
     check("1440: head buttons are one height", await ctx.eval("new Set([...document.querySelectorAll('#left .doc-head button.iconbtn')].filter(b => b.offsetParent).map(b => Math.round(b.getBoundingClientRect().height))).size === 1"));
     check("1440: no ☰ in the head while the sidebar is open", await ctx.eval("getComputedStyle(document.querySelector('#left [data-side]')).display === 'none'"));
     await ctx.click('[data-collapse="side"]');

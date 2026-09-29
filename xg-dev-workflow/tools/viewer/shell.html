@@ -206,7 +206,7 @@
   .doc-head .hg { display: inline-flex; align-items: center; gap: 4px; } .doc-head .hg ~ .hg { margin-left: 4px; }
   :where(.doc-head button.iconbtn) { display: inline-flex; align-items: center; justify-content: center; height: 24px; min-width: 26px; padding: 0 6px; line-height: 1; }   /* :where — zero specificity, so every per-width hide rule still wins */
   /* the head's symbols come from different fonts: sizes bring their ink to ~8.5px, padding-bottom lifts it to the box centre */
-  .doc-head :is([data-side], [data-back], [data-changelog], [data-docwidth], [data-find], [data-tocbtn], [data-mirror], [data-swap], [data-resetlayout], [data-help], [data-closeright]) { width: 28px; padding-left: 0; padding-right: 0; }   /* icon buttons: one 28×24 box; text buttons keep their width */
+  .doc-head :is([data-side], [data-back], [data-changelog], [data-docwidth], [data-find], [data-tocbtn], [data-mirror], [data-swap], [data-resetlayout], [data-closeright]) { width: 28px; padding-left: 0; padding-right: 0; }   /* icon buttons: one 28×24 box; text buttons keep their width */
   .doc-head [data-side], .doc-head [data-tocbtn] { font-size: 17px; padding-bottom: 3.6px; }
   .doc-head [data-back] { font-size: 11px; padding-bottom: 1.2px; }
   .doc-head [data-changelog] { font-size: 14px; padding-bottom: 3.8px; }
@@ -215,7 +215,7 @@
   .doc-head [data-mirror] { font-size: 13px; padding-bottom: 1.4px; }
   .doc-head [data-swap] { font-size: 15px; padding-bottom: 1.4px; }
   .doc-head [data-resetlayout] { font-size: 11px; }
-  .doc-head [data-quick], .doc-head [data-help], .doc-head [data-closeright] { font-size: 12px; padding-bottom: .6px; }
+  .doc-head [data-quick], .doc-head [data-closeright] { font-size: 12px; padding-bottom: .6px; }
   .doc-head [data-bmode] { font-size: 12px; padding-bottom: 2.6px; }
   .iconbtn:disabled { opacity: .35; cursor: default; }
   /* history <select> styled as an iconbtn: drop native chrome so its height matches the buttons */
@@ -707,7 +707,7 @@
       <div class="help-row"><span class="key"><kbd>↺</kbd></span><span class="desc">重置面板宽度；右侧目录宽度固定</span></div>
       <div class="help-row"><span class="key act">主题</span><span class="desc">亮 / 暗 / 跟随（顶部切换）</span></div>
       <div class="help-row"><span class="key"><kbd>?</kbd></span><span class="desc">本帮助；<kbd>esc</kbd> 关闭</span></div>
-      <div class="help-row"><span class="key act">按钮</span><span class="desc">文档头：<kbd>⌕</kbd> 查找 · <kbd>⌘K</kbd> 快速打开 · <kbd>☷</kbd> 目录 · <kbd>?</kbd> 帮助；窄屏时 <kbd>☰</kbd> 文件树</span></div>
+      <div class="help-row"><span class="key act">按钮</span><span class="desc">文档头：<kbd>⌕</kbd> 查找 · <kbd>⌘K</kbd> 快速打开 · <kbd>☷</kbd> 目录；窄屏时 <kbd>☰</kbd> 文件树</span></div>
     </div>
   </div>
 </div>
@@ -1514,7 +1514,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     p._findOpen = false; p._hits = { idx: null, q: "", hits: [], cur: -1, pins: [], slotUsed: [false, false, false, false] }; });   // S2 (016)
 
   function api(p) { return fetch(p).then(function (r) {
-    if (!r.ok) throw new Error(p + " → " + r.status); return r; }); }
+    if (!r.ok) throw new Error(p + " → " + r.status + " (" + (r.url || new URL(p, location.href).href) + ")"); return r; }); }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
   function cssEsc(s) { return s.replace(/["\\]/g, "\\$&"); }
@@ -1616,7 +1616,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var actions = '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">⌕</button>' +
       (side === "left" ? '<button class="iconbtn" data-quick="1" title="quick open (⌘K)">⌘K</button>' : "");
     var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">☷</button>' : "";
-    var help = side === "left" ? '<button class="iconbtn" data-help="1" title="help (?)">?</button>' : "";
     var tools = side === "left"
       ? '<button class="iconbtn" data-mirror="1" title="mirror to right pane">⧉</button>' +
         '<button class="iconbtn" data-swap="1" title="swap panes">⇄</button>' +
@@ -1626,7 +1625,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     return '<div class="rail"></div>' +   // S6: pane's first child, every view kind, via this one shared choke point
       '<div class="doc-head"><span class="hg">' + sideBtn + back + hist + "</span>" + '<span class="crumb" title="' + esc(crumb) + '"><span class="full">' + esc(crumb) +
       '</span><span class="base">' + esc(String(crumb).split("/").pop()) + "</span></span>" +
-      (extra ? '<span class="hg">' + extra + "</span>" : "") + '<span class="hg">' + actions + "</span>" + '<span class="hg">' + panes + "</span>" + (help ? '<span class="hg">' + help + "</span>" : "") + "</div>" +
+      (extra ? '<span class="hg">' + extra + "</span>" : "") + '<span class="hg">' + actions + "</span>" + '<span class="hg">' + panes + "</span>" + "</div>" +
       (p._findOpen ? findBarHtml(side) : "");   // R3/R5: same choke point for the find bar
   }
   function findBarHtml(side) {
@@ -2965,7 +2964,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-tocbtn]"))) { e.preventDefault(); toggleToc(); return; }
     if ((t = e.target.closest("[data-find]"))) { e.preventDefault(); findOpen(t.dataset.find); return; }   // the button twins of f / ⌘K / ?
     if ((t = e.target.closest("[data-quick]"))) { e.preventDefault(); openQuick(); return; }
-    if ((t = e.target.closest("[data-help]"))) { e.preventDefault(); openHelp(); return; }
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
     if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 3 of 4
       PANES.right.innerHTML = ""; PANES.right._view = null;
