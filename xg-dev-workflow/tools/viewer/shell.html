@@ -221,6 +221,9 @@
   h2.sec.sec-proj { display: flex; align-items: center; gap: 8px; margin: 12px 0 9px; text-transform: uppercase;
     font-size: 11px; letter-spacing: .1em; color: var(--muted); font-weight: 400; }
   h2.sec.sec-proj::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  h2.sec.sec-proj.sec-tab { margin: 22px 0 4px; font-weight: 600; color: var(--fg); }   /* table form: the rows own the lines, so a group is a bold name and space */
+  h2.sec.sec-proj.sec-tab::after { display: none; }
+  section.grp:first-of-type > h2.sec-tab { margin-top: 8px; }
   /* R1/R2/R11: three-tier reading measure (default/custom/full) driven by two CSS vars JS writes
      on .docbody itself — never an inline max-width, which would always beat this class rule.
      measure lives ON .docbody so the R52 current-line band (keyed off .docbody rect) stays aligned. */
@@ -2048,7 +2051,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function boardTable(order, byProj, mtimes) {      // one table per project group; the title wraps instead of truncating
     return order.map(function (p) {
-      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
+      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj sec-tab">' + esc(p) +
         ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
         '<table class="btable">' +
         byProj[p].map(function (c) {
