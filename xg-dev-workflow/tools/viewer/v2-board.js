@@ -105,8 +105,7 @@
     if (!hit || hit.mt !== mt) {
       reqCache[c.id] = { mt, list: hit ? hit.list : undefined };
       V.api("/raw/dev/" + rel).then(r => r.text()).then(t => {
-        const out = []; t.replace(/^### Req-(\d+)\s+(\S+)\s*[—-]\s*(.+)$/gm, (_, n, st, title) => out.push({ n, st, t: title }));
-        reqCache[c.id] = { mt, list: out }; if (sel === c.id) paintDetail();
+        reqCache[c.id] = { mt, list: SV.reqHeads(t) }; if (sel === c.id) paintDetail();
       }).catch(() => { reqCache[c.id] = { mt, list: [] }; });
     }
     return reqCache[c.id].list;
@@ -178,11 +177,8 @@
     const el = $("#diffv");
     el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button><div class="ppath"><bdi>${esc(loc.card)} / <b>改动</b></bdi></div><button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button></div><div class="dbody scroll"><div class="hint">读取中…</div></div>`;
     V.api("/api/diff?card=" + encodeURIComponent(loc.card)).then(r => r.text()).then(t => {
-      const files = t.split(/\n(?=diff --git )/).filter(s => s.trim());
-      $(".dbody", el).innerHTML = files.length ? files.map(f => {
-        const m = /^diff --git a\/(\S+)/.exec(f), name = m ? m[1] : "";
-        return `<div class="dfile"><h3>${name ? `<button data-open="dev:${esc(name)}">${esc(name)}</button>` : ""}</h3><div class="md"><pre class="dif">${f.split("\n").map(l => `<div class="${/^\+(?!\+\+)/.test(l) ? "a" : /^-(?!--)/.test(l) ? "d" : /^@@/.test(l) ? "h" : ""}">${esc(l) || " "}</div>`).join("")}</pre></div></div>`;
-      }).join("") : '<div class="hint">这张卡在 dev_root 里没有未提交或最近的改动。</div>';
+      const files = SV.diffFiles(t);
+      $(".dbody", el).innerHTML = files.length ? files.map(f => `<div class="dfile"><h3>${f.name ? `<button data-open="dev:${esc(f.name)}">${esc(f.name)}</button>` : ""}</h3><div class="md"><pre class="dif">${f.lines.map(l => `<div class="${l.cls}">${esc(l.text) || " "}</div>`).join("")}</pre></div></div>`).join("") : '<div class="hint">这张卡在 dev_root 里没有未提交或最近的改动。</div>';
     }).catch(e => { $(".dbody", el).innerHTML = `<div class="derr"><b>读不到改动</b><br>${esc(e.message)}</div>`; });
     V.status();
   };

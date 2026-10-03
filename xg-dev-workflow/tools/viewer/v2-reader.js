@@ -223,12 +223,7 @@
 
   /* ---- toc + rail of ticks + the section chip ---- */
   let heads = [];
-  const headLabel = h => {
-    let t = h.textContent.replace(/^#/, "").trim(), ok = false, inf = false;
-    t = t.replace(/^((?:Req|Inv|V|Q|Task)-\d+)\s+(已验证|待验证|已放弃|放弃|提议|待确认|已确认|进行中|已定|待做)\s*[—-]?\s*/, (_, a, s) => { ok = s === "已验证"; return a + " "; });
-    t = t.replace(/\s*\[VERIFIED\]/, () => { ok = true; return ""; }).replace(/\s*\[(推断|INFERRED)\]/, () => { inf = true; return ""; });
-    return { t, ok, inf };
-  };
+  const headLabel = h => SV.tocLabel(h.textContent);
   function toc() {
     $("#sideT").textContent = $("#sideS").textContent = "目录";
     if (V.view !== "doc") return;
@@ -272,7 +267,7 @@
     const mt = V.D.mtime.dev[rel], c = factCache[rel];
     if (c && c.mt === mt) return Promise.resolve(c.find(id));
     return V.api("/raw/dev/" + rel).then(r => r.text()).then(src => {
-      const map = {}; src.replace(/^### (Fact-\d+)[^\n]*\n([\s\S]*?)(?=^### |(?![\s\S]))/gm, (all, n) => { map[n] = all; });
+      const map = SV.factBlocks(src);
       factCache[rel] = { mt, find: n => map[n] || null }; return map[id] || null;
     }).catch(() => null);
   }
@@ -295,7 +290,7 @@
       if (tipFor !== ce || !md) return;
       const head = md.split("\n")[0].replace("### ", ""), body = md.replace(/^### [^\n]*\n/, "");
       const grab = key => { const m = body.match(new RegExp(`^- ${key}[:：]\\s*([\\s\\S]*?)(?=\\n- [^\\n]{1,8}[:：]|$)`, "m")); return m ? m[1].replace(/\s+/g, " ").trim() : ""; };
-      const fact = grab("事实") || body.replace(/\s+/g, " ").trim(), src = grab("来源");
+      const fact = grab("事实") || SV.factGist(md), src = grab("来源");
       const para = (ce.closest("p,li,td") || ce.parentElement).textContent.replace(/\s+/g, " "), at = para.indexOf("[" + id);
       let pre = at < 0 ? "" : para.slice(0, at); const cut = Math.max(...["。", "；", ";", "？", "！"].map(x => pre.lastIndexOf(x)));
       pre = pre.slice(cut + 1).replace(/\[[A-Za-z]+-\d+[^\]]*\]/g, "").replace(/\s+/g, " ").trim();

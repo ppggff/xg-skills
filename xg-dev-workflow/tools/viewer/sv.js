@@ -583,7 +583,55 @@ var SV = (function () {
     if (m) return m[2] + "/" + m[1];
     return body.split(" · ")[0];
   }
+
+  // ---- added for the refined frontend (/v2); the classic shell does not call these ----
+  // One /api/board card as the refined board reads it: lite Req counts, the six-phase fill (2 done ·
+  // 1 doing · 0 pending), the lite status word, and "next" without its prefix.
+  function cardView(c) {
+    var lite = c.governance === "lite", steps = c.steps || [], s0 = steps[0] || "";
+    var m = lite ? /Req (\d+) \/ 已验证 (\d+)/.exec(s0) : null, dir = String(c.dir || "");
+    return { p: c.project, n: c.nnn, id: c.project + "/" + c.nnn, dirName: dir, dir: c.project + "/" + dir, slug: dir.replace(/^\d+-/, ""),
+      st: stName(c.state), gov: c.governance || "legacy", lite: lite, req: m ? +m[1] : 0, ok: m ? +m[2] : 0,
+      liteSt: lite ? (s0.split(":")[1] || "").split(" · ")[0].trim() : "",
+      ph: steps.map(function (s) { var f = stepFill(s.slice(s.indexOf(":") + 1)); return f === "done" ? 2 : f === "doing" ? 1 : 0; }),
+      steps: steps, next: String(c.effective_next || "").replace(/^next:\s*/, ""), now: c.now || "", block: c.blockers || "",
+      deps: c.deps || "", branch: c.branch || "" };
+  }
+  // A facts.md's "### Fact-n …" blocks: {"Fact-n": "<the block, heading included>"}; the first one wins.
+  function factBlocks(src) {
+    var out = {}, re = /^### (Fact-\d+)[^\n]*\n([\s\S]*?)(?=^### |(?![\s\S]))/gm, m;
+    while ((m = re.exec(String(src || "")))) if (!out[m[1]]) out[m[1]] = m[0];
+    return out;
+  }
+  // A Fact block's one-line gist: its "- 事实:" field, else the body, markup and runs of space folded.
+  function factGist(block) {
+    var body = String(block || "").replace(/^### [^\n]*\n/, ""), m = /^- 事实[:：]\s*([^\n]*)/m.exec(body);
+    return (m ? m[1] : body).replace(/[`*]/g, "").replace(/\s+/g, " ").trim();
+  }
+  // A lite design.md's commitment headings: "### Req-n <状态词> — <title>" → [{n, st, t}].
+  function reqHeads(src) {
+    var out = [], re = /^### Req-(\d+)\s+(\S+)\s*[—-]\s*(.+)$/gm, m;
+    while ((m = re.exec(String(src || "")))) out.push({ n: m[1], st: m[2], t: m[3].trim() });
+    return out;
+  }
+  // A TOC entry from a heading: the id's status word moves into a tick (已验证) or goes, and a
+  // [VERIFIED] / [推断] tag becomes the tick or the 推 mark.
+  function tocLabel(text) {
+    var ok = false, inf = false, t = String(text || "").replace(/^#/, "").trim();
+    t = t.replace(/^((?:Req|Inv|V|Q|Task)-\d+)\s+(已验证|待验证|已放弃|放弃|提议|待确认|已确认|进行中|已定|待做)\s*[—-]?\s*/, function (_, a, s) { ok = s === "已验证"; return a + " "; });
+    t = t.replace(/\s*\[VERIFIED\]/, function () { ok = true; return ""; }).replace(/\s*\[(推断|INFERRED)\]/, function () { inf = true; return ""; });
+    return { t: t, ok: ok, inf: inf };
+  }
+  // A card's `git diff` text split per file: [{name, lines: [{cls: "a"|"d"|"h"|"", text}]}].
+  function diffFiles(text) {
+    return String(text || "").split(/\n(?=diff --git )/).filter(function (s) { return s.trim(); }).map(function (f) {
+      var m = /^diff --git a\/(\S+)/.exec(f);
+      return { name: m ? m[1] : "", lines: f.split("\n").map(function (l) {
+        return { cls: /^\+(?!\+\+)/.test(l) ? "a" : /^-(?!--)/.test(l) ? "d" : /^@@/.test(l) ? "h" : "", text: l }; }) };
+    });
+  }
   return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
+           cardView: cardView, factBlocks: factBlocks, factGist: factGist, reqHeads: reqHeads, tocLabel: tocLabel, diffFiles: diffFiles,
            parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,

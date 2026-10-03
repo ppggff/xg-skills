@@ -951,6 +951,45 @@ t("R17: the find box seeds from the selection, remembers past queries, and waits
   assert.match(html, /findHistPush\(p\._hits\.q\); p\._histAt = null;/, "closing the box records what was searched");
 });
 
+// --- helpers added for the refined frontend (/v2) ---
+t("cardView: lite counts and status word, six-phase fill, next without its prefix", () => {
+  const lite = SV.cardView({ project: "p", nnn: "040", dir: "040-a-b", state: "active", governance: "lite",
+    steps: ["设计:executing · Req 8 / 已验证 3"], effective_next: "next: continue", now: "", blockers: "x" });
+  assert.deepEqual([lite.id, lite.dir, lite.slug, lite.req, lite.ok, lite.liteSt, lite.next, lite.block], ["p/040", "p/040-a-b", "a-b", 8, 3, "executing", "continue", "x"]);
+  const leg = SV.cardView({ project: "p", nnn: "001", dir: "001-x", state: "weird", governance: "",
+    steps: ["需求:confirmed", "设计:drafting", "详设:—", "实现:—", "测试:—", "评审:—"] });
+  assert.deepEqual(leg.ph, [2, 1, 0, 0, 0, 0]);
+  assert.strictEqual(leg.gov, "legacy"); assert.strictEqual(leg.st, "backlog"); assert.strictEqual(leg.req, 0);
+  assert.strictEqual(SV.cardView({ project: "p", nnn: "002", dir: "002-y", state: "todo", governance: "lite", steps: ["设计:draft"] }).req, 0, "no Reqs yet");
+});
+t("factBlocks / factGist: blocks keyed by id, first wins; the gist is the 事实 field, else the body", () => {
+  const src = "<!-- head -->\n\n### Fact-1 [VERIFIED]\n- 事实: one `a`\n  more\n- 来源: x\n### Fact-2\nplain  body\n### Fact-1\n- 事实: dup\n";
+  const b = SV.factBlocks(src);
+  assert.deepEqual(Object.keys(b), ["Fact-1", "Fact-2"]);
+  assert.match(b["Fact-1"], /^### Fact-1 \[VERIFIED\]\n- 事实: one/);
+  assert.strictEqual(SV.factGist(b["Fact-1"]), "one a");
+  assert.strictEqual(SV.factGist(b["Fact-2"]), "plain body");
+  assert.deepEqual(SV.factBlocks(""), {});
+});
+t("reqHeads: the commitment headings of a lite design.md", () => {
+  const src = "### Req-1 已验证 — 同一后端\n- x\n### Req-12 待验证 - 宽\n### Inv-1 不是\n#### Req-3 已验证 — 太深\n";
+  assert.deepEqual(SV.reqHeads(src), [{ n: "1", st: "已验证", t: "同一后端" }, { n: "12", st: "待验证", t: "宽" }]);
+});
+t("tocLabel: status words fold into the tick, tags into marks", () => {
+  assert.deepEqual(SV.tocLabel("Req-2 已验证 — 保留四个主题"), { t: "Req-2 保留四个主题", ok: true, inf: false });
+  assert.deepEqual(SV.tocLabel("#Req-6 放弃 — 统一"), { t: "Req-6 统一", ok: false, inf: false });
+  assert.deepEqual(SV.tocLabel("Fact-3 [VERIFIED]"), { t: "Fact-3", ok: true, inf: false });
+  assert.deepEqual(SV.tocLabel("一个推测 [推断]"), { t: "一个推测", ok: false, inf: true });
+  assert.deepEqual(SV.tocLabel("当前方案"), { t: "当前方案", ok: false, inf: false });
+});
+t("diffFiles: one entry per file, lines classed add/del/hunk, headers left plain", () => {
+  const d = SV.diffFiles("diff --git a/x/a.md b/x/a.md\n--- a/x/a.md\n+++ b/x/a.md\n@@ -1 +1 @@\n-old\n+new\n ctx\ndiff --git a/b.md b/b.md\n+z\n");
+  assert.deepEqual(d.map((f) => f.name), ["x/a.md", "b.md"]);
+  assert.deepEqual(d[0].lines.map((l) => l.cls), ["", "", "", "h", "d", "a", ""]);
+  assert.deepEqual(SV.diffFiles("no changes since abc\n").map((f) => f.name), [""]);
+  assert.deepEqual(SV.diffFiles(""), []);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
 
 // --- 026 T16: doc-native id anchors (SV pure half) + xid extension behavior ---
@@ -1298,3 +1337,4 @@ t("hovercard is gated by width, touch targets grow by width — no pointer or ho
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px;/, "tree rows 30px (tightened after the real-device pass)");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
 });
+

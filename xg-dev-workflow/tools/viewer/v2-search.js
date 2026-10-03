@@ -10,12 +10,8 @@
     if (facts.at === V.D.at || facts.loading) return facts.loading || Promise.resolve();
     const files = V.D.tree.dev.map(x => x.path).filter(p => /^[^/]+\/\d{3}-[^/]+\/facts\.md$/.test(p));
     facts.loading = Promise.all(files.map(rel => V.api("/raw/dev/" + rel).then(r => r.text()).then(src => {
-      const out = [], re = /^### (Fact-\d+)[^\n]*\n([\s\S]*?)(?=^### |(?![\s\S]))/gm; let m;
-      while ((m = re.exec(src))) {
-        const f = ((m[2].match(/^- 事实[:：]\s*([^\n]*)/m) || [, m[2]])[1] || "").replace(/[`*]/g, "").replace(/\s+/g, " ").trim();
-        out.push({ k: "fact", tree: "dev", rel, id: m[1], label: `${m[1]} ${f.slice(0, 80)}`, sub: rel.split("/")[0] + " " + rel.split("/")[1].slice(0, 3) });
-      }
-      return out;
+      const blocks = SV.factBlocks(src);
+      return Object.keys(blocks).map(id => ({ k: "fact", tree: "dev", rel, id, label: `${id} ${SV.factGist(blocks[id]).slice(0, 80)}`, sub: rel.split("/")[0] + " " + rel.split("/")[1].slice(0, 3) }));
     }).catch(() => []))).then(all => { facts.list = [].concat(...all); facts.at = V.D.at; facts.loading = null; if (!$("#qo").hidden) render(); });
     return facts.loading;
   }

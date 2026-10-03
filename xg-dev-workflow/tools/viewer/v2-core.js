@@ -74,15 +74,6 @@ var V2 = (function () {
   V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, at: 0 };
   const PH = ["需求", "设计", "详设", "实现", "测试", "评审"];
   V.PH = PH;
-  function cardOf(c) {
-    const lite = c.governance === "lite", steps = c.steps || [];
-    const ph = steps.map(s => { const f = SV.stepFill(s.slice(s.indexOf(":") + 1)); return f === "done" ? 2 : f === "doing" ? 1 : 0; });
-    const m = lite ? /Req (\d+) \/ 已验证 (\d+)/.exec(steps[0] || "") : null;
-    const liteSt = lite ? ((steps[0] || "").split(":")[1] || "").split(" · ")[0].trim() : "";
-    return { p: c.project, n: c.nnn, dirName: c.dir, slug: c.dir.replace(/^\d+-/, ""), st: SV.stName(c.state), gov: c.governance || "legacy",
-      lite, req: m ? +m[1] : 0, ok: m ? +m[2] : 0, liteSt, ph, steps, id: c.project + "/" + c.nnn, dir: c.project + "/" + c.dir,
-      next: (c.effective_next || "").replace(/^next:\s*/, ""), now: c.now || "", block: c.blockers || "", deps: c.deps || "", branch: c.branch || "", raw: c };
-  }
   V.phaseNow = c => {
     if (c.st === "done") return "已完成"; if (c.st === "dropped") return "已放弃";
     if (c.lite) return c.liteSt || "lite";
@@ -92,7 +83,7 @@ var V2 = (function () {
   V.nextOf = c => { const t = (c.next || "").replace(/^—.*$/, "").replace(/^done — nothing pending$/, "").trim(); return t || (c.lite ? `Req ${c.ok}/${c.req} 已验证` : V.phaseNow(c)); };
   V.load = () => Promise.all([V.json("/api/board"), V.json("/api/tree")]).then(([b, t]) => {
     const D = V.D; D.board = b; D.tree = t; D.at = Date.now();
-    D.cards = Object.keys(b).reduce((a, p) => a.concat(b[p].map(cardOf)), []);
+    D.cards = Object.keys(b).reduce((a, p) => a.concat(b[p].map(SV.cardView)), []);
     D.byId = {}; D.cards.forEach(c => { D.byId[c.id] = c; });
     ["dev", "kb"].forEach(k => {
       D.sets[k] = new Map(t[k].map(it => [it.path.toLowerCase(), it.path]));
