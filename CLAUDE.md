@@ -26,8 +26,11 @@ The workflow and the KB are siblings: the workflow *orchestrates* code work and 
                      #   forks of the shared files legacy/SKILL.md cites — SKILL.md and legacy/SKILL.md each list what they load
   tools/             # Python helpers (no deps beyond stdlib; PyYAML used if present, else a fallback parser)
                      #   xg-dev-workflow/tools/ also holds viewer.py + viewer/ (the status HTML
-                     #   viewer's shell.html + vendored marked.min.js + LICENSE + its tests) —
-                     #   the repo's only browser assets; marked is pinned, see viewer/VENDORED.md
+                     #   viewer: shell.html at /, the refined shell-v2.html + v2.css + v2-*.js at /v2,
+                     #   the pure helpers both load from sv.js, vendored marked/mermaid/Martian Mono
+                     #   + LICENSEs, and the tests: test-shell*.mjs, test_viewer.py, shots.mjs +
+                     #   shots-v2.mjs) — the repo's only browser assets; vendored files are pinned,
+                     #   see viewer/VENDORED.md; every served file is in viewer.py's ASSETS allowlist
                      #   tools/legacy/ = the 存量-only check half (legacy_checks.py), block_parse.py, check-superseded-phrases.py
                      #   + their tests — frozen with references/legacy/, lazy-loaded only for a non-lite card
 ```
