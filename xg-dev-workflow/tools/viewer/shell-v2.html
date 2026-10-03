@@ -7,10 +7,71 @@
      and the stylesheet comes from /assets. Nothing beyond 'self' is ever added. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="gitweb-url" content="__GITWEB_URL__">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%232A3CC8'/%3E%3C/svg%3E">
 <title>status viewer</title>
+<link rel="stylesheet" href="/assets/v2.css">
 </head>
 <body>
+<div class="app v-board" id="app">
+  <aside class="col" id="nav">
+    <div class="chd">
+      <div class="brand" data-tip="status viewer"><i></i></div>
+      <button class="ib nconly" data-goboard="1" data-tip="看板" data-key="b" aria-label="看板"></button>
+      <button class="ib nconly" id="filesBtn" data-tip="文件" aria-label="文件" aria-expanded="false"></button>
+      <button class="ib" id="back" data-tip="后退" data-key="[" aria-label="后退"></button>
+      <button class="ib" id="fwd" data-tip="前进" data-key="]" aria-label="前进"></button>
+      <button class="ib" id="trailBtn" data-popbtn data-tip="足迹：最近打开过的文档" aria-label="足迹"></button>
+      <button class="ib" id="starBtn" data-popbtn data-tip="星标文档" aria-label="星标文档"></button>
+      <button class="ib" id="qBtn" data-tip="搜索文档与卡片" data-key="⌘K" aria-label="搜索"></button>
+      <button class="ib" id="themeBtn" data-popbtn data-tip="主题" aria-label="主题"></button>
+      <button class="ib" id="navTog" data-col="nav" data-tip="收起导航" aria-label="收起导航"></button>
+    </div>
+    <div id="treeWrap"><div class="scope" id="scopeBar"></div><div id="tree" class="scroll"></div></div>
+    <button class="strip" data-col="nav" aria-label="展开导航"><span>导航</span></button>
+  </aside>
+  <div class="gut" data-g="nav"></div>
+
+  <main class="col" id="centre">
+    <section class="view" id="board"><div class="phd" id="bhd"></div><div id="bscroll" class="scroll"></div><div class="hgut" id="hgut"></div><div id="bdet" class="scroll"></div></section>
+    <section class="view" id="reader" hidden>
+      <div class="pane focus" id="pA"></div>
+      <div class="gut" data-g="ab"></div>
+      <div class="pane blank" id="pB"></div>
+    </section>
+    <section class="view" id="search" hidden></section>
+    <section class="view" id="diffv" hidden></section>
+  </main>
+  <div class="gut" data-g="side"></div>
+
+  <aside class="col" id="side">
+    <div class="chd"><span class="t" id="sideT">目录</span><button class="ib" data-col="side" data-tip="收起右栏" aria-label="收起右栏" id="sideTog"></button></div>
+    <div class="sbody scroll" id="sbody"></div>
+    <div class="srail" id="srail"><button class="ib" data-col="side" data-tip="展开目录" aria-label="展开目录" id="sideOpen"></button><div class="sticks" id="sticks"></div></div>
+    <button class="strip" data-col="side" aria-label="展开右栏"><span id="sideS">目录</span></button>
+  </aside>
+
+  <footer class="status" id="status"></footer>
+</div>
+
+<div class="pop" id="tip" role="tooltip"></div>
+<div class="pop" id="histPop" role="dialog" aria-label="变更历史"></div>
+<div class="pop" id="trailPop" role="dialog" aria-label="足迹"></div>
+<div class="pop" id="dotpop" role="tooltip"></div>
+<div class="pop" id="themePop" role="menu" aria-label="主题"></div>
+<div class="pop" id="fltPop" role="menu" aria-label="过滤状态"></div>
+<div class="pop" id="starPop" role="dialog" aria-label="星标文档"></div>
+<div class="pop" id="selbar"><button data-s="find">在本文查找</button><button data-s="copy">复制为引用</button></div>
+<div class="qo" id="qo" hidden><div class="qbox" role="dialog" aria-label="搜索"><input id="qIn" placeholder="文档、卡片编号，或 Fact-12…" autocomplete="off" aria-label="搜索"><div class="ql scroll" id="qList"></div><div class="qf"><span><kbd>↑↓</kbd>选择</span><span><kbd>↵</kbd>打开</span><span><kbd>⇧↵</kbd>在右栏打开</span><span><kbd>⌘↵</kbd>全文搜索</span><span><kbd>esc</kbd>关闭</span></div></div></div>
+<div id="toast"></div>
+<svg id="link" aria-hidden="true"></svg>
+
 <script src="/assets/marked.min.js"></script>
 <script src="/assets/sv.js"></script>
+<script src="/assets/v2-core.js"></script>
+<script src="/assets/v2-tree.js"></script>
+<script src="/assets/v2-board.js"></script>
+<script src="/assets/v2-reader.js"></script>
+<script src="/assets/v2-search.js"></script>
+<script src="/assets/v2-find.js"></script>
 </body>
 </html>

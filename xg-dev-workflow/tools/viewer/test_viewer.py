@@ -272,6 +272,11 @@ class T345Endpoints(unittest.TestCase):
         self.assertEqual(get(self.base, "/assets/evil.js")[0], 404)        # not allowlisted
         self.assertEqual(get(self.base, "/assets/../viewer.py")[0], 404)   # traversal
 
+    def test_every_allowlisted_asset_exists(self):   # a name in ASSETS with no file would 404 the page that loads it
+        for name in viewer.ASSETS:
+            self.assertTrue((viewer.VIEWER_DIR / name).is_file(), name)
+        self.assertEqual(get(self.base, "/assets/v2.css")[0], 200)
+
     def test_asset_types_charset_only_on_text(self):
         r = urllib.request.urlopen(self.base + "/assets/sv.js", timeout=3)
         self.assertEqual(r.headers.get("Content-Type"), "text/javascript; charset=utf-8")

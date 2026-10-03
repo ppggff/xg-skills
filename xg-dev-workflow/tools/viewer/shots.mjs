@@ -19,6 +19,8 @@
 //   --mask-head (hide the pane header before each shot: the one region allowed to differ across a change)
 //   --no-freeze (by default Date.now is pinned per run so relative times render the same in a re-run)
 //   --touch <file> (the refresh scenario bumps this file's mtime to trigger the live refresh)
+// A --url ending in /v2 drives the refined frontend instead: its views, measurements and scenarios
+// live in shots-v2.mjs; everything else (Chrome, CDP, the viewer lifecycle, --compare) is shared.
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, utimesSync, readdirSync, rmSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
@@ -159,6 +161,7 @@ function navAnchor(data) {
   return `(() => { const a = document.createElement("a"); ${Object.entries(data).map(([k, v]) => `a.dataset.${k} = ${JSON.stringify(v)};`).join(" ")}
     document.body.appendChild(a); a.click(); a.remove(); })()`;
 }
+let UI = null;   // the frontend under test: classic (below) or shots-v2.mjs, picked from --url at the bottom
 const MEASURE = `(() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect();
   const cs = getComputedStyle(e); return cs.display === "none" ? { display: "none" } : { x: Math.round(b.x), w: Math.round(b.width), h: Math.round(b.height) }; };
   return { side: r("#side"), left: r("#left"), right: r("#right"), toc: r("#toc"), head: r("#left .doc-head"),
@@ -217,17 +220,24 @@ async function session(o, fn) {
       load: async () => {
         await cdp.send("Page.navigate", { url: o.url }, sid); await cdp.waitEvent("Page.loadEventFired", sid);
         if (!o.keepStorage) { await evalIn(cdp, sid, "localStorage.clear(); true"); await cdp.send("Page.reload", {}, sid); await cdp.waitEvent("Page.loadEventFired", sid); }
-        await waitFor(cdp, sid, "!!document.querySelector('#tree a.file')");
+        await waitFor(cdp, sid, UI.ready);
       },
-      go: async (name) => { const { drive, ready } = VIEW[name](o); await evalIn(cdp, sid, drive + "; true"); await waitFor(cdp, sid, ready); await sleep(400); },
+      go: async (name) => { const { drive, ready } = UI.VIEW[name](o); await evalIn(cdp, sid, drive + "; true"); await waitFor(cdp, sid, ready); await sleep(400); },
       click: (sel) => evalIn(cdp, sid, `(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.click(); return true; })()`),
       shot: async () => {
-        if (o.maskHead) await evalIn(cdp, sid, "document.querySelectorAll('.doc-head, .findbar').forEach(h => h.style.visibility = 'hidden'); true");
+        if (o.maskHead) await evalIn(cdp, sid, `document.querySelectorAll(${JSON.stringify(UI.mask)}).forEach(h => h.style.visibility = 'hidden'); true`);
         const png = Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" }, sid)).data, "base64");
-        if (o.maskHead) await evalIn(cdp, sid, "document.querySelectorAll('.doc-head, .findbar').forEach(h => h.style.visibility = ''); true");
+        if (o.maskHead) await evalIn(cdp, sid, `document.querySelectorAll(${JSON.stringify(UI.mask)}).forEach(h => h.style.visibility = ''); true`);
         return png;
       },
-      measure: () => evalIn(cdp, sid, MEASURE),
+      measure: () => evalIn(cdp, sid, UI.MEASURE),
+      sleep, touchFile: (f) => { const now = new Date(); utimesSync(f, now, now); },
+      key: async (key, mods = 0) => {   // a real key press (mods: 1 alt, 2 ctrl, 4 meta, 8 shift)
+        const code = key.length === 1 ? "Key" + key.toUpperCase() : key, text = key.length === 1 && !(mods & 6) ? key : undefined;
+        await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key, code, text, modifiers: mods, windowsVirtualKeyCode: key === "Escape" ? 27 : key === "Enter" ? 13 : key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0 }, sid);
+        await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, modifiers: mods }, sid);
+      },
+      type: (text) => cdp.send("Input.insertText", { text }, sid),
       touch: (on) => cdp.send("Emulation.setTouchEmulationEnabled", { enabled: on, maxTouchPoints: 1 }, sid),
       tap: async (sel) => {   // a finger tap at the element's centre (touchStart + touchEnd)
         const c = await centerOf(sel);
@@ -575,8 +585,8 @@ async function scenarios(o) {
   await session(o, async (ctx) => {
     for (const name of o.scenario.split(",")) {
       const check = (label, ok) => { fails += ok ? 0 : 1; console.log(`${ok ? "ok " : "FAIL"} - ${name}: ${label}`); };
-      if (!SCENARIO[name]) throw new Error("unknown scenario " + name);
-      await SCENARIO[name](ctx, check, o);
+      if (!UI.SCENARIO[name]) throw new Error("unknown scenario " + name);
+      await UI.SCENARIO[name](ctx, check, o);
     }
   });
   console.log(fails ? `${fails} failed` : "all scenarios passed");
@@ -602,6 +612,9 @@ function compare([a, b]) {
 }
 
 const o = parseArgs(process.argv.slice(2));
+UI = /\/v2\/?$/.test(new URL(o.url).pathname) ? (await import("./shots-v2.mjs")).default
+  : { VIEW, MEASURE, SCENARIO, ready: "!!document.querySelector('#tree a.file')", mask: ".doc-head, .findbar" };
+if (UI.views && o.views === DEF.views) o.views = UI.views;
 if (o.compare) process.exit(compare(o.compare));
 if (o.scenario) process.exit(await scenarios(o));
 if (o.eval) { await session(o, async (ctx) => { for (const vp of o.viewports.split(",")) { const [w, h] = vp.split("x").map(Number); await ctx.viewport(w, h); await ctx.load();

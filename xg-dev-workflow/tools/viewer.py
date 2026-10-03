@@ -46,7 +46,9 @@ SHELL_V2_HTML = VIEWER_DIR / "shell-v2.html"     # the refined frontend at /v2, 
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
           "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
           "sv.js": "text/javascript",
-          "martian-mono.woff2": "font/woff2"}
+          "martian-mono.woff2": "font/woff2",
+          "v2.css": "text/css",
+          **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find")}}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
