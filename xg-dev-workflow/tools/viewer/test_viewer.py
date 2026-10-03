@@ -9,6 +9,7 @@ import http.server
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -65,6 +66,29 @@ class T0Skeleton(unittest.TestCase):
 
     def test_non_localhost_host_403(self):
         self.assertEqual(get(self.base, "/", host="evil.com")[0], 403)
+        self.assertEqual(get(self.base, "/v2", host="evil.com")[0], 403)
+
+    def test_v2_served_with_gitweb_injected(self):
+        code, body = get(self.base, "/v2")
+        self.assertEqual(code, 200)
+        self.assertIn('<meta name="gitweb-url" content="">', body)   # companion disabled here
+        self.assertNotIn("__GITWEB_URL__", body)
+        self.assertIn('src="/assets/sv.js"', body)
+
+    def test_v2_csp_differs_from_classic_only_in_two_same_origin_tightenings(self):
+        def csp(body):
+            m = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', body)
+            self.assertTrue(m, "page must carry its own CSP meta")
+            return {d.split()[0]: set(d.split()[1:]) for d in m.group(1).split(";") if d.strip()}
+        old, new = csp(get(self.base, "/")[1]), csp(get(self.base, "/v2")[1])
+        self.assertEqual(new.pop("style-src"), old.pop("style-src") | {"'self'"})
+        self.assertEqual(new.pop("script-src"), old.pop("script-src") - {"'unsafe-inline'"})
+        self.assertEqual(new, old)
+
+    def test_v2_has_no_inline_script(self):            # script-src drops 'unsafe-inline', so none may exist
+        body = get(self.base, "/v2")[1]
+        self.assertNotRegex(body, r"<script(?![^>]*\bsrc=)[^>]*>")
+        self.assertNotRegex(body, r"<[^>]+\son[a-z]+\s*=")
 
     def test_unknown_route_404(self):
         self.assertEqual(get(self.base, "/nope")[0], 404)
@@ -244,8 +268,16 @@ class T345Endpoints(unittest.TestCase):
     def test_assets_allowlist_and_traversal(self):
         self.assertEqual(get(self.base, "/assets/marked.min.js")[0], 200)
         self.assertEqual(get(self.base, "/assets/mermaid.min.js")[0], 200)
+        self.assertEqual(get(self.base, "/assets/sv.js")[0], 200)
         self.assertEqual(get(self.base, "/assets/evil.js")[0], 404)        # not allowlisted
         self.assertEqual(get(self.base, "/assets/../viewer.py")[0], 404)   # traversal
+
+    def test_asset_types_charset_only_on_text(self):
+        r = urllib.request.urlopen(self.base + "/assets/sv.js", timeout=3)
+        self.assertEqual(r.headers.get("Content-Type"), "text/javascript; charset=utf-8")
+        r = urllib.request.urlopen(self.base + "/assets/martian-mono.woff2", timeout=3)
+        self.assertEqual(r.headers.get("Content-Type"), "font/woff2")
+        self.assertEqual(r.read()[:4], b"wOF2")
 
     def test_rev_file_and_dev(self):               # R63: change tokens for live refresh
         _, body = get(self.base, "/api/rev?path=" + urllib.parse.quote("dev/foo/001-x/design.md"))

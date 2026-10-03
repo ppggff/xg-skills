@@ -1,4 +1,4 @@
-// Unit tests for the shell's pure helpers (SV), extracted from shell.html and run in node.
+// Unit tests for the shell's pure helpers (SV, loaded from sv.js) and run in node.
 // Covers the tricky link-resolver / comment / diff logic; DOM wiring is verified in a browser.
 // Run: node tools/viewer/test-shell.mjs
 import { readFileSync } from "node:fs";
@@ -8,13 +8,12 @@ import assert from "node:assert";
 import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(join(here, "shell.html"), "utf8");
-// The SV module is the <script> block that defines `var SV = (function () {...})()`.
-const m = html.match(/var SV = \(function[\s\S]*?\n\}\)\(\);/);
-if (!m) { console.error("could not extract SV block"); process.exit(1); }
+const svSrc = readFileSync(join(here, "sv.js"), "utf8");
+// Source assertions span the page and the SV module it loads from /assets/sv.js.
+const html = readFileSync(join(here, "shell.html"), "utf8") + "\n" + svSrc;
 const sandbox = { module: { exports: {} } };
 vm.createContext(sandbox);
-vm.runInContext(m[0] + "\nmodule.exports = SV;", sandbox);
+vm.runInContext(svSrc, sandbox);
 const SV = sandbox.module.exports;
 
 let pass = 0;
@@ -310,7 +309,7 @@ t("marked + shell wikilink extension renders [[..]] as <a href=[[..]]>", () => {
   const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);   // use the shell's REAL esc
   assert.ok(escSrc, "could not extract esc() from shell.html");
   vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
-  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // the xid tokenizer reads SV, as the page does
+  vm.runInContext(svSrc + "\nthis.SV = SV;", box);   // the xid tokenizer reads SV, as the page does
   vm.runInContext(reg[0], box);
   const out = box.marked.parse("see [[wiki/cbdb/x]] here");
   assert.ok(/<a href="\[\[wiki\/cbdb\/x\]\]">/.test(out), "wikilink not rendered as anchor: " + out);
@@ -1002,7 +1001,7 @@ t("marked xid extension renders in-pane anchors; legacy content untouched", () =
   const reg = html.match(/window\.marked\.use\(\{[\s\S]*?\}\] \}\);/);
   const escSrc = html.match(/function esc\(s\) \{[\s\S]*?\}/);
   vm.runInContext(escSrc[0] + "\nthis.esc = esc;", box);
-  vm.runInContext(m[0] + "\nthis.SV = SV;", box);   // the tokenizer reads the one grammar from SV, as it does in the page
+  vm.runInContext(svSrc + "\nthis.SV = SV;", box);   // the tokenizer reads the one grammar from SV, as it does in the page
   vm.runInContext(reg[0], box);
   const out = box.marked.parse("见 [HLD-3] 与 [Req-12-a]。");
   assert.ok(out.includes('<a class="xid" href="#xid:HLD-3">[HLD-3]</a>'), out);

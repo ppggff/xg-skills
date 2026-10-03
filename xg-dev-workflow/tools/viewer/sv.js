@@ -1,0 +1,601 @@
+"use strict";
+// ---------------------------------------------------------------------------
+// Pure helpers (unit-tested in test-shell.mjs). No DOM here — exported via window
+// / module.exports so the node test can import them.
+// ---------------------------------------------------------------------------
+var SV = (function () {
+  // Split a doc's front matter (--- fence) into {fields, body}; flat key: value only.
+  function parseFrontmatter(text) {
+    if (!text.startsWith("---")) return { fields: {}, body: text };
+    var end = text.indexOf("\n---", 3);
+    if (end === -1) return { fields: {}, body: text };
+    var head = text.slice(3, end), fields = {};
+    head.split("\n").forEach(function (line) {
+      var m = line.match(/^(\w+):\s*(.+)$/);
+      if (m) fields[m[1]] = m[2].trim();
+    });
+    return { fields: fields, body: text.slice(end + 4).replace(/^\n+/, "") };
+  }
+
+  // Normalize a doc link to "<tree>:<relpath>" (canonical case), or null if unresolvable.
+  function resolveLink(href, curTree, curRel, treeSets) {
+    href = String(href).trim();
+    var wiki = href.match(/^\[\[(.+?)\]\]$/);
+    var target, tree;
+    if (wiki) {
+      var x = wiki[1].split("|")[0].split("#")[0].trim();
+      if (/^(wiki|raw)\//.test(x)) { tree = "kb"; target = x.endsWith(".md") ? x : x + ".md"; }
+      else return null;                                       // legacy bare/colon → broken
+    } else {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) return null;
+      var path = href.split("#")[0];
+      if (!path.endsWith(".md")) return null;
+      tree = curTree;
+      var dir = curRel.indexOf("/") === -1 ? "" : curRel.replace(/\/[^/]*$/, "");
+      target = normalizePath(dir, path);
+      if (target === null) return null;
+    }
+    var canon = treeSets[tree] && treeSets[tree].get(target.toLowerCase());  // case-insensitive
+    return canon ? tree + ":" + canon : null;
+  }
+
+  function normalizePath(dir, rel) {
+    var parts = (dir ? dir.split("/") : []);
+    rel.split("/").forEach(function (p) {
+      if (parts === null || p === "" || p === ".") return;
+      if (p === "..") { if (!parts.length) { parts = null; return; } parts.pop(); }
+      else parts.push(p);
+    });
+    return parts === null ? null : parts.join("/");
+  }
+
+  // Project names from the two trees' paths: a dev path contributes its first segment ONLY if
+  // it's inside a project dir (has a "/"), so top-level files like index.md/log.md are excluded;
+  // a kb path contributes raw/<proj> | wiki/<proj>'s second segment.
+  function projectsFromTree(dev, kb) {
+    var set = {};
+    (dev || []).forEach(function (p) { if (p.indexOf("/") !== -1) set[p.split("/")[0]] = 1; });
+    // kb: raw/<proj>/<file> | wiki/<proj>/<file> → the project is segment[1], but only when a
+    // file sits under it (length > 2); this excludes the KB's own wiki/index.md, wiki/log.md.
+    (kb || []).forEach(function (p) { var s = p.split("/"); if (s.length > 2) set[s[1]] = 1; });
+    return Object.keys(set).sort();
+  }
+
+  // Fold items [{path, mtime}] (mtime optional) into a nested {dirs:{name:node}, files:[...]}
+  // tree. Files within a dir are sorted by mtime ASCENDING (oldest first); dirs render first
+  // (see nodeHtml) sorted by name. Accepts bare-string items too (mtime defaults 0).
+  function buildTree(items) {
+    var root = { dirs: {}, files: [], mtime: 0 };
+    (items || []).forEach(function (it) {
+      var p = typeof it === "string" ? it : it.path, mtime = typeof it === "string" ? 0 : (it.mtime || 0);
+      var segs = p.split("/"), node = root;
+      node.mtime = Math.max(node.mtime, mtime);   // R1: dir mtime = newest descendant (lets a dir float by recency)
+      for (var i = 0; i < segs.length - 1; i++) {
+        var d = segs[i];
+        node.dirs[d] = node.dirs[d] || { dirs: {}, files: [], mtime: 0 };
+        node = node.dirs[d];
+        node.mtime = Math.max(node.mtime, mtime);
+      }
+      node.files.push({ name: segs[segs.length - 1], path: p, mtime: mtime });
+    });
+    sortFiles(root);
+    return root;
+  }
+  function sortFiles(node) {
+    node.files.sort(function (a, b) { return a.mtime - b.mtime || a.name.localeCompare(b.name); });
+    Object.keys(node.dirs).forEach(function (d) { sortFiles(node.dirs[d]); });
+  }
+  // R1: comparator for tree nodes ({name, mtime}) — name (A) or modified (T), asc/desc; name breaks mtime ties.
+  function sortCmp(key, dir) {
+    dir = dir < 0 ? -1 : 1;
+    return key === "mtime"
+      ? function (a, b) { return (a.mtime - b.mtime) * dir || a.name.localeCompare(b.name); }
+      : function (a, b) { return a.name.localeCompare(b.name) * dir; };
+  }
+  // R5/R9/R10 (ADR-0003): fzf-style matcher. The query splits on whitespace into terms — ALL must match
+  // (AND), order-independent. A leading `=` makes a term an exact contiguous substring; otherwise it is a
+  // fuzzy subsequence scored by OPTIMAL alignment (word-boundary starts + consecutive runs rewarded, gaps
+  // penalised with a bounded start+extension cost). Each term scores against the full path and — when
+  // nameStart>0 — the filename tail, taking the better plus a filename bonus (名>路径). smart-case: a term
+  // with an uppercase char matches case-sensitively. Returns {hit, score, idx} — idx = matched positions in
+  // `str` (highlights name AND path). nameStart omitted (nav items) ⇒ pure whole-string matching.
+  var MS_BASE = 16, MS_BOUNDARY = 16, MS_CONSEC = 8, MS_GAP_START = 3, MS_GAP_EXT = 1, MS_NAME_BONUS = 32;
+  function msBoundary(str, i) {
+    return i === 0 || /[\/\-_.\s]/.test(str[i - 1]) || (/[a-z]/.test(str[i - 1]) && /[A-Z]/.test(str[i]));
+  }
+  function msParse(q) {
+    var out = [], parts = String(q == null ? "" : q).split(/\s+/);
+    for (var i = 0; i < parts.length; i++) {
+      var t = parts[i]; if (!t) continue;
+      if (t.charAt(0) === "=") { if (t.length > 1) out.push({ exact: true, ndl: t.slice(1) }); }
+      else out.push({ exact: false, ndl: t });
+    }
+    return out;
+  }
+  function msAlign(term, str) {                     // one term vs one string → {hit,score,idx (in str coords)}
+    var cs = /[A-Z]/.test(term.ndl);                // smart-case
+    var ndl = cs ? term.ndl : term.ndl.toLowerCase();
+    var hay = cs ? str : str.toLowerCase();
+    var n = hay.length, m = ndl.length;
+    if (!m) return { hit: true, score: 0, idx: [] };
+    if (term.exact) {
+      var p = hay.indexOf(ndl); if (p < 0) return { hit: false, score: 0, idx: [] };
+      var eidx = []; for (var e = 0; e < m; e++) eidx.push(p + e);
+      return { hit: true, score: m * (MS_BASE + MS_CONSEC) + (msBoundary(str, p) ? MS_BOUNDARY : 0), idx: eidx };
+    }
+    var jg = 0; for (var gi = 0; gi < n && jg < m; gi++) if (hay.charAt(gi) === ndl.charAt(jg)) jg++;
+    if (jg < m) return { hit: false, score: 0, idx: [] };     // cheap subsequence reject before the DP
+    var NEG = -1e9, sc = [], bk = [];
+    for (var j = 0; j < m; j++) { var r1 = [], r2 = []; for (var c = 0; c < n; c++) { r1.push(NEG); r2.push(-1); } sc.push(r1); bk.push(r2); }
+    for (var i = 0; i < n; i++) {
+      for (var jj = 0; jj < m && jj <= i; jj++) {
+        if (hay.charAt(i) !== ndl.charAt(jj)) continue;
+        var chScore = MS_BASE + (msBoundary(str, i) ? MS_BOUNDARY : 0);
+        if (jj === 0) { if (chScore > sc[0][i]) { sc[0][i] = chScore; bk[0][i] = -1; } continue; }
+        for (var k = jj - 1; k < i; k++) {
+          if (sc[jj - 1][k] === NEG) continue;
+          var gap = i - k - 1;
+          var val = sc[jj - 1][k] + chScore + (gap === 0 ? MS_CONSEC : -(MS_GAP_START + (gap - 1) * MS_GAP_EXT));
+          if (val > sc[jj][i]) { sc[jj][i] = val; bk[jj][i] = k; }
+        }
+      }
+    }
+    var best = NEG, bi = -1;
+    for (var x = 0; x < n; x++) if (sc[m - 1][x] > best) { best = sc[m - 1][x]; bi = x; }
+    var idx = [], jb = m - 1, ib = bi;
+    while (ib >= 0 && jb >= 0) { idx.push(ib); ib = bk[jb][ib]; jb--; }
+    idx.reverse();
+    return { hit: true, score: best, idx: idx };
+  }
+  function matchScore(q, str, nameStart) {
+    var terms = msParse(q);
+    if (!terms.length) return { hit: true, score: 0, idx: [] };
+    nameStart = nameStart || 0;
+    var total = 0, set = {};
+    for (var t = 0; t < terms.length; t++) {
+      var full = msAlign(terms[t], str);
+      if (!full.hit) return { hit: false, score: -Infinity, idx: [] };
+      var sTerm = full.score, tidx = full.idx;
+      if (nameStart > 0) {
+        var nm = msAlign(terms[t], str.slice(nameStart));
+        if (nm.hit && nm.score + MS_NAME_BONUS >= sTerm) {
+          sTerm = nm.score + MS_NAME_BONUS;
+          tidx = nm.idx.map(function (v) { return v + nameStart; });
+        }
+      }
+      total += sTerm;
+      for (var g = 0; g < tidx.length; g++) set[tidx[g]] = 1;
+    }
+    var out = []; for (var key in set) out.push(+key); out.sort(function (a, b) { return a - b; });
+    return { hit: true, score: total, idx: out };
+  }
+  // R6/R7/R8: push an item onto a "recent use" list — dedup (move existing to front), cap, recency-ordered.
+  function recentPush(list, item, cap) {
+    var out = (list || []).filter(function (x) { return x !== item; });
+    out.unshift(item);
+    return out.slice(0, cap || 8);
+  }
+
+  // Group trace rows by design part, design order → [{part, rows}] (015).
+  // null when the card is un-split (parts empty) — caller renders flat; rows with
+  // no part land in a trailing "—" group; a multi-part row appears in each group.
+  function groupTraceRows(rows, parts) {
+    if (!parts || !parts.length) return null;
+    var groups = parts.map(function (p) {
+      return { part: p, rows: (rows || []).filter(function (r) {
+        return (r.parts || []).indexOf(p) !== -1; }) };
+    });
+    var rest = (rows || []).filter(function (r) { return !(r.parts || []).length; });
+    if (rest.length) groups.push({ part: "—", rows: rest });
+    return groups;
+  }
+
+  // Group search hits by file, preserving first-seen order → [{tree, path, hits:[...]}].
+  function groupHits(hits) {
+    var order = [], by = {};
+    (hits || []).forEach(function (h) {
+      var k = h.tree + ":" + h.path;
+      if (!by[k]) { by[k] = { tree: h.tree, path: h.path, hits: [] }; order.push(k); }
+      by[k].hits.push(h);
+    });
+    return order.map(function (k) { return by[k]; });
+  }
+
+  // Flatten a doc's headings into a TOC list [{depth,text,slug}] (slug = anchor id).
+  function tocFromHeadings(headings) {
+    return (headings || []).map(function (h) {
+      return { depth: h.depth, text: h.text,
+               slug: h.text.toLowerCase().replace(/[^\w一-鿿]+/g, "-").replace(/^-+|-+$/g, "") };
+    });
+  }
+
+  function colorizeDiff(text) {
+    return text.split("\n").map(function (line) {
+      var cls = line.startsWith("@@") ? "hunk"
+              : (line.startsWith("+") && !line.startsWith("+++")) ? "add"
+              : (line.startsWith("-") && !line.startsWith("---")) ? "del" : "";
+      var safe = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return cls ? '<span class="' + cls + '">' + safe + "</span>" : safe;
+    }).join("\n");
+  }
+
+  function commentBlock(tree, relpath, headings, selStartLine, excerpt) {
+    var h = null;
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].line <= selStartLine) h = headings[i]; else break;
+    }
+    var anchor = h ? "#" + h.text : "";
+    var quoted = excerpt.split("\n").map(function (l) { return "> " + l; }).join("\n");
+    return "[" + tree + ":" + relpath + anchor + "]\n" + quoted;
+  }
+
+  // Pure state→presentation mappings (unit-tested here; used by the board + doc renderers below).
+  function stName(state) {                          // R5: canonical 整体状态 name; ?/empty → distinct "unknown"
+    var s = String(state).toLowerCase();
+    if (s === "?" || s === "" || s === "unknown") return "unknown";
+    return /^(active|done|blocked|paused|todo|backlog|dropped)$/.test(s) ? s : "backlog";
+  }
+  function stepFill(state) {                         // R4: phase state → gate-track node fill (done/doing/pending)
+    var s = String(state).toLowerCase().trim();
+    if (!s || /^(—|\?|planned|not-started)(\s|$)/.test(s)) return "pending";   // prefix: a lite cell carries a ` · Req n / 已验证 k` tail
+    if (/^(drafting|draft|active|implementing|in-progress|doing|todo|testing|blocked|failing|executing|closing)/.test(s)) return "doing";
+    return "done";
+  }
+  var STATUS_TONE = { frozen: "done", approved: "done", confirmed: "done", baseline: "done", passing: "done",
+    done: "done", active: "active", "in-progress": "active", drafting: "paused", draft: "paused",
+    blocked: "blocked", superseded: "backlog" };
+  function statusTone(s) { return STATUS_TONE[String(s).toLowerCase()] || "backlog"; }   // R3: doc-status → pill tone
+
+  // 006: scope-safe persist merge — saved' = (saved − present) ∪ open. `present` is the set of
+  // folder keys in the current render: a scoped/filtered render must only rewrite the keys it can
+  // see, or persisting under a project scope wipes every other project's saved open state. Also
+  // what makes stray async-toggle persists idempotent (they re-write the state they just applied).
+  function mergeTreeOpen(saved, present, open) {
+    var inPresent = {}, out = [], seen = {};
+    present.forEach(function (k) { inPresent[k] = 1; });
+    saved.forEach(function (k) { if (!inPresent[k] && !seen[k]) { seen[k] = 1; out.push(k); } });
+    open.forEach(function (k) { if (!seen[k]) { seen[k] = 1; out.push(k); } });
+    return out;
+  }
+
+  // 006: pick the band rect for a click at `y` — the SMALLEST rect containing y, not the first.
+  // Range client rects list container border boxes (tbody / li / blockquote children) before their
+  // text-line rects, so "first containing" always lands on the enclosing box. ±2px edge tolerance.
+  function pickLineRect(rects, y) {
+    if (!rects.length) return null;
+    if (y == null) return rects[0];
+    var best = null;
+    for (var i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      if (y >= r.top - 2 && y <= r.bottom + 2 && (!best || r.height < best.height)) best = r;
+    }
+    return best || rects[0];
+  }
+
+  // 007: drawer task summary — counts over server-parsed rows (done judged server-side, R3).
+  function taskCounts(tasks) {
+    var done = 0;
+    (tasks || []).forEach(function (t) { if (t.done) done++; });
+    return { done: done, total: (tasks || []).length };
+  }
+  function taskTone(t) {                             // 007: task-row status → badge tone
+    if (t.done) return "done";
+    var s = String(t.status || "").toLowerCase();
+    if (/block|\[!\]|fail/.test(s)) return "blocked";
+    if (/doing|active|wip|进行/.test(s)) return "active";
+    return "backlog";
+  }
+  // 007 R4/R7: per-R presence → five display cells. commit is four-valued; "unchecked"
+  // (no repo anchor) maps to "na", never to a gap.
+  var COMMIT_CELL = { strict: "ok", loose: "q", none: "miss", unchecked: "na" };
+  function traceCells(row) {
+    var p = (row && row.present) || {};
+    return [
+      { k: "design", state: p.design ? "ok" : "miss" },
+      { k: "verify", state: p.verify ? "ok" : "miss" },
+      { k: "task", state: p.task ? "ok" : "miss" },
+      { k: "test", state: p.test ? "ok" : "miss" },
+      { k: "commit", state: COMMIT_CELL[p.commit] || "na" },
+    ];
+  }
+
+  // 007: drawer one-line summary — rows with ≥1 real gap (loose/unchecked commit is a hint, not a gap).
+  function traceGaps(rows) {
+    var n = 0;
+    (rows || []).forEach(function (r) {
+      if (traceCells(r).some(function (c) { return c.state === "miss"; }) ||
+          (r.flags || []).indexOf("not-in-需求条目") !== -1) n++;
+    });
+    return n;
+  }
+
+  // 010: card-drawer "Decisions" rows from the ledger (active blocks only; "" = no ledger).
+  function escd(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function decisionRows(decisions) {
+    if (!decisions || !decisions.length) return "";
+    var pend = decisions.filter(function (d) { return d.state !== "approved"; }).length;
+    var head = '<div class="cd-row"><span class="cd-k">Decisions</span><span class="cd-v">' +
+      decisions.length + (pend ? ' · <span class="trcell q">待评审 ' + pend + "</span>"
+                               : ' · <span class="trcell ok">全批</span>') + "</span></div>";
+    return head + decisions.map(function (d) {
+      if (d.state === "conflict")   // dup-active: never render a winner (ADR-0001 D3)
+        return '<div class="cd-row cd-dec"><span class="cd-k">' + escd(d.id) + '</span><span class="cd-v">' +
+          '<span class="trcell miss">⚠ 冲突(dup-active)</span> <span class="cd-src">' + escd(d.level) + "</span></span></div>";
+      var ok = d.state === "approved";
+      return '<div class="cd-row cd-dec"><span class="cd-k">' + escd(d.id) + '</span><span class="cd-v">' +
+        '<span class="trcell ' + (ok ? "ok" : "q") + '">' + (ok ? "✓" : "●") + " " + escd(d.state) + "</span>" +
+        ' <span class="cd-src">' + escd(d.level) + "</span> " + escd(d.text || "") + "</span></div>";
+    }).join("");
+  }
+
+  // 017 D1: governance-mode badge for the board tile eyebrow + drawer bar. "" for legacy/none
+  // (pre-017 cards stay unmarked); "invalid" renders warn so a typo'd field is visible on sight.
+  function governanceBadge(g) {
+    if (!g || g === "legacy") return "";
+    return '<span class="badge gov' + (g === "invalid" ? " warn" : "") + '" title="governance mode">' + escd(g) + "</span>";
+  }
+
+  // R4: which heading-section covers a 1-based full-file line? headings are 0-based over the
+  // frontmatter-stripped body; fmLines = lines the frontmatter block occupied. -1 = before first heading.
+  function sectionForLine(headings, fileLine, fmLines) {
+    if (!fileLine) return -1;
+    var target = fileLine - 1 - (fmLines || 0), idx = -1;
+    for (var i = 0; i < (headings || []).length; i++) { if (headings[i].line <= target) idx = i; else break; }
+    return idx;
+  }
+
+  // R5: build a merged, block-level diff render plan.
+  //   spans     = per top-level block source-line span {start, end} (0-based body lines, end exclusive)
+  //   addedBody = 0-based body line numbers that are additions
+  //   dels      = [{at, lines}] removed-line groups (at = 0-based body line they preceded)
+  // Returns ordered segments — {del:[lines]} · {add:true, from, to} · {plain:true, from, to}
+  // (from/to = inclusive block-index range); contiguous same-state blocks merge into one segment.
+  function diffSegments(spans, addedBody, dels) {
+    var n = spans.length, added = {};
+    (addedBody || []).forEach(function (l) { added[l] = 1; });
+    var isAdd = spans.map(function (s) {
+      for (var ln = s.start; ln < s.end; ln++) if (added[ln]) return true;
+      return false;
+    });
+    function delBlock(at) { for (var i = 0; i < n; i++) if (spans[i].start >= at) return i; return n; }
+    var delByBlock = {};
+    (dels || []).forEach(function (d) { var b = delBlock(d.at); (delByBlock[b] = delByBlock[b] || []).push(d.lines); });
+    var segs = [], i = 0;
+    function flushDel(b) { (delByBlock[b] || []).forEach(function (lines) { segs.push({ del: lines }); }); }
+    while (i < n) {
+      flushDel(i);
+      var state = isAdd[i], j = i + 1;
+      while (j < n && isAdd[j] === state && !delByBlock[j]) j++;   // break a run where a del must be inserted
+      segs.push(state ? { add: true, from: i, to: j - 1 } : { plain: true, from: i, to: j - 1 });
+      i = j;
+    }
+    flushDel(n);
+    return segs;
+  }
+
+  // T1 (016): clamp a dragged {left, width} measure box into [0, paneW] with a minimum width —
+  // crossing (width < min) collapses to min width anchored at left; a pane narrower than min
+  // degrades to filling the whole pane rather than overflowing it.
+  function clampMeasure(left, width, paneW, min) {
+    var maxW = Math.max(paneW, 0);
+    min = Math.min(min, maxW);
+    width = Math.min(Math.max(width, min), maxW);
+    left = Math.min(Math.max(left, 0), maxW - width);
+    return { left: left, width: width };
+  }
+
+  // T3 (016) [F8]: token → source-line span, one per rendered block. Skips 'space' tokens (no
+  // DOM block) and a top-level HTML-comment token (marked.parse() turns it into a Comment node,
+  // not an Element child — counting it desyncs spans.length from the actual block count).
+  function blockSpans(tokens) {
+    var spans = [], ln = 0;
+    (tokens || []).forEach(function (tk) {
+      var lines = ((tk.raw || "").match(/\n/g) || []).length;
+      var isComment = tk.type === "html" && /^<!--[\s\S]*-->$/.test((tk.raw || "").trim());
+      if (tk.type !== "space" && !isComment) spans.push({ start: ln, end: ln + lines });
+      ln += lines;
+    });
+    return spans;
+  }
+  function blockLineNumbers(spans, fmLines) {
+    return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
+  }
+
+  // T4 (016) S1: pure assembly of the normalized index text + its run table, from run "shells"
+  // the caller already produced by walking idx.root's Text nodes and splitting each one into
+  // non-whitespace/whitespace segments (DOM traversal stays in the caller; this is string-only).
+  // A whitespace shell folds to exactly one space char in idx.text regardless of its original
+  // length (`len`) — that length is kept on the run for offsetToNode to map back correctly.
+  function buildIndexText(runs) {
+    var text = "", out = [], at = 0;
+    (runs || []).forEach(function (r) {
+      out.push({ at: at, node: r.node, off: r.off, len: r.len, isSpace: !!r.isSpace });
+      if (r.isSpace) { text += " "; at += 1; } else { text += r.text; at += r.text.length; }
+    });
+    return { text: text.toLowerCase(), runs: out };
+  }
+  // S2: non-overlapping, document-order hit scan. Case-sensitive — the caller normalizes both
+  // idx.text and the query to lowercase before calling, once, at the index/query boundary.
+  function scanHits(text, needle) {
+    if (!needle) return [];
+    var hits = [], i = 0, at;
+    while ((at = text.indexOf(needle, i)) !== -1) { hits.push([at, at + needle.length]); i = at + needle.length; }
+    return hits;
+  }
+  // S1: normalized-text offset → {node, nodeOff}. A whitespace run's idx.text span is always
+  // exactly 1 char, so `off - r.at` is always 0 there — the formula below lands on the run's own
+  // original start without a separate isSpace branch (never off+len, which would swallow the
+  // folded whitespace into a Range's boundary).
+  function offsetToNode(runs, off) {
+    var list = runs || [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i], w = r.isSpace ? 1 : r.len;
+      if (off >= r.at && off < r.at + w) return { node: r.node, nodeOff: r.off + (off - r.at) };
+    }
+    return null;
+  }
+  // T6: next/previous hit index, wrapping at both endpoints. cur === -1 (no current yet) treats
+  // "next" as starting at the first hit and "previous" as starting at the last one — the natural
+  // default pairing rather than an arbitrary single starting point.
+  function stepHitIndex(cur, total, dir) {
+    if (!total) return -1;
+    if (cur < 0) return dir < 0 ? total - 1 : 0;
+    return ((cur + dir) % total + total) % total;
+  }
+  // S3: a view's memory key. Pane-prefixed because two panes on the same file are the point of a
+  // split view — a single key would let them overwrite each other's position. Kept next to
+  // histLabel: both are branch tables over view.kind, and they go stale together.
+  function viewKey(side, view, project) {
+    var v = view || {}, k = v.kind;
+    if (k === "doc") return side + "|doc:" + v.tree + "/" + v.rel;
+    if (k === "diff") return side + "|diff:" + v.card;
+    if (k === "trace") return side + "|trace:" + v.card;
+    if (k === "search") return side + "|search:" + v.q;
+    if (k === "board") return side + "|board:" + (project || "");   // switching project changes the whole content
+    if (k === "recent") return side + "|recent";
+    return side + "|" + k;   // an unregistered kind still gets a key of its own rather than throwing
+  }
+  // the dropdown label. The file name alone is useless in dev_root, where nearly every
+  // card ships a design.md — the parent dir is what tells two entries apart.
+  function histLabel(v) {
+    if (!v) return "?";
+    if (v.kind === "doc") return "📄 " + String(v.rel || "").split("/").slice(-2).join("/");
+    if (v.kind === "search") return "🔍 " + v.q;
+    if (v.kind === "diff") return "± " + v.card;
+    if (v.kind === "trace") return "🔗 " + v.card;
+    return (v.kind === "recent" ? "commits" : "board");
+  }
+  // the per-pane visit list behind the dropdown — separate from the back/forward stack,
+  // so a step back never drops what was opened after it. A revisit keeps its position: rows that
+  // move under the cursor between two picks are what makes a reordering list unpickable.
+  function mruPut(list, key, view, cap) {
+    var out = list || [];
+    if (out.some(function (x) { return x.key === key; })) return out;
+    return [{ key: key, view: view }].concat(out).slice(0, cap || 20);
+  }
+  // S4: MRU put over {order, map}. The evicted key's entry goes with it — otherwise the cap bounds
+  // the order list while the map grows forever.
+  function recallPut(store, key, entry, cap) {
+    var s = store && store.map ? store : { order: [], map: {} };
+    var order = recentPush(s.order, key, cap || 50), map = {};
+    order.forEach(function (k) { map[k] = k === key ? entry : s.map[k]; });
+    return { order: order, map: map };
+  }
+  // S4/D5: the content anchor — block index plus a prefix of that block's text. The index alone
+  // breaks on any edit above it; the prefix alone is ambiguous; together the index is a fast path
+  // and the prefix is the rescue.
+  function anchorOf(blockTexts, scrollIdx) {
+    var list = blockTexts || [];
+    if (scrollIdx < 0 || scrollIdx >= list.length) return null;
+    return { b: scrollIdx, p: (list[scrollIdx] || "").slice(0, 40) };
+  }
+  function anchorFind(blockTexts, anchor) {
+    var list = blockTexts || [];
+    if (!anchor || !anchor.p) return -1;
+    if (list[anchor.b] && list[anchor.b].indexOf(anchor.p) === 0) return anchor.b;
+    for (var i = 0; i < list.length; i++) if (list[i].indexOf(anchor.p) === 0) return i;
+    return -1;
+  }
+  // S5/D14: allocate from an occupancy table rather than by array index, so unpinning a middle
+  // item leaves every other pin's color untouched. Past 4 pins colors repeat (R7: no cap, identity
+  // is the highlighted word itself).
+  function pinSlot(slotUsed, count) {
+    var used = slotUsed || [];
+    for (var i = 0; i < 4; i++) if (!used[i]) return i;
+    return count % 4;
+  }
+  // S6: pixel-derived track position (design rejected a text-offset ratio — a large mermaid
+  // diagram or wide table would make that ratio diverge from the true scroll position).
+  function railTop(hitTop, rootTop, contentH, trackH) {
+    if (!contentH) return 0;
+    var top = (hitTop - rootTop) / contentH * trackH;
+    return Math.max(0, Math.min(top, trackH - 2));
+  }
+
+  // ---- doc-native id anchors: definition-site parse + bracket-cite grammar ----
+  // the id is what anchors a block, not its status word — lite cards write Chinese ones
+  // (待验证 …), Inv blocks write none, and a Fact is a list item in facts.md, never a heading.
+  var XID_ID = "(?:Req|HLD|LLD|Task|Ask|Eff|Fact|Crit|Layer|Inv)";
+  var XID_HEAD = new RegExp("^(" + XID_ID + "-\\d+)(?![\\w-])\\s*(\\S*)");
+  var XID_STATE = /^(proposed|approved|superseded|retired)$/;   // the four that still colour the dot
+  // `(?!\()` keeps a citation that is already a markdown link — [ADR-0001](./adr/0001-x.md) — a link:
+  // tokenizing the bracket alone would leave its target dangling as text.
+  var XID_CITE = new RegExp("^\\[(" + XID_ID + "-\\d+)(-[a-z])?\\](?!\\()");
+  function stepFace(label, state, governance) {   // 031: a lite card's one cell shows its status string on the face
+    if (governance === "lite" && state) return { text: state, title: label + ": " + state };
+    return { text: label, title: label + (state ? ": " + state : "") };
+  }
+  function xidHead(text) {
+    var m = XID_HEAD.exec((text || "").trim());
+    return m ? { id: m[1], state: XID_STATE.test(m[2]) ? m[2] : "" } : null;
+  }
+  // the file that by convention holds an id the current doc does not. Only Fact ids have
+  // one (a card's facts.md); every other id is defined where it is used, so pointing elsewhere would
+  // navigate away for nothing.
+  function xidHomeRel(rel, id) {
+    var parts = String(rel || "").split("/");
+    if (!/^Fact-\d+$/.test(id || "")) return null;
+    return parts.length > 2 && /^\d{3}-/.test(parts[1]) ? parts[0] + "/" + parts[1] + "/facts.md" : null;
+  }
+  function xidCite(src) {
+    var m = XID_CITE.exec(src);
+    return m ? { id: m[1], clause: m[2] || "", raw: m[0] } : null;
+  }
+  function xidCiteStart(src) {   // where the next citation could begin (marked's `start` hook)
+    var m = new RegExp("\\[" + XID_ID + "-\\d").exec(src);
+    return m ? m.index : -1;
+  }
+
+  // Board form: "grid" (card grid) · "kanban" · "table" (one row per card). The stored
+  // preference wins; the old boolean key is read as one of the first two; null = no preference,
+  // and the renderer then picks the table below the width breakpoint, the grid above it.
+  function boardMode(stored, legacyKanban) {
+    if (stored === "rows") return "table";   // the rows form was retired for the table
+    if (stored === "grid" || stored === "kanban" || stored === "table") return stored;
+    if (legacyKanban === "1") return "kanban";
+    if (legacyKanban === "0") return "grid";
+    return null;
+  }
+  // Newest mtime per card dir ("<project>/<NNN-slug>") from the dev tree's flat {path, mtime} list.
+  function cardMtimes(entries) {
+    var out = {};
+    (entries || []).forEach(function (e) {
+      var m = /^([^/]+\/\d{3}-[^/]+)\//.exec(e.path || ""); if (!m) return;
+      if (!(out[m[1]] >= e.mtime)) out[m[1]] = e.mtime;
+    });
+    return out;
+  }
+  // A legacy card's current phase: the first step not yet done (its label), else the last one.
+  function legacyPhase(steps) {
+    var last = "";
+    for (var i = 0; i < (steps || []).length; i++) {
+      var s = steps[i], j = s.indexOf(":"), label = j === -1 ? s : s.slice(0, j), state = j === -1 ? "" : s.slice(j + 1);
+      if (stepFill(state) !== "done") return label;
+      last = label;
+    }
+    return last;
+  }
+  // A lite card's one step cell is "设计:<status> · Req n / 已验证 k"; the row shows "k/n", or the status when there are no Reqs yet.
+  function liteProgress(steps) {
+    var s = (steps || [])[0] || "", i = s.indexOf(":"), body = i === -1 ? s : s.slice(i + 1);
+    var m = /Req (\d+) \/ 已验证 (\d+)/.exec(body);
+    if (m) return m[2] + "/" + m[1];
+    return body.split(" · ")[0];
+  }
+  return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
+           parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
+           projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
+           groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,
+           stName: stName, stepFill: stepFill, statusTone: statusTone, pickLineRect: pickLineRect,
+           mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
+           traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows,
+           governanceBadge: governanceBadge, clampMeasure: clampMeasure,
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
+           buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
+           railTop: railTop, pinSlot: pinSlot,
+           viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
+           xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = SV;
+if (typeof window !== "undefined") window.SV = SV;

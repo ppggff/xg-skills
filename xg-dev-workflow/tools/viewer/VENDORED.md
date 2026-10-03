@@ -3,7 +3,7 @@
 Per the 002-status-viewer requirement's vendored-JS constraint (name the library, pin the
 version, ship its LICENSE, do not auto-update — upgrade by hand only on a security advisory).
 
-Both are served from a hardcoded filename allowlist via `GET /assets/<name>` (viewer.py),
+All are served from a hardcoded filename allowlist via `GET /assets/<name>` (viewer.py),
 never a user-supplied path — the R6 read boundary still holds.
 
 ## mermaid.min.js
@@ -26,3 +26,13 @@ never a user-supplied path — the R6 read boundary still holds.
 - **License**: MIT — see `marked.LICENSE.md` (same pinned version).
 - **Update policy**: do NOT auto-update. Re-vendor by hand only for a security advisory,
   re-pinning this file and the version above together.
+
+## martian-mono.woff2
+
+- **Library**: [Martian Mono](https://github.com/evilmartians/mono) — the refined frontend's (`/v2`) UI face;
+  Chinese text falls back to system fonts, nothing CJK is bundled.
+- **Version**: pinned **@fontsource-variable/martian-mono 5.3.0**, the `latin` subset of the variable `wght` axis
+  (`files/martian-mono-latin-wght-normal.woff2`, sha256 `d0be3a78a854bcea53a9dc26b6620ba322eaa515ccbd92bb4b6ec20a3c91b291`).
+- **Source**: `https://registry.npmjs.org/@fontsource-variable/martian-mono/-/martian-mono-5.3.0.tgz`.
+- **License**: SIL OFL 1.1 — see `martian-mono.LICENSE` (from the same package).
+- **Update policy**: do NOT auto-update; re-vendor by hand, re-pinning this entry and the hash together.

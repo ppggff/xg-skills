@@ -42,8 +42,11 @@ from pathlib import Path
 TOOLS_DIR = Path(__file__).resolve().parent
 VIEWER_DIR = TOOLS_DIR / "viewer"
 SHELL_HTML = VIEWER_DIR / "shell.html"
+SHELL_V2_HTML = VIEWER_DIR / "shell-v2.html"     # the refined frontend at /v2, beside the classic one at /
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
-          "mermaid.min.js": "text/javascript"}    # served from the hardcoded VIEWER_DIR only
+          "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
+          "sv.js": "text/javascript",
+          "martian-mono.woff2": "font/woff2"}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
@@ -141,7 +144,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path, qs = parsed.path, urllib.parse.parse_qs(parsed.query)
         if path == "/":
-            self._serve_shell()
+            self._serve_shell(SHELL_HTML)
+        elif path == "/v2":
+            self._serve_shell(SHELL_V2_HTML)
         elif path.startswith("/assets/"):
             self._serve_asset(path[len("/assets/"):])
         elif path.startswith("/raw/"):
@@ -169,9 +174,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
             self._send(404, "not found\n")
 
-    def _serve_shell(self):
+    def _serve_shell(self, page):
         try:
-            html = SHELL_HTML.read_text(encoding="utf-8")
+            html = page.read_text(encoding="utf-8")
         except OSError as e:
             self._send(500, "shell missing: %s\n" % e)
             return
@@ -208,7 +213,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(r.status, body, r.getheader("Content-Type", "application/octet-stream"), extra)
 
     def _serve_asset(self, name):
-        # vendored JS from the hardcoded VIEWER_DIR by an exact-name allowlist — never a user path.
+        # static files from the hardcoded VIEWER_DIR by an exact-name allowlist — never a user path.
         ctype = ASSETS.get(name)
         if ctype is None:
             self._send(404, "not found\n")
@@ -221,7 +226,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if self.headers.get("If-None-Match") == etag:
                 self._send(304, b"", extra=cache)
                 return
-            self._send(200, path.read_bytes(), ctype + "; charset=utf-8", extra=cache)
+            if ctype.startswith("text/"):
+                ctype += "; charset=utf-8"
+            self._send(200, path.read_bytes(), ctype, extra=cache)
         except OSError:
             self._send(404, "not found\n")
 
