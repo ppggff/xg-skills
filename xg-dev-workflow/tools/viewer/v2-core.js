@@ -73,7 +73,6 @@ var V2 = (function () {
   /* ---- data: board + both trees, re-read on every dev/kb change ---- */
   V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, at: 0 };
   const PH = ["需求", "设计", "详设", "实现", "测试", "评审"];
-  V.PH = PH;
   V.phaseNow = c => {
     if (c.st === "done") return "已完成"; if (c.st === "dropped") return "已放弃";
     if (c.lite) return c.liteSt || "lite";

@@ -417,5 +417,4 @@
     const find = $(".find.on", p.el);
     return `<span><b>${esc(p.loc.rel.split("/").pop())}</b>${V.isSplit() ? `　${V.focus} 栏` : ""}</span><span>${((p.chars || 0) / 1000).toFixed(1)}k 字，约 ${mins} 分钟</span><span>${pct}%<span class="prog"><i style="width:${pct}%"></i></span></span><span class="sp"></span><span>${find ? "↵ 下一个 · ⇧↵ 上一个 · esc 关闭" : "f 查找 · h 钉词 · [ ] 后退前进 · \\ 对照"}</span>${V.stamp()}`;
   };
-  V.readerOf = k => ({ body: P[k].body, md: $(".md", P[k].body), doc: P[k].doc });
 })(V2);

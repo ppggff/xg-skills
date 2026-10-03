@@ -97,7 +97,7 @@
     if (devOpen) {
       const devItems = D.tree.dev.filter(it => it.path.indexOf("/") < 0 || V.inScope(it.path.split("/")[0]));
       const root = SV.buildTree(devItems.filter(it => !V.cardOfPath("dev", it.path)));
-      const projs = [...new Set(devItems.map(it => it.path.split("/")[0]).filter((p, i, a) => devItems.some(it => it.path.startsWith(p + "/"))))]
+      const projs = [...new Set(devItems.map(it => it.path.split("/")[0]).filter(p => devItems.some(it => it.path.startsWith(p + "/"))))]
         .map(p => ({ name: p, mtime: Math.max(0, ...devItems.filter(it => it.path.startsWith(p + "/")).map(it => it.mtime)) })).sort(dc);
       const byNo = (a, b) => sorts.dev.key === "mtime" ? dc({ name: a.n, mtime: a.mt }, { name: b.n, mtime: b.mt }) : (b.n < a.n ? -1 : b.n > a.n ? 1 : 0) * sorts.dev.dir;
       projs.forEach(pj => {

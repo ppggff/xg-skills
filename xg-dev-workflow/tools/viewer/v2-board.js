@@ -195,7 +195,6 @@
   V.on("scope", () => { if (V.view === "board") { render(); V.status(); } });
   V.on("narrow", () => { if (V.view === "board" && !store.get("form", null)) render(); });
 
-  let clickT = null;
   V.on("click", e => {
     const t = e.target;
     if (V.view === "board" && sel && !t.closest("#bdet,[data-card],.pop,#hgut,.qo,#bhd")) closeDetail();
@@ -217,7 +216,7 @@
   V.click("[data-card]", (el, e) => {
     const id = el.dataset.card;
     if (e.shiftKey) return openCard(id, e);
-    if (e.detail >= 2) { clearTimeout(clickT); return openCard(id, e); }
+    if (e.detail >= 2) return openCard(id, e);
     selectCard(id);
   });
   V.hotkey("ArrowUp", e => (V.view === "board" ? moveSel(e.key) : false));

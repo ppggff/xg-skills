@@ -61,7 +61,6 @@
   let back = null;   // where the focus returns when quick open closes
   function open() { back = document.activeElement; $("#qo").hidden = false; $("#qIn").value = ""; sel = 0; render(); loadFacts(); setTimeout(() => $("#qIn").focus(), 10); }
   const close = () => { $("#qo").hidden = true; $("#qIn").blur(); if (back && back.isConnected && back !== document.body) back.focus({ preventScroll: true }); back = null; };
-  V.openQuick = open;
   function choose(i, e) {
     const r = rows[i]; if (!r) return; close(); const it = r.it, side = e && e.shiftKey ? "B" : "A";
     if (it.k === "go") return V.nav("A", { kind: "board" });

@@ -19,7 +19,6 @@ const MEASURE = `(() => { const r = (s) => { const e = document.querySelector(s)
 
 const rect = (sel) => `(() => { const e = document.querySelector(${J(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)]; })()`;
 const has = (sel) => `!!document.querySelector(${J(sel)})`;
-const visible = (sel) => `(() => { const e = document.querySelector(${J(sel)}); return !!e && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden" && e.getBoundingClientRect().width > 0; })()`;
 
 const SCENARIO = {
   // The page comes up on real data at every width class, the regime classes follow the viewport only,
@@ -278,4 +277,3 @@ const SCENARIO = {
 
 export default { VIEW, MEASURE, SCENARIO, views: "board,doc,search,diff",
   ready: "!!document.querySelector('#tree .tr.top') && !!document.querySelector('#bscroll [data-card], #bscroll .empty-b')", mask: ".phd, .find, .chgbar, .stale" };
-export { rect, has, visible };
