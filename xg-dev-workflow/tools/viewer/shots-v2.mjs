@@ -79,7 +79,9 @@ const SCENARIO = {
     await ctx.key("ArrowRight");
     check("→ moves the selection", await ctx.eval(`document.querySelector('#bscroll .card.sel').dataset.card !== ${J(first)}`));
     check("the detail lists the card's links", await ctx.eval(has("#bdet [data-diff]")));
-    if (await ctx.eval("!!document.querySelector('meta[name=gitweb-url]').content")) check("gitweb deep link carries the project", await ctx.eval("/\\?p=[^;]+;a=summary/.test(document.querySelector('#bdet .blinks a').getAttribute('href'))"));
+    if (await ctx.eval("!!document.querySelector('meta[name=gitweb-url]').content")) {
+      check("gitweb deep link carries the project", await ctx.eval("/\\?p=[^;]+;a=summary/.test(document.querySelector('#bdet .blinks a').getAttribute('href'))"));
+    } else console.log("skip - board: gitweb deep link (this viewer runs without the companion)");
     await ctx.key("Escape");
     check("Esc closes the detail", await ctx.eval("document.getElementById('app').classList.contains('dc')"));
     await ctx.go("diff");
@@ -213,17 +215,22 @@ const SCENARIO = {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
     await ctx.click('[data-form="cols"]'); await ctx.click("[data-trays]");
     await ctx.eval("document.querySelector('#bscroll').scrollTop = 120; const k = document.querySelector('.kcols'); if (k) k.scrollLeft = 80; true");
+    await ctx.eval("document.querySelector('#tree [data-fold-k]').click(); document.getElementById('tree').scrollTop = 40; true");
     await ctx.click("#bscroll [data-card]");
     const st0 = await ctx.eval("JSON.stringify([document.querySelector('#bscroll').scrollTop, (document.querySelector('.kcols') || {}).scrollLeft, document.querySelector('#bscroll .sel').dataset.card])");
     ctx.touchFile(o.touch); await ctx.sleep(6000);
     const st1 = await ctx.eval("JSON.stringify([document.querySelector('#bscroll').scrollTop, (document.querySelector('.kcols') || {}).scrollLeft, (document.querySelector('#bscroll .sel') || {}).dataset?.card])");
     check(`board after a refresh keeps scroll and selection (${st0} → ${st1})`, st0 === st1);
     check("…and the form and trays", await ctx.eval("!!document.querySelector('.kcols') && document.getElementById('app').classList.contains('notray')"));
+    check("…and the tree keeps its own scroll (not pulled to the current doc)", await ctx.eval("document.getElementById('tree').scrollTop === 40 || document.getElementById('tree').scrollHeight <= document.getElementById('tree').clientHeight + 40"));
     await ctx.eval(nav("A", { kind: "doc", tree: "dev", rel: o.touch.split("/dev-workflow/")[1] || o.doc.slice(4) })); await ctx.wait(has("#pA .md"));
+    const term = await ctx.eval("document.querySelector('#pA .md h2').textContent.replace(/^#/, '').trim().slice(0, 2)");
+    await ctx.key("f"); await ctx.type(term); await ctx.key("Enter", 4); await ctx.key("Escape");
     await ctx.eval("V2.P.A.body.scrollTop = 200; true"); await ctx.sleep(300);
     ctx.touchFile(o.touch); await ctx.sleep(4000);
     check("a changed doc shows the notice and does not swap itself", await ctx.eval("document.querySelector('#pA .stale').classList.contains('on') && Math.abs(V2.P.A.body.scrollTop - 200) < 2"));
     await ctx.click("#pA [data-stale]"); await ctx.sleep(800);
+    check("…and the pinned term survives the refresh", await ctx.eval("CSS.highlights.has('p0-A')"));
     check("refreshing from the notice keeps the place", await ctx.eval("!document.querySelector('#pA .stale').classList.contains('on') && Math.abs(V2.P.A.body.scrollTop - 200) < 40"));
   },
   // Keys: Esc closes one layer per press, top first; a single-key hotkey never fires with a modifier.
@@ -260,7 +267,11 @@ const SCENARIO = {
     check("picking in the drawer closes it", await ctx.eval("!document.getElementById('app').classList.contains('navpop') && V2.view === 'board'"));
     await ctx.eval("location.reload(); true"); await ctx.sleep(300); await ctx.wait(VIEW.board().ready);
     check("the choice is remembered", await ctx.eval("document.getElementById('app').classList.contains('nx')"));
+    await ctx.wait(has("#scopeSel"));
     check("768: inputs are 16px (no iOS zoom)", await ctx.eval("parseFloat(getComputedStyle(document.getElementById('scopeSel')).fontSize) >= 16"));
+    await ctx.key("k", 4); await ctx.sleep(100);
+    check("768: the quick-open box is 16px too", await ctx.eval("parseFloat(getComputedStyle(document.getElementById('qIn')).fontSize) >= 16"));
+    await ctx.key("Escape");
   },
   // Themes: 骨白/深空 select with a tone step, 琥珀 with the classic outline; neither leaks into the other.
   async themes(ctx, check) {
@@ -272,6 +283,62 @@ const SCENARIO = {
       const [o, r] = await ctx.eval(sty);
       check(`${t}: selected card ${outline ? "outlined" : "toned, no outline"}, ${square ? "square" : "rounded"} corners`, (o !== "none") === outline && (r === "0px") === square);
     }
+  },
+  // The mockup's details (Req-8) and the board's spacing rules (Req-4), each of which would go unnoticed if it vanished.
+  async details(ctx, check, o) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
+    await ctx.click('[data-form="cards"]'); await ctx.click('[data-grp="p"]');
+    const gaps = await ctx.eval(`(() => { const b = document.getElementById('bscroll').getBoundingClientRect(), t = [...document.querySelectorAll('#bscroll .proj')].map(x => x.getBoundingClientRect());
+      return [Math.round(t[0].top - b.top), Math.round(t[0].left - b.left), Math.round(b.right - t[0].right - (document.getElementById('bscroll').offsetWidth - document.getElementById('bscroll').clientWidth)), t[1] ? Math.round(t[1].top - t[0].bottom) : 16]; })()`);
+    check(`trays on: head gap = side gaps, trays 16px apart (${J(gaps)})`, Math.abs(gaps[0] - gaps[1]) <= 1 && Math.abs(gaps[1] - gaps[2]) <= 1 && gaps[3] === 16);
+    await ctx.click("#bscroll .card[data-card]");
+    check("the detail's status word wears the status colour", await ctx.eval("getComputedStyle(document.querySelector('#bdet .hst')).color !== getComputedStyle(document.querySelector('#bdet .hm')).color"));
+    check("trays on: the selected card stands out from its neighbours", await ctx.eval("(() => { const s = getComputedStyle(document.querySelector('#bscroll .card.sel')), n = getComputedStyle(document.querySelector('#bscroll .card:not(.sel)')); return s.backgroundColor !== n.backgroundColor || s.borderColor !== n.borderColor; })()"));
+    const lite = await ctx.eval("!!document.querySelector('#bdet [data-rq]')");
+    if (lite) { await ctx.click("#bdet [data-rq]"); check("a Req line in the detail unfolds on click", await ctx.eval("document.querySelector('#bdet [data-rq]').classList.contains('x')")); }
+    await ctx.click('[data-form="cols"]'); await ctx.key("ArrowRight"); const c1 = await ctx.eval("document.querySelector('#bscroll .sel').dataset.card");
+    await ctx.key("ArrowLeft");
+    check("columns: ← moves back across lanes", await ctx.eval(`document.querySelector('#bscroll .sel').dataset.card !== ${J(c1)}`));
+    await ctx.eval("document.querySelector('#bscroll .sel').focus(); true"); await ctx.click("[data-trays]");
+    await ctx.eval("document.querySelector('[data-trays]').focus(); true"); await ctx.key("Enter");
+    check("Enter on a focused control does that control, not 'open the selected card'", await ctx.eval("V2.view === 'board'"));
+    // tree: closed folder, relative times, stars and the trail
+    await ctx.go("doc");
+    check("tree: a closed (n) group and relative times on files", await ctx.eval("[...document.querySelectorAll('#tree .tr.grp .nm')].some(n => /^closed \\(\\d+\\)$/.test(n.textContent)) && [...document.querySelectorAll('#tree .tr[data-open] em')].some(e => /^(now|\\d+[mhd])$/.test(e.textContent))"));
+    await ctx.key("s");
+    await ctx.click("#starBtn");
+    check("s stars the doc; the star popover lists it", await ctx.eval("document.getElementById('starPop').classList.contains('on') && document.querySelectorAll('#starPop .sta').length > 0"));
+    await ctx.click("#starPop [data-unstar]"); await ctx.click("#trailBtn");
+    check("the trail popover lists the doc just read", await ctx.eval("document.getElementById('trailPop').classList.contains('on') && document.querySelectorAll('#trailPop [data-open]').length > 0"));
+    await ctx.key("Escape");
+    // reader: current line, TOC rail ticks, the selection bar, status-bar tips
+    await ctx.click("#pA .md p"); check("a click marks the current line", await ctx.eval("!!document.querySelector('#pA .curline')"));
+    await ctx.click('[data-col="side"]');
+    check("collapsed TOC shows its ticks", await ctx.eval("document.querySelectorAll('#sticks .stk').length > 0 && getComputedStyle(document.getElementById('srail')).display !== 'none'"));
+    await ctx.click('#srail [data-col="side"]');
+    await ctx.eval("(() => { const p = document.querySelector('#pA .md p'), r = document.createRange(); r.selectNodeContents(p.firstChild || p); const s = getSelection(); s.removeAllRanges(); s.addRange(r); p.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); return true; })()");
+    await ctx.sleep(100);
+    check("selecting text shows the selection bar", await ctx.eval("document.getElementById('selbar').classList.contains('on')"));
+    await ctx.mouseMove('#pA [data-t="hist"]');
+    check("hovering a control says what it does in the status bar", await ctx.eval("/变更历史/.test(document.getElementById('status').textContent)"));
+    // quick open's Fact candidates
+    await ctx.key("k", 4); await ctx.sleep(100); await ctx.type("Fact-1"); await ctx.sleep(1500);
+    check("⌘K offers Fact blocks", await ctx.eval("[...document.querySelectorAll('#qList .qg')].some(g => g.textContent.startsWith('Fact'))"));
+    await ctx.key("Escape");
+    // a remembered find term does not pull the page away from where the reader lands
+    await ctx.key("f"); await ctx.type("的"); await ctx.sleep(300); await ctx.go("board");
+    await ctx.eval("V2.nav('A', " + J({ ...docLoc(o), xid: "Req-1" }) + "); true"); await ctx.sleep(1200);
+    const y = await ctx.eval("(() => { const el = document.querySelector('#pA [data-xid=\"Req-1\"]'); return el ? Math.round(el.getBoundingClientRect().top - V2.P.A.body.getBoundingClientRect().top) : null; })()");
+    if (y != null) check(`with a remembered find term, an id jump still lands on its target (${y}px from the top)`, Math.abs(y - 16) < 40);
+  },
+  // Collapsing a section under a project scope leaves the other projects' remembered folds alone.
+  async foldscope(ctx, check) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
+    const [p1, p2] = await ctx.eval("[...document.querySelectorAll('#scopeSel option')].slice(1, 3).map(o => o.value)");
+    await ctx.click(`#tree [data-fold-k="dev:${p1}"]`);
+    await ctx.eval(`(() => { const s = document.getElementById('scopeSel'); s.value = ${J(p2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await ctx.click('[data-tcol="dev"]');
+    check(`F under scope ${p2} keeps ${p1}'s remembered fold`, await ctx.eval(`JSON.parse(localStorage.getItem('svd2-tree-open')).includes(${J("dev:" + p1)})`));
   },
 };
 
