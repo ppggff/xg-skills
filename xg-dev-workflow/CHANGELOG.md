@@ -4,6 +4,22 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-04 — status viewer: the refined frontend at /v2, beside the classic one (card xg-skills/040)
+
+`viewer.py` now serves a second page, `shell-v2.html`, at a hardcoded `/v2`, with the classic shell unchanged at `/`;
+both use the same port, data API and gitweb companion, so the two can be compared day to day. The refined page is the
+mockup the human iterated to v37 (four themes, four board forms with trays and a filter popover, card detail, a
+card-organized tree with stars and a trail, two reading panes with their own back/forward) put on live data, plus the
+41 items of the gap inventory's first phase (KB tree and project scope, mermaid, link and id resolution with hover
+previews, line numbers, reading width, the reading place kept by content anchor, full-text search and ⌘K on the
+classic matcher, find with custom highlights and four-colour pins, the change view, live refresh). It is split into a
+page skeleton, one stylesheet and six area scripts (each under ~800 lines, the human's ask), with no inline script, so
+its CSP is the classic one minus `'unsafe-inline'` for scripts and plus `'self'` for styles. The classic shell's pure
+helpers moved to `sv.js`, which both pages load (old screenshots byte-identical before/after); v2 stores everything
+under `svd2-*` and never touches the classic `sv-*` keys. Martian Mono is vendored with its OFL licence; Chinese uses
+system fonts. Not done: the comment basket (the human's call) and the inventory's twelve second-phase items, to be
+re-checked after this phase.
+
 ## 2026-09-27 — facts.md skeleton wired; the fact marker set is closed
 
 `steps/lite.md`「Card files」now names `templates/facts.md` as facts.md's skeleton (adr/ and plan.md already had
