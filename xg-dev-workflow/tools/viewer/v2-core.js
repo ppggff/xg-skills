@@ -59,11 +59,15 @@ var V2 = (function () {
     tick: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.3l2.3 2.2 4.7-5"/></svg>',
   };
   V.frac = (a, b) => `<span class="fr">${a}<i>/</i><s>${b}</s></span>`;
-  V.ago = sec => { if (!sec) return ""; const d = Date.now() / 1000 - sec; return d < 90 ? "now" : d < 3600 ? Math.round(d / 60) + "m" : d < 86400 ? Math.round(d / 3600) + "h" : Math.round(d / 86400) + "d"; };
-  V.relT = ms => { const s = (Date.now() - ms) / 1000; return s < 45 ? "刚才" : s < 3600 ? Math.round(s / 60) + " 分钟前" : s < 86400 ? Math.round(s / 3600) + " 小时前" : Math.round(s / 86400) + " 天前"; };
+  const since = (s, units) => { for (const [lim, div, unit] of units) if (s < lim) return div ? Math.round(s / div) + unit : unit; };
+  V.ago = sec => (sec ? since(Date.now() / 1000 - sec, [[90, 0, "now"], [3600, 60, "m"], [86400, 3600, "h"], [Infinity, 86400, "d"]]) : "");
+  V.relT = ms => since((Date.now() - ms) / 1000, [[45, 0, "刚才"], [3600, 60, " 分钟前"], [86400, 3600, " 小时前"], [Infinity, 86400, " 天前"]]);
   let toastT;
   V.toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 1900); };
-  V.copy = (text, ok) => { try { navigator.clipboard.writeText(text).then(() => V.toast(ok), () => V.toast("复制失败，浏览器没有允许")); } catch (e) { V.toast("复制失败，浏览器没有允许"); } };
+  V.copy = (text, ok) => {
+    const no = () => V.toast("复制失败，浏览器没有允许");
+    try { navigator.clipboard.writeText(text).then(() => V.toast(ok), no); } catch (e) { no(); }
+  };
 
   /* ---- events between the area files ---- */
   const subs = {};
@@ -79,7 +83,10 @@ var V2 = (function () {
     const i1 = c.ph.indexOf(1); if (i1 >= 0) return PH[i1] + "中";
     const i0 = c.ph.indexOf(0); return i0 >= 0 ? PH[i0] + "待开始" : "六段完成";
   };
-  V.nextOf = c => { const t = (c.next || "").replace(/^—.*$/, "").replace(/^done — nothing pending$/, "").trim(); return t || (c.lite ? `Req ${c.ok}/${c.req} 已验证` : V.phaseNow(c)); };
+  V.nextOf = c => {
+    const t = (c.next || "").replace(/^—.*$/, "").replace(/^done — nothing pending$/, "").trim();
+    return t || (c.lite ? `Req ${c.ok}/${c.req} 已验证` : V.phaseNow(c));
+  };
   V.load = () => Promise.all([V.json("/api/board"), V.json("/api/tree")]).then(([b, t]) => {
     const D = V.D; D.board = b; D.tree = t; D.at = Date.now();
     D.cards = Object.keys(b).reduce((a, p) => a.concat(b[p].map(SV.cardView)), []);
@@ -94,7 +101,10 @@ var V2 = (function () {
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };
   V.docsOf = c => V.D.tree.dev.filter(it => it.path.startsWith(c.dir + "/")).map(it => ({ rel: it.path, mtime: it.mtime }));
-  V.mainDoc = c => { const d = V.docsOf(c); const m = d.find(x => x.rel === c.dir + "/design.md") || d.find(x => x.rel === c.dir + "/requirement.md") || d[0]; return m ? m.rel : null; };
+  V.mainDoc = c => {
+    const d = V.docsOf(c), m = d.find(x => x.rel === c.dir + "/design.md") || d.find(x => x.rel === c.dir + "/requirement.md") || d[0];
+    return m ? m.rel : null;
+  };
   V.scope = V.store.get("scope", "");
   V.inScope = p => !V.scope || p === V.scope;
   V.setScope = p => { V.scope = p; V.store.set("scope", p); V.emit("scope"); };
@@ -128,7 +138,11 @@ var V2 = (function () {
     });
     const end = () => { if (!st) return; st = null; g.classList.remove("drag"); V.saveW(); V.relayout(); };
     g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
-    g.addEventListener("dblclick", () => { const k = g.dataset.g; if (k === "nav") W.nc = !W.nc; else if (k === "side") W.sc = !W.sc; else W.wa = .5; V.applyW(); V.saveW(); V.relayout(); });
+    g.addEventListener("dblclick", () => {
+      const k = g.dataset.g;
+      if (k === "nav") W.nc = !W.nc; else if (k === "side") W.sc = !W.sc; else W.wa = .5;
+      V.applyW(); V.saveW(); V.relayout();
+    });
   });
   { const hg = $("#hgut"); let st = null;
     hg.addEventListener("pointerdown", e => { hg.setPointerCapture(e.pointerId); hg.classList.add("drag"); st = { y: e.clientY, h: $("#bdet").offsetHeight }; });
@@ -182,14 +196,19 @@ var V2 = (function () {
   V.isPop = id => $("#" + id).classList.contains("on");
   V.themePop = btn => {
     const cur = document.documentElement.getAttribute("data-theme") || "";
-    V.pop("themePop", V.THEMES.map(([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}"><span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`).join(""), btn);
+    const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
+      + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
+    V.pop("themePop", V.THEMES.map(item).join(""), btn);
   };
 
   /* ---- status bar: the current view's line, or what the hovered control does ---- */
   let tipOn = null;
   V.statusFns = {};
   V.status = () => { if (tipOn) return; const f = V.statusFns[V.view]; $("#status").innerHTML = f ? f() : ""; };
-  V.stamp = () => { const d = new Date(V.D.at || Date.now()); return `<span>dev_root　${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}</span>`; };
+  V.stamp = () => {   // when the data on screen was read
+    const d = new Date(V.D.at || Date.now()), two = n => String(n).padStart(2, "0");
+    return `<span>dev_root　${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}</span>`;
+  };
   function tipOf(el) {
     if (el.dataset.tip) return el.dataset.tip;
     if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); return el.dataset.tip; }
@@ -198,7 +217,10 @@ var V2 = (function () {
   }
   document.addEventListener("mouseover", e => {
     const tb = e.target.closest("[data-tip]") || e.target.closest(".tr,.hi,.li,.sta,.qr,.kf,.thm");
-    if (tb && tb !== tipOn) { tipOn = tb; $("#status").innerHTML = `<span class="tipx">${esc(tipOf(tb))}${tb.dataset.key ? `<kbd>${esc(tb.dataset.key)}</kbd>` : ""}</span>`; }
+    if (tb && tb !== tipOn) {
+      tipOn = tb;
+      $("#status").innerHTML = `<span class="tipx">${esc(tipOf(tb))}${tb.dataset.key ? `<kbd>${esc(tb.dataset.key)}</kbd>` : ""}</span>`;
+    }
     else if (!tb && tipOn) { tipOn = null; V.status(); }
   });
   V.untip = () => { tipOn = null; };
@@ -224,10 +246,12 @@ var V2 = (function () {
     if (e.key === "Escape") { const l = layers.find(x => x.isOpen()); if (l) { e.preventDefault(); l.close(); } return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
+    if (/^(Enter|Arrow)/.test(e.key) && e.target.closest && e.target.closest("button:not([data-card]),a,[role=link]")) return;
     const fn = keys[e.key]; if (fn && fn(e) !== false) e.preventDefault();
   });
   V.layer(60, () => V.isPop("tip") || $$(".pop.on").some(p => p.id !== "tip"), () => { V.closePops(); V.emit("tip-hide"); });
-  V.layer(50, () => app.classList.contains("navpop") || app.classList.contains("treepop") || app.classList.contains("tocpop"), () => { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); });
+  const DRAWERS = ["navpop", "treepop", "tocpop"];
+  V.layer(50, () => DRAWERS.some(c => app.classList.contains(c)), () => { app.classList.remove(...DRAWERS); V.applyW(); });
 
   /* ---- views and panes: A is the main pane (board, search, diff or a doc), B holds docs beside it ---- */
   V.view = "board";
@@ -275,7 +299,8 @@ var V2 = (function () {
   V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); p.hist.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
   V.navPane = () => (V.view === "doc" && V.isSplit() ? V.focus : "A");
   V.rerender = k => { const p = P[k]; if (p.loc) V.views[p.loc.kind](k, p.loc, { entering: false }); };
-  V.locLabel = l => !l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」" : l.kind === "diff" ? l.card + " 的改动" : "看板";
+  V.locLabel = l => (!l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」"
+    : l.kind === "diff" ? l.card + " 的改动" : "看板");
   V.paintHist = () => {
     const p = P[V.navPane()], b = $("#back"), f = $("#fwd");
     b.disabled = !p.hist.length; f.disabled = !p.fwd.length;
@@ -312,12 +337,16 @@ var V2 = (function () {
     if (app.classList.contains("treepop") && !t.closest("#treeWrap,#filesBtn")) { app.classList.remove("treepop"); $("#filesBtn").setAttribute("aria-expanded", false); }
     if (!t.closest(".pop") && !t.closest("[data-popbtn]")) V.closePops();
   });
-  V.click("#filesBtn", () => { const on = !app.classList.contains("treepop"); app.classList.toggle("treepop", on); $("#filesBtn").setAttribute("aria-expanded", on); if (on) V.emit("tree-show"); });
+  V.click("#filesBtn", () => {
+    const on = !app.classList.contains("treepop");
+    app.classList.toggle("treepop", on); $("#filesBtn").setAttribute("aria-expanded", on); if (on) V.emit("tree-show");
+  });
 
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
-    const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme", navTog: "colL", sideTog: "colR", sideOpen: "colL" };
+    const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
+      navTog: "colL", sideTog: "colR", sideOpen: "colL" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });
     $('#nav [data-goboard]').innerHTML = V.I.grid;
     V.emit("init");
