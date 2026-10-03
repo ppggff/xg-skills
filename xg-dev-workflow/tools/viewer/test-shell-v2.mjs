@@ -76,4 +76,51 @@ t("Inv-6-c: the key dispatcher lets modified keys and typing through", () => {
   assert.doesNotMatch(allJs.replace(kd, ""), /addEventListener\("keydown", e => \{\s*if \(e\.key === "[a-z]"/, "no second single-key listener outside the dispatcher");
 });
 
+// --- Inv-6: the event and render rules the classic shell learned (KB viewer-architecture) ---
+t("Inv-6-a: one Esc closes one layer, the topmost open one", () => {
+  const kd = js.core.match(/document\.addEventListener\("keydown"[\s\S]*?\n {2}\}\);/)[0];
+  assert.match(kd, /if \(e\.key === "Escape"\) \{ const l = layers\.find\(x => x\.isOpen\(\)\); if \(l\) \{ e\.preventDefault\(\); l\.close\(\); \} return; \}/);
+  assert.match(js.core, /layers\.sort\(\(a, b\) => b\.pri - a\.pri\)/, "layers are kept highest priority first");
+});
+t("Inv-6-a: input-level Esc consumers stop the event before the layer chain sees it", () => {
+  assert.match(js.find, /inp\.addEventListener\("keydown", e => \{\s*e\.stopPropagation\(\);/, "find box");
+  assert.match(js.search, /\$\("#qIn"\)\.addEventListener\("keydown", e => \{\s*e\.stopPropagation\(\);/, "quick open box");
+  assert.match(js.search, /else if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); e\.target\.blur\(\); \}/, "search box");
+});
+t("Inv-6-a: closing a text-field layer gives the focus back, so later keys are not swallowed", () => {
+  assert.match(js.search, /\$\("#qIn"\)\.blur\(\)/);
+  assert.match(js.find, /if \(f\.contains\(document\.activeElement\)\) document\.activeElement\.blur\(\);/);
+});
+t("Inv-6-b: the find debounce is cancelled on close and on leaving, flushed on Enter", () => {
+  const close = js.find.match(/function close\(k\) \{[\s\S]*?\n {2}\}/)[0];
+  assert.match(close, /clearTimeout\(h\.t\)/);
+  assert.match(js.find, /V\.on\("leave", k => \{ clearTimeout\(H\[k\]\.t\);/);
+  assert.match(js.find, /e\.preventDefault\(\); clearTimeout\(h\.t\);[^\n]*\n\s*if \(h\.q !== inp\.value\.toLowerCase\(\)\) find\(k, inp\.value\);/);
+});
+t("Inv-6-d: highlight names carry the pane; old registrations are dropped before painting; no Range is kept", () => {
+  assert.match(js.find, /const names = k => \["hit-" \+ k, "hitc-" \+ k, "echo-" \+ k, "p0-" \+ k, "p1-" \+ k, "p2-" \+ k, "p3-" \+ k\];/);
+  const paint = js.find.match(/function paint\(k\) \{[\s\S]*?\n {2}\}/)[0];
+  assert.ok(paint.indexOf("CSS.highlights.delete") < paint.indexOf("CSS.highlights.set"), "delete precedes set");
+  assert.match(js.find, /function fresh\(\) \{ return \{ q: "", hits: \[\], cur: -1, idx: null, pins: \[\], slots:/);
+  assert.doesNotMatch(js.find, /\.(range|ranges|rng)\s*=/i, "no Range stored on state");
+  for (const p of ["A", "B"]) for (const n of ["hit", "hitc", "echo", "p0", "p1", "p2", "p3"]) assert.ok(css.includes(`::highlight(${n}-${p})`), `css for ${n}-${p}`);
+});
+t("Inv-6-e: a failed render drops what hung off the last good one", () => {
+  const rendered = js.find.match(/V\.on\("rendered", \(k, entering\) => \{[\s\S]*?\n {2}\}\);/)[0];
+  assert.match(rendered, /if \(!\$\("\.md", P\[k\]\.body\)\) \{ h\.hits = \[\]; h\.cur = -1; if \(HL\) names\(k\)\.forEach\(n => CSS\.highlights\.delete\(n\)\); rail\(k\); count\(k\); return; \}/);
+  const fail = js.reader.match(/function fail\(k, loc, e\) \{[\s\S]*?\n {2}\}/)[0];
+  assert.match(fail, /V\.emit\("rendered", k, true\)/, "the error branch announces its (empty) content");
+  assert.match(js.reader, /if \(opt\.entering\) \{ p\.cur = null; \$\$\("\.curline,\.lastmark", p\.body\)\.forEach\(x => x\.remove\(\)\); \}/);
+});
+t("Inv-6-f: scroll writers in priority order — explicit target, then (entering) the remembered place, else stay", () => {
+  const place = js.reader.match(/function place\(k, loc, opt, keepTop\) \{[\s\S]*?\n {2}\}/)[0];
+  const i0 = place.indexOf("if (!opt.entering) { b.scrollTop = keepTop; return; }"), i1 = place.indexOf("loc.xid"), i2 = place.indexOf("restorePlace(k)");
+  assert.ok(i0 > 0 && i0 < i1 && i1 < i2, "keep → target → anchor");
+  assert.match(js.board, /const b = \$\("#bscroll"\), top = b\.scrollTop, kc = \$\("\.kcols", b\), left = kc \? kc\.scrollLeft : 0;/, "board re-render keeps both scroll axes");
+});
+t("Inv-6-g: nothing sticks to a bottom edge — the one sticky element is a table head", () => {
+  const sticky = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*sticky[^}]*\}/g)];
+  assert.strictEqual(sticky.length, 1); assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/);
+});
+
 console.log(`${pass} v2 shell tests passed`);

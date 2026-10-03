@@ -7,14 +7,15 @@
   V.OPEN_ST = OPEN_ST;
 
   /* ---- fold state: user toggles persist (merged, so another tab's folds survive); reveals are session-only ---- */
-  const openF = new Set(V.store.get("tree-open", ["dev", "kb"]));
+  const DEF_OPEN = ["dev", "kb"];
+  const openF = new Set(V.store.get("tree-open", DEF_OPEN));
   const reveal = new Set();
   let snap = { dev: null, kb: null };   // what one-click collapse closed, so a second click can restore it
   const isOpen = k => openF.has(k) || reveal.has(k);
   function toggleFold(k) {
     const was = isOpen(k);
     reveal.delete(k); if (was) openF.delete(k); else openF.add(k);
-    V.store.set("tree-open", SV.mergeTreeOpen(V.store.get("tree-open", []), [k], was ? [] : [k]));
+    V.store.set("tree-open", SV.mergeTreeOpen(V.store.get("tree-open", DEF_OPEN), [k], was ? [] : [k]));
     snap[k.split(":")[0]] = null;
     render();
   }

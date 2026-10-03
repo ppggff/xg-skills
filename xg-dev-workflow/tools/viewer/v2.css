@@ -411,7 +411,7 @@ a.tr { text-decoration: none; }
 .hl { animation: hl 1.8s var(--ease); }
 @keyframes hl { 0% { background: var(--sigs); } 100% { background: transparent; } }
 /* current line: set by click or TOC jump, never by scrolling; bright in the focused pane */
-.curline { position: absolute; pointer-events: none; z-index: 0; border-radius: 3px; background: var(--hover); }
+.curline { position: absolute; pointer-events: none; z-index: -1; border-radius: 3px; background: var(--hover); }
 .pane.focus .curline { background: color-mix(in srgb, var(--sig) 13%, transparent); }
 .lastmark { position: absolute; left: 8px; width: 14px; height: 1.5px; border-radius: 1px; background: var(--sig); pointer-events: none; animation: lastin .3s var(--ease); transition: opacity .4s; }
 .lastmark.out { opacity: 0; }
@@ -596,13 +596,13 @@ a.tr { text-decoration: none; }
 #link { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 #link path { fill: none; stroke: var(--sig); stroke-width: 1.2; }
 #link circle { fill: var(--sig); }
-::highlight(hit) { background-color: var(--hit); }
-::highlight(hitc) { background-color: var(--hitc); color: #1B1207; }
-::highlight(echo) { background-color: color-mix(in srgb, var(--sig) 16%, transparent); }
-::highlight(p0) { background-color: color-mix(in srgb, var(--active) 18%, transparent); }
-::highlight(p1) { background-color: color-mix(in srgb, var(--done) 20%, transparent); }
-::highlight(p2) { background-color: color-mix(in srgb, var(--blocked) 18%, transparent); }
-::highlight(p3) { background-color: color-mix(in srgb, var(--todo) 20%, transparent); }
+::highlight(hit-A), ::highlight(hit-B) { background-color: var(--hit); }
+::highlight(hitc-A), ::highlight(hitc-B) { background-color: var(--hitc); color: #1B1207; }
+::highlight(echo-A), ::highlight(echo-B) { background-color: color-mix(in srgb, var(--sig) 16%, transparent); }
+::highlight(p0-A), ::highlight(p0-B) { background-color: color-mix(in srgb, var(--active) 18%, transparent); }
+::highlight(p1-A), ::highlight(p1-B) { background-color: color-mix(in srgb, var(--done) 20%, transparent); }
+::highlight(p2-A), ::highlight(p2-B) { background-color: color-mix(in srgb, var(--blocked) 18%, transparent); }
+::highlight(p3-A), ::highlight(p3-B) { background-color: color-mix(in srgb, var(--todo) 20%, transparent); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 /* ---- width regimes: mid (900–1179) · narrow (<900) · phone (<600) · short (<500 tall) ---- */
