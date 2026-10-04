@@ -122,7 +122,7 @@ const SCENARIO = {
     await ctx.click('#pA [data-t="width"]');
     const w1 = await ctx.eval("document.querySelector('#pA .md').getBoundingClientRect().width");
     check(`the width button widens the measure (${w0} → ${w1})`, w1 > w0);
-    await ctx.click('#pA [data-t="width"]'); await ctx.click('#pA [data-t="width"]');
+    for (let i = 0; i < 3 && !(await ctx.eval("/默认/.test(document.querySelector('#pA [data-t=width]').dataset.tip)")); i++) await ctx.click('#pA [data-t="width"]');
     check("…and comes back to the default after the cycle", Math.abs(await ctx.eval("document.querySelector('#pA .md').getBoundingClientRect().width") - w0) < 1);
     const cite = await ctx.eval("(() => { const c = document.querySelector('#pA .cite[data-ref^=Fact]'); return c ? c.dataset.ref : null; })()");
     if (cite) {
@@ -330,6 +330,32 @@ const SCENARIO = {
     await ctx.eval("V2.nav('A', " + J({ ...docLoc(o), xid: "Req-1" }) + "); true"); await ctx.sleep(1200);
     const y = await ctx.eval("(() => { const el = document.querySelector('#pA [data-xid=\"Req-1\"]'); return el ? Math.round(el.getBoundingClientRect().top - V2.P.A.body.getBoundingClientRect().top) : null; })()");
     if (y != null) check(`with a remembered find term, an id jump still lands on its target (${y}px from the top)`, Math.abs(y - 16) < 40);
+  },
+  // Regressions from the hands-on walk (2026-10-04): each was a real defect found by clicking through as a user.
+  async walk(ctx, check, o) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
+    await ctx.eval("V2.W.wn = 320; V2.applyW(); true"); await ctx.click("#navTog");
+    check("a dragged nav width does not stop the collapse (34px strip)", await ctx.eval("document.getElementById('nav').getBoundingClientRect().width === 34"));
+    await ctx.click("#navTog");
+    await ctx.eval("V2.W.ws = 320; V2.applyW(); true"); await ctx.go("doc"); await ctx.click("#sideTog");
+    check("…nor the side collapse", await ctx.eval("document.getElementById('side').getBoundingClientRect().width === 34"));
+    await ctx.click("#sideOpen"); await ctx.go("board");
+    await ctx.eval("(() => { const c = document.querySelector('#bscroll .card[data-card]'); c.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true, detail: 1 })); return true; })()");
+    await ctx.wait(has("#pA .md"));
+    check("⇧-click on the board opens the card in A (nothing to sit beside)", await ctx.eval("V2.view === 'doc' && !V2.isSplit() && V2.P.A.loc.kind === 'doc'"));
+    await ctx.key("k", 4); await ctx.sleep(100); await ctx.type("Fact-1"); await ctx.sleep(4000);
+    const got = await ctx.eval("new Set(performance.getEntriesByType('resource').filter(e => /\\/facts\\.md$/.test(e.name) && e.responseStatus === 200).map(e => e.name)).size");
+    const all = await ctx.eval("V2.D.tree.dev.filter(x => /^[^/]+\\/\\d{3}-[^/]+\\/facts\\.md$/.test(x.path)).length");
+    check(`quick open loads every card's facts.md, none dropped (${got}/${all})`, got === all);
+    await ctx.key("Escape");
+    await ctx.viewport(768, 1024); await ctx.go("doc"); await ctx.sleep(300);
+    const cite = await ctx.eval("(() => { const c = document.querySelector('#pA .cite[data-ref^=Fact]'); return c ? c.dataset.ref : null; })()");
+    if (cite) {
+      await ctx.click(`#pA .cite[data-ref="${cite}"]`); await ctx.wait(`!!document.querySelector('#pB [data-xid="${cite}"]')`); await ctx.sleep(200);
+      check("narrow: a citation opens in the other pane, which takes the screen", await ctx.eval("V2.focus === 'B' && getComputedStyle(document.getElementById('pA')).display === 'none'"));
+      await ctx.click('#pB .abw [data-ab="A"]');
+      check("narrow: the A/B switch shows A and hides B", await ctx.eval("getComputedStyle(document.getElementById('pB')).display === 'none' && getComputedStyle(document.getElementById('pA')).display !== 'none'"));
+    }
   },
   // Collapsing a section under a project scope leaves the other projects' remembered folds alone.
   async foldscope(ctx, check) {

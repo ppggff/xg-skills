@@ -226,7 +226,9 @@
   });
   V.click('[data-t="width"]', el => {
     const k = V.paneOf(el), order = ["default", "wide", "full"];
-    MEAS[k] = { mode: order[(order.indexOf(MEAS[k].mode) + 1) % 3] }; remeasure(k);
+    let next = order[(order.indexOf(MEAS[k].mode) + 1) % 3];
+    if (next === "wide" && P[k].body.clientWidth < 1100 + 68) next = "full";   // too narrow for "wide" to differ from "full"
+    MEAS[k] = { mode: next }; remeasure(k);
   });
 
   /* ---- current line, last-read mark, flash ---- */
@@ -272,7 +274,7 @@
   let heads = [];
   const headLabel = h => SV.tocLabel(h.textContent);
   function toc() {
-    $("#sideT").textContent = $("#sideS").textContent = "目录";
+    $("#sideT").textContent = "目录";
     if (V.view !== "doc") return;
     const p = P[V.focus];
     if (!p.doc || p.doc.err) { $("#sbody").innerHTML = '<div class="hint">这一栏空着</div>'; $("#sticks").innerHTML = ""; heads = []; return; }
@@ -375,11 +377,11 @@
     if (local && !e.shiftKey) return jumpTo(k, local, true);
     const home = local ? loc.rel : SV.xidHomeRel(loc.rel, id), canon = home && V.D.sets[loc.tree].get(home.toLowerCase());
     if (!canon) { V.toast(`没找到 ${id} 的定义`); return; }
-    const o = V.isNarrow() ? k : k === "A" ? "B" : "A", there = P[o].loc;
+    const o = k === "A" ? "B" : "A", there = P[o].loc;   // narrow: it opens in the other pane and that pane takes the screen (A/B switch)
     if (there && there.kind === "doc" && there.rel === canon && P[o].doc) {
       const el = $(`[data-xid="${V.cssEsc(id)}"]`, P[o].body); if (el) jumpTo(o, el, false);
     } else V.nav(o, { kind: "doc", tree: loc.tree, rel: canon, xid: id });
-    if (V.isNarrow()) return;
+    if (V.isNarrow()) { V.setFocus(o); return; }
     V.setFocus(k);
     const wait = n => {
       const el = P[o].doc && $(`[data-xid="${V.cssEsc(id)}"]`, P[o].body);

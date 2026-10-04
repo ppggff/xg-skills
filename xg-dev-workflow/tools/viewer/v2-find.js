@@ -155,7 +155,8 @@
   /* ---- pins: up to four colours (a fifth shares one), identity is the word ---- */
   function addPin(h, term) { const slot = SV.pinSlot(h.slots, h.pins.length); h.slots[slot] = true; h.pins.push({ term, slot }); }
   function pin(k, term) {
-    const h = H[k], t = String(term || "").trim().toLowerCase(); if (t.length < 2 || /\n/.test(t)) return;
+    const h = H[k], t = String(term || "").trim().toLowerCase();
+    if (t.length < 2 || /\n/.test(t)) { V.toast("至少选中两个字、且不跨行，才能钉住"); return; }
     const at = h.pins.findIndex(pn => pn.term === t);
     if (at >= 0) return unpin(k, at);
     if (!h.idx) h.idx = buildIndex(k);
@@ -256,7 +257,8 @@
   V.hotkey("f", () => { if (V.view !== "doc") return false; open(V.focus, selected(V.focus)); });
   V.hotkey("h", () => {
     if (V.view !== "doc") return false;
-    const t = selected(V.focus); if (t) pin(V.focus, t); else V.toast("先选中一个词，再按 h 钉住");
+    const sel = window.getSelection(), t = sel && sel.rangeCount && P[V.focus].body.contains(sel.anchorNode) ? String(sel).trim() : "";
+    if (t) pin(V.focus, t); else V.toast("先选中一个词，再按 h 钉住");
   });
   V.hotkey("H", () => { if (V.view !== "doc") return false; clearPins(V.focus); });
   V.layer(40, () => !!$("#selbar.on"), () => $("#selbar").classList.remove("on"));

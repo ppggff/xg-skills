@@ -13,8 +13,13 @@
   function loadFacts() {   // every card's "### Fact-n" first lines, re-read when the dev tree changes
     if (facts.at === V.D.at || facts.loading) return facts.loading || Promise.resolve();
     const files = V.D.tree.dev.map(x => x.path).filter(p => /^[^/]+\/\d{3}-[^/]+\/facts\.md$/.test(p));
-    facts.loading = Promise.all(files.map(rel => V.api("/raw/dev/" + rel).then(r => r.text()).then(src => factsOf(rel, src)).catch(() => [])))
-      .then(all => { facts.list = [].concat(...all); facts.at = V.D.at; facts.loading = null; if (!$("#qo").hidden) render(); });
+    // four at a time: the stdlib server's listen backlog is small, and a burst of ~30 requests gets connections reset
+    const all = [], queue = files.slice(), worker = () => {
+      const rel = queue.shift(); if (!rel) return Promise.resolve();
+      return V.api("/raw/dev/" + rel).then(r => r.text()).then(src => { all.push(...factsOf(rel, src)); }).catch(() => {}).then(worker);
+    };
+    facts.loading = Promise.all([1, 2, 3, 4].map(worker))
+      .then(() => { facts.list = all; facts.at = V.D.at; facts.loading = null; if (!$("#qo").hidden) render(); });
     return facts.loading;
   }
   const docItem = (tree, rel, mtime) => ({ k: "doc", tree, rel, mtime, label: (tree === "kb" ? "kb/" : "") + rel });

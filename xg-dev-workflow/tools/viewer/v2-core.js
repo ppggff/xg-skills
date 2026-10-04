@@ -116,7 +116,7 @@ var V2 = (function () {
   V.isNarrow = () => app.classList.contains("narrow");
   V.applyW = () => {
     const nar = V.isNarrow(), nt = $("#navTog");
-    app.style.setProperty("--wn", W.wn + "px"); app.style.setProperty("--ws", W.ws + "px");
+    app.style.setProperty("--wnu", W.wn + "px"); app.style.setProperty("--wsu", W.ws + "px");
     if (W.hd) app.style.setProperty("--hd", W.hd + "px"); else app.style.removeProperty("--hd");
     app.classList.toggle("hdset", !!W.hd); app.classList.toggle("dc", !!W.dc);
     $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr");
@@ -282,8 +282,7 @@ var V2 = (function () {
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
     if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); }
-    if (k === "B" && loc.kind !== "doc") k = "A";
-    if (k === "B" && V.isNarrow()) k = V.focus === "B" ? "B" : "A";
+    if (k === "B" && (loc.kind !== "doc" || !P.A.loc || P.A.loc.kind !== "doc")) k = "A";   // "beside" needs a doc in A to sit beside
     const p = P[k];
     if (p.loc) V.emit("leave", k, p.loc);
     if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(p.loc); p.fwd.length = 0; }
