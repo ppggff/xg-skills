@@ -377,7 +377,7 @@ a.tr { text-decoration: none; }
 #reader:not(.split) .ptag { display: none; }
 #reader.split .pane.focus .ptag { color: var(--sig); }
 .pane.blank .phd .ib[data-t]:not([data-t=close]) { visibility: hidden; }
-.pbody { flex: 1; overflow: auto; position: relative; }
+.pbody { flex: 1; overflow: auto; overflow-x: hidden; position: relative; }   /* wide tables, code and diagrams scroll inside themselves */
 .empty { height: 100%; display: grid; place-items: center; text-align: center; color: var(--mu); font-size: 12px; line-height: 1.9; padding: 20px; }
 .empty svg { display: block; margin: 0 auto 10px; color: var(--faint); }
 .stale {
@@ -450,7 +450,7 @@ a.tr { text-decoration: none; }
 /* source line numbers sit in the left margin, one per rendered block */
 .lnum { position: absolute; left: 0; width: 26px; text-align: right; font: 400 10px/1 var(--mono); color: var(--faint); pointer-events: none; opacity: .7; user-select: none; }
 .app.nolnum .lnum { display: none; }
-.mrule { position: absolute; top: 0; bottom: 0; width: 9px; margin-left: -4px; cursor: col-resize; z-index: 3; }
+.mrule { position: absolute; top: 0; bottom: 0; width: 9px; margin-left: -9px; cursor: col-resize; z-index: 3; }
 .mrule::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--sig); opacity: 0; transition: opacity .15s; }
 .mrule:hover::after, .mrule.drag::after { opacity: .5; }
 

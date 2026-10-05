@@ -211,7 +211,7 @@
     const md = $(".md", P[k].body); if (!md || md.classList.contains("src")) return;
     const m = MEAS[k];
     md.style.setProperty("--measure", m.mode === "custom" ? m.w + "px" : WIDTH[m.mode] || WIDTH.default);
-    if (!$(".mrule", md)) md.insertAdjacentHTML("beforeend", '<i class="mrule" data-tip="拖动调整阅读宽度" style="left:calc(100% - 4px)"></i>');
+    if (!$(".mrule", md)) md.insertAdjacentHTML("beforeend", '<i class="mrule" data-tip="拖动调整阅读宽度" style="left:100%"></i>');
     $('[data-t="width"]', P[k].el).dataset.tip = "阅读宽度：" + (m.mode === "custom" ? "自定 " + m.w + "px" : WNAME[m.mode]) + "（点击切换）";
   }
   const remeasure = k => { store.set("measure", MEAS); applyMeasure(k); lineNumbers(k); V.emit("content", k); };
@@ -314,7 +314,11 @@
       clearTimeout(sr["t" + k]); sr["t" + k] = setTimeout(() => savePlace(k), 400);
     });
   }
-  V.on("focus", () => { if (V.view === "doc") toc(); });
+  V.on("focus", k => {
+    if (V.view !== "doc") return;
+    toc();
+    if (V.isNarrow() && P[k].doc && !P[k].doc.err) { applyMeasure(k); lineNumbers(k); recur(k); V.emit("content", k); }
+  });
   V.on("nav", (k, loc) => { if (loc.kind !== "doc") $$(".secchip").forEach(c => c.classList.remove("on")); });
   const jumpTo = (k, el, smooth) => {
     const b = P[k].body;
@@ -504,13 +508,7 @@
   V.click("[data-chg]", el => { V.closePops(); changeView(el.dataset.pane, el.dataset.chg); });
   V.click('.phd [data-t="star"]', el => { const loc = P[V.paneOf(el)].loc; if (loc && loc.kind === "doc") V.toggleStar(keyOf(loc), el); });
   V.click('.phd [data-t="hist"]', el => (V.isPop("histPop") ? V.closePops() : histPop(V.paneOf(el), el)));
-  V.click('.phd [data-t="split"]', () => {   // opening the split shows the card's facts.md beside its design, else the same doc
-    if (V.isSplit()) return V.setSplit(false);
-    V.setSplit(true);
-    const a = P.A.loc; if (P.B.loc || !a || a.kind !== "doc") return;
-    const c = V.cardOfPath(a.tree, a.rel), f = c && c.dir + "/facts.md";
-    V.nav("B", { kind: "doc", tree: "dev", rel: f && V.D.sets.dev.get(f.toLowerCase()) && f !== a.rel ? f : a.rel }); V.setFocus("A");
-  });
+  V.click('.phd [data-t="split"]', () => V.setSplit(!V.isSplit()));   // B keeps what it last showed, or waits empty
   V.click('.phd [data-t="close"]', () => V.setSplit(false));
   V.hotkey("s", () => { if (V.view !== "doc") return false; const k = V.focus; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
   V.hotkey("\\", () => { if (V.view !== "doc") return false; $('#pA [data-t="split"]').click(); });

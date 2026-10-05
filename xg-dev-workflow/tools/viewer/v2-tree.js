@@ -58,7 +58,7 @@
   }
 
   /* ---- render ---- */
-  const curKeys = () => ["A", "B"].map(k => V.P[k].loc).filter(l => l && l.kind === "doc" && V.view === "doc").map(l => l.tree + ":" + l.rel);
+  const curKeys = () => { const l = V.view === "doc" && V.P[V.focus].loc; return l && l.kind === "doc" ? [l.tree + ":" + l.rel] : []; };   // the focused pane's doc only
   const row = (d, cls, fold, name, extra, attr) => `<button class="tr ${cls}" style="--d:${d}" ${attr}>`
     + `<span class="cv">${fold ? "<i></i>" : ""}</span><span class="nm">${name}</span>${extra || ""}</button>`;
   function fileRow(tree, rel, name, d, cur) {
@@ -69,8 +69,8 @@
     let h = "";
     const dirs = Object.keys(node.dirs).map(n => ({ name: n, mtime: node.dirs[n].mtime, node: node.dirs[n] })).sort(cmp);
     const dirRows = () => dirs.forEach(e => {
-      const k = tree + ":" + base + e.name, open = isOpen(k) || cur.some(c => c.startsWith(k + "/"));
-      h += row(d, "dir " + (open ? "open" : ""), 1, esc(e.name), "", `data-fold-k="${esc(k)}"`);
+      const k = tree + ":" + base + e.name, open = isOpen(k);
+      h += row(d, "dir " + (open ? "open" : ""), 1, esc(e.name), `<em>${V.ago(e.mtime)}</em>`, `data-fold-k="${esc(k)}"`);
       if (open) h += nodeRows(tree, e.node, base + e.name + "/", d + 1, cmp, cur, filesFirst);
     });
     if (!filesFirst) dirRows();
@@ -79,10 +79,10 @@
     return h;
   }
   function cardRows(c, d, cmp, cur) {
-    const k = "dev:" + c.dir, inCur = cur.some(x => x.startsWith(k + "/")), open = isOpen(k) || inCur;
-    let h = row(d, "dir " + (open ? "open" : ""), 1, esc(c.dirName), "", `data-fold-k="${esc(k)}" data-tip="${esc(c.dir + " · " + c.st)}"`);
-    if (!open) return h;
+    const k = "dev:" + c.dir, open = isOpen(k);
     const node = SV.buildTree(V.docsOf(c).map(x => ({ path: x.rel.slice(c.dir.length + 1), mtime: x.mtime })));
+    let h = row(d, "dir " + (open ? "open" : ""), 1, esc(c.dirName), `<em>${V.ago(node.mtime)}</em>`, `data-fold-k="${esc(k)}" data-tip="${esc(c.dir + " · " + c.st)}"`);
+    if (!open) return h;
     const fix = n => { n.files.forEach(f => { f.path = c.dir + "/" + f.path; }); Object.values(n.dirs).forEach(fix); }; fix(node);
     const cmpD = (a, b) => sorts.dev.key === "name" ? (b.name === "design.md") - (a.name === "design.md") || cmp(a, b) : cmp(a, b);
     return h + nodeRows("dev", node, c.dir + "/", d + 1, cmpD, cur, true);
@@ -108,19 +108,19 @@
       const byNo = (a, b) => (sorts.dev.key === "mtime" ? dc({ name: a.n, mtime: a.mt }, { name: b.n, mtime: b.mt })
         : (b.n < a.n ? -1 : b.n > a.n ? 1 : 0) * sorts.dev.dir);   // by name, newest card first under ↑
       projs.forEach(pj => {
-        const k = "dev:" + pj.name, open = isOpen(k) || cur.some(c => c.startsWith(k + "/"));
+        const k = "dev:" + pj.name, open = isOpen(k);
         const pc = cards.filter(c => c.p === pj.name).map(c => Object.assign(c, { mt: D.mtime.dev[c.dir + "/design.md"] || 0 })).sort(byNo);
         const live = pc.filter(c => OPEN_ST.includes(c.st)), closed = pc.filter(c => !OPEN_ST.includes(c.st));
         const tip = `${esc(pj.name)}：进行中 ${live.length}，共 ${pc.length} 张卡`;
-        h += row(0, "dir top " + (open ? "open" : ""), 1, esc(pj.name), "", `data-fold-k="${esc(k)}" data-tip="${tip}"`);
+        h += row(0, "dir top " + (open ? "open" : ""), 1, esc(pj.name), `<em>${V.ago(pj.mtime)}</em>`, `data-fold-k="${esc(k)}" data-tip="${tip}"`);
         if (!open) return;
         live.forEach(c => { h += cardRows(c, 1, dc, cur); });
-        if (closed.length) {
-          const ek = "dev:" + pj.name + "/closed", eo = isOpen(ek) || closed.some(c => cur.some(x => x.startsWith("dev:" + c.dir + "/")));
-          h += row(1, "dir grp " + (eo ? "open" : ""), 1, `closed (${closed.length})`, "", `data-fold-k="${esc(ek)}" data-tip="done 与 dropped 的卡"`);
+        if (root.dirs[pj.name]) h += nodeRows("dev", root.dirs[pj.name], pj.name + "/", 1, dc, cur, false);
+        if (closed.length) {   // always last in the project, after its other folders and files
+          const ek = "dev:" + pj.name + "/closed", eo = isOpen(ek), cmt = Math.max(0, ...closed.flatMap(c => V.docsOf(c).map(x => x.mtime)));
+          h += row(1, "dir grp " + (eo ? "open" : ""), 1, `closed (${closed.length})`, `<em>${V.ago(cmt)}</em>`, `data-fold-k="${esc(ek)}" data-tip="done 与 dropped 的卡"`);
           if (eo) closed.forEach(c => { h += cardRows(c, 2, dc, cur); });
         }
-        if (root.dirs[pj.name]) h += nodeRows("dev", root.dirs[pj.name], pj.name + "/", 1, dc, cur, false);
       });
       root.files.slice().sort(dc).forEach(f => { h += fileRow("dev", f.path, f.name, 0, cur); });
     }

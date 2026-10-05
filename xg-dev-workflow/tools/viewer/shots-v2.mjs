@@ -357,6 +357,27 @@ const SCENARIO = {
       check("narrow: the A/B switch shows A and hides B", await ctx.eval("getComputedStyle(document.getElementById('pB')).display === 'none' && getComputedStyle(document.getElementById('pA')).display !== 'none'"));
     }
   },
+  // The human's 2026-10-05 review of the live page, one check per point.
+  async walk2(ctx, check, o) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
+    const proj = o.doc.split("/")[1];
+    check("splitting opens an empty B, not a guessed file", await (async () => { await ctx.click('#pA [data-t="split"]'); await ctx.sleep(300); return ctx.eval("V2.isSplit() && !V2.P.B.loc && document.getElementById('pB').classList.contains('blank')"); })());
+    const other = await ctx.eval(`V2.D.tree.dev.map(x => x.path).find(p => p.startsWith(${J(o.doc.slice(4).replace(/[^/]+$/, ""))}) && p !== ${J(o.doc.slice(4))} && p.endsWith('.md'))`);
+    await ctx.eval(`V2.nav("B", { kind: "doc", tree: "dev", rel: ${J(other)} }); true`); await ctx.wait(has("#pB .md"));
+    check("the tree marks only the focused pane's doc (B)", await ctx.eval(`(() => { const c = [...document.querySelectorAll('#tree .tr.cur[data-open]')]; return c.length === 1 && c[0].dataset.open === ${J("dev:" + other)}; })()`));
+    await ctx.eval("V2.setFocus('A'); true");
+    check("…and follows the focus to A", await ctx.eval(`(() => { const c = [...document.querySelectorAll('#tree .tr.cur[data-open]')]; return c.length === 1 && c[0].dataset.open === ${J("dev:" + o.doc.slice(4))}; })()`));
+    await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
+    check("the project holding the open doc folds when clicked", await ctx.eval(`!document.querySelector('#tree [data-fold-k="dev:${proj}"]').classList.contains('open')`));
+    await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
+    check("folders show a relative time", await ctx.eval("[...document.querySelectorAll('#tree .tr.dir')].every(r => /^(now|\\d+[mhd])$/.test((r.querySelector('em') || {}).textContent || ''))"));
+    check("closed (n) is the project's last entry", await ctx.eval(`(() => { const rows = [...document.querySelectorAll('#tree .tr')], at = rows.findIndex(r => r.dataset.foldK === ${J("dev:" + proj)});
+      const end = rows.findIndex((r, i) => i > at && r.style.getPropertyValue('--d') === '0'), top = rows.slice(at + 1, end < 0 ? rows.length : end).filter(r => r.style.getPropertyValue('--d') === '1');
+      return !top.some(r => /^closed/.test(r.textContent)) || /^closed \\(/.test(top[top.length - 1].querySelector('.nm').textContent); })()`));
+    check("no horizontal scroll in either pane", await ctx.eval("['A','B'].every(k => V2.P[k].body.scrollWidth <= V2.P[k].body.clientWidth)"));
+    await ctx.viewport(768, 1024); await ctx.sleep(300); await ctx.eval("V2.setFocus('B'); true"); await ctx.sleep(300);
+    check("narrow: the pane that comes into view gets its line numbers", await ctx.eval("(() => { const t = [...document.querySelectorAll('#pB .lnum')].map(x => parseFloat(x.style.top)); return t.length > 2 && new Set(t).size === t.length; })()"));
+  },
   // Collapsing a section under a project scope leaves the other projects' remembered folds alone.
   async foldscope(ctx, check) {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
