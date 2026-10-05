@@ -307,7 +307,9 @@ var V2 = (function () {
     b.dataset.tip = t ? `${side}后退到 ${V.locLabel(t)}` : "后退"; f.dataset.tip = n ? `${side}前进到 ${V.locLabel(n)}` : "前进";
   };
   V.on("focus", V.paintHist);
-  V.openDoc = (tree, rel, e, extra) => V.nav(e && e.shiftKey ? "B" : "A", Object.assign({ kind: "doc", tree, rel }, extra || {}));
+  // reading side by side, a doc picked from the nav lands in the focused pane; ⇧ sends it to the other one
+  V.target = e => { const k = V.view === "doc" && V.isSplit() ? V.focus : "A"; return e && e.shiftKey ? (k === "A" ? "B" : "A") : k; };
+  V.openDoc = (tree, rel, e, extra) => V.nav(V.target(e), Object.assign({ kind: "doc", tree, rel }, extra || {}));
 
   /* ---- live refresh: poll the dev/kb change tokens; areas refresh in place ---- */
   let rev = null, polling = false;

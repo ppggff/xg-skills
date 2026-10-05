@@ -84,7 +84,7 @@
   function choose(i, e) {
     const r = rows[i]; if (!r) return;
     close();
-    const it = r.it, side = e && e.shiftKey ? "B" : "A";
+    const it = r.it, side = V.target(e);
     if (it.k === "go") return V.nav("A", { kind: "board" });
     if (it.k === "ext") return window.open(V.GITWEB, "_blank", "noopener");
     if (it.k === "search") return fullSearch(it.q);

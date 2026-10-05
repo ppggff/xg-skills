@@ -367,6 +367,15 @@ const SCENARIO = {
     check("the tree marks only the focused pane's doc (B)", await ctx.eval(`(() => { const c = [...document.querySelectorAll('#tree .tr.cur[data-open]')]; return c.length === 1 && c[0].dataset.open === ${J("dev:" + other)}; })()`));
     await ctx.eval("V2.setFocus('A'); true");
     check("…and follows the focus to A", await ctx.eval(`(() => { const c = [...document.querySelectorAll('#tree .tr.cur[data-open]')]; return c.length === 1 && c[0].dataset.open === ${J("dev:" + o.doc.slice(4))}; })()`));
+    const third = await ctx.eval(`V2.D.tree.dev.map(x => x.path).find(p => p.startsWith(${J(o.doc.slice(4).replace(/[^/]+$/, ""))}) && !p.slice(${o.doc.slice(4).replace(/[^/]+$/, "").length}).includes('/') && ![${J(o.doc.slice(4))}, ${J(other)}].includes(p) && p.endsWith('.md'))`);
+    if (third) {
+      await ctx.eval("V2.setFocus('B'); true"); await ctx.click(`#tree [data-open="dev:${third}"]`); await ctx.wait(`V2.P.B.loc.rel === ${J(third)}`);
+      check("with B focused, a tree pick opens in B and leaves A alone", await ctx.eval(`V2.P.A.loc.rel === ${J(o.doc.slice(4))} && V2.focus === 'B'`));
+      await ctx.eval(`(() => { document.querySelector('#tree [data-open="dev:${other}"]').dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true })); return true; })()`);
+      await ctx.wait(`V2.P.A.loc.rel === ${J(other)}`);
+      check("…and ⇧ sends it to the other pane (A)", await ctx.eval(`V2.P.B.loc.rel === ${J(third)}`));
+      await ctx.eval(`V2.nav("A", { kind: "doc", tree: "dev", rel: ${J(o.doc.slice(4))} }); V2.setFocus('A'); true`); await ctx.sleep(400);
+    }
     await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
     check("the project holding the open doc folds when clicked", await ctx.eval(`!document.querySelector('#tree [data-fold-k="dev:${proj}"]').classList.contains('open')`));
     await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
