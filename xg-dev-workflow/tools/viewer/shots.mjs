@@ -701,6 +701,14 @@ const SCENARIO = {
     await ctx.click("#cmt [data-sel=find]"); await sleep(300);
     check("…find opens the find bar on the selected words", await ctx.eval(`(document.querySelector('#left [data-find-input]') || {}).value === ${J(term)}`));
     await ctx.key("Escape");
+    // Req-4-e the TOC marks the section on screen (J-2; the current line still follows clicks only); h2–h4 carry a copy-link #
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    await ctx.eval("(() => { const h = [...document.querySelectorAll('#left .docbody h2')][3]; document.getElementById('left').scrollTop += h.getBoundingClientRect().top - document.getElementById('left').getBoundingClientRect().top - 20; return true; })()"); await sleep(500);
+    check("the TOC marks the section on screen", await ctx.eval("(() => { const s = document.querySelector('#toc a.spy'), h = [...document.querySelectorAll('#left .docbody h2')][3]; return !!s && s.textContent.trim() === h.textContent.trim(); })()"));
+    check("h2–h4 carry a # that adds no text to the heading", await ctx.eval("(() => { const h = document.querySelector('#left .docbody h2'), b = h.querySelector('[data-anc]'); return !!b && b.textContent === '' && !/#/.test(h.textContent); })()"));
+    await ctx.eval("document.querySelector('#left .docbody h2 [data-anc]').click(); true"); await sleep(200);
+    check("…and a click on it copies the section's link", await ctx.eval("/#/.test(document.getElementById('flash').textContent)"));
+    await ctx.key("Escape");
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

@@ -480,6 +480,10 @@
   /* 041: stars and the trail */
   .file .star { color: var(--accent); font-size: 10px; margin-left: 4px; }
   .doc-head [data-star].on { color: var(--accent); }
+  .docbody .anc { border: 0; background: none; padding: 0 .3em; margin-left: .2em; font: inherit; font-weight: 400; color: var(--muted); cursor: pointer; opacity: 0; }
+  .docbody .anc::before { content: "#"; }
+  .docbody :is(h2, h3, h4):hover .anc, .docbody .anc:focus-visible { opacity: 1; }
+  #toc a.spy { box-shadow: inset 2px 0 0 var(--accent); }
   #xline { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 40; }
   #xline path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
   #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
@@ -1159,6 +1163,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       tagSections(side, hs, hs.map(function (h) { return { text: h.textContent, depth: +h.tagName[1] }; }));
       var body = pane.querySelector(".docbody");
       markXids(body);   // block anchors
+      body.querySelectorAll("h2,h3,h4").forEach(function (h) {   // a copy-link # — the glyph is CSS, so the heading's text stays as written
+        h.insertAdjacentHTML("beforeend", '<button class="anc" data-anc title="复制本节链接" aria-label="复制本节链接"></button>'); });
       markLinks(body, v.tree, v.rel); renderMermaid(side, body);
       afterRender(side, ".docbody > *");   // R52: shared TOC + default current line
       markInTree(v.tree, v.rel);   // 006 T4: renderDoc is also reached by refresh/theme/history — mark only
@@ -1743,8 +1749,17 @@ if (typeof window !== "undefined" && window.marked) (function () {
         return '<div class="toc-row"><input type="checkbox" class="tocf" data-tocf="' + i + '"' +
           (tf.set[tf.keys[i]] ? "" : " checked") + ">" + a + "</div>";
       }).join("") + "</div>";
-    showToc(!narrow && tocUser !== false); markCurrent();   // narrow: visibility is the overlay flag, not .show
+    showToc(!narrow && tocUser !== false); markCurrent(); spyToc();   // narrow: visibility is the overlay flag, not .show
   }
+  // J-2: the TOC also marks the section on screen (.spy); the current line (.cur, R6) still moves only on a click
+  function spyToc() {
+    var p = PANES[focus], secs = p._sections || [], top = p.getBoundingClientRect().top + 60, at = -1;
+    for (var i = 0; i < secs.length; i++) { var el = document.getElementById("sec_" + focus + "_" + i); if (!el) break; if (el.getBoundingClientRect().top <= top) at = i; else break; }
+    tocPane.querySelectorAll("a.spy").forEach(function (a) { a.classList.remove("spy"); });
+    var ta = at >= 0 && tocPane.querySelector('a[data-toc="' + at + '"]'); if (ta) ta.classList.add("spy");
+  }
+  ["left", "right"].forEach(function (s) { var raf = 0;
+    PANES[s].addEventListener("scroll", function () { if (s !== focus || raf) return; raf = requestAnimationFrame(function () { raf = 0; spyToc(); }); }, { passive: true }); });
   function markCurrent() {                       // sync the TOC's active entry to pane._cur (R29)
     tocPane.querySelectorAll("a.cur").forEach(function (a) { a.classList.remove("cur"); });
     var ta = tocPane.querySelector('a[data-toc="' + PANES[focus]._cur + '"]'); if (ta) ta.classList.add("cur");
@@ -2460,6 +2475,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
       lpHide();
       if (e.shiftKey && !narrow) xidBeside(sideOf(t) || focus, t, (t.getAttribute("href") || "").slice(5));
       else xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
+      return; }
+    if ((t = e.target.closest("[data-anc]"))) { e.preventDefault();
+      var av = PANES[sideOf(t)]._view, link = av && av.rel.split("/").slice(-2).join("/") + "#" + SV.slug(t.parentElement.textContent);
+      if (link) { var ok = function () { flash("已复制 " + link); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(ok, function () { fallbackCopy(link); ok(); }); else { fallbackCopy(link); ok(); } }
       return; }
     if ((t = e.target.closest(".docbody a[data-hash]"))) { e.preventDefault();
       var hs = sideOf(t) && [].slice.call(PANES[sideOf(t)].querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
