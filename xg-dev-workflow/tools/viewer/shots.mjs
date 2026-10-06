@@ -708,6 +708,20 @@ const SCENARIO = {
     check("h2–h4 carry a # that adds no text to the heading", await ctx.eval("(() => { const h = document.querySelector('#left .docbody h2'), b = h.querySelector('[data-anc]'); return !!b && b.textContent === '' && !/#/.test(h.textContent); })()"));
     await ctx.eval("document.querySelector('#left .docbody h2 [data-anc]').click(); true"); await sleep(200);
     check("…and a click on it copies the section's link", await ctx.eval("/#/.test(document.getElementById('flash').textContent)"));
+    // Req-5 quick open lists cards and Fact blocks; an exact id leads; picking one opens it (J-8)
+    await ctx.key("k", 4); await sleep(150); await ctx.type("040"); await sleep(400);
+    const rows = "[...document.querySelectorAll('#qoList .qrow')].map(r => ((r.querySelector('.qtag') || {}).textContent || '') + '|' + (r.querySelector('.qn') || r).textContent)";
+    check("⌘K 040: the card leads", /^CARD\|.*xg-skills\/040/.test((await ctx.eval(rows)).find(r => !/^(VIEW|EXT)\|/.test(r)) || ""));
+    await ctx.key("Enter"); await ctx.wait("!!document.querySelector('#left .docbody')", 5000); await sleep(300);
+    check("…and opens the card's design.md", await ctx.eval("document.querySelector('#left .crumb .full').textContent.endsWith('xg-skills/040-viewer-refined-frontend/design.md')"));
+    await ctx.key("k", 4); await sleep(150); await ctx.type("Fact-2"); await sleep(3500);
+    await ctx.eval("document.getElementById('qoInput').dispatchEvent(new Event('input', { bubbles: true })); true"); await sleep(300);
+    check("⌘K Fact-2: an exact Fact-2 leads", /^FACT\|Fact-2 /.test((await ctx.eval(rows)).find(r => !/^(VIEW|EXT)\|/.test(r)) || ""));
+    await ctx.key("Enter"); await ctx.wait("/facts\\.md$/.test(document.querySelector('#left .crumb .full').textContent)", 5000);
+    check("…and opens its facts.md", true);
+    await ctx.key("k", 4); await sleep(150); await ctx.type("040"); await sleep(400);
+    check("⌘K 040: every card row carries 040", (await ctx.eval(rows)).filter(r => /^CARD\|/.test(r)).every(r => r.includes("040")));
+    await ctx.key("Escape");
     await ctx.key("Escape");
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).

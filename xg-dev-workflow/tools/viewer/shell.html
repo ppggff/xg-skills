@@ -2792,6 +2792,45 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (window.GITWEB_URL) nav.push({ kind: "ext", id: "gitweb", name: "浏览代码 · gitweb", tag: "EXT", hint: "gitweb — all repos", search: "gitweb code 浏览代码", url: window.GITWEB_URL });
     return nav;
   }
+  // 041 (Req-5): cards and Fact blocks as quick-open candidates. Each term matches as a contiguous run
+  // (an "=" term), so short queries stay precise; an exact card number or Fact id leads the list.
+  var qoCards = [], qoFacts = { list: [], rev: null, loading: false };
+  function qoLoad() {
+    api("/api/board").then(function (r) { return r.json(); }).then(function (b) {
+      qoCards = Object.keys(b).reduce(function (a, p) { return a.concat(b[p]); }, []).map(SV.cardView);
+      if (qoEl.classList.contains("show")) qoRender(qoInput.value.trim());
+    }).catch(function () {});
+    var files = RAW.dev.filter(function (x) { return /^[^/]+\/\d{3}-[^/]+\/facts\.md$/.test(x.path); });
+    var rev = files.map(function (x) { return x.path + x.mtime; }).join(); if (qoFacts.loading || qoFacts.rev === rev) return;
+    qoFacts.loading = true;
+    var all = [], queue = files.map(function (x) { return x.path; });
+    function worker() {   // four at a time: the stdlib server's listen backlog is small
+      var rel = queue.shift(); if (!rel) return Promise.resolve();
+      return api("/raw/dev/" + rel).then(function (r) { return r.text(); }).then(function (src) {
+        var bl = SV.factBlocks(src), card = rel.split("/")[0] + " " + rel.split("/")[1].slice(0, 3);
+        Object.keys(bl).forEach(function (id) { all.push({ kind: "fact", rel: rel, id: id, card: card, label: id + " " + SV.factGist(bl[id]).slice(0, 80) }); });
+      }).catch(function () {}).then(worker);
+    }
+    Promise.all([worker(), worker(), worker(), worker()]).then(function () {
+      qoFacts = { list: all, rev: rev, loading: false };
+      if (qoEl.classList.contains("show")) qoRender(qoInput.value.trim());
+    });
+  }
+  function qoExtra(q) {   // → { lead: exact-id rows, cards, facts }
+    var eq = q.split(/\s+/).map(function (t) { return t.charAt(0) === "=" ? t : "=" + t; }).join(" "), ql = q.toLowerCase(), lead = [], cards = [], facts = [];
+    qoCards.forEach(function (c) {
+      var lab = c.id + " " + c.slug, ms = SV.matchScore(eq, lab); if (!ms.hit) return;
+      var row = { c: { kind: "card", card: c, name: lab, tag: "CARD", hint: c.st }, idx: ms.idx, score: ms.score };
+      (c.n === ql || c.id === ql ? lead : cards).push(row);
+    });
+    qoFacts.list.forEach(function (f) {
+      var ms = SV.matchScore(eq, f.label); if (!ms.hit) return;
+      var row = { c: { kind: "fact", fact: f, name: f.label, tag: "FACT", hint: f.card }, idx: ms.idx, score: ms.score };
+      (f.id.toLowerCase() === ql ? lead : facts).push(row);
+    });
+    var by = function (a, b) { return b.score - a.score; };
+    return { lead: lead.sort(by), cards: cards.sort(by).slice(0, 8), facts: facts.sort(by).slice(0, 6) };
+  }
   function qoRender(q) {
     var rows = [];
     if (!q) {
@@ -2815,14 +2854,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
         rows.push({ c: c, idx: ms.idx, score: ms.score });
       });
       rows.sort(function (a, b) { return b.score - a.score || (b.c.mtime || 0) - (a.c.mtime || 0); });
-      rows = rows.slice(0, 40);
+      var nav = rows.filter(function (r) { return r.c.kind !== "file"; }), x = qoExtra(q);
+      rows = nav.concat(x.lead, rows.filter(function (r) { return r.c.kind === "file"; }).slice(0, 40), x.cards, x.facts);
       rows.push({ c: { kind: "search", q: q, name: "search “" + q + "”", tag: "GO", hint: "⌘↵ · full-text content search" }, idx: [] });   // fall-through: hand the query to the content search
     }
     qoRows = rows; if (qoSel >= rows.length) qoSel = 0;
     if (!rows.length) { qoList.innerHTML = '<div class="qempty">no match</div>'; return; }
     qoList.innerHTML = rows.map(function (r, i) {
       var c = r.c, sel = i === qoSel ? " sel" : "", set = {}; r.idx.forEach(function (n) { set[n] = 1; });
-      if (c.kind !== "file") {   // nav / gitweb / fall-through: tag chip + name + hint
+      if (c.kind !== "file") {   // nav / gitweb / card / Fact / fall-through: tag chip + name + hint
         var xtra = c.kind === "search" ? " qfall" : "";   // fall-through sticks to the list bottom → always visible, not buried under 40 matches
         return '<div class="qrow' + sel + xtra + '" data-i="' + i + '"><span class="qtag">' + esc(c.tag) + "</span>" +
           '<span class="qn">' + (r.idx.length ? markRange(c.name, 0, set) : esc(c.name)) + "</span>" +
@@ -2846,12 +2886,18 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var c = r.c, side = shift ? "right" : "left";
     if (c.kind === "ext") { window.open(c.url, "_blank", "noopener"); return; }   // gitweb → new tab (⇧ n/a)
     if (c.kind === "go") { navigate(side, { kind: c.id }); return; }               // Board / Recent
+    if (c.kind === "card") {   // J-8: a card opens its main doc
+      var dir = c.card.dir + "/", main = ["design.md", "requirement.md"].map(function (f) { return dir + f; })
+        .find(function (rel) { return RAW.dev.some(function (x) { return x.path === rel; }); });
+      if (main) navigate(side, { kind: "doc", tree: "dev", rel: main }); else flash("这张卡没有 design.md");
+      return; }
+    if (c.kind === "fact") { navigate(side, { kind: "doc", tree: "dev", rel: c.fact.rel, xid: c.fact.id }); return; }
     if (c.kind === "search") { RecentStore.record("search", c.q); fillDatalist("recent-searches", "search"); navigate(side, { kind: "search", q: c.q }); return; }  // fall-through (feeds R8 search history too)
     RecentStore.record("opened", c.full);   // R7: quick-open (incl. ⇧-right) feeds the recent-opened history
     navigate(side, { kind: "doc", tree: c.tree, rel: c.path });                    // file
     revealInTree(c.tree, c.path);   // 006 T4: user-opened → expand ancestors
   }
-  function openQuick() { qoBack.classList.add("show"); qoEl.classList.add("show"); qoInput.value = ""; qoSel = 0; qoRender(""); qoInput.focus(); }
+  function openQuick() { qoBack.classList.add("show"); qoEl.classList.add("show"); qoInput.value = ""; qoSel = 0; qoRender(""); qoInput.focus(); qoLoad(); }
   function qoClose() { qoBack.classList.remove("show"); qoEl.classList.remove("show"); }
   qoInput.addEventListener("input", function () { qoSel = 0; qoRender(qoInput.value.trim()); });
   qoInput.addEventListener("keydown", function (e) {
