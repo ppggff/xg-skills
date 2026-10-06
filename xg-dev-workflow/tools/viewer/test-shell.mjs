@@ -82,7 +82,7 @@ t("R3: help overlay markup + ?/esc bindings, suppressed while typing", () => {
   assert.match(html, /id="help"[^>]*role="dialog"/, "help dialog markup present");
   assert.match(html, /function openHelp\(\)/, "openHelp exists");
   assert.match(html, /e\.key === "\?"[^\n]*!typing[^\n]*openHelp\(\)/, "? opens help, not while typing");
-  assert.match(html, /e\.key === "Escape" && helpEl\.classList\.contains\("show"\)/, "esc closes help");
+  assert.match(html, /if \(helpEl\.classList\.contains\("show"\)\) return closeHelp;/, "esc closes help (041 J-4: via the layer order)");
   assert.match(html, /class="hint">shift-click[^<]*<kbd>\?<\/kbd> 帮助/, "the sidebar hint line mentions the ? help shortcut");
 });
 
@@ -646,9 +646,13 @@ t("T4: rangeOf skips a stale hit instead of throwing, never caches the Range", (
 });
 
 // --- find box + paint + f/Esc wiring (016 T5) ---
-t("T5: Escape closes an open find box before help/change-history (position matters)", () => {
-  const m = html.match(/if \(e\.key === "Escape" && PANES\[focus\]\._findOpen\) \{ findClose\(focus\); return; \}[\s\S]{0,80}?if \(e\.key === "Escape" && helpEl/);
-  assert.ok(m, "find's Escape branch comes before the existing help/Escape branch");
+t("041 J-4 (was T5): one Esc closes the topmost layer — help, popovers, overlays, then find, then the board detail", () => {
+  const L = html.match(/function escLayer\(\) \{[\s\S]*?\n  \}/)[0];
+  const at = k => L.indexOf(k);
+  ["helpEl.classList", "svPopEl.classList", "chSide", "lp.classList", "sideOpen || tocOpen", "_findOpen", ".card-detail"].forEach((k, i, a) => {
+    assert.ok(at(k) >= 0, k + " is a layer"); if (i) assert.ok(at(a[i - 1]) < at(k), a[i - 1] + " closes before " + k);
+  });
+  assert.match(html, /if \(e\.key === "Escape"\) \{ var close = escLayer\(\); if \(close\) \{ e\.preventDefault\(\); close\(\); \} return; \}/, "one layer per press");
 });
 t("T5: bare f opens/focuses find (not while typing); cmd/ctrl+F stays native", () => {
   assert.match(html, /if \(e\.key === "f" && !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey\) && !typing\) \{ e\.preventDefault\(\); findOpen\(focus\); \}/, "bare f only, guarded by !typing");
@@ -674,7 +678,7 @@ t("R5: an Escape consumer stops the event so the document chain doesn't close a 
   // guard, so an input-level consumer that lets Escape bubble also silently closes the find bar.
   assert.match(html, /if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); treeFilter = ""/, "tree filter");
   assert.match(html, /else if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); qoClose\(\); \}/, "quick-open palette");
-  assert.match(html, /if \(e\.key === "Escape" && PANES\[focus\]\._findOpen\) \{ findClose\(focus\); return; \}/, "and the find bar still wins the document-level chain");
+  assert.match(html, /if \(PANES\[focus\]\._findOpen\) return function \(\) \{ findClose\(focus\); \};/, "and the find bar is a layer of the document-level chain (041 J-4)");
 });
 t("T5: findClose clears this pane's model (R13) and unpaints; findOpen anchors off .doc-head", () => {
   assert.match(html, /p\._hits\.q = ""; p\._hits\.hits = \[\]; p\._hits\.cur = -1;\s+writeField\(side, "q", ""\);.*\s+paint\(side\);/, "closing clears q/hits/cur, drops the remembered query (T12), then repaints");
@@ -929,7 +933,7 @@ t("T12: entering a view adopts exactly what that view remembers", () => {
 t("T13: every exit from a view writes through the one named hook", () => {
   const calls = (html.match(/(?<!function )leaveView\((side|"left"|"right")\)/g) || []);
   // the history dropdown lost its own exit — it enters through navigate, which owns write point 1.
-  assert.equal(calls.length, 6, "navigate + back + closeright + swapPanes' two + pagehide");
+  assert.equal(calls.length, 7, "navigate + back + forward (041) + closeright + swapPanes' two + pagehide");
   [1, 2, 3, 4].forEach(n => assert.match(html, new RegExp("write point " + n + " of 4"), "write point " + n + " is labelled"));
   assert.match(html, /window\.addEventListener\("pagehide", function \(\) \{ visiblePanes\(\)\.forEach\(function \(side\) \{ leaveView\(side\); \}\); \}\);/, "closing the tab never reaches the five entries");
   assert.match(html, /leaveView\("left"\); leaveView\("right"\);   \/\/ write point 4 of 4\s+var tmp = \{ h: L\._hist/, "swapPanes writes BEFORE the histories move — the key carries the pane");

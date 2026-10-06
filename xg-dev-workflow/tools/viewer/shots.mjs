@@ -640,6 +640,28 @@ const SCENARIO = {
     check("the trail popover lists the docs, newest first", await ctx.eval("(() => { const a = [...document.querySelectorAll('#svpop.show a[data-rel]')].map(x => x.dataset.rel); return a[0] === 'xg-skills/040-viewer-refined-frontend/facts.md' && a.includes('xg-skills/040-viewer-refined-frontend/design.md'); })()"));
     await ctx.key("Escape");
     check("the classic shell writes no svd2- key", await ctx.eval("!Object.keys(localStorage).some(k => k.startsWith('svd2-'))"));
+    // Req-4-a forward next to back, [ and ] on the focused pane
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md"); await docAt("dev", "xg-skills/040-viewer-refined-frontend/facts.md");
+    const crumb = "document.querySelector('#left .crumb .base').textContent";
+    await ctx.key("["); await sleep(500);
+    check("[ goes back", await ctx.eval(crumb) === "design.md");
+    check("…and the head's forward button is enabled", await ctx.eval("!!document.querySelector('#left .doc-head [data-fwd]:not([disabled])')"));
+    await ctx.key("]"); await sleep(500);
+    check("] goes forward again", await ctx.eval(crumb) === "facts.md");
+    // Req-4-b Esc closes the topmost layer first (J-4), and also the link preview and the board detail
+    await ctx.key("f"); await sleep(150); await ctx.eval("document.activeElement.blur(); true"); await ctx.key("?", 8); await sleep(150);
+    await ctx.key("Escape"); await sleep(100);
+    check("Esc closes help first, the find bar stays", await ctx.eval("!document.getElementById('help').classList.contains('show') && !!document.querySelector('#left .findbar')"));
+    await ctx.key("Escape"); await sleep(100);
+    check("…then the find bar", await ctx.eval("!document.querySelector('#left .findbar')"));
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    await ctx.mouseMove("#left .docbody a[data-nav='doc']"); await sleep(900);
+    check("(the link preview is open)", await ctx.eval("!!document.getElementById('lp') && getComputedStyle(document.getElementById('lp')).display !== 'none'"));
+    await ctx.key("Escape"); await sleep(150);
+    check("Esc closes the link preview", await ctx.eval("getComputedStyle(document.getElementById('lp')).display === 'none'"));
+    await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail')");
+    await ctx.key("Escape"); await sleep(200);
+    check("Esc closes the board detail", await ctx.eval("!document.querySelector('#left .card-detail')"));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

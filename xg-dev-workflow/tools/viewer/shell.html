@@ -990,7 +990,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     p._entering = true;   // S12
     setFocus(side); render(side);
   }
-  function back(side) { var p = PANES[side]; if (p._hi > 0) { leaveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }   // write point 2 of 4
+  function back(side) { var p = PANES[side]; if (p._hi > 0) { leaveView(side); p._hi--; p._entering = true; setFocus(side); render(side); } }
+  function fwd(side) { var p = PANES[side]; if (p._hi < p._hist.length - 1) { leaveView(side); p._hi++; p._entering = true; setFocus(side); render(side); } }   // write point 2 of 4, forward: navigate keeps the stack past _hi until the next push   // write point 2 of 4
   function highlightNav() {   // mark the nav item matching the left pane's current view (board/recent)
     var k = PANES.left._view && PANES.left._view.kind;
     document.querySelectorAll(".navbtn[data-go]").forEach(function (b) { b.classList.toggle("on", b.dataset.go === k); });
@@ -1038,6 +1039,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var ICON = {
     files: ic("M3 4h10M3 8h10M3 12h10"),
     back: ic("M10 3 5 8l5 5"),
+    fwd: ic("M6 3l5 5-5 5"),
     caret: ic("M4 6l4 4 4-4"),
     clock: ic("M8 2.5a5.5 5.5 0 1 0 0 11a5.5 5.5 0 1 0 0-11M8 5v3.2l2.2 1.4"),
     width: ic("M2 8h12M5 5 2 8l3 3M11 5l3 3-3 3"),
@@ -1051,7 +1053,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   };
   function paneHead(side, crumb, extra) {
     var p = PANES[side];
-    var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back">' + ICON.back + "</button>";
+    var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back ([)">' + ICON.back + "</button>" +
+      '<button class="iconbtn" data-fwd="' + side + '"' + (p._hi < p._hist.length - 1 ? "" : " disabled") + ' title="forward (])">' + ICON.fwd + "</button>";
     var mru = p._mru || [], curKey = mruKey(p._view);
     var hist = mru.length > 1 ? '<span class="histwrap"><span class="hcaret">' + ICON.caret + '</span><select class="iconbtn" data-hist="' + side + '" title="本面板打开过的视图">' +
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
@@ -2465,6 +2468,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("[data-find]"))) { e.preventDefault(); findOpen(t.dataset.find); return; }   // the button twins of f / ⌘K / ?
     if ((t = e.target.closest("[data-quick]"))) { e.preventDefault(); openQuick(); return; }
     if ((t = e.target.closest("[data-back]"))) { e.preventDefault(); back(t.dataset.back); return; }
+    if ((t = e.target.closest("[data-fwd]"))) { e.preventDefault(); fwd(t.dataset.fwd); return; }
     if ((t = e.target.closest("[data-closeright]"))) { leaveView("right");   // write point 3 of 4
       PANES.right.innerHTML = ""; PANES.right._view = null;
       PANES.right._hist = []; PANES.right._hi = -1; PANES.right._mru = []; showRight(false); if (focus === "right") setFocus("left"); return; }
@@ -2825,14 +2829,25 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function openHelp() { helpBack.classList.add("show"); helpEl.classList.add("show"); }
   function closeHelp() { helpBack.classList.remove("show"); helpEl.classList.remove("show"); }
   helpBack.addEventListener("click", closeHelp);
+  // J-4: one Esc closes one layer, the topmost first: help, then a popover (stars/trail, change history,
+  // link preview), then a narrow overlay, then the find bar, then the board detail. Input-level
+  // consumers (tree filter, quick open) stop the event before it gets here.
+  function escLayer() {
+    if (helpEl.classList.contains("show")) return closeHelp;
+    if (svPopEl.classList.contains("show")) return svPopClose;
+    if (chSide) return chClose;
+    if (lp && lp.classList.contains("show")) return lpHide;
+    if (narrow && (sideOpen || tocOpen)) return closeOverlays;
+    if (PANES[focus]._findOpen) return function () { findClose(focus); };
+    var cd = PANES[focus].querySelector(".card-detail [data-cd-close]");
+    if (cd) return function () { cd.click(); };
+    return null;
+  }
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
-    if (e.key === "Escape" && narrow && (sideOpen || tocOpen) && !helpEl.classList.contains("show")) { closeOverlays(); return; }   // an overlay sits over the find bar
-    if (e.key === "Escape" && svPopEl.classList.contains("show")) { svPopClose(); return; }
-    if (e.key === "Escape" && PANES[focus]._findOpen) { findClose(focus); return; }   // R5/R13: find closes first, ahead of help/change-history
-    if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
-    if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
+    if (e.key === "Escape") { var close = escLayer(); if (close) { e.preventDefault(); close(); } return; }
     var t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "[" || e.key === "]") && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); (e.key === "[" ? back : fwd)(focus); return; }
     if (e.key === "?" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); openHelp(); return; }   // R3
     if (e.key === "/" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); searchBox.focus(); }
     if (e.key === "f" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); findOpen(focus); }   // R5; cmd/ctrl+F stays native
