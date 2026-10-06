@@ -19,7 +19,8 @@ viewer at /gitweb/) so one `ssh -L` rule for 8790 keeps working across restarts;
 reported and the run stops rather than degrading to a random port.
 
 Usage:
-  viewer.py [--port N] [--no-browser] [--dev-root DIR] [--kb-root DIR] [--lan] [--host NAME]...
+  viewer.py [--port N] [--no-browser] [--no-gitweb] [--gitweb-port N] [--dev-root DIR] [--kb-root DIR]
+            [--lan] [--host NAME]...
 """
 import errno
 import http.client
@@ -662,6 +663,12 @@ def parse_args(argv):
             lan = True
         elif a == "--host":
             hosts.append(argv[i + 1]); i += 2; continue
+        elif a in ("-h", "--help"):
+            print(__doc__[__doc__.index("Usage:"):].rstrip())
+            sys.exit(0)
+        else:                                   # never serve on a mistyped flag: a stray server squats the fixed port
+            sys.stderr.write("viewer.py: unknown argument %r (see --help)\n" % a)
+            sys.exit(2)
         i += 1
     return {"port": port, "open_browser": open_browser, "dev_arg": dev_arg, "kb_arg": kb_arg,
             "gitweb": gitweb, "gitweb_port": gitweb_port, "lan": lan, "hosts": hosts}

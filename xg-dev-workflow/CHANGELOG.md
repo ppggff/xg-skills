@@ -4,6 +4,13 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-06 — status viewer: `--help` prints usage, an unknown argument exits
+
+`viewer.py` used to skip any argument it did not know, so `viewer.py --help` started a real server on the fixed
+port 8790. Such a stray server kept the port, so a supervised viewer (pitchfork) could not bind it and then passed
+its readiness check against the stray one. `-h`/`--help` now prints the usage and exits 0; any other unknown argument
+exits 2 before anything binds. The usage line also gains the missing `--no-gitweb` and `--gitweb-port`.
+
 ## 2026-10-04 — status viewer: the refined frontend at /v2, beside the classic one (card xg-skills/040)
 
 `viewer.py` now serves a second page, `shell-v2.html`, at a hardcoded `/v2`, with the classic shell unchanged at `/`;

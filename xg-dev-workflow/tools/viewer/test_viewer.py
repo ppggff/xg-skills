@@ -5,8 +5,10 @@ Run: python3 tools/viewer/test_viewer.py    (from the xg-dev-workflow dir, or an
 Covers the curl-level contract of each endpoint against throwaway fixture trees / git repos.
 P2 (shell JS) is verified manually in a browser — not here.
 """
+import contextlib
 import http.server
 import importlib.util
+import io
 import json
 import os
 import re
@@ -382,6 +384,13 @@ class TLan(unittest.TestCase):
         a = viewer.parse_args(["--lan", "--host", "mac.local", "--host", "10.0.0.5", "--no-browser"])
         self.assertTrue(a["lan"]); self.assertEqual(a["hosts"], ["mac.local", "10.0.0.5"])
         self.assertFalse(viewer.parse_args([])["lan"])
+
+    def test_parse_args_help_and_unknown_exit_before_serving(self):
+        for argv, code in ((["--help"], 0), (["-h"], 0), (["--bogus"], 2), (["--no-browser", "x"], 2)):
+            with self.assertRaises(SystemExit) as cm, \
+                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                viewer.parse_args(argv)
+            self.assertEqual(cm.exception.code, code, argv)
 
     def test_lan_ip_is_dotted_or_none(self):
         ip = viewer.lan_ip()
