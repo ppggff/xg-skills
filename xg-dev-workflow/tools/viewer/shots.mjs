@@ -244,6 +244,7 @@ async function session(o, fn) {
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c[0], y: c[1] }] }, sid);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }, sid);
       },
+      media: (features) => cdp.send("Emulation.setEmulatedMedia", { features }, sid),   // e.g. [{ name: "prefers-color-scheme", value: "dark" }]
       mouseAt: (x, y) => cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y }, sid),   // no scrolling first
       mouseMove: async (sel) => { const c = await centerOf(sel); await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid); },
     };
@@ -563,6 +564,35 @@ const SCENARIO = {
     check("1440: collapsed — ☰ leads the head and no floating button shows", await ctx.eval("getComputedStyle(document.querySelector('#left [data-side]')).display !== 'none' && getComputedStyle(document.getElementById('reopen')).display === 'none'"));
     await ctx.click("#left [data-side]"); await sleep(200);
     check("1440: the head ☰ reopens the sidebar", await ctx.eval("!document.getElementById('side').classList.contains('collapsed') && getComputedStyle(document.querySelector('#left [data-side]')).display === 'none'"));
+  },
+  // Card 041: the classic shell's bugs found in the 2026-10 comparison, and what it gains from v2 — one check each.
+  async classic041(ctx, check) {
+    const docAt = async (tree, rel, ready = "!!document.querySelector('#left .docbody, #left .notice')") => { await ctx.eval(navAnchor({ nav: "doc", tree, rel })); await ctx.wait(ready); await sleep(300); };
+    await ctx.viewport(1440, 900); await ctx.load();
+    // Req-1 bugs
+    await docAt("dev", "xg-skills/no-such-file.md");
+    check("404: a gentle notice, not the raw fetch error", await ctx.eval("/不存在或已被移动/.test(document.querySelector('#left .notice').textContent) && !/→ 404 \\(/.test(document.querySelector('#left').textContent)"));
+    await docAt("dev", "hashdata/005-lightweight-vacuum-311/design.md");
+    await ctx.eval("document.getElementById('left').scrollTop = 0; true");
+    await ctx.click("#left .docbody a[href='#open-questions'], #left .docbody a[data-hash='open-questions']"); await sleep(2500);   // a long smooth scroll
+    check("#slug link: jumps to its heading", await ctx.eval("(() => { const h = [...document.querySelectorAll('#left .docbody h2')].find(x => x.textContent.trim() === 'Open questions'), p = document.getElementById('left'); const t = h.getBoundingClientRect().top - p.getBoundingClientRect().top; return t >= 0 && t < 160; })()"));
+    await ctx.eval(`(() => { const s = document.getElementById("search"); s.value = "->"; s.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); return true; })()`);
+    await ctx.wait("!!document.querySelector('#left .hit, #left .none')"); await sleep(300);
+    check("search '->': the hits are highlighted", await ctx.eval("document.querySelectorAll('#left .hit mark').length > 0"));
+    await ctx.eval(`(() => { const s = document.getElementById("search"); s.value = "amp"; s.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); return true; })()`);
+    await ctx.wait("!!document.querySelector('#left .hit, #left .none')"); await sleep(300);
+    check("search 'amp': no entity is cut into visible text", await ctx.eval("![...document.querySelectorAll('#left .hit')].some(h => /&amp;|&lt;|&gt;/.test(h.textContent))"));
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md"); await ctx.wait("!!document.querySelector('#left .docbody .mermaid svg')", 8000);
+    check("mermaid keeps its source line number", await ctx.eval("!!document.querySelector('#left .docbody > .mermaid[data-srcline]')"));
+    check("frontmatter: the status shows without its # comment, coloured", await ctx.eval("(() => { const s = document.querySelector('#left .frontmatter .fm-st'); return !!s && !/#/.test(s.textContent) && !/st-backlog/.test(s.className); })()"));
+    const fill = "(() => { const t = document.querySelector('#left .docbody .mermaid svg .node rect, #left .docbody .mermaid svg rect'); return t ? getComputedStyle(t).fill : null; })()";
+    await ctx.media([{ name: "prefers-color-scheme", value: "light" }]); await sleep(600); const f0 = await ctx.eval(fill);
+    await ctx.media([{ name: "prefers-color-scheme", value: "dark" }]); await sleep(1500); const f1 = await ctx.eval(fill);
+    check(`following the system theme re-renders mermaid (${f0} → ${f1})`, !!f0 && f0 !== f1);
+    await ctx.media([]);
+    await ctx.key("k", 4); await sleep(150); await ctx.type("040 design"); await sleep(300);
+    check("⌘K '040 design': no dev/ prefix noise", await ctx.eval("document.querySelectorAll('#qoList .qrow:not(.qfall)').length <= 5"));
+    await ctx.key("Escape");
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

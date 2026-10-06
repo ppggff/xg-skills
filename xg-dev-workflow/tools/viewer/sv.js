@@ -630,6 +630,10 @@ var SV = (function () {
         return { cls: /^\+(?!\+\+)/.test(l) ? "a" : /^-(?!--)/.test(l) ? "d" : /^@@/.test(l) ? "h" : "", text: l }; }) };
     });
   }
+  // GitHub-style heading anchor: lowercase, punctuation dropped, each whitespace a hyphen (never folded)
+  function slug(text) {
+    return String(text || "").trim().toLowerCase().replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, "").replace(/\s/g, "-");
+  }
   // `git log -p` output → one entry per commit: sha, date, subject, and the diff part only
   function splitCommits(text) {
     return String(text || "").split(/\n(?=commit [0-9a-f]{7,})/).filter(function (b) { return /^commit [0-9a-f]{7,}/.test(b); }).map(function (b) {
@@ -638,7 +642,7 @@ var SV = (function () {
     });
   }
   return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
-           cardView: cardView, factBlocks: factBlocks, factGist: factGist, reqHeads: reqHeads, tocLabel: tocLabel, diffFiles: diffFiles, splitCommits: splitCommits,
+           cardView: cardView, factBlocks: factBlocks, factGist: factGist, reqHeads: reqHeads, tocLabel: tocLabel, diffFiles: diffFiles, splitCommits: splitCommits, slug: slug,
            parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
            projectsFromTree: projectsFromTree, buildTree: buildTree, sortCmp: sortCmp, matchScore: matchScore, recentPush: recentPush, tocFromHeadings: tocFromHeadings,
            groupHits: groupHits, groupTraceRows: groupTraceRows, colorizeDiff: colorizeDiff, commentBlock: commentBlock,

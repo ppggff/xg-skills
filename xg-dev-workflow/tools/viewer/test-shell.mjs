@@ -1000,6 +1000,18 @@ t("splitCommits: one entry per commit with sha, date, subject and only the diff 
   assert.deepEqual(SV.splitCommits("(no commits)\n"), []);
 });
 
+t("link preview: the cache is keyed by the file's mtime, so an edit drops the stale preview", () => {
+  const lp = html.match(/function lpOpen\(a\) \{[\s\S]*?\n {2}\}/)[0];
+  assert.match(lp, /if \(lpCache\[key\] && lpCache\[key\]\.mt === mt\)/);
+  assert.match(lp, /lpCache\[key\] = \{ mt: mt, html: bodyHtml \}/);
+});
+t("slug: GitHub-style heading anchors — lowercase, punctuation dropped, each space a hyphen, hyphens never folded", () => {
+  assert.equal(SV.slug("Task M2'-1: 去限流 adjust_dblist 两分支 + 删 throttle(改 Task 6)"), "task-m2-1-去限流-adjust_dblist-两分支--删-throttle改-task-6");
+  assert.equal(SV.slug("事实清单(F1~F13)"), "事实清单f1f13");
+  assert.equal(SV.slug("Open questions"), "open-questions");
+  assert.equal(SV.slug("Req-1 待验证 — x"), "req-1-待验证--x");
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
 
 // --- 026 T16: doc-native id anchors (SV pure half) + xid extension behavior ---

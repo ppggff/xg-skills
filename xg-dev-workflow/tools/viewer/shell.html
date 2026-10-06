@@ -738,6 +738,9 @@
     if (typeof window.__onThemeChange === "function") window.__onThemeChange(effective());
   };
   window.__effectiveTheme = effective;
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {   // following the OS: re-theme mermaid when it flips
+    if (!root.hasAttribute("data-theme") && typeof window.__onThemeChange === "function") window.__onThemeChange(effective());
+  });
 })();
 </script>
 <script src="/assets/marked.min.js"></script>
@@ -909,7 +912,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (r.ok) return r;
     var where = p + " → " + r.status + " (" + (r.url || new URL(p, location.href).href) + ", server: " + (r.headers.get("Server") || "?") + ")";
     return r.text().then(function (b) { throw new Error(where + " " + JSON.stringify(b.slice(0, 80))); },
-      function () { throw new Error(where); }); }); }
+      function () { throw new Error(where); }).catch(function (e) { e.status = r.status; throw e; }); }); }   // callers test the status, not the message
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
   function cssEsc(s) { return s.replace(/["\\]/g, "\\$&"); }
@@ -919,10 +922,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (d < 86400) return Math.round(d / 3600) + "h"; return Math.round(d / 86400) + "d";
   }
   function inProject(relpath) { return !project || relpath.split("/").indexOf(project) !== -1; }
-  function hlmark(text, q) {
-    var e = esc(text), ql = q.toLowerCase(), el = e.toLowerCase(), out = "", i = 0, j;
-    while ((j = el.indexOf(ql, i)) !== -1) { out += e.slice(i, j) + "<mark>" + e.slice(j, j + q.length) + "</mark>"; i = j + q.length; }
-    return out + e.slice(i);
+  function hlmark(text, q) {   // find in the raw text, escape each piece: the query never meets an entity
+    var s = String(text), sl = s.toLowerCase(), ql = q.toLowerCase(), out = "", i = 0, j;
+    if (!ql) return esc(s);
+    while ((j = sl.indexOf(ql, i)) !== -1) { out += esc(s.slice(i, j)) + "<mark>" + esc(s.slice(j, j + ql.length)) + "</mark>"; i = j + ql.length; }
+    return out + esc(s.slice(i));
   }
 
   window.marked.use({ extensions: [{
@@ -1123,7 +1127,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (v.line) scrollToLine(side, v.line);   // R4: a search hit carried a line → jump to its section
       if (v.xid && !xidScroll(side, v.xid)) flash("未找到 " + v.xid + " 的定义");   // cross-file id jump
     }).catch(function (e) {                                    // R6: gentle inline notice, not a stark page
-      var is404 = / → 404$/.test(e.message);
+      var is404 = e.status === 404;
       pane.innerHTML = paneHead(side, v.tree + "/" + v.rel) + "<div class='notice'>" +
         (is404 ? "📄 该文件不存在或已被移动。" : "无法打开：" + esc(e.message)) +
         "<div class='hint'>" + esc(v.tree + "/" + v.rel) + "</div></div>";
@@ -1131,11 +1135,13 @@ if (typeof window !== "undefined" && window.marked) (function () {
       reset(side);   // D18 hookpoint 1: error panel, no content to search
     });
   }
+  var CARD_TONE = { executing: "active", closing: "active" };   // lite card states SV.statusTone predates
   function frontmatterTable(f) {                    // R3: compact meta (status pill + key:value), not a table
     var keys = Object.keys(f); if (!keys.length) return "";
-    var st = f.status ? '<span class="fm-st st-' + SV.statusTone(f.status) + '">' + esc(f.status) + "</span>" : "";
+    var val = function (k) { return String(f[k]).replace(/\s+#.*$/, ""); }, status = f.status ? val("status") : "";   // a YAML comment is not part of the value
+    var st = status ? '<span class="fm-st st-' + (CARD_TONE[status.toLowerCase()] || SV.statusTone(status)) + '">' + esc(status) + "</span>" : "";
     var kv = keys.filter(function (k) { return k !== "status" && k !== "title"; })
-      .map(function (k) { return '<span class="fm-kv"><b>' + esc(k) + "</b> " + esc(f[k]) + "</span>"; })
+      .map(function (k) { return '<span class="fm-kv"><b>' + esc(k) + "</b> " + esc(val(k)) + "</span>"; })
       .join('<span class="fm-sep">·</span>');       // comp: fields split by a dot, not just whitespace
     if (!st && !kv) return "";                        // no status + only title → no empty meta bar
     return '<div class="frontmatter">' + st + kv + "</div>";
@@ -1166,7 +1172,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (key) { var i = key.indexOf(":"); a.setAttribute("data-nav", "doc");
         a.setAttribute("data-tree", key.slice(0, i)); a.setAttribute("data-rel", key.slice(i + 1)); a.removeAttribute("href"); }
       else if (/^https?:\/\//i.test(raw)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
-      else if (raw.charAt(0) === "#") { /* in-page anchor: leave it */ }
+      else if (raw.charAt(0) === "#") { a.setAttribute("data-hash", raw.slice(1)); a.removeAttribute("href"); }   // headings carry sec_ ids: matched by slug on click
       // R6: any other internal link is inert (broken) so a click can never navigate the whole
       // window to a server 404 page.
       else { a.classList.add("broken"); a.removeAttribute("href"); a.title = "unresolved: " + raw; }
@@ -1191,7 +1197,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     ensureMermaid().then(function (mermaid) {
       blocks.forEach(function (code, i) {
         var src = code.textContent, holder = document.createElement("div");
-        holder.className = "mermaid"; code.parentNode.replaceWith(holder);
+        var pre = code.parentNode; holder.className = "mermaid";
+        if (pre.dataset.srcline) { holder.dataset.srcline = pre.dataset.srcline; holder.style.cssText = pre.style.cssText; }   // keep the line gutter
+        pre.replaceWith(holder);
         var gid = "mmd" + Date.now() + i;
         // R7: mermaid.render appends a temp measuring node (#d<gid>, or #i<gid> in sandbox mode) to
         // document.body; on a parse error it draws its "Syntax error in text" graphic there and
@@ -2366,6 +2374,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // id jump
       xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
       return; }
+    if ((t = e.target.closest(".docbody a[data-hash]"))) { e.preventDefault();
+      var hs = sideOf(t) && [].slice.call(PANES[sideOf(t)].querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
+      var want = decodeURIComponent(t.dataset.hash), hi = hs ? hs.findIndex(function (h) { return SV.slug(h.textContent) === want; }) : -1;
+      if (hi < 0 || !scrollToSection(sideOf(t), hi)) flash("未找到这一节：#" + want);
+      return; }
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); if (narrow) toggleSide(); else document.getElementById("reopen").click(); return; }
@@ -2604,7 +2617,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var qoRows = [], qoSel = 0;
   function qoCandidates() {   // all files, both trees — a global finder (ignores project scope by design)
     function map(tree) { return RAW[tree].map(function (x) {
-      return { kind: "file", tree: tree, path: x.path, full: tree + "/" + x.path, name: x.path.split("/").pop(), mtime: x.mtime }; }); }
+      // `full` stays the history key; `label` (no dev/ prefix) is what a query is scored against
+      return { kind: "file", tree: tree, path: x.path, full: tree + "/" + x.path, label: tree === "kb" ? "kb/" + x.path : x.path, name: x.path.split("/").pop(), mtime: x.mtime }; }); }
     return map("dev").concat(map("kb"));
   }
   function markRange(str, off, set) { var o = ""; for (var i = 0; i < str.length; i++) o += set[off + i] ? "<mark>" + esc(str[i]) + "</mark>" : esc(str[i]); return o; }
@@ -2634,7 +2648,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         rows.push({ c: c, idx: mn.hit ? mn.idx : [], score: (mn.hit ? mn.score : ms.score) + 30 });
       });
       qoCandidates().forEach(function (c) {
-        var ms = SV.matchScore(q, c.full, c.full.length - c.name.length);   // nameStart ⇒ per-term 名>路径 bonus inside matcher
+        var ms = SV.matchScore(q, c.label, c.label.length - c.name.length);   // nameStart ⇒ per-term 名>路径 bonus inside matcher
         if (!ms.hit) return;
         rows.push({ c: c, idx: ms.idx, score: ms.score });
       });
@@ -2652,10 +2666,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
           '<span class="qn">' + (r.idx.length ? markRange(c.name, 0, set) : esc(c.name)) + "</span>" +
           '<span class="qp">' + esc(c.hint) + "</span></div>";
       }
-      var b = c.full.length - c.name.length;
+      var b = c.label.length - c.name.length;
       return '<div class="qrow' + sel + '" data-i="' + i + '">' +
         '<span class="qn">' + markRange(c.name, b, set) + "</span>" +
-        '<span class="qp">' + markRange(c.full.slice(0, b), 0, set) + "</span>" +
+        '<span class="qp">' + markRange(c.label.slice(0, b), 0, set) + "</span>" +
         '<span class="qt">' + relTime(c.mtime) + "</span></div>";
     }).join("");
     [].forEach.call(qoList.querySelectorAll(".qrow"), function (el) {
@@ -2755,11 +2769,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function lpOpen(a) {
     var tree = a.dataset.tree, rel = a.dataset.rel, key = tree + ":" + rel, label = tree + "/" + rel; lpCur = key;
-    if (lpCache[key]) { lpRender(a, lpCache[key], label); return; }
+    var it = (RAW[tree] || []).find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0;   // a changed file drops its cached preview
+    if (lpCache[key] && lpCache[key].mt === mt) { lpRender(a, lpCache[key].html, label); return; }
     api("/raw/" + tree + "/" + rel).then(function (r) { return r.text(); }).then(function (text) {
       if (lpCur !== key) return;   // pointer moved on before it loaded
       var fm = SV.parseFrontmatter(text), bodyHtml = window.marked.parse(fm.body);
-      lpCache[key] = bodyHtml; lpRender(a, bodyHtml, label);
+      lpCache[key] = { mt: mt, html: bodyHtml }; lpRender(a, bodyHtml, label);
     }).catch(function () { if (lpCur === key) lpRender(a, "", "无法预览 " + label, true); });
   }
   document.addEventListener("mouseover", function (e) {
