@@ -274,6 +274,7 @@ async function shoot(o) {
   console.log("wrote " + join(o.out, "manifest.json"));
 }
 
+const J = JSON.stringify;
 // --- scenarios: behaviour that a cold screenshot cannot show -----------------------
 const SCENARIO = {
   // A tablet rotating crosses the breakpoint without a reload: the right pane closes on the way
@@ -593,6 +594,27 @@ const SCENARIO = {
     await ctx.key("k", 4); await sleep(150); await ctx.type("040 design"); await sleep(300);
     check("⌘K '040 design': no dev/ prefix noise", await ctx.eval("document.querySelectorAll('#qoList .qrow:not(.qfall)').length <= 5"));
     await ctx.key("Escape");
+
+    // Req-2 lite progress on the board: ticks + k/n, a status word when a card has no Req yet, legacy cards unchanged
+    const want = await ctx.eval(`fetch('/api/board').then(r => r.json()).then(b => { const cs = Object.values(b).flat().map(SV.cardView);
+      const legacy = cs.find(c => !c.lite && c.st === 'active') || cs.find(c => !c.lite);
+      return { a: cs.find(c => c.id === 'xg-skills/040'), z: cs.find(c => c.lite && !c.req && !/done|dropped/.test(c.st)), legacy: legacy && legacy.id }; })`, true);
+    const boardIn = async (mode) => { await ctx.go("board"); for (let i = 0; i < 3 && (await ctx.eval("(document.querySelector('[data-bmode]') || {}).textContent")) !== mode; i++) { await ctx.click("[data-bmode]"); await sleep(400); } };
+    const face = (key) => `(() => { const c = document.querySelector('#left [data-key="${key}"]'); if (!c) return null; const t = c.querySelector('.lticks'); return { ticks: t ? t.querySelectorAll('i').length : -1, on: t ? t.querySelectorAll('i.on').length : -1, text: c.textContent }; })()`;
+    for (const mode of ["grid", "kanban"]) {
+      await boardIn(mode); const a = await ctx.eval(face("xg-skills/040")), z = want.z ? await ctx.eval(face(want.z.id)) : null;
+      check(`${mode}: the lite card shows ${want.a.ok}/${want.a.req} as ticks`, !!a && a.ticks === want.a.req && a.on === want.a.ok && a.text.includes(want.a.ok + "/" + want.a.req));
+      if (want.z) check(`${mode}: a lite card without Req (${want.z.id}) shows its status, not 0/0`, !!z && !z.text.includes("0/0") && z.text.includes(want.z.liteSt));
+      if (want.legacy) check(`${mode}: a legacy card keeps its phase track`, await ctx.eval(`(() => { const c = document.querySelector('#left [data-key="${want.legacy}"]'); return !c || (!c.querySelector('.lticks') && !!c.querySelector('.pc')); })()`));
+    }
+    await boardIn("table");
+    check("table: the lite row shows a bar and k/n", await ctx.eval(`(() => { const r = document.querySelector('#left tr[data-key="xg-skills/040"] .tprog'); return !!r && !!r.querySelector('.lbar') && r.textContent.includes(${J(want.a.ok + "/" + want.a.req)}); })()`));
+    if (want.z) check("table: no 0/0 for a lite card without Req", await ctx.eval(`(() => { const r = document.querySelector('#left tr[data-key="${want.z.id}"] .tprog'); return !!r && !r.textContent.includes('0/0'); })()`));
+    await boardIn("grid"); await ctx.click('#left .card[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail')"); await sleep(1200);
+    check("detail: the lite card lists its Reqs, no Trace or Tasks chip", await ctx.eval(`(() => { const d = document.querySelector('#left .card-detail'); return d.querySelectorAll('.cd-req').length === ${want.a.req} && !/Trace|Tasks/.test(d.querySelector('.cd-strip').textContent); })()`));
+    check("detail: Docs links only files that exist", await ctx.eval(`fetch('/api/tree').then(r => r.json()).then(t => { const have = new Set(t.dev.map(x => x.path)); return [...document.querySelectorAll('#left .card-detail .cd-phase[data-rel]')].every(a => have.has(a.dataset.rel)); })`, true));
+    await ctx.eval(navAnchor({ nav: "trace", card: "xg-skills/040" })); await ctx.wait("!!document.querySelector('#left .cd-req, #left .tr-loading, #left .muted')"); await sleep(1500);
+    check("trace page: the lite card shows its Reqs, not 'no trace data'", await ctx.eval(`document.querySelectorAll('#left .cd-req').length === ${want.a.req} && !/暂无 trace/.test(document.getElementById('left').textContent)`));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

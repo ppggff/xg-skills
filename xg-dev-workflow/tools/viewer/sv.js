@@ -584,7 +584,7 @@ var SV = (function () {
     return body.split(" · ")[0];
   }
 
-  // ---- added for the refined frontend (/v2); the classic shell does not call these ----
+  // ---- added for the refined frontend (/v2); the classic shell uses cardView and reqHeads too ----
   // One /api/board card as the refined board reads it: lite Req counts, the six-phase fill (2 done ·
   // 1 doing · 0 pending), the lite status word, and "next" without its prefix.
   function cardView(c) {

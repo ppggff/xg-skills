@@ -459,6 +459,23 @@
   .pc .pc-m.done { color: var(--s-done); }
   .pc .pc-m.doing { color: var(--s-active); }
   .pc .pc-m.pending { color: var(--muted); }
+  /* 041: a lite card's progress — one tick per Req (filled = verified) and k/n; a bar in the table */
+  .pc.lite { display: inline-flex; align-items: center; gap: 6px; }
+  .lticks { display: inline-flex; gap: 2px; }
+  .lticks i { width: 5px; height: 9px; border-radius: 1px; background: var(--line); }
+  .lticks i.on { background: var(--s-done); }
+  .lfr, .lst { font-family: var(--chrome); font-size: 11px; color: var(--muted); }
+  .lbar { display: inline-block; width: 44px; height: 4px; margin-right: 6px; vertical-align: middle; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .lbar i { display: block; height: 100%; background: var(--s-done); }
+  .cd-reqs { display: flex; flex-direction: column; gap: 1px; margin: 4px 0 6px; }
+  .cd-req { display: flex; align-items: baseline; gap: 8px; padding: 2px 4px; font-size: 12.5px; color: var(--body); text-decoration: none; border-radius: 3px; }
+  .cd-req:hover { background: var(--chip); }
+  .cd-req .cd-rk { width: 10px; color: var(--s-done); font-size: 11px; }
+  .cd-req b { font-family: var(--chrome); font-weight: 500; font-size: 11px; color: var(--muted); }
+  .cd-req span:not(.cd-rk) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cd-req em { font-style: normal; font-size: 11px; color: var(--muted); }
+  .cd-req.ok em { color: var(--s-done); }
+  .tr-lite { padding: 8px 4px; }
   .cd-chip { font-family: var(--chrome); font-size: 11px; background: var(--chip); border: none;
     border-radius: 4px; padding: 1px 8px; color: var(--body); cursor: pointer; white-space: nowrap; }
   /* 007 R5: trace matrix view — V1 shape: compact table, click a row to expand detail */
@@ -1345,8 +1362,38 @@ if (typeof window !== "undefined" && window.marked) (function () {
         : '<span class="pc" title="' + title + '">' + inner + "</span>";
     }).join(" ");
   }
+  // a lite card's progress: one tick per Req, filled when verified, and k/n; no Req yet → its status word
+  function liteHtml(c) {
+    var v = SV.cardView(c), base = c.project + "/" + c.dir + "/";
+    var inner = v.req ? '<span class="lticks">' + Array.apply(null, Array(v.req)).map(function (_, i) { return '<i' + (i < v.ok ? ' class="on"' : "") + "></i>"; }).join("") +
+      '</span><span class="lfr">' + v.ok + "/" + v.req + "</span>" : '<span class="lst">' + esc(v.liteSt || c.state) + "</span>";
+    return '<a class="pc lite" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "design.md") + '" title="Req 已验证 ' + v.ok + " / 共 " + v.req + '">' + inner + "</a>";
+  }
+  function liteBar(c) {
+    var v = SV.cardView(c);
+    return v.req ? '<span class="lbar"><i style="width:' + (v.ok / v.req * 100).toFixed(1) + '%"></i></span>' + v.ok + "/" + v.req : esc(v.liteSt || c.state);
+  }
+  var reqCache = {};   // a lite card's Req headings, re-read when its design.md changes
+  function reqsOf(c) {
+    var rel = c.project + "/" + c.dir + "/design.md", it = RAW.dev.find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0, key = c.project + "/" + c.nnn;
+    var hit = reqCache[key]; if (hit && hit.mt === mt) return hit.list;
+    if (!hit || hit.mt !== mt) {
+      reqCache[key] = { mt: mt, list: hit ? hit.list : null };
+      api("/raw/dev/" + rel).then(function (r) { return r.text(); })
+        .then(function (t) { reqCache[key] = { mt: mt, list: SV.reqHeads(t) }; rerenderTrace(key); })
+        .catch(function () { reqCache[key] = { mt: mt, list: [] }; });
+    }
+    return reqCache[key].list;
+  }
+  function reqsHtml(c) {
+    var rq = reqsOf(c), base = c.project + "/" + c.dir + "/design.md";
+    if (!rq) return '<div class="cd-row"><span class="cd-k">Req</span><span class="cd-src">读取中…</span></div>';
+    return rq.map(function (r) { var ok = r.st === "已验证";
+      return '<a class="cd-req' + (ok ? " ok" : "") + '" data-nav="doc" data-tree="dev" data-rel="' + esc(base) + '" data-xid="Req-' + esc(r.n) + '">' +
+        '<span class="cd-rk">' + (ok ? "✓" : "") + "</span><b>R" + esc(r.n) + "</b><span>" + esc(r.t) + '</span><em>' + esc(r.st) + "</em></a>"; }).join("");
+  }
   function stepHtml(c) {                           // R4/R62: gate-track on the card face
-    var line = phasesCompact(c);
+    var line = c.governance === "lite" ? liteHtml(c) : phasesCompact(c);
     var tail = '<a class="step" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>';
     if (window.GITWEB_URL) {   // R3/R6: cross-origin deep-link into the gitweb companion (+ card branch)
       tail += ' <a class="step" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
@@ -1373,6 +1420,16 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var c = boardSelected && boardCardMap[boardSelected]; if (!c) return "";
     var st = stClass(c.state), base = c.project + "/" + c.dir + "/", title = esc(c.dir.replace(/^\d+-/, ""));
     function row(k, v) { return v && v !== "—" ? '<div class="cd-row"><span class="cd-k">' + k + '</span><span class="cd-v">' + esc(v) + "</span></div>" : ""; }
+    // a lite card has no trace: its strip is the Req count, branch and deps, and its Reqs are listed below
+    var lite = c.governance === "lite";
+    var docLinks = ["design", "facts", "plan", "progress", "log"].filter(function (f) {
+      return RAW.dev.some(function (x) { return x.path === base + f + ".md"; }); })
+      .map(function (f) { return '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + f + ".md") + '">' + f + "</a>"; }).join("");
+    function liteStrip() {
+      return '<div class="cd-strip"><span class="cd-chip">Req ' + liteBar(c) + "</span>" +
+        (c.branch ? '<span class="cd-chip">' + esc(c.branch) + "</span>" : "") +
+        (c.deps && c.deps !== "—" ? '<span class="cd-chip">deps ' + esc(c.deps) + "</span>" : "") + "</div>";
+    }
     // 007 D3 shape: all status-class info lives in one top strip (compact phases + chips);
     // the body keeps only Now/Next/Blockers/Docs. Task/trace detail lives on the trace page.
     function stripHtml() {
@@ -1405,11 +1462,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
         SV.governanceBadge(c.governance) +
         '<span class="cd-title">' + esc(c.project) + " · " + esc(c.nnn) + " — " + title + "</span>" +
         '<button class="iconbtn cd-x" data-cd-close title="close">✕</button></div>' +
-      '<div class="cd-body">' + stripHtml() + row("Now", c.now) + row("Next", c.effective_next) + row("Block", c.blockers) +
+      '<div class="cd-body">' + (lite ? liteStrip() : stripHtml()) + row("Now", c.now) + row("Next", c.effective_next) + row("Block", c.blockers) +
         SV.decisionRows(c.decisions) +   // 010: ledger rows (empty for pre-ledger cards)
-        '<div class="cd-row"><span class="cd-k">Docs</span><span class="cd-phases">' +
-          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "progress.md") + '">progress</a>' +
-          '<a class="cd-phase" data-nav="doc" data-tree="dev" data-rel="' + esc(base + "log.md") + '">log</a>' +
+        (lite ? '<div class="cd-reqs">' + reqsHtml(c) + "</div>" : "") +
+        '<div class="cd-row"><span class="cd-k">Docs</span><span class="cd-phases">' + docLinks +
           '<a class="cd-phase diff" data-nav="diff" data-card="' + esc(c.project + "/" + c.nnn) + '">±diff</a>' +
           (window.GITWEB_URL ? '<a class="cd-phase diff" target="_blank" rel="noopener" href="' + esc(window.GITWEB_URL) +
             "?p=" + encodeURIComponent(c.project) + ";a=summary" + (c.branch ? ";h=refs/heads/" + encodeURIComponent(c.branch) : "") + '">code ↗</a>' : "") +
@@ -1460,7 +1516,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
         '<table class="btable">' +
         byProj[p].map(function (c) {
           var key = c.project + "/" + c.nnn, mt = mtimes[c.project + "/" + c.dir];
-          var prog = esc(c.governance === "lite" ? SV.liteProgress(c.steps) : SV.legacyPhase(c.steps));
+          var prog = c.governance === "lite" ? liteBar(c) : esc(SV.legacyPhase(c.steps));
           return '<tr class="trow ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '">' +
             '<td class="tid"><span class="dot" style="background:var(' + stVar(c.state) + ')" title="' + esc(c.state) + '"></span>' + esc(c.nnn) + "</td>" +
             '<td class="ttitle"><a data-nav="trace" data-card="' + esc(key) + '" title="打开详情">' + esc(c.dir.replace(/^\d+-/, "")) + "</a></td>" +
@@ -1488,6 +1544,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function renderTraceView(side, v) {
     var pane = PANES[side]; pane._doc = null;
+    var lc = boardCardMap[v.card];
+    if (lc && lc.governance === "lite") {   // a lite card has no trace matrix: its Reqs are the detail
+      pane.innerHTML = paneHead(side, "Req " + v.card) + '<div class="cd-reqs tr-lite">' + reqsHtml(lc) + "</div>";
+      afterRender(side, ".cd-req"); return;
+    }
     var d = traceCache[v.card];
     if (!d) { ensureTrace(v.card);
       pane.innerHTML = paneHead(side, "Trace " + v.card) + '<p class="tr-loading">计算中…</p>';

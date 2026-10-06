@@ -1005,6 +1005,10 @@ t("link preview: the cache is keyed by the file's mtime, so an edit drops the st
   assert.match(lp, /if \(lpCache\[key\] && lpCache\[key\]\.mt === mt\)/);
   assert.match(lp, /lpCache\[key\] = \{ mt: mt, html: bodyHtml \}/);
 });
+t("041: a lite card with no Req yet shows its status word, never 0/0 (card face and table)", () => {
+  assert.match(html, /v\.req \? '<span class="lticks">'[\s\S]*?: '<span class="lst">' \+ esc\(v\.liteSt \|\| c\.state\)/);
+  assert.match(html, /return v\.req \? '<span class="lbar">[\s\S]*?: esc\(v\.liteSt \|\| c\.state\);/);
+});
 t("slug: GitHub-style heading anchors — lowercase, punctuation dropped, each space a hyphen, hyphens never folded", () => {
   assert.equal(SV.slug("Task M2'-1: 去限流 adjust_dblist 两分支 + 删 throttle(改 Task 6)"), "task-m2-1-去限流-adjust_dblist-两分支--删-throttle改-task-6");
   assert.equal(SV.slug("事实清单(F1~F13)"), "事实清单f1f13");
