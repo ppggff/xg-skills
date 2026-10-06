@@ -41,7 +41,7 @@ const SCENARIO = {
     await ctx.sleep(300); await ctx.wait(VIEW.board().ready);
     check("a classic sv-theme does not theme v2", await ctx.eval("!document.documentElement.hasAttribute('data-theme')"));
     await ctx.eval("V2.setTheme('amber'); true");
-    await ctx.click('[data-form="cols"]'); await ctx.click('[data-grp="s"]'); await ctx.click("[data-trays]");
+    await ctx.eval("V2.setForm('cols'); true"); await ctx.eval("V2.setGroup('s'); true"); await ctx.click("[data-trays]");
     await ctx.click("#bscroll [data-card]");
     check("the classic keys keep their values", await ctx.eval("localStorage.getItem('sv-theme') === 'dark' && localStorage.getItem('sv-board-mode') === 'kanban'"));
     check("every other key is svd2-*", await ctx.eval("Object.keys(localStorage).filter(k => !/^sv-(theme|board-mode)$/.test(k)).every(k => k.startsWith('svd2-'))"));
@@ -51,7 +51,7 @@ const SCENARIO = {
   async board(ctx, check, o) {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
     for (const f of ["cards", "cols", "table", "dots"]) {
-      await ctx.click(`[data-form="${f}"]`);
+      await ctx.eval(`V2.setForm(${J(f)}); true`);
       const sel = { cards: "#bscroll .grid .card", cols: "#bscroll .kcols .kcol", table: "#bscroll .tbl tr[data-card]", dots: "#bscroll .dot" }[f];
       check(`form ${f} renders`, await ctx.eval(has(sel)));
       if (f === "table") continue;
@@ -59,10 +59,10 @@ const SCENARIO = {
       await ctx.click("[data-trays]"); const after = await ctx.eval(rect("#bscroll [data-card]")); await ctx.click("[data-trays]");
       check(`form ${f}: toggling trays leaves the first card where it was (${J(before)} → ${J(after)})`, J(before) === J(after));
     }
-    await ctx.click('[data-form="cards"]');
-    await ctx.click('[data-grp="s"]');
+    await ctx.eval("V2.setForm('cards'); true");
+    await ctx.eval("V2.setGroup('s'); true");
     check("grouped by status: no card repeats its status word", await ctx.eval("[...document.querySelectorAll('#bscroll .card .w')].every(w => w.textContent === '')"));
-    await ctx.click('[data-grp="p"]');
+    await ctx.eval("V2.setGroup('p'); true");
     await ctx.click("[data-flt]");
     check("the filter opens as a popover", await ctx.eval("document.getElementById('fltPop').classList.contains('on')"));
     await ctx.click('#fltPop [data-chip="active"]');
@@ -213,7 +213,7 @@ const SCENARIO = {
   async refresh(ctx, check, o) {
     if (!o.touch) throw new Error("refresh needs --touch <a file under the dev root>; pass the doc under test");
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
-    await ctx.click('[data-form="cols"]'); await ctx.click("[data-trays]");
+    await ctx.eval("V2.setForm('cols'); true"); await ctx.click("[data-trays]");
     await ctx.eval("document.querySelector('#bscroll').scrollTop = 120; const k = document.querySelector('.kcols'); if (k) k.scrollLeft = 80; true");
     await ctx.eval("document.querySelector('#tree [data-fold-k]').click(); document.getElementById('tree').scrollTop = 40; true");
     await ctx.click("#bscroll [data-card]");
@@ -276,7 +276,7 @@ const SCENARIO = {
   // Themes: 骨白/深空 select with a tone step, 琥珀 with the classic outline; neither leaks into the other.
   async themes(ctx, check) {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
-    await ctx.click('[data-form="cards"]'); await ctx.click("#bscroll .card[data-card]");
+    await ctx.eval("V2.setForm('cards'); true"); await ctx.click("#bscroll .card[data-card]");
     const sty = "(() => { const c = getComputedStyle(document.querySelector('#bscroll .card.sel')); return [c.outlineStyle, c.borderTopLeftRadius]; })()";
     for (const [t, outline, square] of [["light", false, false], ["dark", false, false], ["amber", true, true], ["amber-dark", true, true]]) {
       await ctx.eval(`V2.setTheme(${J(t)}); true`); await ctx.sleep(100);
@@ -287,7 +287,7 @@ const SCENARIO = {
   // The mockup's details (Req-8) and the board's spacing rules (Req-4), each of which would go unnoticed if it vanished.
   async details(ctx, check, o) {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
-    await ctx.click('[data-form="cards"]'); await ctx.click('[data-grp="p"]');
+    await ctx.eval("V2.setForm('cards'); true"); await ctx.eval("V2.setGroup('p'); true");
     const gaps = await ctx.eval(`(() => { const b = document.getElementById('bscroll').getBoundingClientRect(), t = [...document.querySelectorAll('#bscroll .proj')].map(x => x.getBoundingClientRect());
       return [Math.round(t[0].top - b.top), Math.round(t[0].left - b.left), Math.round(b.right - t[0].right - (document.getElementById('bscroll').offsetWidth - document.getElementById('bscroll').clientWidth)), t[1] ? Math.round(t[1].top - t[0].bottom) : 16]; })()`);
     check(`trays on: head gap = side gaps, trays 16px apart (${J(gaps)})`, Math.abs(gaps[0] - gaps[1]) <= 1 && Math.abs(gaps[1] - gaps[2]) <= 1 && gaps[3] === 16);
@@ -296,7 +296,7 @@ const SCENARIO = {
     check("trays on: the selected card stands out from its neighbours", await ctx.eval("(() => { const s = getComputedStyle(document.querySelector('#bscroll .card.sel')), n = getComputedStyle(document.querySelector('#bscroll .card:not(.sel)')); return s.backgroundColor !== n.backgroundColor || s.borderColor !== n.borderColor; })()"));
     const lite = await ctx.eval("!!document.querySelector('#bdet [data-rq]')");
     if (lite) { await ctx.click("#bdet [data-rq]"); check("a Req line in the detail unfolds on click", await ctx.eval("document.querySelector('#bdet [data-rq]').classList.contains('x')")); }
-    await ctx.click('[data-form="cols"]'); await ctx.key("ArrowRight"); const c1 = await ctx.eval("document.querySelector('#bscroll .sel').dataset.card");
+    await ctx.eval("V2.setForm('cols'); true"); await ctx.key("ArrowRight"); const c1 = await ctx.eval("document.querySelector('#bscroll .sel').dataset.card");
     await ctx.key("ArrowLeft");
     check("columns: ← moves back across lanes", await ctx.eval(`document.querySelector('#bscroll .sel').dataset.card !== ${J(c1)}`));
     await ctx.eval("document.querySelector('#bscroll .sel').focus(); true"); await ctx.click("[data-trays]");
@@ -398,6 +398,39 @@ const SCENARIO = {
     await ctx.click('[data-tcol="dev"]');
     check(`F under scope ${p2} keeps ${p1}'s remembered fold`, await ctx.eval(`JSON.parse(localStorage.getItem('svd2-tree-open')).includes(${J("dev:" + p1)})`));
   },
+  // The human's fourth round: one cycling button per board setting, popovers over the narrow drawers,
+  // the collapsed side rail aligned with the head row, and a side column that collapses fully when narrow.
+  async round4(ctx, check, o) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
+    check("the board head: one button for grouping, one for the form, none per value", await ctx.eval("document.querySelectorAll('#bhd [data-grpc]').length === 1 && document.querySelectorAll('#bhd [data-formc]').length === 1 && !document.querySelector('#bhd [data-grp], #bhd [data-form]')"));
+    const grps = [], forms = [];
+    for (let i = 0; i < 3; i++) { await ctx.click("#bhd [data-grpc]"); grps.push(await ctx.eval("JSON.parse(localStorage.getItem('svd2-grp'))")); }
+    check(`grouping cycles 项目 → 状态 → 治理 → 项目 (${grps.join(" ")})`, grps.join("") === "sgp");
+    for (let i = 0; i < 4; i++) { await ctx.click("#bhd [data-formc]"); forms.push(await ctx.eval("JSON.parse(localStorage.getItem('svd2-form'))")); }
+    check(`form cycles cards → cols → table → dots → cards (${forms.join(" ")})`, forms.join(",") === "cols,table,dots,cards");
+    check("the button shows the current grouping", await ctx.eval("document.querySelector('#bhd [data-grpc]').textContent.trim() === '项目'"));
+
+    await ctx.go("doc"); await ctx.eval("V2.W.sc = true; V2.applyW(); true"); await ctx.sleep(300);
+    const align = "(() => { const a = document.getElementById('sideOpen').getBoundingClientRect(), b = document.querySelector('#pA .phd [data-t=star]').getBoundingClientRect(); return Math.abs(a.top - b.top) <= 1; })()";
+    check("wide: the collapsed side rail's first button lines up with the head row", await ctx.eval(align));
+    await ctx.viewport(768, 1024); await ctx.sleep(400);
+    check("narrow: the same", await ctx.eval(align));
+
+    await ctx.eval("V2.W.nx = true; V2.applyW(); true"); await ctx.sleep(200);
+    await ctx.click("#pA [data-navb]"); await ctx.sleep(250); await ctx.click("#themeBtn"); await ctx.sleep(250);
+    check("narrow drawer: the theme popover shows above it", await ctx.eval("(() => { const r = document.getElementById('themePop').getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && !!e.closest('#themePop'); })()"));
+    await ctx.key("Escape"); await ctx.key("Escape");
+
+    await ctx.click("#sideX"); await ctx.sleep(250);
+    check("narrow: the side rail collapses fully", await ctx.eval("document.getElementById('app').classList.contains('sx') && document.getElementById('side').getBoundingClientRect().width === 0"));
+    check("…and the pane head gets a TOC button", await ctx.eval("getComputedStyle(document.querySelector('#pA .tocb')).display !== 'none'"));
+    await ctx.click("#pA .tocb"); await ctx.sleep(250);
+    check("…which opens the whole side column as a drawer, titled, with a restore button", await ctx.eval("document.getElementById('app').classList.contains('tocpop') && getComputedStyle(document.querySelector('#side .chd')).display !== 'none' && document.querySelectorAll('#sbody .ti').length > 0 && /恢复右侧竖条/.test(document.getElementById('sideTog').dataset.tip)"));
+    await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')"); await ctx.go("doc");
+    check("the full collapse is remembered", await ctx.eval("document.getElementById('app').classList.contains('sx')"));
+    await ctx.click("#pA .tocb"); await ctx.sleep(200); await ctx.click("#sideTog"); await ctx.sleep(250);
+    check("restore brings the rail back and closes the drawer", await ctx.eval("!document.getElementById('app').classList.contains('sx') && !document.getElementById('app').classList.contains('tocpop') && document.getElementById('side').getBoundingClientRect().width > 0"));
+  },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
   // the classic code fonts, the help panel, the search side list, mirror, and the brightness slider.
   async round3(ctx, check, o) {
@@ -489,12 +522,12 @@ const SCENARIO = {
     check("back to name sort runs A→Z", await ctx.eval("JSON.parse(localStorage.getItem('svd2-tree-sort')).dev.dir === 1"));
 
     // board: the table has a next column and full names on hover
-    await ctx.click('[data-form="table"]');
+    await ctx.eval("V2.setForm('table'); true");
     check("table: a 下一步 column", await ctx.eval("[...document.querySelectorAll('#bscroll .tbl th')].some(t => t.textContent === '下一步')"));
     check("table: a cut name is readable from its tip", await ctx.eval("[...document.querySelectorAll('#bscroll .tbl td.nm')].every(t => t.dataset.tip)"));
 
     // ⇧ from the board or the search results opens beside them, the board or the results stay
-    await ctx.click('[data-form="cards"]');
+    await ctx.eval("V2.setForm('cards'); true");
     await shiftClick("#bscroll .card[data-card]"); await ctx.wait("!!document.querySelector('#pB .md')");
     check("⇧ on a card: the board stays and the doc opens in B", await ctx.eval("V2.kindOf('A') === 'board' && V2.kindOf('B') === 'doc'"));
     check("…side by side", await ctx.eval("(() => { const a = document.getElementById('board').getBoundingClientRect(), b = document.getElementById('pB').getBoundingClientRect(); return a.width > 200 && b.width > 200 && a.right <= b.left + 6; })()"));
@@ -617,7 +650,7 @@ const SCENARIO = {
     check("narrow table: no closed card until its fold is opened", await ctx.eval("!document.querySelector('#bscroll tr[data-st=done], #bscroll tr[data-st=dropped]') && !!document.querySelector('#bscroll [data-fold]')"));
     await ctx.click("#bscroll [data-fold]");
     check("…and the fold opens them", await ctx.eval(has("#bscroll tr[data-st=done], #bscroll tr[data-st=dropped]")));
-    await ctx.click('[data-form="dots"]');
+    await ctx.eval("V2.setForm('dots'); true");
     check("dots: closed cards fold too", await ctx.eval("!!document.querySelector('#bscroll [data-fold]') && document.querySelectorAll('#bscroll .dot.done').length < " + "document.querySelectorAll('#bscroll .dot').length"));
   },
 };

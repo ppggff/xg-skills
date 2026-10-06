@@ -1,0 +1,88 @@
+/* status viewer v2 — width regimes, loaded after v2.css: layout by viewport size only, never by device. */
+/* ---- width regimes: mid (900–1179) · narrow (<900) · phone (<600) · short (<500 tall) ---- */
+.app.mid:not(.sc) { --ws: min(var(--wsu, 250px), 200px); }
+.app.narrow { grid-template-columns: 34px 0 minmax(0,1fr) 0 34px; }
+.app.narrow.v-board { grid-template-columns: 34px 0 minmax(0,1fr) 0 0; }
+.app.narrow > .gut { visibility: hidden; pointer-events: none; }
+.app.narrow #reader .gut { display: none; }
+.app.narrow #reader.split { grid-template-columns: minmax(0,1fr); }
+.app.narrow #reader.split #pA:not(.focus), .app.narrow #reader.split #pB:not(.focus) { display: none; }
+.app.narrow #reader.split .abw { display: inline-flex; }
+.app.narrow #reader.split .ptag { display: none; }
+.abw { gap: 1px; margin-right: 8px; background: var(--card); border-radius: var(--r-md); padding: 2px; }
+.abw button { font: 500 10px var(--mono); color: var(--mu); padding: 2px 7px; border-radius: 3px; }
+.abw button.on { background: var(--paper); color: var(--sig); }
+/* narrow: the side column opens as a drawer from the right, title and collapse button included, like the nav's */
+.app.narrow.tocpop #side {
+  position: fixed; right: 0; top: 0; bottom: 22px; width: min(300px,84vw); z-index: 40; display: flex; flex-direction: column; background: var(--chrome);
+  border-left: 1px solid var(--ln); box-shadow: var(--shadow); animation: tocin .18s var(--ease);
+}
+.app.narrow.tocpop #side > .chd { display: flex; }
+.app.narrow.tocpop #side > #sbody { display: block; flex: 1; min-height: 0; }
+.app.narrow.tocpop #side > .srail { display: none; }
+.app.narrow.sx { grid-template-columns: 34px 0 minmax(0,1fr) 0 0; }
+.app.narrow.sx.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 0; }
+.app.narrow.sx .ib.tocb { display: grid; }
+@keyframes tocin { from { opacity: 0; transform: translateX(6px); } }
+.md pre { white-space: pre; }
+.app.narrow .md pre { white-space: pre-wrap; word-break: break-word; }
+.app.narrow .md td, .app.narrow .md th { overflow-wrap: anywhere; }   /* break inside long tokens so a table fits the pane, as in the classic shell */
+/* narrow: the left strip can go away entirely; the nav then opens as a drawer from the pane head */
+.app.narrow.nx .ib.navb { display: grid; }
+.app.narrow.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 34px; }
+.app.narrow.nx.v-board, .app.phone.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 0; }
+.app.narrow.nx:not(.navpop) #nav { visibility: hidden; }
+.app.nx.navpop #nav {
+  position: fixed; left: 0; top: 0; bottom: 22px; width: min(300px,84vw); z-index: 40; display: flex; flex-direction: column;
+  border-right: 1px solid var(--ln); box-shadow: var(--shadow); animation: treein .18s var(--ease);
+}
+.app.nc.nx.navpop #nav > #treeWrap { display: flex; flex: 1; min-height: 0; }
+.app.nc.nx.navpop #nav .chd { flex-direction: row; height: 34px; padding: 0 6px 0 10px; gap: 2px; border-bottom: 1px solid var(--ln); }
+.app.nc.nx.navpop #nav .chd .brand { margin: 0 auto 0 0; }
+.app.nc.nx.navpop #nav .chd .ib.nconly { display: none; }
+.app.nc.nx.navpop #navTog svg { transform: none; }
+/* touch: inputs at 16px so iOS does not zoom, bigger targets */
+.app.narrow input, .app.narrow select { font-size: 16px; }
+.app.narrow .find input { font-size: 16px; }
+@media (max-width: 899px) { .qbox input { font-size: 16px; } }
+.app.narrow .ib { width: 32px; height: 32px; }
+.app.narrow.sc #side .srail { padding-top: 1px; }   /* (34px head − 32px button) / 2 */
+.app.narrow #sideX { display: grid; }
+.app.narrow .tr { height: 28px; }
+.app.narrow .seg button { padding: 6px 8px; }
+/* phone */
+.app.phone { grid-template-columns: 40px 0 minmax(0,1fr) 0 0; }
+.app.phone #side .srail { display: none; }
+.app.phone .ib.tocb { display: grid; }
+.app.phone.nc #nav .chd { gap: 6px; }
+.app.phone.treepop #nav > #treeWrap { left: 46px; }
+.app.phone .tr { height: 30px; }
+.app.phone .ti { padding-top: 7px; padding-bottom: 7px; }
+.app.phone .phd { padding: 0 4px 0 10px; height: 40px; }
+.app.phone .md { padding: 16px 16px 70px; }
+.app.phone .md .anc, .app.phone .lnum { display: none; }
+.app.phone .find { left: 8px; right: 8px; }
+.app.phone .find input { flex: 1; width: auto; }
+.app.phone #bhd .ppath { display: none; }
+.app.phone #bhd .seg:first-of-type { margin-left: 0; }
+.app.phone #bscroll { --bT: 10px; --bG: 12px; --bI: 12px; }
+.app.phone .grid { grid-template-columns: 1fr; }
+.app.phone .kcols { grid-auto-columns: 82%; scroll-snap-type: x mandatory; }
+.app.phone .kcol { scroll-snap-align: start; }
+.app.phone .dnum { font-size: 34px; }
+.app.phone .drow { gap: 16px 18px; }
+.app.phone .tbl { min-width: 600px; }
+.app.phone .hn { font-size: 36px; }
+.app.phone .bdg { padding: 10px 14px 20px; }
+.app.phone .sfl, .app.phone .hline { flex-wrap: wrap; white-space: normal; gap: 2px 14px; }
+.app.phone #bdet { max-height: 62%; }
+.app.phone .status > span:not(:first-child):not(:last-child) { display: none; }
+.app.phone #histPop { width: 94vw; }
+.app.phone #trailPop, .app.phone #starPop { width: 88vw; }
+/* short (phone landscape) */
+.app.short #bdet { max-height: 62%; }
+.app.short .hn { font-size: 32px; }
+.app.short .brow.big { margin: 6px 0 4px; }
+.app.short .qo { padding-top: 4vh; }
+.app.short .ql { max-height: 58vh; }
+

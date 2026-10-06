@@ -1,4 +1,4 @@
-// Source and behaviour rules for the refined frontend (/v2): shell-v2.html, v2.css and the v2-*.js area
+// Source and behaviour rules for the refined frontend (/v2): shell-v2.html, v2.css + v2-widths.css and the v2-*.js area
 // files. The pure helpers they share with the classic shell are tested in test-shell.mjs (sv.js); what
 // needs a browser is in shots-v2.mjs.  Run: node tools/viewer/test-shell-v2.mjs
 import { readFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import vm from "node:vm";
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), "utf8");
 const AREAS = ["core", "tree", "board", "reader", "search", "find"];
-const page = read("shell-v2.html"), css = read("v2.css");
+const page = read("shell-v2.html"), css = read("v2.css") + "\n" + read("v2-widths.css");
 const js = Object.fromEntries(AREAS.map((a) => [a, read(`v2-${a}.js`)]));
 const allJs = Object.values(js).join("\n");
 const viewerPy = read("../viewer.py");
@@ -21,7 +21,7 @@ function t(name, fn) { fn(); pass++; console.log("ok  -", name); }
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {
-  for (const [f, src] of [["shell-v2.html", page], ["v2.css", css], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
+  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
     assert.ok(src.split("\n").length <= 820, `${f} has ${src.split("\n").length} lines`);
 });
 

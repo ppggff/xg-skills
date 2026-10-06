@@ -3,6 +3,8 @@
 "use strict";
 (function (V) {
   const { $, $$, esc, store } = V;
+  const GRPS = [["p", "项目"], ["s", "状态"], ["g", "治理"]];
+  const FORMS = [["cards", "卡片", "grid"], ["cols", "列", "cols"], ["table", "表格", "tbl"], ["dots", "信号", "dots"]];
   const STATES = ["active", "blocked", "paused", "todo", "backlog", "unknown", "done", "dropped"];
   const GOVS = ["lite", "doc-gate", "ledger", "doc-native", "doc-native-pilot", "legacy"];
   const hidden = new Set(store.get("hide", []));
@@ -31,16 +33,14 @@
   /* ---- head ---- */
   function headHTML() {
     const f = form();
-    const segB = (attr, k, cur, tip, inner) => `<button ${attr}="${k}" class="${cur === k ? "on" : ""}" data-tip="${tip}">${inner}</button>`;
-    const grp = [["p", "项目"], ["s", "状态"], ["g", "治理"]].map(([k, l]) => segB("data-grp", k, groupBy, "按" + l + "分组", l)).join("");
-    const forms = [["cards", "卡片形态", "grid"], ["cols", "列形态：每个分组一列", "cols"],
-      ["table", "表格形态：可点表头排序", "tbl"], ["dots", "信号形态：一张卡一个点，悬停看卡片", "dots"]].map(([k, tip, ic]) => segB("data-form", k, f, tip, V.I[ic])).join("");
+    const g = GRPS.find(x => x[0] === groupBy) || GRPS[0], fm = FORMS.find(x => x[0] === f) || FORMS[0];
+    const grp = `<button data-grpc data-tip="分组：按${g[1]}（点击换下一个：${GRPS.map(x => x[1]).join(" → ")}）">${g[1]}</button>`;
+    const forms = `<button data-formc data-tip="形态：${fm[1]}（点击换下一个：${FORMS.map(x => x[1]).join(" → ")}）">${V.I[fm[2]]}</button>`;
     const fltTip = hidden.size ? "已隐藏 " + [...hidden].join("、") + "，点开调整" : "按状态过滤";
     const k = V.hostOf("board");
     return `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
       + `<div class="ppath"><bdi>dev_root / <b>看板</b>${V.scope ? " · " + esc(V.scope) : ""}</bdi></div>`
-      + `<div class="seg" style="margin-left:auto;margin-right:10px">${grp}</div><div class="seg">${forms}</div>`
-      + `<div class="seg" style="margin-left:6px">`
+      + `<div class="seg" style="margin-left:auto">${grp}${forms}`
       + `<button class="${hidden.size ? "on" : ""}" data-flt data-popbtn data-tip="${fltTip}" aria-label="过滤状态">${V.I.filter}</button>`
       + `<button class="${trays ? "on" : ""}" data-trays data-tip="${trays ? "关闭" : "打开"}分组外框">${V.I.trays}</button></div>` + V.paneEnd(k);
   }
@@ -311,13 +311,16 @@
   V.on("split", () => { if (onShow()) render(); });
 
   V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold]")) closeDetail(); });
-  V.click("[data-grp]", el => { groupBy = el.dataset.grp; store.set("grp", groupBy); unfold.clear(); render(); });
-  V.click("[data-trays]", () => { trays = !trays; store.set("trays", trays); render(); V.untip(); });
-  V.click("[data-form]", el => {
-    store.set("form", el.dataset.form); render();
-    if (el.dataset.form !== "dots" || V.RM) return;
+  const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
+  V.setGroup = g => { groupBy = g; store.set("grp", groupBy); unfold.clear(); render(); V.untip(); };
+  V.setForm = f => {
+    store.set("form", f); render(); V.untip();
+    if (f !== "dots" || V.RM) return;
     const b = $("#bscroll"); b.classList.add("denter"); setTimeout(() => b.classList.remove("denter"), 1400);
-  });
+  };
+  V.click("[data-grpc]", () => V.setGroup(next(GRPS, groupBy)));
+  V.click("[data-formc]", () => V.setForm(next(FORMS, form())));
+  V.click("[data-trays]", () => { trays = !trays; store.set("trays", trays); render(); V.untip(); });
   V.click("th[data-sort]", el => {   // a header cycles ascending → descending → unsorted
     const k = el.dataset.sort;
     if (sortK !== k) { sortK = k; sortDesc = false; } else if (!sortDesc) sortDesc = true; else { sortK = ""; sortDesc = false; }

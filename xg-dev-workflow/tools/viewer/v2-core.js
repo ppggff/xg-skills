@@ -112,7 +112,7 @@ var V2 = (function () {
 
   /* ---- columns: drag to resize, click to collapse; width regimes by viewport only ---- */
   const app = $("#app"); V.app = app;
-  const W = V.W = Object.assign({ wn: 240, ws: 250, wa: .5, nc: false, sc: false, dc: true, nx: false, hd: 0 }, V.store.get("w", {}));
+  const W = V.W = Object.assign({ wn: 240, ws: 250, wa: .5, nc: false, sc: false, dc: true, nx: false, sx: false, hd: 0 }, V.store.get("w", {}));
   V.saveW = () => V.store.set("w", W);
   V.isNarrow = () => app.classList.contains("narrow");
   V.applyW = () => {
@@ -121,10 +121,12 @@ var V2 = (function () {
     if (W.hd) app.style.setProperty("--hd", W.hd + "px"); else app.style.removeProperty("--hd");
     app.classList.toggle("hdset", !!W.hd); app.classList.toggle("dc", !!W.dc);
     $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr");
-    app.classList.toggle("nx", !!W.nx && nar);
+    app.classList.toggle("nx", !!W.nx && nar); app.classList.toggle("sx", !!W.sx && nar);
     app.classList.toggle("nc", W.nc || nar); app.classList.toggle("sc", W.sc || nar);
     const tip = nar ? (app.classList.contains("navpop") ? "恢复左侧竖条" : "完全收起左栏") : W.nc ? "展开导航" : "收起导航";
     nt.dataset.tip = tip; nt.setAttribute("aria-label", tip);
+    const st = $("#sideTog"), stip = nar ? (app.classList.contains("tocpop") ? "恢复右侧竖条" : "完全收起右栏") : W.sc ? "展开右栏" : "收起右栏";
+    st.dataset.tip = stip; st.setAttribute("aria-label", stip);
   };
   V.relayout = () => V.emit("layout");
   $$(".gut").forEach(g => {
@@ -151,10 +153,12 @@ var V2 = (function () {
     const end = () => { if (!st) return; st = null; hg.classList.remove("drag"); V.saveW(); };
     hg.addEventListener("pointerup", end); hg.addEventListener("pointercancel", end);
     hg.addEventListener("dblclick", () => V.emit("detail-close")); }
-  V.toggleCol = k => {
+  // narrow: each side's collapse button hides its rail fully, and inside that side's drawer it brings the rail back
+  V.toggleCol = (k, el) => {
     if (k === "det") return V.emit("detail-close");
     if (V.isNarrow()) {
       if (k === "nav") { W.nx = !app.classList.contains("navpop"); app.classList.remove("navpop", "treepop"); V.applyW(); V.saveW(); }
+      else if (el && (el.id === "sideTog" || el.id === "sideX")) { W.sx = !app.classList.contains("tocpop"); app.classList.remove("tocpop"); V.applyW(); V.saveW(); }
       else app.classList.toggle("tocpop");
       return;
     }
@@ -356,7 +360,7 @@ var V2 = (function () {
   /* ---- shared clicks and keys ---- */
   V.click("[data-theme-k]", el => { V.closePops(); V.setTheme(el.dataset.themeK, $("#themeBtn")); });
   V.click("#themeBtn", el => (V.isPop("themePop") ? V.closePops() : V.themePop(el)));
-  V.click("[data-col]", el => V.toggleCol(el.dataset.col));
+  V.click("[data-col]", el => { V.toggleCol(el.dataset.col, el); V.applyW(); });
   V.click("#back", () => V.back()); V.click("#fwd", () => V.fwd());
   V.click("[data-ab]", el => V.setFocus(el.dataset.ab));
   V.click("[data-navb]", () => { app.classList.toggle("navpop"); V.applyW(); if (app.classList.contains("navpop")) V.emit("tree-show"); });
@@ -366,7 +370,7 @@ var V2 = (function () {
   V.on("click", e => {
     const t = e.target;
     if (app.classList.contains("navpop") && (!t.closest("#nav") || t.closest("[data-open],[data-goboard]"))) { app.classList.remove("navpop"); V.applyW(); }
-    if (app.classList.contains("tocpop") && !t.closest("#sbody,.srail,[data-t=toc],[data-sec]")) app.classList.remove("tocpop");
+    if (app.classList.contains("tocpop") && !t.closest("#side,[data-t=toc],[data-sec]")) { app.classList.remove("tocpop"); V.applyW(); }
     if (app.classList.contains("treepop") && !t.closest("#treeWrap,#filesBtn")) { app.classList.remove("treepop"); $("#filesBtn").setAttribute("aria-expanded", false); }
     if (!t.closest(".pop") && !t.closest("[data-popbtn]")) V.closePops();
   });
@@ -398,7 +402,7 @@ var V2 = (function () {
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
     const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
-      navTog: "colL", sideTog: "colR", sideOpen: "colL" };
+      navTog: "colL", sideTog: "colR", sideOpen: "colL", sideX: "colR" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });
     $('#nav [data-goboard]').innerHTML = V.I.grid;
     V.emit("init");

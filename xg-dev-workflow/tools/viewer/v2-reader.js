@@ -353,7 +353,7 @@
     flash(el); curLine(k, el, null);
   };
   V.click("[data-ti]", el => { V.app.classList.remove("tocpop"); const h = heads[+el.dataset.ti]; if (h) jumpTo(tocK(), h, true); });
-  V.click('[data-t="toc"],[data-sec]', () => V.app.classList.toggle("tocpop"));
+  V.click('[data-t="toc"],[data-sec]', () => { V.app.classList.toggle("tocpop"); V.applyW(); });
 
   /* ---- citations: jump in place, else open the defining file beside this one, with a connecting line ---- */
   const factCache = {};

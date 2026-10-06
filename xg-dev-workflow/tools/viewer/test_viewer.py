@@ -278,6 +278,7 @@ class T345Endpoints(unittest.TestCase):
         for name in viewer.ASSETS:
             self.assertTrue((viewer.VIEWER_DIR / name).is_file(), name)
         self.assertEqual(get(self.base, "/assets/v2.css")[0], 200)
+        self.assertEqual(get(self.base, "/assets/v2-widths.css")[0], 200)
 
     def test_asset_types_charset_only_on_text(self):
         r = urllib.request.urlopen(self.base + "/assets/sv.js", timeout=3)

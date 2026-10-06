@@ -10,6 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%232A3CC8'/%3E%3C/svg%3E">
 <title>status viewer</title>
 <link rel="stylesheet" href="/assets/v2.css">
+<link rel="stylesheet" href="/assets/v2-widths.css">
 </head>
 <body>
 <div class="app v-board" id="app">
@@ -47,7 +48,7 @@
   <aside class="col" id="side">
     <div class="chd"><span class="t" id="sideT">目录</span><button class="ib" data-col="side" data-tip="收起右栏" aria-label="收起右栏" id="sideTog"></button></div>
     <div class="sbody scroll" id="sbody"></div>
-    <div class="srail" id="srail"><button class="ib" data-col="side" data-tip="展开目录" aria-label="展开目录" id="sideOpen"></button><div class="sticks" id="sticks"></div></div>
+    <div class="srail" id="srail"><button class="ib" data-col="side" data-tip="展开目录" aria-label="展开目录" id="sideOpen"></button><button class="ib" data-col="side" data-tip="完全收起右栏" aria-label="完全收起右栏" id="sideX"></button><div class="sticks" id="sticks"></div></div>
   </aside>
 
   <footer class="status" id="status"></footer>
