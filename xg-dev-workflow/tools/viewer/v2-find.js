@@ -184,7 +184,7 @@
   }
 
   /* ---- memory per (pane, doc): the term and the pins, never ranges ---- */
-  const memKey = k => { const l = P[k].loc; return l && l.kind === "doc" ? k + "|" + l.tree + ":" + l.rel : null; };
+  const memKey = k => { const l = P[k].loc; return !l ? null : l.kind === "doc" ? k + "|" + l.tree + ":" + l.rel : l.kind === "search" ? k + "|search:" + l.q : null; };
   function remember(k) {
     const key = memKey(k), h = H[k]; if (!key) return;
     const mem = store.get("findmem", { order: [], map: {} });
@@ -210,6 +210,10 @@
     rescan(k); paint(k);
   });
   V.on("content", k => { rescan(k); paint(k); });
+  V.on("blank", k => {   // a pane that lost its view drops the find state that hung off it
+    close(k); Object.assign(H[k], { pins: [], slots: [false, false, false, false], idx: null });
+    if (HL) names(k).forEach(n => CSS.highlights.delete(n)); rail(k);
+  });
   V.on("leave", k => { clearTimeout(H[k].t); remember(k); echo(k, ""); });
   V.on("layout", () => ["A", "B"].forEach(rail));
 

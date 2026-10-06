@@ -280,7 +280,7 @@ var V2 = (function () {
       const kind = V.kindOf(k), sec = SECTIONS[kind] && $(SECTIONS[kind]), el = P[k].el;
       if (sec && sec.parentElement !== el) el.appendChild(sec);
       el.className = el.className.replace(/\bh-\w+/g, "").trim();
-      el.classList.toggle("hosting", !!sec); if (sec) el.classList.add("h-" + kind);
+      el.classList.toggle("hosting", !!sec); if (sec) { el.classList.add("h-" + kind); el.classList.remove("blank"); }
     });
     Object.keys(SECTIONS).forEach(kind => { $(SECTIONS[kind]).hidden = !["A", "B"].some(k => V.kindOf(k) === kind); });
     V.view = V.kindOf(V.navPane()) || "blank";
@@ -308,7 +308,7 @@ var V2 = (function () {
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
     if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); }
-    if (k === "B" && !P.A.loc) k = "A";
+    if (k === "B" && !P.A.loc && opt.push !== false) k = "A";   // a new pick fills a blank A first; back/forward stay in their pane
     const p = P[k], o = P[V.other(k)];
     if (p.loc) V.emit("leave", k, p.loc);
     if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(p.loc); p.fwd.length = 0; }

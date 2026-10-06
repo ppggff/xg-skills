@@ -94,7 +94,7 @@
   function render(reveal) {
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
     const cards = D.cards.filter(c => V.inScope(c.p));
-    let h = `<button class="tr top ${V.view === "board" && V.focus === "A" ? "cur" : ""}" style="--d:0" data-goboard="1">`
+    let h = `<button class="tr top ${V.view === "board" ? "cur" : ""}" style="--d:0" data-goboard="1">`
       + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`
       + `<button class="tr top ${V.view === "recent" ? "cur" : ""}" style="--d:0" data-recent="1" data-tip="dev_root 最近 25 次提交">`
       + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`;

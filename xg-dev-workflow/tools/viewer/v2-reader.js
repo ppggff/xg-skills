@@ -486,7 +486,7 @@
     V.pop("histPop", `<div class="pt">${esc(loc.rel.split("/").pop())} 的变更历史</div><div class="qnone">读取中…</div>`, btn, "right").dataset.pane = k;
     const mine = () => V.isPop("histPop") && $("#histPop").dataset.pane === k && P[k].loc === loc;
     V.json("/api/filelog?path=" + encodeURIComponent(loc.tree + "/" + loc.rel))
-      .then(d => { P[k].clog = d.commits || []; if (mine()) $("#histPop").innerHTML = histHTML(k, loc, P[k].clog); })
+      .then(d => { P[k].clog = d.commits || []; P[k].clogOf = loc; if (mine()) $("#histPop").innerHTML = histHTML(k, loc, P[k].clog); })
       .catch(() => { if (mine()) $("#histPop").innerHTML = '<div class="qnone">历史读取失败</div>'; });
   }
   function changeArticle(d, loc, k) {
@@ -505,7 +505,8 @@
     return md;
   }
   // the history stays open while stepping through commits; it re-marks the one on screen
-  const repaintHist = k => { if (V.isPop("histPop") && $("#histPop").dataset.pane === k && P[k].clog) $("#histPop").innerHTML = histHTML(k, P[k].loc, P[k].clog); };
+  const repaintHist = k => { if (V.isPop("histPop") && $("#histPop").dataset.pane === k && P[k].clogOf === P[k].loc) $("#histPop").innerHTML = histHTML(k, P[k].loc, P[k].clog); };
+  V.on("nav", k => { if (V.isPop("histPop") && $("#histPop").dataset.pane === k) V.closePops(); });   // the list belongs to the doc that was open
   function changeView(k, sha) {
     const p = P[k], loc = p.loc;
     if (!sha) { p.chg = null; $(".chgbar", p.el).hidden = true; repaintHist(k); return V.views.doc(k, loc, { entering: false }); }

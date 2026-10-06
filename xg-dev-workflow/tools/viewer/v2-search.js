@@ -197,7 +197,8 @@
   V.statusFns.search = () => `<span><b>搜索</b>　${esc((V.P[V.navPane()].loc || {}).q || "")}</span><span>↵ 打开 · ⇧ 点击在另一栏打开 · f 在结果里查找</span><span class="sp"></span>${V.stamp()}`;
   V.click("[data-shit]", (el, e) => V.nav(e.shiftKey ? V.other(V.paneOf(el)) : V.paneOf(el), { kind: "doc", tree: el.dataset.tree, rel: el.dataset.rel, line: +el.dataset.line || 0 }));
   V.hotkey("/", () => {
-    if (!$("#search").hidden && $("#sIn")) { V.setFocus(V.hostOf("search")); const i = $("#sIn"); i.focus(); i.select(); return; }
+    const at = V.hostOf("search");
+    if (V.kindOf(at) === "search" && (at === "A" || V.isSplit()) && $("#sIn")) { V.setFocus(at); const i = $("#sIn"); i.focus(); i.select(); return; }
     V.nav(V.target(), { kind: "search", q: "" });
   });
   V.on("scope", () => { if (!$("#search").hidden) V.rerender(V.hostOf("search")); });
