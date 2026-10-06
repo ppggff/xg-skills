@@ -4,6 +4,37 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: the classic shell (/) gets its bugs fixed and v2's best parts (card xg-skills/041)
+
+The human still preferred the classic frontend after comparing it with /v2, so the classic shell was improved
+in place and kept as one file (decided per J-1).
+
+- Fixes to classic bugs:
+  - a 404 shows a gentle notice;
+  - in-page #slug links jump to their heading;
+  - search highlights survive & < >;
+  - mermaid keeps its line number;
+  - quick open drops the dev/ prefix noise;
+  - frontmatter comments are stripped;
+  - link previews refresh after an edit;
+  - mermaid follows the OS theme.
+- The board shows lite cards' progress in every form: ticks and k/n, the status word when there is no Req yet,
+  and a Req list in the detail and on the trace page.
+- Stars and a trail of opened docs. The trail is kept apart from quick open's own recents.
+- From /v2:
+  - forward ([ and ]) and an Esc that closes the topmost layer first;
+  - citation hover cards, and a ⇧-beside connector;
+  - find counting from the screen, a clickable rail track, and one debounced selection listener with a
+    find / quote / comment bar;
+  - a TOC mark for the section on screen, and a copy-link # on headings;
+  - cards and Facts in quick open.
+- The board has four forms (grid, cols, table, dots) and three groupings, and the table has a sort button with no
+  header row.
+- The dev tree is organized by card, with closed (n) last.
+- A theme popover with 骨白, 深空 and a brightness slider.
+- Where a port overrode an earlier classic rule, the test that held it was rewritten and the card's plan.md names
+  the decision behind each rewrite.
+
 ## 2026-10-06 — status viewer: /v2 panes hold any view; recent commits, help, brightness (card xg-skills/040)
 
 The human's ruling on the comparison's open points, applied to `/v2`.
