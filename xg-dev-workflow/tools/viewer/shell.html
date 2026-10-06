@@ -571,7 +571,8 @@
   .empty .msg { margin-top: 8px; font-size: 14px; }
   .empty .sub { margin-top: 4px; font-size: 12px; font-family: var(--chrome); }
   /* R2: comment affordance floats by the selection so the feature is discoverable */
-  #cmt { position: fixed; display: none; z-index: 15; box-shadow: 0 2px 10px #0003; }
+  #cmt { position: fixed; display: none; z-index: 15; box-shadow: 0 2px 10px #0003; gap: 1px; background: var(--line2); }
+  #cmt .iconbtn { width: auto; padding: 0 9px; font-size: 11.5px; white-space: nowrap; }
   /* R63: a doc pane's content changed on disk — click to refresh (non-intrusive, doesn't yank) */
   #stale, #flash { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 30; display: none;
     border-radius: var(--radius); padding: 5px 15px; font-size: 12.5px; box-shadow: 0 2px 12px #0004; }
@@ -698,7 +699,7 @@
 </div>
 <div id="stale">📄 内容已更新 · 点击刷新</div>
 <div id="flash"></div>
-<button id="cmt" class="iconbtn">💬 comment</button>
+<div id="cmt" class="selbar"><button class="iconbtn" data-sel="find">在本文查找</button><button class="iconbtn" data-sel="quote">复制为引用</button><button class="iconbtn" data-sel="comment">💬 评论</button></div>
 <div id="basket"><b>comment basket</b>
   <button id="basket-copy">copy all</button> <button id="basket-clear">clear</button>
   <ul id="basket-list"></ul></div>
@@ -1938,7 +1939,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (!h.idx) h.idx = buildIndex(p);   // find box opened before any render's reindex ran — build lazily
     h.q = q.toLowerCase();
     h.hits = h.q ? SV.scanHits(h.idx.text, h.q) : [];
-    h.cur = h.hits.length ? 0 : -1;
+    var top = p.getBoundingClientRect().top;   // J-6: count from the first hit on screen; typing still never moves the page (S14)
+    var on = h.hits.findIndex(function (x) { var r = rangeOf(h.idx, x[0], x[1]), c = r && r.getClientRects()[0]; return c && c.top >= top; });
+    h.cur = h.hits.length ? Math.max(0, on) : -1;
     paint(side); updateFindCount(side);
   }
   // quiet: the bar is being reopened for a remembered query, not asked for — showing it is right,
@@ -2488,6 +2491,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
       step(sideOf(t), 1); return; }   // R4
     if ((t = e.target.closest("[data-find-prev]"))) { e.preventDefault();
       step(sideOf(t), -1); return; }   // R4
+    if ((t = e.target.closest(".rail")) && !e.target.closest(".rail i")) {   // a click on the bare track takes the nearest mark
+      var near = null, dy = 1e9; t.querySelectorAll("i").forEach(function (m) { var d = Math.abs(m.getBoundingClientRect().top + 3 - e.clientY); if (d < dy) { dy = d; near = m; } });
+      if (near) { e.preventDefault(); near.click(); } return; }
     if ((t = e.target.closest(".rail i"))) { e.preventDefault();   // R8: a mark is a jump target
       var rs = sideOf(t), rh = PANES[rs]._hits;
       if (t.dataset.hit != null) { rh.cur = +t.dataset.hit; paint(rs); updateFindCount(rs); }
@@ -2581,26 +2587,39 @@ if (typeof window !== "undefined" && window.marked) (function () {
     addComment();
   });
   cmtBtn.addEventListener("mousedown", function (e) { e.preventDefault(); });   // keep the selection alive
-  cmtBtn.addEventListener("click", addComment);
-  document.addEventListener("mouseup", function () {                            // show 💬 by the selection
-    setTimeout(function () {
-      var sel = window.getSelection(), doc = PANES[focus] && PANES[focus]._doc;
-      var own = sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode);
-      // The 💬 button needs a doc to anchor a comment to; the echo doesn't — it is pane-level (R6),
-      // so it must also work on board / trace / search / recent / diff.
-      if (own && doc) {
-        var r = sel.getRangeAt(0).getBoundingClientRect();
-        cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, r.left) + "px";
-        cmtBtn.style.display = "block";
-      } else if (document.activeElement !== cmtBtn) {
-        cmtBtn.style.display = "none";
-      }
-      updateSelectionEcho(focus, own ? sel : null);   // R6: T8; selection gone → echo clears, doesn't linger
-    }, 0);
+  cmtBtn.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-sel]"); if (!b) return;
+    var sel = String(window.getSelection()).trim(), doc = PANES[focus] && PANES[focus]._doc;
+    if (b.dataset.sel === "comment") return addComment();
+    cmtBtn.style.display = "none";
+    if (b.dataset.sel === "find") return findOpen(focus);   // seeds from the live selection (R17)
+    var text = (doc ? doc.rel.split("/").pop() : "") + "：「" + sel + "」";
+    var done = function () { flash("已复制为引用"); };   // same path as the basket's copy button
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    else { fallbackCopy(text); done(); }
   });
-  // R6/ADR-0001 D1: no second selection listener — the mouseup above already does pane-ownership
-  // + empty-selection checks, and a second listener would race the same selection. Zero DOM
-  // mutation (Custom Highlight) is why `c` still picks up the selected text through this.
+  // R6/ADR-0001 D1 (041 J-6): the one selection listener. selectionchange covers keyboard and
+  // programmatic selections too; a pause of 120ms (or the pointer coming up) settles it, so a drag
+  // does not flicker the bar. Zero DOM mutation (Custom Highlight) is why `c` still picks up the
+  // selected text through this.
+  var selT = 0, ptrDown = false;
+  document.addEventListener("pointerdown", function () { ptrDown = true; });
+  document.addEventListener("pointerup", function () { ptrDown = false; clearTimeout(selT); selT = setTimeout(onSelection, 0); });
+  document.addEventListener("selectionchange", function () { clearTimeout(selT); selT = setTimeout(onSelection, 120); });
+  function onSelection() {
+    var sel = window.getSelection(), doc = PANES[focus] && PANES[focus]._doc;
+    var own = sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode);
+    // find and quote work in every view; a comment needs a doc to anchor to. The echo is pane-level (R6).
+    if (own && !ptrDown) {
+      var r = sel.getRangeAt(0).getBoundingClientRect();
+      cmtBtn.querySelector('[data-sel="comment"]').style.display = doc ? "" : "none";
+      cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, Math.min(r.left, innerWidth - 300)) + "px";
+      cmtBtn.style.display = "flex";
+    } else if (!own && !cmtBtn.contains(document.activeElement)) {
+      cmtBtn.style.display = "none";
+    }
+    updateSelectionEcho(focus, own ? sel : null);   // R6: T8; selection gone → echo clears, doesn't linger
+  }
   // Deliberately independent of _hits (S2) — it's one-shot, cleared the instant the selection is,
   // so folding it into the model would need its own "this batch is temporary" flag for no benefit.
   function updateSelectionEcho(side, sel) {

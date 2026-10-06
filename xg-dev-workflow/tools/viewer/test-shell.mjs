@@ -780,12 +780,14 @@ t("T7: ensureHitVisible expands a collapsed trace row holding the current hit an
   assert.match(html, /dr\.hidden = false;\s+var tr = dr\.previousElementSibling; if \(tr && tr\.matches\("tr\[data-trx\]"\)\) tr\.classList\.add\("x"\);/, "sets .x too — renderTraceView() reads it from the old DOM to decide what reopens after a rebuild");
 });
 
-// --- selectionEcho (016 T8): no second selection listener, piggybacks the existing #cmt mouseup ---
-t("T8: selectionEcho piggybacks the existing mouseup handler, not a second selection listener", () => {
-  const m = html.match(/document\.addEventListener\("mouseup", function \(\) \{ {28}\/\/ show 💬 by the selection[\s\S]*?\n {2}\}\);/);
-  assert.ok(m, "the #cmt mouseup handler block");
-  assert.match(m[0], /updateSelectionEcho\(focus, own \? sel : null\);   \/\/ R6: T8/, "one echo call, driven by pane ownership alone");
-  assert.match(m[0], /if \(own && doc\) \{/, "T14: the 💬 button still needs a doc, but the echo is pane-level — it must work on board/trace/search/recent too");
+// --- selectionEcho (016 T8; 041 J-6): one selection listener drives the echo and the selection bar ---
+t("T8 / 041 J-6: one debounced selectionchange listener, the echo called once from it, no selection work on mouseup", () => {
+  const n = (html.match(/addEventListener\("selectionchange"/g) || []).length;
+  assert.equal(n, 1, "exactly one selection listener (ADR-0001 D1)");
+  assert.match(html, /document\.addEventListener\("selectionchange", function \(\) \{ clearTimeout\(selT\); selT = setTimeout\(onSelection, 120\); \}\);/, "debounced, so a drag does not flicker");
+  const on = html.match(/function onSelection\(\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(on, /updateSelectionEcho\(focus, own \? sel : null\);   \/\/ R6: T8/, "one echo call, driven by pane ownership alone");
+  assert.doesNotMatch(html, /addEventListener\("mouseup", function \(\) \{ {28}\/\/ show 💬/, "the old mouseup handler is gone");
 });
 t("T8: updateSelectionEcho rejects short/multiline selections and never touches _hits", () => {
   assert.match(html, /if \(!text \|\| text\.length < 2 \|\| \/\\n\/\.test\(text\)\) \{ CSS\.highlights\.delete\(name\); return; \}/, "length<2 or a newline in the selection → no echo");

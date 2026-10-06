@@ -681,6 +681,26 @@ const SCENARIO = {
     await ctx.click("[data-closeright]"); await sleep(300);
     await ctx.click(factCite); await ctx.wait("/facts\\.md$/.test(document.querySelector('#left .crumb .base').textContent)", 5000);
     check("a plain click on a citation still jumps in the same pane", await ctx.eval("!document.querySelector('#right.show')"));
+    // Req-4-d find feel (J-6): counting starts at the screen, typing never scrolls; the rail takes a click anywhere;
+    // a keyboard selection echoes; one selection bar with find / quote / comment
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    await ctx.eval("document.getElementById('left').scrollTop = 4000; true"); await sleep(300);
+    await ctx.key("f"); await sleep(100); await ctx.type("viewer"); await sleep(400);
+    check("find counts from the screen, not the top", await ctx.eval("(() => { const m = (document.querySelector('#left [data-find-count]').textContent || '').match(/(\\d+)\\s*\\/\\s*(\\d+)/); return !!m && +m[1] > 1; })()"));
+    check("…and typing did not move the page", await ctx.eval("Math.abs(document.getElementById('left').scrollTop - 4000) < 2"));
+    const before = await ctx.eval("document.querySelector('#left .rail i.cur') && document.querySelector('#left .rail i.cur').dataset.hit");
+    await ctx.eval(`(() => { const r = document.querySelector('#left .rail'), b = r.getBoundingClientRect(), ys = [...r.querySelectorAll('i')].map(i => i.getBoundingClientRect().top);
+      let y = b.top + 4; for (let t = b.top + 4; t < b.bottom; t += 3) if (ys.every(m => Math.abs(m - t) > 6)) { y = t; break; }
+      r.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: b.left + 4, clientY: y })); return true; })()`); await sleep(500);
+    check("a click on the rail's empty track jumps to the nearest mark", await ctx.eval(`(document.querySelector('#left .rail i.cur') || {}).dataset?.hit !== ${J(before)}`));
+    await ctx.key("Escape");
+    await ctx.eval("(() => { const p = document.querySelector('#left .docbody p'); p.scrollIntoView({ block: 'center' }); const t = p.firstChild; const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(6, t.length)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; })()"); await sleep(400);
+    check("a selection made without the mouse still echoes", await ctx.eval("!!CSS.highlights.get('sv-sel-left')"));
+    check("the selection bar offers find, quote and comment", await ctx.eval("(() => { const b = document.getElementById('cmt'); return getComputedStyle(b).display !== 'none' && ['find', 'quote', 'comment'].every(k => b.querySelector('[data-sel=' + k + ']')); })()"));
+    const term = await ctx.eval("String(getSelection()).trim()");
+    await ctx.click("#cmt [data-sel=find]"); await sleep(300);
+    check("…find opens the find bar on the selected words", await ctx.eval(`(document.querySelector('#left [data-find-input]') || {}).value === ${J(term)}`));
+    await ctx.key("Escape");
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {
