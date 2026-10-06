@@ -28,8 +28,9 @@ in place and kept as one file (decided per J-1).
     find / quote / comment bar;
   - a TOC mark for the section on screen, and a copy-link # on headings;
   - cards and Facts in quick open.
-- The board has four forms (grid, cols, table, dots) and three groupings, and the table has a sort button with no
-  header row.
+- The board has four forms (grid, kanban, table, dots). The groupings and the table sort were tried and taken
+  back at the human's word. The dot form shows a card on hover, and the table's progress column fits its bar.
+- The sidebar uses the pane head's line icons.
 - The dev tree is organized by card, with closed (n) last.
 - A theme popover with 骨白, 深空 and a brightness slider.
 - Where a port overrode an earlier classic rule, the test that held it was rewritten and the card's plan.md names
