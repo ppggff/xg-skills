@@ -94,7 +94,7 @@
   function render(reveal) {
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
     const cards = D.cards.filter(c => V.inScope(c.p));
-    let h = `<button class="tr top ${V.view === "board" ? "cur" : ""}" style="--d:0" data-goboard="1">`
+    let h = `<button class="tr top ${V.view === "board" && V.focus === "A" ? "cur" : ""}" style="--d:0" data-goboard="1">`
       + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`;
     if (V.GITWEB) h += `<a class="tr top" style="--d:0" href="${esc(V.GITWEB)}" target="_blank" rel="noopener" data-tip="浏览代码：gitweb，在新标签页打开">`
       + `<span class="cv">${V.I.code}</span><span class="nm">浏览代码</span></a>`;

@@ -425,6 +425,11 @@ const SCENARIO = {
     await shiftClick("#bscroll .card[data-card]"); await ctx.wait("!!document.querySelector('#pB .md')");
     check("⇧ on a card: the board stays and the doc opens in B", await ctx.eval("V2.view === 'board' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
     check("…side by side", await ctx.eval("(() => { const a = document.getElementById('board').getBoundingClientRect(), b = document.getElementById('pB').getBoundingClientRect(); return a.width > 200 && b.width > 200 && a.right <= b.left + 6; })()"));
+    check("beside: the side column lists B's headings", await ctx.eval("getComputedStyle(document.getElementById('side')).display !== 'none' && document.querySelectorAll('#sbody .ti').length > 0"));
+    const selBefore = await ctx.eval("(document.querySelector('#bscroll .card.sel') || {}).dataset?.card || null");
+    await ctx.eval("V2.setFocus('B'); true"); await ctx.key("ArrowDown"); await ctx.key("ArrowDown");
+    check("beside, B focused: arrows leave the board selection alone", await ctx.eval("(document.querySelector('#bscroll .card.sel') || {}).dataset?.card || null") === selBefore);
+    await ctx.eval("V2.setFocus('A'); true");
     await ctx.eval(nav("A", { kind: "search", q: "viewer" }) + "; true"); await ctx.wait("!!document.querySelector('#search .shit')");
     await ctx.eval("document.querySelector('#search .sres').scrollTop = 300; true");
     await shiftClick("#search .shit:nth-of-type(2)"); await ctx.sleep(500);
@@ -497,15 +502,40 @@ const SCENARIO = {
     check("moving into the preview keeps it open", await ctx.eval("document.getElementById('tip').classList.contains('on')"));
     await ctx.key("Escape");
 
-    // ⇧⌘↵ in ⌘K puts the full-text search beside the doc being read
-    await qo("viewer"); await ctx.key("Enter", 12); await ctx.wait("!!document.querySelector('#search .smeta')"); await ctx.sleep(300);
+    // a quick move from one link to the next keeps the second preview
+    // two links on one screen: hover the first, then move straight to the second
+    const pair = await ctx.eval(`(() => { const ls = [...document.querySelectorAll('#pA .md a[data-rel]')], b = V2.P.A.body;
+      for (let i = 0; i + 1 < ls.length; i++) if (ls[i + 1].offsetTop - ls[i].offsetTop < 300 && ls[i].dataset.rel !== ls[i + 1].dataset.rel) {
+        b.scrollTop += ls[i].getBoundingClientRect().top - b.getBoundingClientRect().top - 100;
+        const c = e => { const r = e.getClientRects()[0]; return [r.x + r.width / 2, r.y + r.height / 2, e.dataset.rel.split('/').pop()]; };
+        return [c(ls[i]), c(ls[i + 1])]; }
+      return null; })()`);
+    if (pair) {
+      await ctx.sleep(300); await ctx.mouseAt(pair[0][0], pair[0][1]); await ctx.wait("document.getElementById('tip').classList.contains('wide')", 3000);
+      await ctx.mouseAt(pair[1][0], pair[1][1]); await ctx.sleep(900);
+      check(`hopping to the next link keeps its preview open (${pair[1][2]})`, await ctx.eval(`(() => { const t = document.getElementById('tip'); return t.classList.contains('on') && t.textContent.includes(${J(pair[1][2])}); })()`));
+      await ctx.key("Escape");
+    }
+
+    // ⇧⌘↵ in ⌘K puts the full-text search beside the doc being read, at the same place
+    await ctx.eval("V2.P.A.body.scrollTop = 1500; true"); await ctx.sleep(500);
+    await qo("viewer"); await ctx.key("Enter", 12); await ctx.wait("!!document.querySelector('#search .smeta')"); await ctx.wait("!!document.querySelector('#pB .md')"); await ctx.sleep(400);
     check("⇧⌘↵: the search beside the doc that was in A", await ctx.eval("V2.view === 'search' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
+    check("…and B picks up where A was", await ctx.eval("V2.P.B.body.scrollTop > 1000"));
     await ctx.click("#pB [data-t=close]");
 
     // the change view numbers its lines
     await ctx.go("doc"); await ctx.click("#pA [data-t=hist]"); await ctx.wait("!!document.querySelector('#histPop [data-chg]:not([data-chg=\"\"])')", 5000);
     await ctx.click("#histPop [data-chg]:not([data-chg=''])"); await ctx.wait("!document.querySelector('#pA .chgbar').hidden", 5000); await ctx.sleep(300);
     check("the change view has line numbers", await ctx.eval("document.querySelectorAll('#pA .lnum').length > 0"));
+
+    // a blank B takes no doc keys; full width never runs past a narrow split pane
+    await ctx.go("doc"); await ctx.eval("V2.setSplit(false); V2.P.B.loc = null; true"); await ctx.click('#pA [data-t="split"]'); await ctx.eval("V2.setFocus('B'); true");
+    check("a blank B: no reading pane for s or f", await ctx.eval("V2.readingK() === null"));
+    await ctx.eval("V2.setSplit(false); true");
+    await ctx.viewport(1000, 800); await ctx.eval("localStorage.setItem('svd2-measure', JSON.stringify({ A: { mode: 'full' }, B: { mode: 'full' } })); true"); await ctx.load(); await ctx.go("doc");
+    await ctx.eval(`V2.nav("B", ${J(docLoc(o))}); true`); await ctx.wait("!!document.querySelector('#pB .md')"); await ctx.sleep(300);
+    check("full width in a narrow split pane stays inside it", await ctx.eval("['A','B'].every(k => { const b = V2.P[k].body, m = b.querySelector('.md'); return m.getBoundingClientRect().right <= b.getBoundingClientRect().right; })"));
 
     // narrow: no width controls; the table folds the closed cards like the other forms
     await ctx.viewport(768, 1024); await ctx.load(); await ctx.go("doc");

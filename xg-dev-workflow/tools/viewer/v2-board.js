@@ -311,8 +311,9 @@
   V.click("[data-rq]", el => el.classList.toggle("x"));
   V.click("[data-diff]", el => V.nav("A", { kind: "diff", card: el.dataset.diff }));
   V.click("[data-card]", (el, e) => (e.shiftKey || e.detail >= 2 ? openCard(el.dataset.card, e) : selectCard(el.dataset.card)));
-  ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (V.view === "board" ? moveSel(e.key) : false)));
-  V.hotkey("Enter", e => (V.view === "board" && sel ? openCard(sel, e) : false));
+  const boardKeys = () => V.view === "board" && V.focus === "A";   // beside, B's reader keeps its keys
+  ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (boardKeys() ? moveSel(e.key) : false)));
+  V.hotkey("Enter", e => (boardKeys() && sel ? openCard(sel, e) : false));
   V.layer(10, () => V.view === "board" && !!sel, closeDetail);
   document.addEventListener("mouseover", e => {
     const d = e.target.closest(".dot[data-card]"), pop = $("#dotpop");

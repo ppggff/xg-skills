@@ -262,11 +262,15 @@ var V2 = (function () {
   // a board, search or diff in A keeps B's doc beside it ("beside"); only B of the reader is shown then
   V.show = view => {
     V.view = view;
-    const beside = view !== "doc" && V.isSplit();
+    const beside = view !== "doc" && V.isSplit() && !!P.B.loc;
     Object.keys(SECTIONS).forEach(k => { $(SECTIONS[k]).hidden = k !== view && !(k === "doc" && beside); });
-    app.classList.toggle("v-board", view !== "doc"); app.classList.toggle("beside", beside);
+    app.classList.toggle("v-board", view !== "doc" && !beside); app.classList.toggle("beside", beside);
   };
-  V.readingK = () => (V.view === "doc" ? V.focus : V.isSplit() && V.focus === "B" ? "B" : null);   // the pane whose doc keys act on
+  V.isBeside = () => app.classList.contains("beside");
+  V.readingK = () => {   // the pane whose doc the keys act on, if any
+    const k = V.view === "doc" ? V.focus : V.isBeside() && V.focus === "B" ? "B" : null;
+    return k && P[k].loc && P[k].loc.kind === "doc" ? k : null;
+  };
   const P = V.P = { A: { k: "A", hist: [], fwd: [], loc: null }, B: { k: "B", hist: [], fwd: [], loc: null } };
   V.focus = "A";
   V.views = {};   // kind → render(k, loc, opt), registered by the area files

@@ -244,6 +244,7 @@ async function session(o, fn) {
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c[0], y: c[1] }] }, sid);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }, sid);
       },
+      mouseAt: (x, y) => cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y }, sid),   // no scrolling first
       mouseMove: async (sel) => { const c = await centerOf(sel); await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid); },
     };
     return await fn(ctx);

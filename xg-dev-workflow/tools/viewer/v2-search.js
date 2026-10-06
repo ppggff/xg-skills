@@ -111,7 +111,7 @@
       else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); paintSel(); }
       else if (e.key === "Enter" && mod) {   // ⇧⌘↵: the doc in A moves to B, the results sit beside it
         e.preventDefault(); const q = $("#qIn").value.trim(), a = V.P.A.loc; if (!q) return;
-        close(); if (e.shiftKey && a && a.kind === "doc") V.nav("B", Object.assign({}, a), { user: false });
+        close(); if (e.shiftKey && a && a.kind === "doc") { V.carryPlace(); V.nav("B", Object.assign({}, a), { user: false }); }
         fullSearch(q);
       }
       else if (e.key === "Enter") { e.preventDefault(); choose(sel, e); }
