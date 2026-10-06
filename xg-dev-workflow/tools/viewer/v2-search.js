@@ -8,7 +8,7 @@
   const facts = { list: [], at: 0, loading: null };
   function factsOf(rel, src) {
     const blocks = SV.factBlocks(src), card = rel.split("/")[0] + " " + rel.split("/")[1].slice(0, 3);
-    return Object.keys(blocks).map(id => ({ k: "fact", tree: "dev", rel, id, label: `${id} ${SV.factGist(blocks[id]).slice(0, 80)}`, sub: card }));
+    return Object.keys(blocks).map(id => ({ k: "fact", tree: "dev", rel, id, label: `${id} ${SV.factGist(blocks[id]).slice(0, 80)}`, sub: card, mtime: V.D.mtime.dev[rel] || 0 }));
   }
   function loadFacts() {   // every card's "### Fact-n" first lines, re-read when the dev tree changes
     if (facts.at === V.D.at || facts.loading) return facts.loading || Promise.resolve();
@@ -24,7 +24,8 @@
   }
   const docItem = (tree, rel, mtime) => ({ k: "doc", tree, rel, mtime, label: (tree === "kb" ? "kb/" : "") + rel });
   const docs = () => ["dev", "kb"].reduce((a, tree) => a.concat(V.D.tree[tree].map(x => docItem(tree, x.path, x.mtime))), []);
-  const navRows = () => [{ k: "go", label: "看板", sub: "所有卡片" }].concat(V.GITWEB ? [{ k: "ext", label: "浏览代码", sub: "gitweb，新标签页" }] : []);
+  const navRows = () => [{ k: "go", label: "看板", sub: "所有卡片", words: "board" }]
+    .concat(V.GITWEB ? [{ k: "ext", label: "浏览代码", sub: "gitweb，新标签页", words: "gitweb code" }] : []);
 
   /* ---- quick open ---- */
   let rows = [], sel = 0;
@@ -47,23 +48,29 @@
     const seen = new Set(recent.map(r => r.it.tree + ":" + r.it.rel));
     const newest = docs().filter(d => !seen.has(d.tree + ":" + d.rel)).sort((a, b) => b.mtime - a.mtime).slice(0, 40).map(it => ({ it }));
     const hist = V.recent.list("search").slice(0, 5).map(s => ({ it: { k: "search", label: "搜索「" + s + "」", q: s } }));
-    return [["", navRows().map(it => ({ it }))], ["最近打开", recent], ["最近搜索", hist, true], ["最近修改", newest]];
+    return [["", navRows().map(it => ({ it }))], ["最近打开", recent], ["最近搜索", hist], ["最近修改", newest]];
   }
   function queryGroups(q) {
-    const score = (list, txt, ns) => list.map(it => { const m = SV.matchScore(q, txt(it), ns ? ns(it) : 0); return m.hit ? { it, idx: m.idx, sc: m.score } : null; })
-      .filter(Boolean).sort((a, b) => b.sc - a.sc);
-    const label = it => it.label, cards = V.D.cards.map(c => ({ k: "card", c, label: `${c.id} ${c.slug}` }));
+    // ties go to the most recently changed; cards and Fact blocks match each term as a contiguous run, an exact id leads
+    const score = (q, list, txt, ns, bonus) => list.map(it => {
+      const m = SV.matchScore(q, txt(it), ns ? ns(it) : 0);
+      return m.hit ? { it, idx: m.idx, sc: m.score + (bonus ? bonus(it) : 0) } : null;
+    }).filter(Boolean).sort((a, b) => b.sc - a.sc || (b.it.mtime || 0) - (a.it.mtime || 0));
+    const exact = q.split(/\s+/).map(t => (t.charAt(0) === "=" ? t : "=" + t)).join(" "), ql = q.toLowerCase();
+    const label = it => it.label;
+    const cards = V.D.cards.map(c => ({ k: "card", c, label: `${c.id} ${c.slug}`, mtime: V.D.mtime.dev[c.dir + "/design.md"] || 0 }));
     if (!facts.list.length) loadFacts();
-    return [["", score(navRows(), label)], ["文档", score(docs(), label, it => it.label.lastIndexOf("/") + 1).slice(0, 12)],
-      ["卡片", score(cards, label).slice(0, 8)], ["Fact", score(facts.list, label).slice(0, 6)],
+    return [["", score(q, navRows(), it => it.label + " " + it.words)], ["文档", score(q, docs(), label, it => it.label.lastIndexOf("/") + 1).slice(0, 12)],
+      ["卡片", score(exact, cards, label, 0, it => (it.c.n === ql || it.c.id === ql ? 100 : 0)).slice(0, 8)],
+      ["Fact", score(exact, facts.list, label, 0, it => (it.id.toLowerCase() === ql ? 100 : 0)).slice(0, 6)],
       ["", [{ it: { k: "search", label: "全文搜索「" + q + "」", q } }]]];
   }
   function render() {
     const q = $("#qIn").value.trim();
     rows = []; let h = "";
-    (q ? queryGroups(q) : emptyGroups()).forEach(([g, rs, clear]) => {
+    (q ? queryGroups(q) : emptyGroups()).forEach(([g, rs]) => {
       if (!rs.length) return;
-      if (g) h += `<div class="qg">${g}${clear ? '<button data-qclear data-tip="清空最近打开、搜索与查找的历史">清空</button>' : ""}</div>`;
+      if (g) h += `<div class="qg">${g}</div>`;
       rs.forEach(r => { h += rowHTML(r, rows.length); rows.push(r); });
     });
     sel = Math.min(sel, Math.max(0, rows.length - 1));
@@ -102,7 +109,11 @@
       const mod = e.metaKey || e.ctrlKey;
       if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(rows.length - 1, sel + 1); paintSel(); }
       else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); paintSel(); }
-      else if (e.key === "Enter" && mod) { e.preventDefault(); const q = $("#qIn").value.trim(); if (q) { close(); fullSearch(q); } }
+      else if (e.key === "Enter" && mod) {   // ⇧⌘↵: the doc in A moves to B, the results sit beside it
+        e.preventDefault(); const q = $("#qIn").value.trim(), a = V.P.A.loc; if (!q) return;
+        close(); if (e.shiftKey && a && a.kind === "doc") V.nav("B", Object.assign({}, a), { user: false });
+        fullSearch(q);
+      }
       else if (e.key === "Enter") { e.preventDefault(); choose(sel, e); }
       else if (e.key === "Escape" || (mod && e.key.toLowerCase() === "k")) { e.preventDefault(); close(); }
     });
@@ -148,12 +159,14 @@
       meta.textContent = "输入后按 ↵ 搜索；⇧ 点结果在右栏打开。"; setTimeout(() => $("#sIn").focus(), 10); V.status(); return;
     }
     meta.textContent = "搜索中…";
+    const y = loc.y || 0;
     V.json("/api/search?q=" + encodeURIComponent(loc.q) + "&project=" + encodeURIComponent(V.scope)).then(d => {
       if (V.P.A.loc !== loc) return;
       if (d.note) { meta.textContent = d.note; res.innerHTML = ""; return; }
       const groups = SV.groupHits(d.hits || []);
       meta.textContent = `${(d.hits || []).length}${d.truncated ? "+" : ""} 条命中，${groups.length} 个文件${scope}`;
       res.innerHTML = resultsHTML(groups, loc.q) || `<div class="qnone">没有找到「${esc(loc.q)}」${V.scope ? "（范围 " + esc(V.scope) + "）" : ""}。</div>`;
+      res.scrollTop = y;
       V.status();
     }).catch(e => { if (V.P.A.loc === loc) { meta.textContent = ""; res.innerHTML = `<div class="derr"><b>搜索失败</b><br>${esc(e.message)}</div>`; } });
     V.status();
@@ -165,4 +178,5 @@
     V.nav("A", { kind: "search", q: "" });
   });
   V.on("scope", () => { if (V.view === "search") V.rerender("A"); });
+  V.on("leave", (k, loc) => { const r = $("#search .sres"); if (loc.kind === "search" && r) loc.y = r.scrollTop; });   // back to the results lands where they were left
 })(V2);

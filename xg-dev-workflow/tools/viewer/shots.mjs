@@ -214,7 +214,7 @@ async function session(o, fn) {
     };
     const ctx = {
       viewer, chrome: (await cdp.send("Browser.getVersion")).product,
-      eval: (expr) => evalIn(cdp, sid, expr),
+      eval: (expr, awaitPromise) => evalIn(cdp, sid, expr, awaitPromise),
       wait: (pred, timeout) => waitFor(cdp, sid, pred, timeout),
       viewport: (w, h) => cdp.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false }, sid),
       load: async () => {

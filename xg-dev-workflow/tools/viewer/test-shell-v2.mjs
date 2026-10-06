@@ -83,7 +83,7 @@ t("Inv-6-a: one Esc closes one layer, the topmost open one", () => {
   assert.match(js.core, /layers\.sort\(\(a, b\) => b\.pri - a\.pri\)/, "layers are kept highest priority first");
 });
 t("Inv-6-a: input-level Esc consumers stop the event before the layer chain sees it", () => {
-  assert.match(js.find, /inp\.addEventListener\("keydown", e => \{\s*e\.stopPropagation\(\);/, "find box");
+  assert.match(js.find, /inp\.addEventListener\("keydown", e => \{\s*if \(\(e\.metaKey \|\| e\.ctrlKey\) && V\.chord\[e\.key\.toLowerCase\(\)\]\) return;[^\n]*\n\s*e\.stopPropagation\(\);/, "find box: only the ⌘ chords pass, Esc is stopped");
   assert.match(js.search, /\$\("#qIn"\)\.addEventListener\("keydown", e => \{\s*e\.stopPropagation\(\);/, "quick open box");
   assert.match(js.search, /else if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); e\.target\.blur\(\); \}/, "search box");
 });

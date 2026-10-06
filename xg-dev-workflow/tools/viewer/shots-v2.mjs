@@ -304,7 +304,7 @@ const SCENARIO = {
     check("Enter on a focused control does that control, not 'open the selected card'", await ctx.eval("V2.view === 'board'"));
     // tree: closed folder, relative times, stars and the trail
     await ctx.go("doc");
-    check("tree: a closed (n) group and relative times on files", await ctx.eval("[...document.querySelectorAll('#tree .tr.grp .nm')].some(n => /^closed \\(\\d+\\)$/.test(n.textContent)) && [...document.querySelectorAll('#tree .tr[data-open] em')].some(e => /^(now|\\d+[mhd])$/.test(e.textContent))"));
+    check("tree: a closed (n) group, and no times under the name sort", await ctx.eval("[...document.querySelectorAll('#tree .tr.grp .nm')].some(n => /^closed \\(\\d+\\)$/.test(n.textContent)) && ![...document.querySelectorAll('#tree .tr[data-open] em')].some(e => /^(now|\\d+[mhd])$/.test(e.textContent))"));
     await ctx.key("s");
     await ctx.click("#starBtn");
     check("s stars the doc; the star popover lists it", await ctx.eval("document.getElementById('starPop').classList.contains('on') && document.querySelectorAll('#starPop .sta').length > 0"));
@@ -341,8 +341,8 @@ const SCENARIO = {
     check("…nor the side collapse", await ctx.eval("document.getElementById('side').getBoundingClientRect().width === 34"));
     await ctx.click("#sideOpen"); await ctx.go("board");
     await ctx.eval("(() => { const c = document.querySelector('#bscroll .card[data-card]'); c.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true, detail: 1 })); return true; })()");
-    await ctx.wait(has("#pA .md"));
-    check("⇧-click on the board opens the card in A (nothing to sit beside)", await ctx.eval("V2.view === 'doc' && !V2.isSplit() && V2.P.A.loc.kind === 'doc'"));
+    await ctx.wait(has("#pB .md"));
+    check("⇧-click on the board opens the card in B, beside the board", await ctx.eval("V2.view === 'board' && V2.isSplit() && V2.P.B.loc.kind === 'doc' && document.getElementById('app').classList.contains('beside')"));
     await ctx.key("k", 4); await ctx.sleep(100); await ctx.type("Fact-1"); await ctx.sleep(4000);
     const got = await ctx.eval("new Set(performance.getEntriesByType('resource').filter(e => /\\/facts\\.md$/.test(e.name) && e.responseStatus === 200).map(e => e.name)).size");
     const all = await ctx.eval("V2.D.tree.dev.filter(x => /^[^/]+\\/\\d{3}-[^/]+\\/facts\\.md$/.test(x.path)).length");
@@ -379,7 +379,9 @@ const SCENARIO = {
     await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
     check("the project holding the open doc folds when clicked", await ctx.eval(`!document.querySelector('#tree [data-fold-k="dev:${proj}"]').classList.contains('open')`));
     await ctx.click(`#tree [data-fold-k="dev:${proj}"]`);
-    check("folders show a relative time", await ctx.eval("[...document.querySelectorAll('#tree .tr.dir')].every(r => /^(now|\\d+[mhd])$/.test((r.querySelector('em') || {}).textContent || ''))"));
+    await ctx.click('[data-tsort="dev"]');
+    check("under the time sort every folder shows a relative time", await ctx.eval("[...document.querySelectorAll('#tree .tr.dir[data-fold-k^=\"dev:\"]')].every(r => /^(now|\\d+[mhd])$/.test((r.querySelector('em') || {}).textContent || ''))"));
+    await ctx.click('[data-tsort="dev"]');
     check("closed (n) is the project's last entry", await ctx.eval(`(() => { const rows = [...document.querySelectorAll('#tree .tr')], at = rows.findIndex(r => r.dataset.foldK === ${J("dev:" + proj)});
       const end = rows.findIndex((r, i) => i > at && r.style.getPropertyValue('--d') === '0'), top = rows.slice(at + 1, end < 0 ? rows.length : end).filter(r => r.style.getPropertyValue('--d') === '1');
       return !top.some(r => /^closed/.test(r.textContent)) || /^closed \\(/.test(top[top.length - 1].querySelector('.nm').textContent); })()`));
@@ -395,6 +397,125 @@ const SCENARIO = {
     await ctx.eval(`(() => { const s = document.getElementById('scopeSel'); s.value = ${J(p2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await ctx.click('[data-tcol="dev"]');
     check(`F under scope ${p2} keeps ${p1}'s remembered fold`, await ctx.eval(`JSON.parse(localStorage.getItem('svd2-tree-open')).includes(${J("dev:" + p1)})`));
+  },
+  // Details of the classic shell that v2 was missing or weaker on, one check each.
+  async parity(ctx, check, o) {
+    const shiftClick = (sel) => ctx.eval(`(() => { const e = document.querySelector(${J(sel)}); if (!e) return false; e.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })); return true; })()`);
+    const qo = async (q) => { await ctx.eval("document.getElementById('qo').hidden || V2.chord.k(); V2.chord.k(); true"); await ctx.sleep(50); await ctx.type(q); await ctx.sleep(250); };
+    const qoRows = "[...document.querySelectorAll('#qList > *')].map(e => e.className.startsWith('qg') ? '#' + e.firstChild.textContent : (e.querySelector('.qn') || e).textContent + '|' + ((e.querySelector('.qd') || {}).textContent || ''))";
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
+
+    // tree: times only under a time sort, which starts newest first; the sort controls take the keyboard
+    const timeEm = "[...document.querySelectorAll('#tree .tr:not(.top) em, #tree .tr.dir em')].filter(e => /^(now|\\d+[mhd])$/.test(e.textContent)).length";
+    check("name sort: the tree shows no times", await ctx.eval(timeEm) === 0);
+    check("the sort controls are buttons", await ctx.eval("[...document.querySelectorAll('#tree .tsec .tc')].every(e => e.tagName === 'BUTTON')"));
+    await ctx.click('[data-tsort="dev"]');
+    check("time sort: the tree shows times", await ctx.eval(timeEm) > 0);
+    check("switching to time sort starts newest first", await ctx.eval("JSON.parse(localStorage.getItem('svd2-tree-sort')).dev.dir === -1"));
+    await ctx.click('[data-tsort="dev"]');
+    check("back to name sort runs A→Z", await ctx.eval("JSON.parse(localStorage.getItem('svd2-tree-sort')).dev.dir === 1"));
+
+    // board: the table has a next column and full names on hover
+    await ctx.click('[data-form="table"]');
+    check("table: a 下一步 column", await ctx.eval("[...document.querySelectorAll('#bscroll .tbl th')].some(t => t.textContent === '下一步')"));
+    check("table: a cut name is readable from its tip", await ctx.eval("[...document.querySelectorAll('#bscroll .tbl td.nm')].every(t => t.dataset.tip)"));
+
+    // ⇧ from the board or the search results opens beside them, the board or the results stay
+    await ctx.click('[data-form="cards"]');
+    await shiftClick("#bscroll .card[data-card]"); await ctx.wait("!!document.querySelector('#pB .md')");
+    check("⇧ on a card: the board stays and the doc opens in B", await ctx.eval("V2.view === 'board' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
+    check("…side by side", await ctx.eval("(() => { const a = document.getElementById('board').getBoundingClientRect(), b = document.getElementById('pB').getBoundingClientRect(); return a.width > 200 && b.width > 200 && a.right <= b.left + 6; })()"));
+    await ctx.eval(nav("A", { kind: "search", q: "viewer" }) + "; true"); await ctx.wait("!!document.querySelector('#search .shit')");
+    await ctx.eval("document.querySelector('#search .sres').scrollTop = 300; true");
+    await shiftClick("#search .shit:nth-of-type(2)"); await ctx.sleep(500);
+    check("⇧ on a search hit: the results stay and the doc opens in B", await ctx.eval("V2.view === 'search' && V2.P.B.loc.kind === 'doc'"));
+    await ctx.click("#pB [data-t=close]");
+    const sy = await ctx.eval("document.querySelector('#search .sres').scrollTop");
+    await ctx.click("#search .shit"); await ctx.wait("!!document.querySelector('#pA .md')");
+    await ctx.eval("V2.back('A'); true"); await ctx.wait("!!document.querySelector('#search .shit')"); await ctx.sleep(200);
+    check(`back to the search results keeps their scroll (${sy})`, Math.abs(await ctx.eval("document.querySelector('#search .sres').scrollTop") - sy) < 4);
+
+    // ⌘K: English words reach the nav rows, ties go to the newest, card and Fact groups match contiguously, clear is always there
+    await qo("board");
+    check("⌘K board finds the board row", /^看板/.test((await ctx.eval(qoRows))[0]));
+    await ctx.key("Escape"); await qo("design");
+    const dr = (await ctx.eval(qoRows)).filter(r => r.startsWith("design.md|"));
+    const newest = await ctx.eval("fetch('/api/tree').then(r => r.json()).then(t => t.dev.filter(x => /design\\.md$/.test(x.path)).sort((a, b) => b.mtime - a.mtime)[0].path)", true);
+    check(`⌘K design: the newest design.md comes first (${dr[0]} vs ${newest})`, !!dr[0] && newest.startsWith(dr[0].split("|")[1].replace(/\/$/, "").trim()));
+    await ctx.key("Escape"); await qo("040");
+    const r040 = await ctx.eval(qoRows), grp = (rs, g) => { const i = rs.indexOf("#" + g); if (i < 0) return []; const j = rs.findIndex((r, k) => k > i && r.startsWith("#")); return rs.slice(i + 1, j < 0 ? undefined : j); };
+    check("⌘K 040: every card row carries 040", grp(r040, "卡片").length > 0 && grp(r040, "卡片").every(r => r.includes("040")));
+    check("⌘K 040: every Fact row carries 040", grp(r040, "Fact").every(r => r.includes("040")));
+    await ctx.key("Escape"); await qo("Fact-2"); await ctx.sleep(1500); await ctx.eval("document.getElementById('qIn').dispatchEvent(new Event('input')); true"); await ctx.sleep(100);
+    const f2 = grp(await ctx.eval(qoRows), "Fact");
+    check(`⌘K Fact-2: the exact id leads (${f2[0]})`, !!f2[0] && f2[0].startsWith("Fact-2|"));
+    await ctx.key("Escape"); await ctx.eval("localStorage.removeItem('svd2-recent-search'); true"); await qo("");
+    check("⌘K: clear history is there with no search history", await ctx.eval(has("#qo [data-qclear]")));
+    await ctx.key("Escape");
+
+    // reader: two width rules each moving one edge, the custom width stays in the cycle, h1–h6 in the TOC
+    await ctx.go("doc");
+    check("two width rules", await ctx.eval("document.querySelectorAll('#pA .md > .mrule').length") === 2);
+    const box = () => ctx.eval("(() => { const r = document.querySelector('#pA .md').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; })()");
+    const drag = (which, dx) => ctx.eval(`(() => { const r = document.querySelectorAll('#pA .md > .mrule')[${which}], b = r.getBoundingClientRect(), x = b.left + 4, y = b.top + 40;
+      const ev = (t, cx) => r.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: cx, clientY: y, pointerId: 1 }));
+      ev("pointerdown", x); ev("pointermove", x + ${dx}); ev("pointerup", x + ${dx}); return true; })()`);
+    const b0 = await box(); await drag(0, 60); const b1 = await box();
+    check(`left rule: the left edge moves, the right stays (${J(b0)} → ${J(b1)})`, Math.abs(b1[0] - b0[0] - 60) <= 2 && Math.abs(b1[1] - b0[1]) <= 2);
+    await drag(1, -80); const b2 = await box();
+    check(`right rule: the right edge moves, the left stays (${J(b1)} → ${J(b2)})`, Math.abs(b2[1] - b1[1] + 80) <= 2 && Math.abs(b2[0] - b1[0]) <= 2);
+    const tipOf = () => ctx.eval("document.querySelector('#pA [data-t=width]').dataset.tip");
+    const seen = [];
+    for (let i = 0; i < 3; i++) { await ctx.click("#pA [data-t=width]"); seen.push(await tipOf()); }
+    check(`the width cycle comes back to the dragged width (${seen.join(" → ")})`, /自定/.test(seen[2]) && J(await box()) === J(b2));
+    check("the TOC lists every heading level", await ctx.eval("document.querySelectorAll('#sbody .ti').length === document.querySelectorAll('#pA .md :is(h1,h2,h3,h4,h5,h6)').length"));
+    check("the path has a tip", await ctx.eval("!!document.querySelector('#pA .ppath').dataset.tip"));
+
+    // find: the frontmatter is not searched, ⌘K works from the find box, one-letter terms are not remembered, pins keep their colours on the rail
+    await ctx.key("f"); await ctx.type("lite"); await ctx.sleep(300);
+    check("find skips the frontmatter", await ctx.eval("['hit-A', 'hitc-A'].flatMap(n => [...(CSS.highlights.get(n) || [])]).every(r => !r.startContainer.parentElement.closest('.fml,.fmt'))"));
+    await ctx.key("k", 4); await ctx.sleep(100);
+    check("⌘K opens from the find box", await ctx.eval("!document.getElementById('qo').hidden"));
+    await ctx.key("Escape");
+    await ctx.eval("(() => { const i = document.querySelector('#pA .find input'); i.focus(); i.value = 'x'; i.dispatchEvent(new Event('input')); return true; })()"); await ctx.sleep(250);
+    await ctx.key("Enter"); await ctx.key("Escape");
+    check("a one-letter find is not remembered", await ctx.eval("!(JSON.parse(localStorage.getItem('svd2-recent-find') || '[]')).includes('x')"));
+    for (const t of ["viewer", "req"]) { await ctx.key("f"); await ctx.type(t); await ctx.sleep(250); await ctx.key("Enter", 4); await ctx.key("Escape"); }
+    check("pins keep their colours on the rail", await ctx.eval("document.querySelectorAll('#pA .frail i.p0').length > 0 && document.querySelectorAll('#pA .frail i.p1').length > 0"));
+    await ctx.key("H", 8);
+
+    // citations and links take Enter; a link preview can be entered and scrolled
+    await ctx.eval("document.querySelector('#pA .cite[data-ref^=Fact]').focus(); true"); await ctx.key("Enter"); await ctx.sleep(600);
+    check("Enter on a focused citation follows it", await ctx.eval("!!V2.P.B.loc && /facts\\.md$/.test(V2.P.B.loc.rel)"));
+    check("split: the focused pane's head is marked", await ctx.eval("getComputedStyle(document.querySelector('#pA .phd')).boxShadow !== 'none' && getComputedStyle(document.querySelector('#pB .phd')).boxShadow === 'none'"));
+    await ctx.click("#pB [data-t=close]");
+    await ctx.sleep(300);   // closing B re-lays A out a moment later
+    await ctx.mouseMove("#pA .md a[data-rel]");
+    await ctx.wait("document.getElementById('tip').classList.contains('wide')", 3000);
+    check("the link preview takes the pointer and scrolls", await ctx.eval("(() => { const s = getComputedStyle(document.getElementById('tip')); return s.pointerEvents === 'auto' && s.overflowY === 'auto'; })()"));
+    await ctx.mouseMove("#tip"); await ctx.sleep(700);
+    check("moving into the preview keeps it open", await ctx.eval("document.getElementById('tip').classList.contains('on')"));
+    await ctx.key("Escape");
+
+    // ⇧⌘↵ in ⌘K puts the full-text search beside the doc being read
+    await qo("viewer"); await ctx.key("Enter", 12); await ctx.wait("!!document.querySelector('#search .smeta')"); await ctx.sleep(300);
+    check("⇧⌘↵: the search beside the doc that was in A", await ctx.eval("V2.view === 'search' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
+    await ctx.click("#pB [data-t=close]");
+
+    // the change view numbers its lines
+    await ctx.go("doc"); await ctx.click("#pA [data-t=hist]"); await ctx.wait("!!document.querySelector('#histPop [data-chg]:not([data-chg=\"\"])')", 5000);
+    await ctx.click("#histPop [data-chg]:not([data-chg=''])"); await ctx.wait("!document.querySelector('#pA .chgbar').hidden", 5000); await ctx.sleep(300);
+    check("the change view has line numbers", await ctx.eval("document.querySelectorAll('#pA .lnum').length > 0"));
+
+    // narrow: no width controls; the table folds the closed cards like the other forms
+    await ctx.viewport(768, 1024); await ctx.load(); await ctx.go("doc");
+    check("narrow: the width button and rules are hidden", await ctx.eval("getComputedStyle(document.querySelector('#pA [data-t=width]')).display === 'none' && [...document.querySelectorAll('#pA .mrule')].every(r => getComputedStyle(r).display === 'none')"));
+    await ctx.go("board");
+    check("narrow table: no closed card until its fold is opened", await ctx.eval("!document.querySelector('#bscroll tr[data-st=done], #bscroll tr[data-st=dropped]') && !!document.querySelector('#bscroll [data-fold]')"));
+    await ctx.click("#bscroll [data-fold]");
+    check("…and the fold opens them", await ctx.eval(has("#bscroll tr[data-st=done], #bscroll tr[data-st=dropped]")));
+    await ctx.click('[data-form="dots"]');
+    check("dots: closed cards fold too", await ctx.eval("!!document.querySelector('#bscroll [data-fold]') && document.querySelectorAll('#bscroll .dot.done').length < " + "document.querySelectorAll('#bscroll .dot').length"));
   },
 };
 

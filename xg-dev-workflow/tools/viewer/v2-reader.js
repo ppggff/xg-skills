@@ -28,7 +28,7 @@
       + `<span class="ptag">${k}</span><span class="abw">${ab("A")}${ab("B")}</span><div class="ppath"></div>`
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button>`
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
-      + b("width", "width", "阅读宽度：默认 / 宽 / 铺满") + (k === "A" ? b("split", "split", "双栏对照", "\\") : b("close", "x", "关闭右栏")) + "</div>"
+      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + (k === "A" ? b("split", "split", "双栏对照", "\\") : b("close", "x", "关闭右栏")) + "</div>"
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
       + `<button class="secchip" data-sec data-tip="打开目录" aria-label="打开目录">${V.I.toc}<span></span></button>`;
@@ -36,7 +36,7 @@
   const BLANK_B = '<div class="empty"><div><svg width="42" height="28" viewBox="0 0 46 30" fill="none" stroke="currentColor">'
     + '<rect x=".5" y=".5" width="45" height="29" rx="3"/><path d="M23 .5v29"/><path d="M28 9h12M28 14h9M28 19h11" opacity=".5"/></svg>'
     + "点正文里的 [Fact-n]，或按住 ⇧ 点一个链接，<br>文档会在这一栏打开。</div></div>";
-  const BLOCK_SEL = ".md p,.md li,.md h1,.md h2,.md h3,.md h4,.md h5,.md pre,.md tr,.md blockquote,.md .mermaid";
+  const BLOCK_SEL = ".md p,.md li,.md h1,.md h2,.md h3,.md h4,.md h5,.md h6,.md pre,.md tr,.md blockquote,.md .mermaid";
   V.on("init", () => ["A", "B"].forEach(k => {
     const p = P[k]; p.el.innerHTML = shell(k); p.body = $(".pbody", p.el); p.doc = null;
     if (k === "B") p.body.innerHTML = BLANK_B;
@@ -48,6 +48,7 @@
     });
   }));
   const keyOf = loc => loc.tree + ":" + loc.rel;
+  const shown = k => (k === "A" ? V.view === "doc" : V.isSplit());
 
   /* ---- reading place: per (pane, doc), a content anchor first and pixels as the fallback ---- */
   const NOT_BLOCK = /^(lnum|curline|lastmark|mrule|fml|fmt)$/;
@@ -128,10 +129,15 @@
   function lineNumbers(k) {
     const p = P[k], md = $(".md", p.body); if (!md || !p.doc || p.doc.src) return;
     $$(".lnum", md).forEach(x => x.remove());
-    const els = blocks(k), spans = SV.blockSpans(window.marked.lexer(p.doc.body));
-    if (spans.length !== els.length) return;
-    const nums = SV.blockLineNumbers(spans, p.doc.fmLines), mr = md.getBoundingClientRect();
-    p.spans = spans;   // only when spans and blocks line up 1:1
+    let els, nums;
+    if (p.chg) { els = $$(":scope > [data-ln]", md); nums = els.map(b => b.dataset.ln); }   // the change view numbers its after-version
+    else {
+      const spans = SV.blockSpans(window.marked.lexer(p.doc.body)); els = blocks(k);
+      if (spans.length !== els.length) return;
+      nums = SV.blockLineNumbers(spans, p.doc.fmLines);
+      p.spans = spans;   // only when spans and blocks line up 1:1
+    }
+    const mr = md.getBoundingClientRect();
     els.forEach((b, i) => {
       const w = document.createTreeWalker(b, NodeFilter.SHOW_TEXT); let n, line = null;
       while (!line && (n = w.nextNode())) {
@@ -150,6 +156,7 @@
   }
   function crumb(k, loc) {
     const s = loc.rel.split("/"), pre = loc.tree === "kb" ? "知识库 / " : "", at = P[k].chg ? " @ " + esc(P[k].chg.slice(0, 7)) : "";
+    $(".ppath", P[k].el).dataset.tip = (loc.tree === "kb" ? "知识库/" : "dev_root/") + loc.rel;
     $(".ppath", P[k].el).innerHTML = `<bdi>${esc(pre + s.slice(0, -1).join(" / "))} / <b>${esc(s[s.length - 1])}</b>${at}</bdi>`;
   }
   function lineTarget(k, loc) {   // the block holding a source line, else (no line table) the section holding it
@@ -204,31 +211,43 @@
       .catch(e => { if (p.loc === loc) fail(k, loc, e); });
   };
 
-  /* ---- reading width: default / wide / full per pane, or a dragged width ---- */
-  const MEAS = Object.assign({ A: { mode: "default" }, B: { mode: "default" } }, store.get("measure", {}));
-  const WIDTH = { default: "820px", wide: "1100px", full: "none" }, WNAME = { default: "默认", wide: "宽", full: "铺满" };
+  /* ---- reading width: default / custom / full per pane; the body sits left, each rule moves its own edge ---- */
+  const MEAS = store.get("measure", {});
+  ["A", "B"].forEach(k => { const m = MEAS[k] = Object.assign({ mode: "default" }, MEAS[k]); if (m.mode === "wide") m.mode = "default"; });
+  const M_LEFT = 12, M_MIN = 360, WNAME = { default: "默认", full: "铺满" };
+  const hasCustom = m => typeof m.l === "number" && typeof m.w === "number";
   function applyMeasure(k) {
     const md = $(".md", P[k].body); if (!md || md.classList.contains("src")) return;
-    const m = MEAS[k];
-    md.style.setProperty("--measure", m.mode === "custom" ? m.w + "px" : WIDTH[m.mode] || WIDTH.default);
-    if (!$(".mrule", md)) md.insertAdjacentHTML("beforeend", '<i class="mrule" data-tip="拖动调整阅读宽度" style="left:100%"></i>');
-    $('[data-t="width"]', P[k].el).dataset.tip = "阅读宽度：" + (m.mode === "custom" ? "自定 " + m.w + "px" : WNAME[m.mode]) + "（点击切换）";
+    const m = MEAS[k], space = P[k].body.clientWidth - M_LEFT;   // the right rule needs a gap to sit in
+    if (!$(".mrule", md)) md.insertAdjacentHTML("beforeend", '<i class="mrule" data-m="l" data-tip="拖动左边界"></i><i class="mrule" data-m="r" data-tip="拖动右边界"></i>');
+    if (V.isNarrow()) { md.style.removeProperty("--m-l"); md.style.removeProperty("--m-w"); return; }   // full width, rules hidden by CSS
+    if (m.mode === "custom" && hasCustom(m)) {
+      const c = SV.clampMeasure(m.l, m.w, space, M_MIN);
+      md.style.setProperty("--m-l", c.left + "px"); md.style.setProperty("--m-w", c.width + "px");
+    } else {
+      md.style.setProperty("--m-l", M_LEFT + "px");
+      if (m.mode === "full") md.style.setProperty("--m-w", Math.max(M_MIN, space - M_LEFT) + "px"); else md.style.removeProperty("--m-w");
+    }
+    $('[data-t="width"]', P[k].el).dataset.tip = "阅读宽度：" + (m.mode === "custom" && hasCustom(m) ? "自定 " + Math.round(m.w) + "px" : WNAME[m.mode] || WNAME.default) + "（点击切换）";
   }
   const remeasure = k => { store.set("measure", MEAS); applyMeasure(k); lineNumbers(k); V.emit("content", k); };
   document.addEventListener("pointerdown", e => {
     const r = e.target.closest(".mrule"); if (!r) return;
     e.preventDefault();
-    const k = V.paneOf(r), x0 = e.clientX, w0 = r.parentElement.getBoundingClientRect().width, max = P[k].body.clientWidth;
-    r.classList.add("drag"); r.setPointerCapture(e.pointerId);
-    const move = ev => { MEAS[k] = { mode: "custom", w: Math.round(Math.max(360, Math.min(max, w0 + (ev.clientX - x0) * 2))) }; applyMeasure(k); };
-    r.addEventListener("pointermove", move);
-    r.addEventListener("pointerup", () => { r.classList.remove("drag"); r.removeEventListener("pointermove", move); remeasure(k); }, { once: true });
+    const k = V.paneOf(r), md = r.parentElement, body = P[k].body, x0 = e.clientX, isLeft = r.dataset.m === "l";
+    const l0 = md.getBoundingClientRect().left - body.getBoundingClientRect().left, w0 = md.getBoundingClientRect().width, space = body.clientWidth - M_LEFT;
+    r.classList.add("drag"); try { r.setPointerCapture(e.pointerId); } catch (x) {}
+    const move = ev => {
+      const dx = ev.clientX - x0, c = SV.clampMeasure(isLeft ? l0 + dx : l0, isLeft ? w0 - dx : w0 + dx, space, M_MIN);
+      MEAS[k] = { mode: "custom", l: c.left, w: c.width }; applyMeasure(k);
+    };
+    const up = () => { r.classList.remove("drag"); document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); remeasure(k); };
+    document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
   });
-  V.click('[data-t="width"]', el => {
-    const k = V.paneOf(el), order = ["default", "wide", "full"];
-    let next = order[(order.indexOf(MEAS[k].mode) + 1) % 3];
-    if (next === "wide" && P[k].body.clientWidth < 1100 + 68) next = "full";   // too narrow for "wide" to differ from "full"
-    MEAS[k] = { mode: next }; remeasure(k);
+  V.click('[data-t="width"]', el => {   // default → the dragged width, if any → full → default
+    const k = V.paneOf(el), m = MEAS[k];
+    m.mode = m.mode === "default" ? (hasCustom(m) ? "custom" : "full") : m.mode === "custom" ? "full" : "default";
+    remeasure(k);
   });
 
   /* ---- current line, last-read mark, flash ---- */
@@ -278,7 +297,7 @@
     if (V.view !== "doc") return;
     const p = P[V.focus];
     if (!p.doc || p.doc.err) { $("#sbody").innerHTML = '<div class="hint">这一栏空着</div>'; $("#sticks").innerHTML = ""; heads = []; return; }
-    heads = $$(".md h1, .md h2, .md h3", p.body);
+    heads = $$(".md :is(h1,h2,h3,h4,h5,h6)", p.body);
     const items = heads.map((h, i) => {
       const x = headLabel(h), mark = x.ok ? V.I.tick : x.inf ? "<em>推</em>" : "";
       return `<button class="ti" data-ti="${i}" style="--d:${+h.tagName[1] - 1}" data-tip="${esc(x.t)}"><span class="ck2">${mark}</span><span class="tl">${esc(x.t)}</span></button>`;
@@ -337,8 +356,8 @@
       .then(src => { factCache[rel] = { mt, map: SV.factBlocks(src) }; return factCache[rel].map[id] || null; })
       .catch(() => null);
   }
-  let tipT = null, tipFor = null;
-  const hideTip = () => { clearTimeout(tipT); tipFor = null; $("#tip").classList.remove("on", "wide"); };
+  let tipT = null, tipFor = null, hideT = null;
+  const hideTip = () => { clearTimeout(tipT); clearTimeout(hideT); tipFor = null; $("#tip").classList.remove("on", "wide"); };
   V.on("tip-hide", hideTip);
   function showTipAt(anchor, html, wide) {
     const t = $("#tip"); t.innerHTML = html; t.classList.add("on"); t.classList.toggle("wide", !!wide);
@@ -418,18 +437,25 @@
     const draw = html => { if (tipFor === a) showTipAt(a, tipHead(rel.split("/").pop(), where) + `<div class="md">${html}</div>`, true); };
     if (lpCache[key] && lpCache[key].mt === mt) return draw(lpCache[key].html);
     V.api("/raw/" + tree + "/" + rel).then(r => r.text())
-      .then(text => { lpCache[key] = { mt, html: window.marked.parse(SV.parseFrontmatter(text).body.slice(0, 4000)) }; draw(lpCache[key].html); })
+      .then(text => {
+        const tmp = document.createElement("div"); tmp.innerHTML = window.marked.parse(SV.parseFrontmatter(text).body);
+        $$("a[href]", tmp).forEach(x => { if (!/^https?:\/\//i.test(x.getAttribute("href"))) x.removeAttribute("href"); });   // a relative href would navigate the page
+        lpCache[key] = { mt, html: tmp.innerHTML }; draw(lpCache[key].html);
+      })
       .catch(() => draw('<p class="hint">预览不了这篇文档</p>'));
   }
   const HOVER = ".pbody .cite[data-ref], .pbody .md a[data-rel]";
   document.addEventListener("mouseover", e => {
+    if ($("#tip").contains(e.target)) { clearTimeout(hideT); return; }
     const ce = e.target.closest(".pbody .cite[data-ref]"), a = !V.isNarrow() && e.target.closest(".pbody .md a[data-rel]");
     if (ce && ce !== tipFor) { clearTimeout(tipT); tipT = setTimeout(() => showCite(ce), 180); }
     else if (a && a !== tipFor) { clearTimeout(tipT); tipT = setTimeout(() => showPreview(a), 250); }
   });
+  // a link preview waits a moment so the pointer can move into it and scroll; a citation tip closes at once
   document.addEventListener("mouseout", e => {
-    const to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".cite,.md a[data-rel]");
-    if (e.target.closest(HOVER) && !to) hideTip();
+    const tip = $("#tip"), to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".cite,.md a[data-rel],#tip");
+    if (to || !(e.target.closest(HOVER) || tip.contains(e.target))) return;
+    if (tip.classList.contains("wide")) { clearTimeout(hideT); hideT = setTimeout(hideTip, 450); } else hideTip();
   });
   addEventListener("scroll", e => { if (!$("#tip").contains(e.target) && $("#tip").classList.contains("on")) hideTip(); }, true);
 
@@ -457,6 +483,7 @@
     const spans = SV.blockSpans(window.marked.lexer(body)), tmp = document.createElement("div");
     tmp.innerHTML = window.marked.parse(body);
     const els = [...tmp.children], use = spans.length === els.length ? spans : els.map((_, i) => spans[i] || { start: 0, end: 0 });
+    if (spans.length === els.length) SV.blockLineNumbers(spans, fmLines).forEach((n, i) => { els[i].dataset.ln = n; });
     const adds = (d.adds || []).map(x => x - 1 - fmLines), dels = (d.dels || []).map(g => ({ at: g.at - 1 - fmLines, lines: g.lines }));
     const md = document.createElement("article"); md.className = "md";
     SV.diffSegments(use, adds, dels).forEach(s => {
@@ -473,7 +500,7 @@
       if (p.loc !== loc) return;
       p.chg = sha;
       const top = p.body.scrollTop, md = changeArticle(d, loc, k);
-      p.body.innerHTML = ""; p.body.appendChild(md); renderMermaid(k, md); applyMeasure(k); p.body.scrollTop = top;
+      p.body.innerHTML = ""; p.body.appendChild(md); renderMermaid(k, md); applyMeasure(k); lineNumbers(k); p.body.scrollTop = top;
       const bar = $(".chgbar", p.el); bar.hidden = false;
       bar.innerHTML = `<span>变更 <code>${esc(sha.slice(0, 7))}</code>：这次提交后的版本，新增与删除已标出（只读）</span><button data-chg="" data-pane="${k}">退出变更视图</button>`;
       crumb(k, loc); V.emit("rendered", k, false); if (k === V.focus) toc();
@@ -510,7 +537,7 @@
   V.click('.phd [data-t="hist"]', el => (V.isPop("histPop") ? V.closePops() : histPop(V.paneOf(el), el)));
   V.click('.phd [data-t="split"]', () => V.setSplit(!V.isSplit()));   // B keeps what it last showed, or waits empty
   V.click('.phd [data-t="close"]', () => V.setSplit(false));
-  V.hotkey("s", () => { if (V.view !== "doc") return false; const k = V.focus; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
+  V.hotkey("s", () => { const k = V.readingK(); if (!k) return false; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
   V.hotkey("\\", () => { if (V.view !== "doc") return false; $('#pA [data-t="split"]').click(); });
   V.on("split", on => {
     if (!on && V.view === "doc") toc();
@@ -518,11 +545,11 @@
   });
   V.on("theme", () => {
     if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, theme: V.isDark() ? "dark" : "default" });
-    ["A", "B"].forEach(k => { if (V.view === "doc" && P[k].doc && $(".mermaid", P[k].body)) V.rerender(k); });
+    ["A", "B"].forEach(k => { if (shown(k) && P[k].doc && $(".mermaid", P[k].body)) V.rerender(k); });
   });
   V.on("tick", () => ["A", "B"].forEach(k => {
     const p = P[k], loc = p.loc;
-    if (V.view !== "doc" || !loc || loc.kind !== "doc" || !p.doc || p.doc.err || (k === "B" && !V.isSplit())) return;
+    if (!shown(k) || !loc || loc.kind !== "doc" || !p.doc || p.doc.err) return;
     V.json("/api/rev?path=" + encodeURIComponent(loc.tree + "/" + loc.rel))
       .then(d => { if (d.mtime && d.mtime > p.doc.mtime + 1e-3 && p.loc === loc) $(".stale", p.el).classList.add("on"); }).catch(() => {});
   }));

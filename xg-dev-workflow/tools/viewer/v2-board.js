@@ -66,14 +66,18 @@
     return `<button class="row ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span>`
       + `<span class="s">${name}</span>${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button>`;
   }
+  // every form keeps a group's done/dropped cards behind one fold until it is opened
+  const split = g => ({ open: g.closed ? [] : g.cs.filter(c => isOpenSt(c.st)), closed: g.closed ? g.cs : g.cs.filter(c => !isOpenSt(c.st)), show: unfold.has(g.key) });
+  function foldHTML(g, closed, show) {
+    const done = closed.filter(c => c.st === "done").length, tip = `${show ? "收起" : "展开"}已结束的卡：done ${done} · dropped ${closed.length - done}`;
+    return `<button class="fold" data-fold="${esc(g.key)}" data-tip="${tip}"><span class="dots">${closed.map(c => `<i class="${c.st}"></i>`).join("")}</span></button>`;
+  }
   function groupHTML(g, cls, gridCls) {
-    const open = g.closed ? [] : g.cs.filter(c => isOpenSt(c.st)), closed = g.closed ? g.cs : g.cs.filter(c => !isOpenSt(c.st));
-    const show = unfold.has(g.key);
+    const { open, closed, show } = split(g);
     let h = `<section class="${cls}"><h2 ${g.st ? `data-st="${g.st}"` : ""}>${esc(g.name)}<em>${g.cs.length}</em></h2>`;
     if (open.length) h += `<div class="${gridCls}">${open.map(cardHTML).join("")}</div>`;
     if (closed.length) {
-      const done = closed.filter(c => c.st === "done").length, tip = `${show ? "收起" : "展开"}已结束的卡：done ${done} · dropped ${closed.length - done}`;
-      h += `<button class="fold" data-fold="${esc(g.key)}" data-tip="${tip}"><span class="dots">${closed.map(c => `<i class="${c.st}"></i>`).join("")}</span></button>`;
+      h += foldHTML(g, closed, show);
       if (show) h += `<div class="rows">${closed.map(rowHTML).join("")}</div>`;
     }
     return h + "</section>";
@@ -84,31 +88,35 @@
     const dot = c => `<button class="dot ${c.st} ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}" style="--i:${n++}" aria-label="${esc(c.id + " " + c.slug)}">`
       + `<span class="dtag"><span>${c.n}</span><span>·</span><span>${V.ago(mt[c.dir]) || ""}</span></span></button>`;
     return gs.map(g => {
+      const { open, closed, show } = split(g), cs = show ? g.cs : open;
       const subOf = groupBy === "s" ? c => c.p : c => c.st;
-      const order = groupBy === "s" ? [...new Set(g.cs.map(c => c.p))] : FILM.filter(st => g.cs.some(c => c.st === st));
-      const subs = order.map(k => ({ k, cs: g.cs.filter(c => subOf(c) === k).sort((a, b) => a.n.localeCompare(b.n) || a.id.localeCompare(b.id)) }));
+      const order = groupBy === "s" ? [...new Set(cs.map(c => c.p))] : FILM.filter(st => cs.some(c => c.st === st));
+      const subs = order.map(k => ({ k, cs: cs.filter(c => subOf(c) === k).sort((a, b) => a.n.localeCompare(b.n) || a.id.localeCompare(b.id)) }));
       const lanes = subs.map(sb => `<div class="dgrp"><div class="dd">${sb.cs.map(dot).join("")}</div>`
         + `<div class="dl"><span>${esc(sb.k)}</span><em>${sb.cs.length}</em></div></div>`).join("");
-      return `<section class="dproj"><div class="dnum">${g.cs.length}<span class="dname">${esc(g.name)}</span></div><div class="drow">${lanes}</div></section>`;
+      return `<section class="dproj"><div class="dnum">${g.cs.length}<span class="dname">${esc(g.name)}</span></div><div class="drow">${lanes}</div>`
+        + (closed.length ? foldHTML(g, closed, show) : "") + "</section>";
     }).join("");
   }
   function tableHTML(gs) {
     const mt = cardMt();
     const cols = [["n", "编号"], ["slug", "名称"]].concat(groupBy !== "p" ? [["p", "项目"]] : [], groupBy !== "s" ? [["st", "状态"]] : [],
-      groupBy !== "g" ? [["gov", "治理"]] : [], [["prog", "进度"], ["mt", "更新"]]);
-    const val = (c, k) => k === "prog" ? (c.lite ? (c.req ? c.ok / c.req : 0) : c.ph.filter(v => v === 2).length / 6) : k === "mt" ? mt[c.dir] || 0 : c[k];
+      groupBy !== "g" ? [["gov", "治理"]] : [], [["prog", "进度"], ["nx", "下一步"], ["mt", "更新"]]);
+    const val = (c, k) => k === "prog" ? (c.lite ? (c.req ? c.ok / c.req : 0) : c.ph.filter(v => v === 2).length / 6) : k === "mt" ? mt[c.dir] || 0 : k === "nx" ? V.nextOf(c) : c[k];
     const cmp = (a, b) => { const x = val(a, sortK), y = val(b, sortK); return (x > y ? 1 : x < y ? -1 : 0) * (sortDesc ? -1 : 1); };
     const prog = c => c.lite && c.req
       ? `<span class="mt"><i style="width:${(c.ok / c.req * 100).toFixed(1)}%"></i></span>${V.frac(c.ok, c.req)}`
       : `<span class="mu">${esc(V.phaseNow(c))}</span>`;
-    const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n">${c.n}</td><td class="nm">${esc(c.slug)}</td>`
+    const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n">${c.n}</td><td class="nm" data-tip="${esc(c.id + " " + c.slug)}">${esc(c.slug)}</td>`
       + (groupBy !== "p" ? `<td class="mu">${esc(c.p)}</td>` : "") + (groupBy !== "s" ? `<td style="color:var(--c)">${c.st}</td>` : "")
-      + (groupBy !== "g" ? `<td class="mu">${esc(c.gov)}</td>` : "") + `<td>${prog(c)}</td><td class="mu">${V.ago(mt[c.dir])}</td></tr>`;
+      + (groupBy !== "g" ? `<td class="mu">${esc(c.gov)}</td>` : "") + `<td>${prog(c)}</td><td class="mu nxc" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
+      + `<td class="mu">${V.ago(mt[c.dir])}</td></tr>`;
     const th = cols.map(([k, l]) => `<th data-sort="${k}" class="${sortK === k ? "on" + (sortDesc ? " desc" : "") : ""}">${l}</th>`).join("");
     let h = `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>`;
     gs.forEach(g => {
-      const cs = sortK ? [...g.cs].sort(cmp) : g.cs;
-      h += `<tr class="gh"><td colspan="${cols.length}">${esc(g.name)}<em>${cs.length}</em></td></tr>` + cs.map(row).join("");
+      const { open, closed, show } = split(g), sorted = list => (sortK ? [...list].sort(cmp) : list);
+      h += `<tr class="gh"><td colspan="${cols.length}">${esc(g.name)}<em>${g.cs.length}</em></td></tr>` + sorted(open).map(row).join("")
+        + (closed.length ? `<tr class="tfold"><td colspan="${cols.length}">${foldHTML(g, closed, show)}</td></tr>` + (show ? sorted(closed).map(row).join("") : "") : "");
     });
     return h + "</tbody></table>";
   }
@@ -282,7 +290,7 @@
   V.on("scope", () => { if (V.view === "board") { render(); V.status(); } });
   V.on("narrow", () => { if (V.view === "board" && !store.get("form", null)) render(); });
 
-  V.on("click", e => { if (V.view === "board" && sel && !e.target.closest("#bdet,[data-card],.pop,#hgut,.qo,#bhd")) closeDetail(); });
+  V.on("click", e => { if (V.view === "board" && sel && !e.target.closest("#bdet,[data-card],.pop,#hgut,.qo,#bhd,#reader")) closeDetail(); });
   V.click("[data-grp]", el => { groupBy = el.dataset.grp; store.set("grp", groupBy); unfold.clear(); render(); });
   V.click("[data-trays]", () => { trays = !trays; store.set("trays", trays); render(); V.untip(); });
   V.click("[data-form]", el => {

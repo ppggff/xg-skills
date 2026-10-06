@@ -18,7 +18,7 @@ var V2 = (function () {
   };
   V.recent = {   // bounded recall lists: opened docs, searches, find terms
     list: kind => V.store.get("recent-" + kind, []),
-    push(kind, item, cap) { if (item) V.store.set("recent-" + kind, SV.recentPush(V.recent.list(kind), item, cap || 12)); },
+    push(kind, item, cap) { if (item && String(item).length >= 2) V.store.set("recent-" + kind, SV.recentPush(V.recent.list(kind), item, cap || 12)); },
     clear() { ["opened", "search", "find"].forEach(k => V.store.set("recent-" + k, [])); },
   };
 
@@ -119,7 +119,7 @@ var V2 = (function () {
     app.style.setProperty("--wnu", W.wn + "px"); app.style.setProperty("--wsu", W.ws + "px");
     if (W.hd) app.style.setProperty("--hd", W.hd + "px"); else app.style.removeProperty("--hd");
     app.classList.toggle("hdset", !!W.hd); app.classList.toggle("dc", !!W.dc);
-    $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr");
+    $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr"); app.style.setProperty("--waP", W.wa * 100 + "%");
     app.classList.toggle("nx", !!W.nx && nar);
     app.classList.toggle("nc", W.nc || nar); app.classList.toggle("sc", W.sc || nar);
     const tip = nar ? (app.classList.contains("navpop") ? "恢复左侧竖条" : "完全收起左栏") : W.nc ? "展开导航" : "收起导航";
@@ -133,7 +133,7 @@ var V2 = (function () {
       if (!st) return; const dx = e.clientX - st.x, k = g.dataset.g;
       if (k === "nav") { W.nc = false; W.wn = Math.max(170, Math.min(520, st.wn + dx)); }
       else if (k === "side") { W.sc = false; W.ws = Math.max(190, Math.min(520, st.ws - dx)); }
-      else { const r = $("#reader").getBoundingClientRect(); W.wa = Math.max(.22, Math.min(.78, (e.clientX - r.left) / r.width)); }
+      else { const r = $("#centre").getBoundingClientRect(); W.wa = Math.max(.22, Math.min(.78, (e.clientX - r.left) / r.width)); }
       V.applyW();
     });
     const end = () => { if (!st) return; st = null; g.classList.remove("drag"); V.saveW(); V.relayout(); };
@@ -246,6 +246,9 @@ var V2 = (function () {
     if (e.key === "Escape") { const l = layers.find(x => x.isOpen()); if (l) { e.preventDefault(); l.close(); } return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
+    if (e.key === "Enter" && e.target.matches && e.target.matches("[role=link]:not(a[href])")) {   // a span or href-less link: no native activation
+      e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: e.shiftKey })); return;
+    }
     if (/^(Enter|Arrow)/.test(e.key) && e.target.closest && e.target.closest("button:not([data-card]),a,[role=link]")) return;
     const fn = keys[e.key]; if (fn && fn(e) !== false) e.preventDefault();
   });
@@ -256,11 +259,14 @@ var V2 = (function () {
   /* ---- views and panes: A is the main pane (board, search, diff or a doc), B holds docs beside it ---- */
   V.view = "board";
   const SECTIONS = { board: "#board", doc: "#reader", search: "#search", diff: "#diffv" };
+  // a board, search or diff in A keeps B's doc beside it ("beside"); only B of the reader is shown then
   V.show = view => {
     V.view = view;
-    Object.keys(SECTIONS).forEach(k => { $(SECTIONS[k]).hidden = k !== view; });
-    app.classList.toggle("v-board", view !== "doc");
+    const beside = view !== "doc" && V.isSplit();
+    Object.keys(SECTIONS).forEach(k => { $(SECTIONS[k]).hidden = k !== view && !(k === "doc" && beside); });
+    app.classList.toggle("v-board", view !== "doc"); app.classList.toggle("beside", beside);
   };
+  V.readingK = () => (V.view === "doc" ? V.focus : V.isSplit() && V.focus === "B" ? "B" : null);   // the pane whose doc keys act on
   const P = V.P = { A: { k: "A", hist: [], fwd: [], loc: null }, B: { k: "B", hist: [], fwd: [], loc: null } };
   V.focus = "A";
   V.views = {};   // kind → render(k, loc, opt), registered by the area files
@@ -269,46 +275,46 @@ var V2 = (function () {
     if (k === "B" && !V.isSplit()) k = "A";
     $$(".abw button").forEach(b => b.classList.toggle("on", b.dataset.ab === k));
     if (V.focus === k) return;
-    V.focus = k; P.A.el.classList.toggle("focus", k === "A"); P.B.el.classList.toggle("focus", k === "B");
+    V.focus = k; P.A.el.classList.toggle("focus", k === "A"); P.B.el.classList.toggle("focus", k === "B"); app.classList.toggle("fB", k === "B");
     V.emit("focus", k); V.status();
   };
   V.setSplit = on => {
     $("#reader").classList.toggle("split", on);
     const sb = $('#pA [data-t="split"]'); if (sb) sb.classList.toggle("on", on);
     if (!on) V.setFocus("A");
-    V.emit("split", on); V.relayout(); V.status();
+    V.show(V.view); V.emit("split", on); V.relayout(); V.status();
   };
   const same = (a, b) => a && b && a.kind === b.kind && a.tree === b.tree && a.rel === b.rel && a.q === b.q && a.card === b.card;
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
     if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); }
-    if (k === "B" && (loc.kind !== "doc" || !P.A.loc || P.A.loc.kind !== "doc")) k = "A";   // "beside" needs a doc in A to sit beside
+    if (k === "B" && (loc.kind !== "doc" || !P.A.loc)) k = "A";   // B holds docs only
     const p = P[k];
     if (p.loc) V.emit("leave", k, p.loc);
     if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(p.loc); p.fwd.length = 0; }
     p.loc = loc;
     if (k === "B" && !V.isSplit()) V.setSplit(true);
-    if (loc.kind === "doc") { if (k === "A" || V.view !== "doc") V.show("doc"); V.setFocus(k); }
-    else V.show(loc.kind);
+    if (loc.kind === "doc") { V.show(k === "A" ? "doc" : V.view); V.setFocus(k); }
+    else { V.show(loc.kind); V.setFocus("A"); }
     if (loc.kind === "doc" && opt.user !== false) V.recent.push("opened", loc.tree + ":" + loc.rel, 12);
     V.views[loc.kind](k, loc, Object.assign({ entering: true }, opt));
     V.paintHist(); V.emit("nav", k, loc);
   };
   V.back = k => { const p = P[k || V.navPane()]; if (!p.hist.length) return; const to = p.hist.pop(); p.fwd.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
   V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); p.hist.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
-  V.navPane = () => (V.view === "doc" && V.isSplit() ? V.focus : "A");
+  V.navPane = () => (V.isSplit() ? V.focus : "A");
   V.rerender = k => { const p = P[k]; if (p.loc) V.views[p.loc.kind](k, p.loc, { entering: false }); };
   V.locLabel = l => (!l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」"
     : l.kind === "diff" ? l.card + " 的改动" : "看板");
   V.paintHist = () => {
     const p = P[V.navPane()], b = $("#back"), f = $("#fwd");
     b.disabled = !p.hist.length; f.disabled = !p.fwd.length;
-    const t = p.hist[p.hist.length - 1], n = p.fwd[p.fwd.length - 1], side = V.isSplit() && V.view === "doc" ? p.k + " 栏" : "";
+    const t = p.hist[p.hist.length - 1], n = p.fwd[p.fwd.length - 1], side = V.isSplit() ? p.k + " 栏" : "";
     b.dataset.tip = t ? `${side}后退到 ${V.locLabel(t)}` : "后退"; f.dataset.tip = n ? `${side}前进到 ${V.locLabel(n)}` : "前进";
   };
   V.on("focus", V.paintHist);
   // reading side by side, a doc picked from the nav lands in the focused pane; ⇧ sends it to the other one
-  V.target = e => { const k = V.view === "doc" && V.isSplit() ? V.focus : "A"; return e && e.shiftKey ? (k === "A" ? "B" : "A") : k; };
+  V.target = e => { const k = V.isSplit() ? V.focus : "A"; return e && e.shiftKey ? (k === "A" ? "B" : "A") : k; };
   V.openDoc = (tree, rel, e, extra) => V.nav(V.target(e), Object.assign({ kind: "doc", tree, rel }, extra || {}));
 
   /* ---- live refresh: poll the dev/kb change tokens; areas refresh in place ---- */
@@ -346,6 +352,7 @@ var V2 = (function () {
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
+    ["#board", "#search", "#diffv"].forEach(s => $(s).addEventListener("pointerdown", () => V.setFocus("A")));
     const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
       navTog: "colL", sideTog: "colR", sideOpen: "colL" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });

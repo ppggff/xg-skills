@@ -12,7 +12,7 @@
   const names = k => ["hit-" + k, "hitc-" + k, "echo-" + k, "p0-" + k, "p1-" + k, "p2-" + k, "p3-" + k];
 
   /* ---- the index: the pane's readable text, whitespace folded, with a run table back to text nodes ---- */
-  const SKIP = ".anc,.lnum,.mrule,.curline,.lastmark,style,script";
+  const SKIP = ".anc,.lnum,.mrule,.curline,.lastmark,.fml,.fmt,style,script";
   function buildIndex(k) {
     const md = $(".md", P[k].body); if (!md) return null;
     const shells = [], w = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest(SKIP) ? 2 : 1) });
@@ -64,7 +64,7 @@
       seen.add(cls + y);
       html += `<i class="${cls}" style="top:${y}px" data-s="${x[0]}" data-e="${x[1]}"${i != null ? ` data-hit="${i}"` : ""}></i>`;
     };
-    h.pins.forEach(pn => SV.scanHits(h.idx.text, pn.term).forEach(x => mark(x, "p")));
+    h.pins.forEach(pn => SV.scanHits(h.idx.text, pn.term).forEach(x => mark(x, "p p" + pn.slot)));
     h.hits.forEach((x, i) => mark(x, i === h.cur ? "c" : "", i));
     r.innerHTML = html; r.classList.add("on");
   }
@@ -114,6 +114,7 @@
     const inp = $("input", f); inp.value = h.q;
     inp.addEventListener("input", () => { h.histAt = -1; clearTimeout(h.t); h.t = setTimeout(() => find(k, inp.value), DEBOUNCE); });
     inp.addEventListener("keydown", e => {
+      if ((e.metaKey || e.ctrlKey) && V.chord[e.key.toLowerCase()]) return;   // ⌘K and the other chords still reach the page
       e.stopPropagation();
       if (e.key === "Enter") {
         e.preventDefault(); clearTimeout(h.t);   // act on what is in the box, not on the term the debounce has not applied yet
@@ -131,7 +132,7 @@
     count(k);
   }
   function open(k, seed, still) {
-    if (V.view !== "doc" || !$(".md", P[k].body)) return;
+    if (!k || !$(".md", P[k].body)) return;
     const h = H[k], f = $(".find", P[k].el);
     if (!h.open) { h.open = true; bar(k); f.classList.add("on"); $('[data-t="find"]', P[k].el).classList.add("on"); }
     const inp = $("input", f);
@@ -254,13 +255,13 @@
     if (best.dataset.hit != null) { h.cur = +best.dataset.hit; paint(k); show(k, true); return; }
     const rc = rectOf(h.idx, [+best.dataset.s, +best.dataset.e]); if (rc) scrollToRect(k, rc);
   });
-  V.hotkey("f", () => { if (V.view !== "doc") return false; open(V.focus, selected(V.focus)); });
+  V.hotkey("f", () => { const k = V.readingK(); if (!k) return false; open(k, selected(k)); });
   V.hotkey("h", () => {
-    if (V.view !== "doc") return false;
-    const sel = window.getSelection(), t = sel && sel.rangeCount && P[V.focus].body.contains(sel.anchorNode) ? String(sel).trim() : "";
-    if (t) pin(V.focus, t); else V.toast("先选中一个词，再按 h 钉住");
+    const k = V.readingK(); if (!k) return false;
+    const sel = window.getSelection(), t = sel && sel.rangeCount && P[k].body.contains(sel.anchorNode) ? String(sel).trim() : "";
+    if (t) pin(k, t); else V.toast("先选中一个词，再按 h 钉住");
   });
-  V.hotkey("H", () => { if (V.view !== "doc") return false; clearPins(V.focus); });
+  V.hotkey("H", () => { const k = V.readingK(); if (!k) return false; clearPins(k); });
   V.layer(40, () => !!$("#selbar.on"), () => $("#selbar").classList.remove("on"));
-  V.layer(20, () => V.view === "doc" && H[V.focus].open, () => close(V.focus));
+  V.layer(20, () => !!V.readingK() && H[V.readingK()].open, () => close(V.readingK()));
 })(V2);

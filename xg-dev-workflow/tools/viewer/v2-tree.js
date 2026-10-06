@@ -58,19 +58,20 @@
   }
 
   /* ---- render ---- */
-  const curKeys = () => { const l = V.view === "doc" && V.P[V.focus].loc; return l && l.kind === "doc" ? [l.tree + ":" + l.rel] : []; };   // the focused pane's doc only
+  const curKeys = () => { const k = V.readingK(), l = k && V.P[k].loc; return l && l.kind === "doc" ? [l.tree + ":" + l.rel] : []; };   // the focused pane's doc only
   const row = (d, cls, fold, name, extra, attr) => `<button class="tr ${cls}" style="--d:${d}" ${attr}>`
     + `<span class="cv">${fold ? "<i></i>" : ""}</span><span class="nm">${name}</span>${extra || ""}</button>`;
+  const when = (tree, mt) => (sorts[tree].key === "mtime" ? `<em>${V.ago(mt)}</em>` : "");   // times only under a time sort
   function fileRow(tree, rel, name, d, cur) {
     const key = tree + ":" + rel, mt = V.D.mtime[tree][rel];
-    return row(d, cur.includes(key) ? "cur" : "", 0, esc(name), (V.isStar(key) ? '<em class="star">★</em>' : "") + `<em>${V.ago(mt)}</em>`, `data-open="${esc(key)}"`);
+    return row(d, cur.includes(key) ? "cur" : "", 0, esc(name), (V.isStar(key) ? '<em class="star">★</em>' : "") + when(tree, mt), `data-open="${esc(key)}"`);
   }
   function nodeRows(tree, node, base, d, cmp, cur, filesFirst) {
     let h = "";
     const dirs = Object.keys(node.dirs).map(n => ({ name: n, mtime: node.dirs[n].mtime, node: node.dirs[n] })).sort(cmp);
     const dirRows = () => dirs.forEach(e => {
       const k = tree + ":" + base + e.name, open = isOpen(k);
-      h += row(d, "dir " + (open ? "open" : ""), 1, esc(e.name), `<em>${V.ago(e.mtime)}</em>`, `data-fold-k="${esc(k)}"`);
+      h += row(d, "dir " + (open ? "open" : ""), 1, esc(e.name), when(tree, e.mtime), `data-fold-k="${esc(k)}"`);
       if (open) h += nodeRows(tree, e.node, base + e.name + "/", d + 1, cmp, cur, filesFirst);
     });
     if (!filesFirst) dirRows();
@@ -81,15 +82,15 @@
   function cardRows(c, d, cmp, cur) {
     const k = "dev:" + c.dir, open = isOpen(k);
     const node = SV.buildTree(V.docsOf(c).map(x => ({ path: x.rel.slice(c.dir.length + 1), mtime: x.mtime })));
-    let h = row(d, "dir " + (open ? "open" : ""), 1, esc(c.dirName), `<em>${V.ago(node.mtime)}</em>`, `data-fold-k="${esc(k)}" data-tip="${esc(c.dir + " · " + c.st)}"`);
+    let h = row(d, "dir " + (open ? "open" : ""), 1, esc(c.dirName), when("dev", node.mtime), `data-fold-k="${esc(k)}" data-tip="${esc(c.dir + " · " + c.st)}"`);
     if (!open) return h;
     const fix = n => { n.files.forEach(f => { f.path = c.dir + "/" + f.path; }); Object.values(n.dirs).forEach(fix); }; fix(node);
     const cmpD = (a, b) => sorts.dev.key === "name" ? (b.name === "design.md") - (a.name === "design.md") || cmp(a, b) : cmp(a, b);
     return h + nodeRows("dev", node, c.dir + "/", d + 1, cmpD, cur, true);
   }
-  const ctl = t => `<span class="tc" data-tsort="${t}" data-tip="排序：名称 / 修改时间">${sorts[t].key === "mtime" ? "T" : "A"}</span>`
-    + `<span class="tc" data-tdir="${t}" data-tip="排序方向">${sorts[t].dir > 0 ? "↑" : "↓"}</span>`
-    + `<span class="tc ${snap[t] ? "on" : ""}" data-tcol="${t}" data-tip="${snap[t] ? "恢复折叠前的展开" : "折叠这一区的全部文件夹"}">F</span>`;
+  const ctl = t => `<button class="tc" data-tsort="${t}" data-tip="排序：名称 / 修改时间">${sorts[t].key === "mtime" ? "T" : "A"}</button>`
+    + `<button class="tc" data-tdir="${t}" data-tip="排序方向">${sorts[t].dir > 0 ? "↑" : "↓"}</button>`
+    + `<button class="tc ${snap[t] ? "on" : ""}" data-tcol="${t}" data-tip="${snap[t] ? "恢复折叠前的展开" : "折叠这一区的全部文件夹"}">F</button>`;
   function render(reveal) {
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
     const cards = D.cards.filter(c => V.inScope(c.p));
@@ -112,13 +113,13 @@
         const pc = cards.filter(c => c.p === pj.name).map(c => Object.assign(c, { mt: D.mtime.dev[c.dir + "/design.md"] || 0 })).sort(byNo);
         const live = pc.filter(c => OPEN_ST.includes(c.st)), closed = pc.filter(c => !OPEN_ST.includes(c.st));
         const tip = `${esc(pj.name)}：进行中 ${live.length}，共 ${pc.length} 张卡`;
-        h += row(0, "dir top " + (open ? "open" : ""), 1, esc(pj.name), `<em>${V.ago(pj.mtime)}</em>`, `data-fold-k="${esc(k)}" data-tip="${tip}"`);
+        h += row(0, "dir top " + (open ? "open" : ""), 1, esc(pj.name), when("dev", pj.mtime), `data-fold-k="${esc(k)}" data-tip="${tip}"`);
         if (!open) return;
         live.forEach(c => { h += cardRows(c, 1, dc, cur); });
         if (root.dirs[pj.name]) h += nodeRows("dev", root.dirs[pj.name], pj.name + "/", 1, dc, cur, false);
         if (closed.length) {   // always last in the project, after its other folders and files
           const ek = "dev:" + pj.name + "/closed", eo = isOpen(ek), cmt = Math.max(0, ...closed.flatMap(c => V.docsOf(c).map(x => x.mtime)));
-          h += row(1, "dir grp " + (eo ? "open" : ""), 1, `closed (${closed.length})`, `<em>${V.ago(cmt)}</em>`, `data-fold-k="${esc(ek)}" data-tip="done 与 dropped 的卡"`);
+          h += row(1, "dir grp " + (eo ? "open" : ""), 1, `closed (${closed.length})`, when("dev", cmt), `data-fold-k="${esc(ek)}" data-tip="done 与 dropped 的卡"`);
           if (eo) closed.forEach(c => { h += cardRows(c, 2, dc, cur); });
         }
       });
@@ -155,7 +156,8 @@
   }
 
   V.click("[data-fold-k]", el => toggleFold(el.dataset.foldK));
-  V.click("[data-tsort]", el => { const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; V.store.set("tree-sort", sorts); render(); });
+  V.click("[data-tsort]", el => {   // a time sort starts newest first, a name sort A→Z
+    const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tcol]", el => collapse(el.dataset.tcol));
   V.click("[data-unstar]", (el, e) => { e.stopPropagation(); V.toggleStar(el.dataset.unstar); starPop($("#starBtn")); });
