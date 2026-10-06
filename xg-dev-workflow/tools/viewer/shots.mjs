@@ -615,6 +615,31 @@ const SCENARIO = {
     check("detail: Docs links only files that exist", await ctx.eval(`fetch('/api/tree').then(r => r.json()).then(t => { const have = new Set(t.dev.map(x => x.path)); return [...document.querySelectorAll('#left .card-detail .cd-phase[data-rel]')].every(a => have.has(a.dataset.rel)); })`, true));
     await ctx.eval(navAnchor({ nav: "trace", card: "xg-skills/040" })); await ctx.wait("!!document.querySelector('#left .cd-req, #left .tr-loading, #left .muted')"); await sleep(1500);
     check("trace page: the lite card shows its Reqs, not 'no trace data'", await ctx.eval(`document.querySelectorAll('#left .cd-req').length === ${want.a.req} && !/暂无 trace/.test(document.getElementById('left').textContent)`));
+    // Req-3 stars and the trail (J-12: a trail of its own; quick open keeps its ⌘K-only recents)
+    await ctx.eval("localStorage.removeItem('sv-stars'); localStorage.removeItem('sv-recent-trail'); localStorage.removeItem('sv-recent-opened'); true");
+    const D = "xg-skills/040-viewer-refined-frontend/design.md";
+    await docAt("dev", D);
+    await ctx.click("#left .doc-head [data-star]"); await sleep(200);
+    check("the star button stars the doc", await ctx.eval(`(JSON.parse(localStorage.getItem('sv-stars') || '[]')).some(x => x.key === 'dev:${D}') && /★/.test(document.querySelector('#left .doc-head [data-star]').textContent)`));
+    check("the tree marks the starred doc", await ctx.eval(`!!document.querySelector('#tree a.file[data-rel="${D}"] .star')`));
+    await ctx.key("s"); await sleep(200);
+    check("s unstars it", await ctx.eval(`!(JSON.parse(localStorage.getItem('sv-stars') || '[]')).some(x => x.key === 'dev:${D}')`));
+    await ctx.key("s"); await sleep(200);
+    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await docAt("dev", D);
+    check("the star survives a reload", await ctx.eval(`/★/.test(document.querySelector('#left .doc-head [data-star]').textContent)`));
+    await ctx.click('[data-svpop="stars"]'); await sleep(200);
+    check("the stars popover lists it", await ctx.eval(`!!document.querySelector('#svpop.show a[data-rel="${D}"]')`));
+    await ctx.click(`#svpop [data-unstar="dev:${D}"]`); await sleep(200);
+    check("…and unstars from there", await ctx.eval(`!(JSON.parse(localStorage.getItem('sv-stars') || '[]')).length`));
+    await ctx.key("Escape"); await sleep(100);
+    check("Esc closes the popover", await ctx.eval("!document.querySelector('#svpop.show')"));
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/facts.md");
+    check("a doc opened from anywhere joins the trail", await ctx.eval("(JSON.parse(localStorage.getItem('sv-recent-trail') || '[]')).includes('dev/xg-skills/040-viewer-refined-frontend/facts.md')"));
+    check("…but not quick open's recents (R7)", await ctx.eval("!(JSON.parse(localStorage.getItem('sv-recent-opened') || '[]')).length"));
+    await ctx.click('[data-svpop="trail"]'); await sleep(200);
+    check("the trail popover lists the docs, newest first", await ctx.eval("(() => { const a = [...document.querySelectorAll('#svpop.show a[data-rel]')].map(x => x.dataset.rel); return a[0] === 'xg-skills/040-viewer-refined-frontend/facts.md' && a.includes('xg-skills/040-viewer-refined-frontend/design.md'); })()"));
+    await ctx.key("Escape");
+    check("the classic shell writes no svd2- key", await ctx.eval("!Object.keys(localStorage).some(k => k.startsWith('svd2-'))"));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {

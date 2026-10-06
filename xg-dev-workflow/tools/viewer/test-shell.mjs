@@ -944,7 +944,7 @@ t("R17: the find box seeds from the selection, remembers past queries, and waits
   // and the carrier's clear() list is exactly what a new kind has to be backfilled into.
   assert.match(html, /RecentStore\.record\("find", q, FIND_HIST_CAP\);/, "the recall list rides the existing bounded-history store");
   assert.match(html, /var p = PANES\[side\], list = RecentStore\.list\("find"\);/, "…and reads back through it");
-  assert.match(html, /clear: function \(\) \{ \["filter", "opened", "search", "find"\]/, "so `clear history` reaches the find terms too");
+  assert.match(html, /clear: function \(\) \{ \["filter", "opened", "search", "find", "trail"\]/, "so `clear history` reaches the find terms too (and the 041 trail)");
   assert.match(html, /record: function \(kind, item, cap\) \{ if \(item\) lsSet\("sv-recent-" \+ kind, JSON\.stringify\(SV\.recentPush\(this\.list\(kind\), item, cap \|\| 8\)\)\); \}/, "one store, per-kind cap");
   assert.doesNotMatch(html, /sv-findhist/, "the second store is gone, not merely wrapped");
   assert.match(html, /findHistStep\(sideOf\(fi\), e\.key === "ArrowUp" \? 1 : -1\); \}/, "↑/↓ walks it, shell-style");

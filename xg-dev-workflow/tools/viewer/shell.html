@@ -476,6 +476,17 @@
   .cd-req em { font-style: normal; font-size: 11px; color: var(--muted); }
   .cd-req.ok em { color: var(--s-done); }
   .tr-lite { padding: 8px 4px; }
+  /* 041: stars and the trail */
+  .file .star { color: var(--accent); font-size: 10px; margin-left: 4px; }
+  .doc-head [data-star].on { color: var(--accent); }
+  #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
+  #svpop.show { display: block; }
+  #svpop .svh { font-size: 11px; color: var(--muted); padding: 2px 6px 6px; }
+  #svpop .svrow { display: flex; align-items: center; gap: 4px; }
+  #svpop .svrow a { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 3px; color: var(--fg); text-decoration: none; font-size: 12px; }
+  #svpop .svrow a:hover { background: var(--chip); }
+  #svpop .svrow a span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+  #svpop .svnone { padding: 6px; color: var(--muted); font-size: 12px; }
   .cd-chip { font-family: var(--chrome); font-size: 11px; background: var(--chip); border: none;
     border-radius: 4px; padding: 1px 8px; color: var(--body); cursor: pointer; white-space: nowrap; }
   /* 007 R5: trace matrix view — V1 shape: compact table, click a row to expand detail */
@@ -651,7 +662,7 @@
 <button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button>
 <div id="layout">
   <aside id="side" class="pane">
-    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" data-svpop="stars" title="收藏" aria-label="收藏">★</button><button class="iconbtn" data-svpop="trail" title="足迹：最近打开过的文档" aria-label="足迹">◷</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
     <div class="side-top">
     <select id="proj" class="ctl" title="project scope"></select>
     <input id="search" class="ctl" type="search" list="recent-searches" placeholder="search docs… (Enter)">
@@ -974,6 +985,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     leaveView(side);   // L4 write point 1 of 4
     if (push !== false) { p._hist = p._hist.slice(0, p._hi + 1); p._hist.push(view); p._hi = p._hist.length - 1; }
     p._mru = SV.mruPut(p._mru, mruKey(view), view, MRU_CAP);   // the dropdown's own list
+    if (view.kind === "doc") RecentStore.record("trail", view.tree + "/" + view.rel, 10);   // J-12: every opening, apart from quick open's own recents
     if (side === "right") showRight(true);   // a no-op in narrow mode: the caller already landed on the left
     p._entering = true;   // S12
     setFocus(side); render(side);
@@ -1045,7 +1057,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
       mru.map(function (e, i) { return '<option value="' + i + '"' + (e.key === curKey ? " selected" : "") +
         ' title="' + esc(histTitle(e.view)) + '">' + esc(SV.histLabel(e.view)) + "</option>"; }).join("") + "</select></span>" : "";
     var sideBtn = side === "left" ? '<button class="iconbtn" data-side="1" title="files">' + ICON.files + "</button>" : "";
-    var actions = '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">' + ICON.find + "</button>" +
+    var dv = p._view && p._view.kind === "doc" ? p._view : null, starred = dv && isStarred(dv.tree + ":" + dv.rel);
+    var actions = (dv ? '<button class="iconbtn' + (starred ? " on" : "") + '" data-star="' + side + '" title="' + (starred ? "取消收藏" : "收藏") + ' (s)">' + (starred ? "★" : "☆") + "</button>" : "") +
+      '<button class="iconbtn" data-find="' + side + '" title="find in this pane (f)">' + ICON.find + "</button>" +
       (side === "left" ? '<button class="iconbtn" data-quick="1" title="quick open (⌘K)">' + ICON.quick + "</button>" : "");
     var tocBtn = side === "left" ? '<button class="iconbtn" data-tocbtn="1" title="contents">' + ICON.toc + "</button>" : "";
     var tools = side === "left"
@@ -2281,7 +2295,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (filt && f.name.toLowerCase().indexOf(filt) === -1) return;   // R3: only matching files
       var w = sortKey === "mtime" ? '<span class="when">' + relTime(f.mtime) + "</span>" : "";
       h += '<a class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
-        '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + w + "</a>";
+        '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + (isStarred(tree + ":" + f.path) ? '<span class="star">★</span>' : "") + w + "</a>";
     });
     return h;
   }
@@ -2661,7 +2675,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var RecentStore = {
     list: function (kind) { try { return JSON.parse(lsGet("sv-recent-" + kind)) || []; } catch (e) { return []; } },
     record: function (kind, item, cap) { if (item) lsSet("sv-recent-" + kind, JSON.stringify(SV.recentPush(this.list(kind), item, cap || 8))); },
-    clear: function () { ["filter", "opened", "search", "find"].forEach(function (k) { try { localStorage.removeItem("sv-recent-" + k); } catch (e) {} }); }
+    clear: function () { ["filter", "opened", "search", "find", "trail"].forEach(function (k) { try { localStorage.removeItem("sv-recent-" + k); } catch (e) {} }); }
   };
   function fillDatalist(id, kind) {   // R6/R8: recent terms surface as native <datalist> options on the input
     var dl = document.getElementById(id); if (!dl) return;
@@ -2671,6 +2685,44 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function recordFilter() { var v = treeFilterEl.value.trim(); if (v) { RecentStore.record("filter", v); fillDatalist("recent-filters", "filter"); } }
   treeFilterEl.addEventListener("blur", recordFilter);   // R6: record complete filter terms (blur/Enter), not partials
   treeFilterEl.addEventListener("keydown", function (e) { if (e.key === "Enter") recordFilter(); });
+
+  // --- 041: stars (收藏) and the trail of opened docs, each listed in one popover beside the sidebar ---
+  var svPopEl = document.createElement("div"); svPopEl.id = "svpop"; document.body.appendChild(svPopEl);
+  function starList() { try { return JSON.parse(lsGet("sv-stars")) || []; } catch (e) { return []; } }
+  function isStarred(key) { return starList().some(function (x) { return x.key === key; }); }
+  function toggleStar(key) {
+    var on = !isStarred(key), list = starList().filter(function (x) { return x.key !== key; });
+    lsSet("sv-stars", JSON.stringify(on ? [{ key: key, t: Date.now() }].concat(list) : list));
+    flash(on ? "已收藏，侧栏的「收藏」里找得到" : "已取消收藏");
+    ["left", "right"].forEach(function (s) { var v = PANES[s]._view; if (v && v.kind === "doc") refreshHead(s); });
+    var sc = treeEl.scrollTop; renderTree(); treeEl.scrollTop = sc;
+    if (svPopEl.classList.contains("show") && svPopEl.dataset.kind === "stars") svPopOpen("stars");
+  }
+  function refreshHead(side) {
+    var b = PANES[side].querySelector(".doc-head [data-star]"), v = PANES[side]._view; if (!b || !v) return;
+    var on = isStarred(v.tree + ":" + v.rel); b.textContent = on ? "★" : "☆"; b.classList.toggle("on", on); b.title = (on ? "取消收藏" : "收藏") + " (s)";
+  }
+  function svPopOpen(kind) {
+    var row = function (tree, rel, extra) { return '<div class="svrow"><a data-nav="doc" data-tree="' + esc(tree) + '" data-rel="' + esc(rel) + '" title="' + esc(tree + "/" + rel) + '">' +
+      '<b>' + esc(rel.split("/").pop()) + "</b><span>" + esc(rel.split("/").slice(0, -1).join("/")) + "</span></a>" + (extra || "") + "</div>"; };
+    var rows = kind === "stars"
+      ? starList().map(function (x) { var i = x.key.indexOf(":"); return row(x.key.slice(0, i), x.key.slice(i + 1), '<button class="iconbtn" data-unstar="' + esc(x.key) + '" title="取消收藏">×</button>'); })
+      : RecentStore.list("trail").map(function (k) { var i = k.indexOf("/"); return row(k.slice(0, i), k.slice(i + 1)); });
+    svPopEl.dataset.kind = kind;
+    svPopEl.innerHTML = '<div class="svh">' + (kind === "stars" ? "收藏" : "足迹") + "</div>" + (rows.join("") || '<div class="svnone">' + (kind === "stars" ? "还没有收藏。打开文档后点栏头的 ☆，或按 s。" : "还没有打开过文档") + "</div>");
+    var b = document.querySelector('[data-svpop="' + kind + '"]').getBoundingClientRect();
+    svPopEl.style.left = Math.min(innerWidth - 340, b.right + 6) + "px"; svPopEl.style.top = Math.max(8, Math.min(innerHeight - 300, b.top)) + "px";
+    svPopEl.classList.add("show");
+  }
+  function svPopClose() { svPopEl.classList.remove("show"); }
+  document.addEventListener("click", function (e) {
+    var t;
+    if ((t = e.target.closest("[data-svpop]"))) { e.preventDefault(); var k = t.dataset.svpop;
+      if (svPopEl.classList.contains("show") && svPopEl.dataset.kind === k) svPopClose(); else svPopOpen(k); return; }
+    if ((t = e.target.closest("[data-unstar]"))) { e.preventDefault(); e.stopPropagation(); toggleStar(t.dataset.unstar); return; }
+    if ((t = e.target.closest("[data-star]"))) { e.preventDefault(); var v = PANES[t.dataset.star]._view; if (v && v.kind === "doc") toggleStar(v.tree + ":" + v.rel); return; }
+    if (svPopEl.classList.contains("show") && (!e.target.closest("#svpop") || e.target.closest("a[data-nav]"))) svPopClose();
+  });
 
   // --- R5: quick-open palette (⌘K/Ctrl-K) — filename/path fuzzy jump ---
   var qoBack = document.getElementById("qo-back"), qoEl = document.getElementById("qo"),
@@ -2776,6 +2828,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   document.addEventListener("keydown", function (e) {   // ⌘K opens quick-open (anywhere); / focuses content search; ? opens help (not while typing)
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openQuick(); return; }
     if (e.key === "Escape" && narrow && (sideOpen || tocOpen) && !helpEl.classList.contains("show")) { closeOverlays(); return; }   // an overlay sits over the find bar
+    if (e.key === "Escape" && svPopEl.classList.contains("show")) { svPopClose(); return; }
     if (e.key === "Escape" && PANES[focus]._findOpen) { findClose(focus); return; }   // R5/R13: find closes first, ahead of help/change-history
     if (e.key === "Escape" && helpEl.classList.contains("show")) { closeHelp(); return; }   // R3
     if (e.key === "Escape" && chSide) { chClose(); return; }   // R5: close change-history dropdown
@@ -2785,6 +2838,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (e.key === "f" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { e.preventDefault(); findOpen(focus); }   // R5; cmd/ctrl+F stays native
     if (e.key === "h" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { pinCurrent(focus); }   // R7: pin/unpin the selection
     if (e.key === "H" && e.shiftKey && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { clearPins(focus); }   // R13
+    if (e.key === "s" && !(e.metaKey || e.ctrlKey || e.altKey) && !typing) { var sv = PANES[focus]._view; if (sv && sv.kind === "doc") toggleStar(sv.tree + ":" + sv.rel); }
     var fi = t.closest && t.closest("[data-find-input]");
     if (e.key === "Enter" && fi) { e.preventDefault();
       // Enter right after the last keystroke must act on what's in the box, not on the term the
