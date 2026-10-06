@@ -748,6 +748,20 @@ const SCENARIO = {
     check(`form, grouping and sort survive a reload (${J(kept)})`, J(kept) === J(["dots", "项目", "n"]));
     await ctx.eval("localStorage.setItem('sv-board-mode', 'kanban'); localStorage.removeItem('sv-board-group'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board"); await sleep(300);
     check("a stored kanban becomes cols grouped by status", await ctx.eval(`${label("[data-bmode]")} === 'cols' && ${label("[data-bgroup]")} === '状态'`));
+    // Req-7-a the dev tree by card (J-7): open cards first (newest first), the project's other files, closed (n) last
+    await ctx.eval("localStorage.removeItem('sv-tree-open'); localStorage.removeItem('sv-tree-sort'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    const proj = `#tree details[data-name="dev"] > details[data-name="xg-skills"]`;
+    await ctx.eval(`(() => { const d = document.querySelector('${proj}'); d.open = true; return true; })()`); await sleep(200);
+    const kids = await ctx.eval(`[...document.querySelector('${proj}').children].filter(e => e.tagName === 'DETAILS' || e.tagName === 'A').map(e => e.dataset.name || ('file:' + e.dataset.rel.split('/').pop()))`);
+    const cardAt = kids.findIndex(k => /^\d{3}-/.test(k)), nonCard = kids.findIndex(k => !/^\d{3}-/.test(k));
+    check(`open cards come first in their project (${kids.slice(0, 3).join(", ")} …)`, cardAt === 0 && (nonCard < 0 || kids.slice(0, nonCard).every(k => /^\d{3}-/.test(k))));
+    check("…newest card first", (() => { const c = kids.filter(k => /^\d{3}-/.test(k)); return c.every((k, i) => !i || c[i - 1] > k); })());
+    check("closed (n) is the project's last entry", kids[kids.length - 1] === "closed" && await ctx.eval(`/^closed \\(\\d+\\)/.test(document.querySelector('${proj} > details[data-name="closed"] > summary').textContent)`));
+    check("…holding the done and dropped cards", await ctx.eval(`!!document.querySelector('${proj} > details[data-name="closed"] details[data-name^="039-"]') && !document.querySelector('${proj} > details[data-name^="039-"]')`));
+    await ctx.eval(`(() => { const d = document.querySelector('${proj} > details[data-name^="040-"]'); d.open = true; return true; })()`); await sleep(150);
+    check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name^="040-"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].tagName === 'A' && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.tagName === 'A'); })()`));
+    await docAt("dev", "xg-skills/039-viewer-small-screen-touch/design.md");
+    check("opening a doc of a closed card reveals it inside closed (n)", await ctx.eval(`document.querySelector('${proj} > details[data-name="closed"]').open && !!document.querySelector('#tree a.file.active[data-rel="xg-skills/039-viewer-small-screen-touch/design.md"]')`));
     await ctx.key("Escape");
     await ctx.key("Escape");
   },

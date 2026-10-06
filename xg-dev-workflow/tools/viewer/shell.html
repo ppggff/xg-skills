@@ -2242,8 +2242,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
   });
 
   // --- sidebar: project selector + tree (R13/R19/R25) ------------------------
+  var CARD_STATE = {};   // "project/NNN-slug" → state, so the dev tree can sort cards into open and closed (041 J-7)
   function loadTree() {
-    return api("/api/tree").then(function (r) { return r.json(); }).then(function (t) {
+    var board = api("/api/board").then(function (r) { return r.json(); }).catch(function () { return {}; });
+    return Promise.all([api("/api/tree").then(function (r) { return r.json(); }), board]).then(function (res) {
+      var t = res[0]; CARD_STATE = {};
+      Object.keys(res[1]).forEach(function (p) { res[1][p].forEach(function (c) { CARD_STATE[c.project + "/" + c.dir] = c.state; }); });
       RAW = t;
       TREES.dev = new Map(t.dev.map(function (it) { return [it.path.toLowerCase(), it.path]; }));
       TREES.kb = new Map(t.kb.map(function (it) { return [it.path.toLowerCase(), it.path]; }));
@@ -2317,7 +2321,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function treeSection(tree, items) {
     var sc = treeSort[tree], filt = (treeFilter && filterScope[tree]) ? treeFilter.toLowerCase() : "";   // R4: scope off → filt "" → unfiltered render
-    var kids = nodeHtml(tree, SV.buildTree(items), 0, SV.sortCmp(sc.key, sc.dir), sc.key, filt);
+    var kids = (tree === "dev" ? devByCard : nodeHtml)(tree, SV.buildTree(items), 0, SV.sortCmp(sc.key, sc.dir), sc.key, filt);
     if (filt && !kids) kids = '<div class="none">无匹配</div>';   // R3: a scoped-in section with zero matches shows a note, not a bare header
     return '<details open data-name="' + tree + '"' + (filt ? " data-filtered" : "") + '><summary>' + tree + " · " + items.length + secctl(tree) +
       "</summary>" + kids + "</details>";
@@ -2334,24 +2338,59 @@ if (typeof window !== "undefined" && window.marked) (function () {
       b("dir", sc.dir > 0 ? "↑" : "↓", "sort direction") +
       b("collapse", "F", "collapse section folders · activate again to restore") + "</span>";
   }
-  function nodeHtml(tree, node, depth, cmp, sortKey, filt) {
+  // 041 J-7: under each project, its open cards (newest first by name), then the project's other
+  // folders and files, then closed (n) holding the done and dropped cards. Inside a card files come
+  // first, design.md leading. Folder keys stay path-like: a closed card's key gains "closed/".
+  var CLOSED = { done: 1, dropped: 1 };
+  function devByCard(tree, root, depth, cmp, sortKey, filt) {
+    var pad = function (d) { return ' style="padding-left:' + (6 + d * 14) + 'px"'; }, h = "";
+    var when = function (mt) { return sortKey === "mtime" ? '<span class="when">' + relTime(mt) + "</span>" : ""; };
+    var byNo = function (a, b) { return sortKey === "mtime" ? cmp(a, b) : (a.name < b.name ? 1 : a.name > b.name ? -1 : 0) * treeSort.dev.dir; };
+    var cardCmp = function (a, b) { return sortKey === "name" ? (b.name === "design.md") - (a.name === "design.md") || cmp(a, b) : cmp(a, b); };
+    var card = function (p, e, d) {
+      return '<details class="kids" data-name="' + esc(e.name) + '"><summary' + pad(d) + '><span class="arrow"></span>' + esc(e.name) + when(e.mtime) + "</summary>" +
+        nodeHtml(tree, e.node, d + 1, cardCmp, sortKey, filt, true) + "</details>"; };
+    Object.keys(root.dirs).map(function (n) { return { name: n, node: root.dirs[n], mtime: root.dirs[n].mtime }; }).sort(cmp).forEach(function (pj) {
+      if (filt && !dirMatches(pj.node, filt)) return;
+      var dirs = Object.keys(pj.node.dirs).map(function (n) { return { name: n, node: pj.node.dirs[n], mtime: pj.node.dirs[n].mtime }; })
+        .filter(function (e) { return !filt || dirMatches(e.node, filt); });
+      var isCard = function (e) { return /^\d{3}-/.test(e.name); }, st = function (e) { return CARD_STATE[pj.name + "/" + e.name]; };
+      var open = dirs.filter(function (e) { return isCard(e) && !CLOSED[st(e)]; }).sort(byNo);
+      var closed = dirs.filter(function (e) { return isCard(e) && CLOSED[st(e)]; }).sort(byNo);
+      var rest = { dirs: {}, files: pj.node.files }; dirs.filter(function (e) { return !isCard(e); }).forEach(function (e) { rest.dirs[e.name] = e.node; });
+      h += '<details class="kids" data-name="' + esc(pj.name) + '"' + (filt ? " open" : "") + "><summary" + pad(0) + '><span class="arrow"></span>' + esc(pj.name) + when(pj.mtime) + "</summary>" +
+        open.map(function (e) { return card(pj.name, e, 1); }).join("") + nodeHtml(tree, rest, 1, cmp, sortKey, filt) +
+        (closed.length ? '<details class="kids grp" data-name="closed"' + (filt ? " open" : "") + "><summary" + pad(1) + '><span class="arrow"></span>closed (' + closed.length + ")" +
+          when(Math.max.apply(null, closed.map(function (e) { return e.mtime || 0; }))) + "</summary>" + closed.map(function (e) { return card(pj.name, e, 2); }).join("") + "</details>" : "") +
+        "</details>";
+    });
+    root.files.slice().sort(cmp).forEach(function (f) { h += nodeHtml(tree, { dirs: {}, files: [f] }, 0, cmp, sortKey, filt); });
+    return h;
+  }
+  function nodeHtml(tree, node, depth, cmp, sortKey, filt, filesFirst) {
     depth = depth || 0;
     var pad = ' style="padding-left:' + (6 + depth * 14) + 'px"', h = "";
     var dirs = Object.keys(node.dirs).map(function (d) { return { name: d, node: node.dirs[d], mtime: node.dirs[d].mtime }; });
-    dirs.sort(cmp);   // folders always render before files → folders-first regardless of sort
+    dirs.sort(cmp);   // folders render before files (inside a card, after them — 041)
+    if (filesFirst) h += filesHtml();
     dirs.forEach(function (e) {
       if (filt && !dirMatches(e.node, filt)) return;   // R3: prune folders with no matching descendant
       var w = sortKey === "mtime" ? '<span class="when">' + relTime(e.mtime) + "</span>" : "";
       h += '<details class="kids" data-name="' + esc(e.name) + '"' + (filt ? " open" : "") + '><summary' + pad + '><span class="arrow"></span>' + esc(e.name) + w + "</summary>" +
         nodeHtml(tree, e.node, depth + 1, cmp, sortKey, filt) + "</details>";
     });
-    node.files.slice().sort(cmp).forEach(function (f) {
-      if (filt && f.name.toLowerCase().indexOf(filt) === -1) return;   // R3: only matching files
-      var w = sortKey === "mtime" ? '<span class="when">' + relTime(f.mtime) + "</span>" : "";
-      h += '<a class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
-        '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + (isStarred(tree + ":" + f.path) ? '<span class="star">★</span>' : "") + w + "</a>";
-    });
+    if (!filesFirst) h += filesHtml();
     return h;
+    function filesHtml() {
+      var o = "";
+      node.files.slice().sort(cmp).forEach(function (f) {
+        if (filt && f.name.toLowerCase().indexOf(filt) === -1) return;   // R3: only matching files
+        var w = sortKey === "mtime" ? '<span class="when">' + relTime(f.mtime) + "</span>" : "";
+        o += '<a class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
+          '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + (isStarred(tree + ":" + f.path) ? '<span class="star">★</span>' : "") + w + "</a>";
+      });
+      return o;
+    }
   }
   // 006 T4: mark is the read-only half — every re-render path (refresh/sort/filter/scope/theme/
   // history/mirror) may only re-tag the active doc; changing fold state from those paths is what
