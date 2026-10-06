@@ -400,11 +400,13 @@
   .btable .tnext { color: var(--body); min-width: 12em; }
   .btable .twhen { text-align: right; }
   .btable { table-layout: fixed; }   /* one column grid across the per-project tables */
-  .btable td:nth-child(1) { width: 5em; } .btable td:nth-child(2) { width: 30%; } .btable td:nth-child(3) { width: 5em; }
+  .btable td:nth-child(1) { width: 5em; } .btable td:nth-child(2) { width: 30%; } .btable td:nth-child(3) { width: 8.5em; }   /* 041: a lite card's bar and k/n fit (5em let them spill into next) */
+  .btable .tprog { overflow: hidden; }
+  .btable .tprog .lbar { width: 34px; }
   .btable td:nth-child(5) { width: 4.5em; }
   .btable .tid .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
   html.narrow .btable td:nth-child(1) { width: 3.8em; } html.narrow .btable td:nth-child(2) { width: 33%; }   /* fixed widths line the groups up */
-  html.narrow .btable td:nth-child(3) { width: 3.9em; } html.narrow .btable td:nth-child(5) { width: 3.4em; }
+  html.narrow .btable td:nth-child(3) { width: 7.5em; } html.narrow .btable td:nth-child(5) { width: 3.4em; }
   html.narrow .btable .tnext, html.narrow .btable .ttitle { min-width: 0; overflow-wrap: anywhere; }
   html.narrow .btable td { padding-left: 5px; padding-right: 5px; }
 
@@ -517,6 +519,13 @@
   #themePop .lum input { flex: 1; min-width: 0; accent-color: var(--accent); }
   #themePop .lum em { font-style: normal; width: 34px; text-align: right; }
   #themePop .lum button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; }
+  .brand-btns .iconbtn:not([data-sidetop]) { width: 28px; padding-left: 0; padding-right: 0; }   /* no display here: the narrow rules hide some of these */
+  .brand-btns .iconbtn .ic, .navbtn .k .ic { width: 14px; height: 14px; }
+  .brand-btns .iconbtn:not([data-sidetop]) .ic { display: block; margin: 0 auto; }
+  .brand-btns [data-sidetop] .ic { width: 12px; height: 12px; vertical-align: -2px; margin-left: 3px; }
+  .navbtn .k { display: inline-flex; align-items: center; justify-content: center; }
+  #dotpop { display: none; position: fixed; z-index: 50; width: 360px; pointer-events: none; }
+  #dotpop .card { box-shadow: 0 8px 24px rgba(0,0,0,.18); background: var(--bg); }
   #xline { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 40; }
   #xline path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
   #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
@@ -784,7 +793,13 @@
   "use strict";
   // 041 J-11: the toggle opens a choice of five themes and a brightness slider; its glyph shows the current theme
   var KEY = "sv-theme", root = document.documentElement;
-  var THEMES = [["", "跟随系统", "◐"], ["light", "亮", "☀"], ["dark", "暗", "☾"], ["bone", "骨白", "◇"], ["space", "深空", "◆"]];
+  // each theme's icon is a 16×16 line drawing like the pane head's (041 Req-8-e)
+  var tic = function (d) { return '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">' + d + "</svg>"; };
+  var THEMES = [["", "跟随系统", tic('<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor"/>')],
+    ["light", "亮", tic('<circle cx="8" cy="8" r="2.6"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>')],
+    ["dark", "暗", tic('<path d="M12.8 9.6A5.2 5.2 0 1 1 6.4 3.2a4.2 4.2 0 0 0 6.4 6.4z"/>')],
+    ["bone", "骨白", tic('<rect x="3" y="3" width="10" height="10" rx="2"/>')],
+    ["space", "深空", tic('<rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/>')]];
   function saved() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
   function apply(v) { if (THEMES.some(function (t) { return t[0] && t[0] === v; })) root.setAttribute("data-theme", v);
     else root.removeAttribute("data-theme"); }
@@ -799,7 +814,7 @@
   var btn = document.getElementById("themeToggle"), pop = document.createElement("div"); pop.id = "themePop";
   function paint() {
     var v = root.getAttribute("data-theme") || "", t = THEMES.filter(function (x) { return x[0] === v; })[0] || THEMES[0];
-    if (btn) btn.textContent = t[2];
+    if (btn) { btn.innerHTML = t[2]; btn.title = "主题：" + t[1] + "（点击选择与调亮度）"; }
   }
   function openPop() {
     var v = root.getAttribute("data-theme") || "", l = Math.round(parseFloat((root.style.filter.match(/[\d.]+/) || [1])[0]) * 100);
@@ -1110,6 +1125,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     reset: ic("M3.5 8a4.5 4.5 0 1 0 1.3-3.2M3.5 2.8v2.4h2.4"),
     close: ic("M4 4l8 8M12 4l-8 8")
   };
+  // 041 Req-8-e: the sidebar's controls take the pane head's line icons, at its size
+  ICON.star = ic("M8 2.2l1.75 3.55 3.9.57-2.83 2.76.67 3.9L8 11.15 4.51 13l.67-3.9L2.35 6.32l3.9-.57z");
+  ICON.board = ic("M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5h-4.5zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5h-4.5z");
+  ICON.recent = ic("M3 4h10M3 8h10M3 12h7");
+  ICON.code = ic("M6 4.5 2.5 8 6 11.5M10 4.5 13.5 8 10 11.5");
+  ICON.collapse = ic("M3 3v10M11.5 4 7.5 8l4 4");
+  (function () {
+    var set = function (sel, html) { var el = document.querySelector(sel); if (el) el.innerHTML = html; };
+    set(".brand-btns [data-treefilter]", ICON.find); set('.brand-btns [data-svpop="stars"]', ICON.star);
+    set('.brand-btns [data-svpop="trail"]', ICON.clock); set('.brand-btns [data-collapse="side"]', ICON.collapse);
+    var sc = document.querySelector(".brand-btns [data-sidetop]"); if (sc) sc.innerHTML = '<span class="scope">' + esc((sc.querySelector(".scope") || {}).textContent || "all") + "</span>" + ICON.caret;
+    set('.navbtn[data-go="board"] .k', ICON.board); set('.navbtn[data-go="recent"] .k', ICON.recent); set("#gitwebEntry .k", ICON.code);
+  })();
   function paneHead(side, crumb, extra) {
     var p = PANES[side];
     var back = '<button class="iconbtn" data-back="' + side + '"' + (p._hi > 0 ? "" : " disabled") + ' title="back ([)">' + ICON.back + "</button>" +
@@ -1347,14 +1375,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // Status filter lives in the bar (R56/R60, default hides done+dropped); project filter moved to
   // the TOC checkboxes (R61). Both are display-only, kept across re-renders.
   // R65: persist board view prefs (mode + status filter); project filter (boardHideProj) stays session-only.
-  // 041 (J-10): four forms and three groupings. A form SV.boardMode predates (cols, dots) is read here;
-  // a stored kanban becomes the cols form grouped by status, which is what it was.
-  var BOARD_FORMS = ["grid", "cols", "table", "dots"], BOARD_GROUPS = { p: "项目", s: "状态", g: "治理" }, BOARD_SORTS = { "": "默认", n: "编号", m: "更新", r: "进度" };
+  // 041: four forms on one button. The signal form (dots) is one SV.boardMode predates, so it is read
+  // here; a "cols" stored while 041 briefly had groupings is the kanban it replaced.
+  var BOARD_FORMS = ["grid", "kanban", "table", "dots"];
   var storedMode = lsGet("sv-board-mode");
-  var boardMode = BOARD_FORMS.indexOf(storedMode) >= 0 ? storedMode : SV.boardMode(storedMode, lsGet("sv-board-kanban"));   // null until the human picks a form
-  var boardGroup = BOARD_GROUPS[lsGet("sv-board-group")] ? lsGet("sv-board-group") : boardMode === "kanban" ? "s" : "p";
-  if (boardMode === "kanban") { boardMode = "cols"; lsSet("sv-board-mode", "cols"); lsSet("sv-board-group", boardGroup); }
-  var boardSort = BOARD_SORTS[lsGet("sv-board-sort") || ""] ? lsGet("sv-board-sort") || "" : "";
+  var boardMode = storedMode === "dots" ? "dots" : storedMode === "cols" ? "kanban" : SV.boardMode(storedMode, lsGet("sv-board-kanban"));   // null until the human picks a form
   var boardHideState = (function () { try { return JSON.parse(lsGet("sv-board-hide")) || { done: true, dropped: true }; }
     catch (e) { return { done: true, dropped: true }; } })();
   var boardHideProj = {};
@@ -1398,34 +1423,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
       boardCardMap = {}; all.forEach(function (c) { boardCardMap[c.project + "/" + c.nnn] = c; });   // R64: detail-drawer lookup
       var states = []; all.forEach(function (c) { if (states.indexOf(c.state) === -1) states.push(c.state); });
       var cards = all.filter(function (c) { return !boardHideState[c.state]; });   // bar handles status
-      var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "cols";
-      if (boardGroup !== "p") cards = cards.filter(function (c) { return !boardHideProj[c.project]; });   // the TOC's project ticks still hold, as they did for the kanban
-      var gk = boardGroup === "s" ? function (c) { return c.state; } : boardGroup === "g" ? function (c) { return c.governance || "legacy"; } : function (c) { return c.project; };
-      var byKey = {}, order = [];
-      cards.forEach(function (c) { var k = gk(c); if (!byKey[k]) { byKey[k] = []; order.push(k); } byKey[k].push(c); });
-      if (boardGroup === "s") order = STATE_ORDER.filter(function (k) { return byKey[k]; }).concat(order.filter(function (k) { return STATE_ORDER.indexOf(k) === -1; }));
-      if (isKanban) {                               // a column per group; the project filter still applies
-        body = kanban(order, byKey); tf = null;
-      } else {                                      // grid, table and dots wrap each group so the TOC can hide it (by project)
-        body = mode === "table" ? boardTable(order, byKey, SV.cardMtimes(RAW.dev)) : mode === "dots" ? dots(order, byKey) : list(order, byKey);
-        tf = boardGroup === "p" ? { set: boardHideProj, keys: order } : null;
+      var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "kanban";
+      if (isKanban) {                               // kanban groups by status; project filter still applies
+        body = kanban(cards.filter(function (c) { return !boardHideProj[c.project]; })); tf = null;
+      } else {                                      // grid, table and dots group by project; TOC checkboxes hide groups
+        var byProj = {}, order = [];
+        cards.forEach(function (c) { if (!byProj[c.project]) { byProj[c.project] = []; order.push(c.project); } byProj[c.project].push(c); });
+        body = mode === "table" ? boardTable(order, byProj, SV.cardMtimes(RAW.dev)) : mode === "dots" ? dots(order, byProj) : list(order, byProj);
+        tf = { set: boardHideProj, keys: order };
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
       var next = BOARD_FORMS[(BOARD_FORMS.indexOf(mode) + 1) % BOARD_FORMS.length];   // one button cycles the forms; its label is the current one
-      var groupKeys = Object.keys(BOARD_GROUPS), sortKeys = Object.keys(BOARD_SORTS);
       pane.innerHTML = paneHead(side, "Board",
-        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → cols → table → dots (now ' + mode + ')">' + mode + "</button>" +
-        '<button class="iconbtn" data-bgroup="' + groupKeys[(groupKeys.indexOf(boardGroup) + 1) % 3] + '" title="分组：项目 → 状态 → 治理">' + BOARD_GROUPS[boardGroup] + "</button>" +
-        (mode === "table" ? '<button class="iconbtn" data-bsort="' + sortKeys[(sortKeys.indexOf(boardSort) + 1) % 4] + '" title="排序：默认 → 编号 → 更新 → 进度">' + BOARD_SORTS[boardSort] + "</button>" : "")) +
+        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → table → dots (now ' + mode + ')">' + mode + "</button>") +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       padForDrawer(pane);
       pane.querySelectorAll("[data-bmode]").forEach(function (b) {
         b.onclick = function () { boardMode = b.dataset.bmode; lsSet("sv-board-mode", boardMode); render(side); }; });
-      pane.querySelectorAll("[data-bgroup]").forEach(function (b) {
-        b.onclick = function () { boardGroup = b.dataset.bgroup; lsSet("sv-board-group", boardGroup); render(side); }; });
-      pane.querySelectorAll("[data-bsort]").forEach(function (b) {
-        b.onclick = function () { boardSort = b.dataset.bsort; lsSet("sv-board-sort", boardSort); render(side); }; });
       pane.querySelectorAll("[data-fstate]").forEach(function (b) {
         b.onclick = function () { boardHideState[b.dataset.fstate] = !boardHideState[b.dataset.fstate];
           lsSet("sv-board-hide", JSON.stringify(boardHideState)); render(side); }; });
@@ -1601,27 +1616,24 @@ if (typeof window !== "undefined" && window.marked) (function () {
     invalidateGeometry(side);   // S9 hookpoint 6: drawer open/close changes the docbody's available height
   }
   function grpHead(k, n) { return '<h2 class="sec sec-proj">' + esc(k) + ' <span class="muted">· ' + n + "</span></h2>"; }
-  function list(order, byKey) {                     // R61: each group wrapped so the TOC can hide it
-    return order.map(function (k) {
-      return '<section class="grp" data-key="' + esc(k) + '">' + grpHead(k, byKey[k].length) +
-        '<div class="board">' + byKey[k].map(cardHtml).join("") + "</div></section>"; }).join("");
+  function list(order, byProj) {                    // R61: each project group wrapped so the TOC can hide it
+    return order.map(function (p) {
+      return '<section class="grp" data-key="' + esc(p) + '">' + grpHead(p, byProj[p].length) +
+        '<div class="board">' + byProj[p].map(cardHtml).join("") + "</div></section>"; }).join("");
   }
-  function dots(order, byKey) {                     // the signal form: one dot per card, coloured by status
+  function dots(order, byProj) {                    // the signal form: one dot per card, coloured by status, a card on hover
     return order.map(function (k) {
-      return '<section class="grp" data-key="' + esc(k) + '">' + grpHead(k, byKey[k].length) + '<div class="sdots">' +
-        byKey[k].map(function (c) { var key = c.project + "/" + c.nnn;
+      return '<section class="grp" data-key="' + esc(k) + '">' + grpHead(k, byProj[k].length) + '<div class="sdots">' +
+        byProj[k].map(function (c) { var key = c.project + "/" + c.nnn;
           return '<button class="sdot ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '" title="' +
             esc(key + " " + c.dir.replace(/^\d+-/, "") + " · " + c.state + (c.governance === "lite" ? " · " + liteBar(c).replace(/<[^>]*>/g, "") : "")) + '"></button>'; }).join("") +
         "</div></section>"; }).join("");
   }
-  function boardTable(order, byKey, mtimes) {       // one table per group; the title wraps instead of truncating
-    var val = function (c) { var v = SV.cardView(c);   // J-3 丙: a sort from the board head, no header row
-      return boardSort === "n" ? c.nnn : boardSort === "m" ? mtimes[c.project + "/" + c.dir] || 0 : v.lite ? (v.req ? v.ok / v.req : 0) : v.ph.filter(function (x) { return x === 2; }).length / 6; };
+  function boardTable(order, byProj, mtimes) {      // one table per project group; the title wraps instead of truncating
     return order.map(function (p) {
-      var rows = boardSort ? byKey[p].slice().sort(function (a, b) { var x = val(a), y = val(b); return x < y ? 1 : x > y ? -1 : 0; }) : byKey[p];
-      return '<section class="grp" data-key="' + esc(p) + '">' + grpHead(p, byKey[p].length) +
+      return '<section class="grp" data-key="' + esc(p) + '">' + grpHead(p, byProj[p].length) +
         '<table class="btable">' +
-        rows.map(function (c) {
+        byProj[p].map(function (c) {
           var key = c.project + "/" + c.nnn, mt = mtimes[c.project + "/" + c.dir];
           var prog = c.governance === "lite" ? liteBar(c) : esc(SV.legacyPhase(c.steps));
           return '<tr class="trow ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '">' +
@@ -1631,13 +1643,27 @@ if (typeof window !== "undefined" && window.marked) (function () {
             '<td class="tnext">' + esc(c.effective_next || "") + "</td>" +
             '<td class="twhen">' + (mt ? relTime(mt) : "") + "</td></tr>"; }).join("") + "</table></section>"; }).join("");
   }
-  function kanban(order, byKey) {                   // a column per group; grouped by status this is the old kanban
-    var keys = order.filter(function (k) { return boardGroup !== "p" || !boardHideProj[k]; });
+  function kanban(cards) {
+    var cols = {}, order = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
+    cards.forEach(function (c) { (cols[c.state] = cols[c.state] || []).push(c); });
+    var keys = order.filter(function (k) { return cols[k]; }).concat(Object.keys(cols).filter(function (k) { return order.indexOf(k) === -1; }));
     return '<div class="board kanban">' + keys.map(function (k) {
-      return '<div class="col" style="--lane:' + (boardGroup === "s" ? "var(" + stVar(k) + ")" : "var(--line2)") + '"><h3><span class="sw"></span><span class="nm">' +
-        esc(k) + '</span><span class="ct">' + byKey[k].length + "</span></h3>" +
-        byKey[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
+      return '<div class="col" style="--lane:var(' + stVar(k) + ')"><h3><span class="sw"></span><span class="nm">' +
+        esc(k) + '</span><span class="ct">' + cols[k].length + "</span></h3>" +
+        cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
   }
+  // the signal form's hover card: the card face, as the other forms draw it
+  var dotPop = null;
+  document.addEventListener("mouseover", function (e) {
+    var d = e.target.closest && e.target.closest(".sdot[data-key]");
+    if (!d) { if (dotPop) dotPop.style.display = "none"; return; }
+    var c = boardCardMap[d.dataset.key]; if (!c) return;
+    if (!dotPop) { dotPop = document.createElement("div"); dotPop.id = "dotpop"; document.body.appendChild(dotPop); }
+    dotPop.innerHTML = cardHtml(c); dotPop.style.display = "block";
+    var r = d.getBoundingClientRect(), w = dotPop.offsetWidth, h = dotPop.offsetHeight;
+    dotPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
+    dotPop.style.top = (r.top - h - 10 < 8 ? r.bottom + 10 : r.top - h - 10) + "px";
+  });
 
   // --- trace/detail view (007 R5, V1 shape): the card's task table + per-R matrix.
   //     One matrix row per R, five-dimension columns; click a row to expand its detail. ---
@@ -1835,6 +1861,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
     tocPane.querySelectorAll("a.spy").forEach(function (a) { a.classList.remove("spy"); });
     var ta = at >= 0 && tocPane.querySelector('a[data-toc="' + at + '"]'); if (ta) ta.classList.add("spy");
   }
+  ["left", "right"].forEach(function (s) {   // the current-line band sits in pane coordinates: a kanban scrolling sideways must carry it
+    PANES[s].addEventListener("scroll", function (e) { if (e.target !== PANES[s] && e.target.classList && e.target.classList.contains("kanban")) invalidateGeometry(s); }, true); });
   ["left", "right"].forEach(function (s) { var raf = 0;
     PANES[s].addEventListener("scroll", function () { if (s !== focus || raf) return; raf = requestAnimationFrame(function () { raf = 0; spyToc(); }); }, { passive: true }); });
   function markCurrent() {                       // sync the TOC's active entry to pane._cur (R29)

@@ -1210,10 +1210,10 @@ t("narrow mode: the visit history is a ▾ button over the native select", () =>
 });
 t("board: the table form (rows retired)", () => {
   assert.equal(SV.boardMode("table", null), "table");
-  // 041 J-10: four forms on one cycling button; the table groups like the other forms; a dot selects like a card
-  assert.match(html, /var BOARD_FORMS = \["grid", "cols", "table", "dots"\]/, "the forms the button cycles");
+  // 041: four forms on one cycling button (the signal form after the table); a dot selects like a card
+  assert.match(html, /var BOARD_FORMS = \["grid", "kanban", "table", "dots"\]/, "the forms the button cycles");
   assert.match(html, /var next = BOARD_FORMS\[\(BOARD_FORMS\.indexOf\(mode\) \+ 1\) % BOARD_FORMS\.length\];/, "one button cycles the forms");
-  assert.match(html, /mode === "table" \? boardTable\(order, byKey, SV\.cardMtimes\(RAW\.dev\)\)/, "table groups like the other forms");
+  assert.match(html, /mode === "table" \? boardTable\(order, byProj, SV\.cardMtimes\(RAW\.dev\)\)/, "table groups by project like rows");
   assert.match(html, /e\.target\.closest\("\.card, \.trow, \.sdot"\)/, "a table row or a dot selects the card like a card does");
   assert.match(html, /pane\.querySelectorAll\("\.card, \.trow, \.sdot"\)\.forEach\(function \(el\) \{ el\.classList\.toggle\("selected"/, "and is marked selected");
   assert.doesNotMatch(html, /function rowHtml|function rows\(|\.row \{|\.row\.selected/, "the rows form and its styles are gone");
@@ -1226,7 +1226,7 @@ t("narrow mode: chrome text back near desktop sizes; inputs stay 16px", () => {
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "16px keeps iOS from zooming into a focused field");
 });
 t("board table: no state column, the state is the dot before the id; it fits a phone", () => {
-  assert.match(html, /'<table class="btable">' \+\n\s+rows\.map/, "no header row (tried without it); five cells per row");
+  assert.match(html, /'<table class="btable">' \+\n\s+byProj\[p\]\.map/, "no header row (tried without it); five cells per row");
   assert.match(html, /'<td class="tid"><span class="dot" style="background:var\(' \+ stVar\(c\.state\) \+ '\)" title="' \+ esc\(c\.state\) \+ '"><\/span>' \+ esc\(c\.nnn\)/, "the state rides on a dot, like rows");
   assert.match(html, /html\.narrow \.btable \.tnext, html\.narrow \.btable \.ttitle \{ min-width: 0; overflow-wrap: anywhere; \}/, "title and next may shrink so the table fits 375px");
   assert.match(html, /html\.narrow \.btable td:nth-child\(1\) \{ width: 3\.8em; \}/, "narrow keeps the fixed layout with its own widths, so the groups line up");
