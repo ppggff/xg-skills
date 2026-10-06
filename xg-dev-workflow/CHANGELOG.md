@@ -4,6 +4,26 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-06 — status viewer: /v2 panes hold any view; recent commits, help, brightness (card xg-skills/040)
+
+The human's ruling on the comparison's open points, applied to `/v2`.
+- The two panes now sit above their content. A or B can hold a doc, the board, a search, a card diff or the recent
+  commits. Every view's head has the pane tag, the narrow A/B switch and the split/close button.
+- A view exists once: opening it in one pane takes it from the other, which goes blank and keeps it in its history.
+- Second-phase items done, as recommended:
+  - a help panel (`?`);
+  - the side column under a search lists the files hit, to jump to or hide;
+  - mirror (open the current doc in the other pane);
+  - the recent commits of dev_root as a view.
+  The other eight second-phase items stay out.
+- A brightness slider in the theme popover (90–140%, 100% is the page as designed) uses a filter on the root, so
+  every theme keeps its hues.
+- Smaller changes:
+  - the change history stays open while stepping through commits;
+  - find works on search results;
+  - quick open lists 8 recent docs and up to 40 doc matches again;
+  - code text prefers Sarasa Fixed SC, with inline code on a chip, as in the classic shell.
+
 ## 2026-10-06 — status viewer: /v2 closes the detail gaps to the classic shell (card xg-skills/040)
 
 A side-by-side run of `/` and `/v2`, first item by item and then detail by detail, found v2 missing or weaker in places
