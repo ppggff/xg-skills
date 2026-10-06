@@ -342,7 +342,7 @@ const SCENARIO = {
     await ctx.click("#sideOpen"); await ctx.go("board");
     await ctx.eval("(() => { const c = document.querySelector('#bscroll .card[data-card]'); c.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true, detail: 1 })); return true; })()");
     await ctx.wait(has("#pB .md"));
-    check("⇧-click on the board opens the card in B, beside the board", await ctx.eval("V2.view === 'board' && V2.isSplit() && V2.P.B.loc.kind === 'doc' && document.getElementById('app').classList.contains('beside')"));
+    check("⇧-click on the board opens the card in B, beside the board", await ctx.eval("V2.kindOf('A') === 'board' && V2.isSplit() && V2.P.B.loc.kind === 'doc'"));
     await ctx.key("k", 4); await ctx.sleep(100); await ctx.type("Fact-1"); await ctx.sleep(4000);
     const got = await ctx.eval("new Set(performance.getEntriesByType('resource').filter(e => /\\/facts\\.md$/.test(e.name) && e.responseStatus === 200).map(e => e.name)).size");
     const all = await ctx.eval("V2.D.tree.dev.filter(x => /^[^/]+\\/\\d{3}-[^/]+\\/facts\\.md$/.test(x.path)).length");
@@ -398,6 +398,76 @@ const SCENARIO = {
     await ctx.click('[data-tcol="dev"]');
     check(`F under scope ${p2} keeps ${p1}'s remembered fold`, await ctx.eval(`JSON.parse(localStorage.getItem('svd2-tree-open')).includes(${J("dev:" + p1)})`));
   },
+  // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
+  // the classic code fonts, the help panel, the search side list, mirror, and the brightness slider.
+  async round3(ctx, check, o) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
+    check("inline code: Sarasa first, on a chip", await ctx.eval("(() => { const c = document.querySelector('#pA .md :not(pre) > code'); if (!c) return true; const s = getComputedStyle(c); return /^\"?Sarasa Fixed SC/.test(s.fontFamily) && s.backgroundColor !== 'rgba(0, 0, 0, 0)'; })()"));
+    check("code blocks: Sarasa first", await ctx.eval("(() => { const c = document.querySelector('#pA .md pre'); return !c || /^\"?Sarasa Fixed SC/.test(getComputedStyle(c).fontFamily); })()"));
+    await ctx.click("#pA [data-t=hist]"); await ctx.wait("document.querySelectorAll('#histPop [data-chg]:not([data-chg=\"\"])').length > 1", 5000);
+    await ctx.click("#histPop [data-chg]:not([data-chg=''])"); await ctx.wait("!document.querySelector('#pA .chgbar').hidden", 5000); await ctx.sleep(300);
+    check("picking a commit leaves the history open", await ctx.eval("document.getElementById('histPop').classList.contains('on')"));
+    check("…the picked row stays one line", await ctx.eval("(() => { const c = document.querySelector('#histPop .hi.cur'), o = [...document.querySelectorAll('#histPop .hi:not(.cur)')].pop(); return !!c && Math.abs(c.offsetHeight - o.offsetHeight) <= 2; })()"));
+    const first = await ctx.eval("document.querySelector('#histPop .hi.cur').dataset.chg");
+    await ctx.click("#histPop .hi:not(.cur)[data-chg]:not([data-chg=''])"); await ctx.sleep(800);
+    check("…and the next pick steps to another commit", await ctx.eval(`document.querySelector('#histPop .hi.cur') && document.querySelector('#histPop .hi.cur').dataset.chg !== ${J(first)}`));
+    await ctx.key("Escape"); await ctx.click("#pA .chgbar [data-chg]");
+    await ctx.click("#pA [data-t=mirror]"); await ctx.wait("!!document.querySelector('#pB .md')");
+    check("mirror opens the same doc in B", await ctx.eval("V2.isSplit() && V2.P.B.loc.rel === V2.P.A.loc.rel"));
+    await ctx.eval("V2.setSplit(false); true");
+
+    await ctx.key("?", 8); await ctx.sleep(100);
+    check("? opens the key help", await ctx.eval("!document.getElementById('help').hidden && document.querySelectorAll('#help kbd').length > 15"));
+    await ctx.key("Escape");
+    check("Esc closes it", await ctx.eval("document.getElementById('help').hidden"));
+
+    await ctx.eval(nav("A", { kind: "search", q: "viewer" }) + "; true"); await ctx.wait("!!document.querySelector('#search .shit')"); await ctx.sleep(300);
+    check("search: the side column lists the files hit", await ctx.eval("document.querySelectorAll('#sbody .sfr').length === document.querySelectorAll('#search .sfile').length && document.querySelectorAll('#sbody .sfr').length > 1"));
+    await ctx.eval("(() => { const c = document.querySelector('#sbody [data-sfh]'); c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+    check("…unticking a file hides its hits", await ctx.eval("document.querySelector('#search .sfile[data-g=\"0\"]').hidden"));
+    await ctx.click("#sbody [data-sfj='2']"); await ctx.sleep(700);
+    check("…a file name jumps to its hits", await ctx.eval("document.querySelector('#search .sres').scrollTop > 0"));
+    await ctx.key("f"); await ctx.type("viewer"); await ctx.sleep(350);
+    check("f finds inside the search results", await ctx.eval("(CSS.highlights.get('hit-A') || { size: 0 }).size + (CSS.highlights.get('hitc-A') || { size: 0 }).size > 0 && document.querySelectorAll('#pA .frail i').length > 0"));
+    await ctx.key("Escape");
+
+    for (const rel of (await ctx.eval("V2.D.tree.dev.map(x => x.path).filter(p => p.endsWith('.md')).slice(0, 9)"))) await ctx.eval(`V2.nav("A", { kind: "doc", tree: "dev", rel: ${J(rel)} }); true`);
+    await ctx.sleep(300); await ctx.eval("V2.chord.k(); true"); await ctx.sleep(150);
+    check("⌘K lists eight recently opened docs", await ctx.eval("(() => { const rows = [...document.querySelectorAll('#qList > *')], i = rows.findIndex(r => r.textContent.startsWith('最近打开')); let n = 0; for (let j = i + 1; j < rows.length && !rows[j].classList.contains('qg'); j++) n++; return n === 8; })()"));
+    check("…and a 最近提交 row", await ctx.eval("[...document.querySelectorAll('#qList .qr')].some(r => r.textContent.startsWith('最近提交'))"));
+    await ctx.type("md"); await ctx.sleep(250);
+    check("⌘K shows up to forty docs", await ctx.eval("(() => { const rows = [...document.querySelectorAll('#qList > *')], i = rows.findIndex(r => r.textContent === '文档'); let n = 0; for (let j = i + 1; j < rows.length && !rows[j].classList.contains('qg'); j++) n++; return n === 40; })()"));
+    await ctx.key("Escape");
+
+    await ctx.click("#themeBtn"); await ctx.sleep(100);
+    await ctx.eval("(() => { const i = document.getElementById('lumIn'); i.value = 120; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+    check("brightness 120% brightens the page", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
+    await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')");
+    check("…and is remembered", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
+    await ctx.click("#themeBtn"); await ctx.click("[data-lum0]");
+    check("复位 brings back the page as designed", await ctx.eval("document.documentElement.style.filter === '' && document.getElementById('lumIn').value === '100'"));
+  },
+  // The two panes sit above their content: either can hold the board, a search, a diff, the recent commits or a doc.
+  async panes2(ctx, check, o) {
+    const shiftClick = (sel) => ctx.eval(`(() => { const e = document.querySelector(${J(sel)}); if (!e) return false; e.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })); return true; })()`);
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
+    await shiftClick("#tree [data-goboard]"); await ctx.wait("!!document.querySelector('#pB #bscroll [data-card]')");
+    check("⇧ on 看板 opens the board in B, the doc stays in A", await ctx.eval("V2.kindOf('A') === 'doc' && V2.kindOf('B') === 'board' && V2.view === 'board'"));
+    check("the board's head in B carries the pane tag and a close button", await ctx.eval("!!document.querySelector('#bhd .ptag') && document.querySelector('#bhd .ptag').textContent === 'B' && !!document.querySelector('#bhd [data-t=close]')"));
+    check("the doc chrome of B is hidden while it hosts the board", await ctx.eval("getComputedStyle(document.querySelector('#pB > .pbody')).display === 'none'"));
+    await ctx.click("#pB #bscroll .card[data-card]"); await ctx.key("Enter"); await ctx.wait("V2.kindOf('B') === 'doc'"); await ctx.sleep(300);
+    check("Enter on a card in B opens it in B", await ctx.eval("V2.kindOf('B') === 'doc' && V2.kindOf('A') === 'doc'"));
+    await ctx.eval("V2.back('B'); true"); await ctx.wait("!!document.querySelector('#pB #bscroll [data-card]')");
+    check("back in B returns to the board", await ctx.eval("V2.kindOf('B') === 'board'"));
+    await ctx.eval("V2.setFocus('A'); V2.nav('A', { kind: 'board' }); true"); await ctx.wait("!!document.querySelector('#pA #bscroll [data-card]')"); await ctx.sleep(200);
+    check("opening the board in A takes it from B: B is blank and keeps it in its history", await ctx.eval("V2.kindOf('A') === 'board' && V2.kindOf('B') === null && V2.P.B.hist.some(l => l.kind === 'board') && document.getElementById('pB').classList.contains('blank')"));
+    await ctx.eval("V2.nav('B', { kind: 'recent' }); true"); await ctx.wait("!!document.querySelector('#pB #recent .commit, #pB #recent .hint:not(:first-child)')", 8000);
+    check("the recent commits open in B", await ctx.eval("V2.kindOf('B') === 'recent' && document.querySelectorAll('#pB #recent .commit').length > 0"));
+    await ctx.viewport(768, 1024); await ctx.sleep(400);
+    check("narrow: the board's head has the A/B switch", await ctx.eval("getComputedStyle(document.querySelector('#bhd .abw')).display !== 'none'"));
+    await ctx.click("#bhd [data-ab=B]"); await ctx.sleep(200);
+    check("narrow: switching to B shows the recent commits, hides the board", await ctx.eval("getComputedStyle(document.getElementById('pB')).display !== 'none' && getComputedStyle(document.getElementById('pA')).display === 'none'"));
+  },
   // Details of the classic shell that v2 was missing or weaker on, one check each.
   async parity(ctx, check, o) {
     const shiftClick = (sel) => ctx.eval(`(() => { const e = document.querySelector(${J(sel)}); if (!e) return false; e.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })); return true; })()`);
@@ -423,7 +493,7 @@ const SCENARIO = {
     // ⇧ from the board or the search results opens beside them, the board or the results stay
     await ctx.click('[data-form="cards"]');
     await shiftClick("#bscroll .card[data-card]"); await ctx.wait("!!document.querySelector('#pB .md')");
-    check("⇧ on a card: the board stays and the doc opens in B", await ctx.eval("V2.view === 'board' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
+    check("⇧ on a card: the board stays and the doc opens in B", await ctx.eval("V2.kindOf('A') === 'board' && V2.kindOf('B') === 'doc'"));
     check("…side by side", await ctx.eval("(() => { const a = document.getElementById('board').getBoundingClientRect(), b = document.getElementById('pB').getBoundingClientRect(); return a.width > 200 && b.width > 200 && a.right <= b.left + 6; })()"));
     check("beside: the side column lists B's headings", await ctx.eval("getComputedStyle(document.getElementById('side')).display !== 'none' && document.querySelectorAll('#sbody .ti').length > 0"));
     const selBefore = await ctx.eval("(document.querySelector('#bscroll .card.sel') || {}).dataset?.card || null");
@@ -433,7 +503,7 @@ const SCENARIO = {
     await ctx.eval(nav("A", { kind: "search", q: "viewer" }) + "; true"); await ctx.wait("!!document.querySelector('#search .shit')");
     await ctx.eval("document.querySelector('#search .sres').scrollTop = 300; true");
     await shiftClick("#search .shit:nth-of-type(2)"); await ctx.sleep(500);
-    check("⇧ on a search hit: the results stay and the doc opens in B", await ctx.eval("V2.view === 'search' && V2.P.B.loc.kind === 'doc'"));
+    check("⇧ on a search hit: the results stay and the doc opens in B", await ctx.eval("V2.kindOf('A') === 'search' && V2.kindOf('B') === 'doc'"));
     await ctx.click("#pB [data-t=close]");
     const sy = await ctx.eval("document.querySelector('#search .sres').scrollTop");
     await ctx.click("#search .shit"); await ctx.wait("!!document.querySelector('#pA .md')");
@@ -519,9 +589,9 @@ const SCENARIO = {
 
     // ⇧⌘↵ in ⌘K puts the full-text search beside the doc being read, at the same place
     await ctx.eval("V2.P.A.body.scrollTop = 1500; true"); await ctx.sleep(500);
-    await qo("viewer"); await ctx.key("Enter", 12); await ctx.wait("!!document.querySelector('#search .smeta')"); await ctx.wait("!!document.querySelector('#pB .md')"); await ctx.sleep(400);
-    check("⇧⌘↵: the search beside the doc that was in A", await ctx.eval("V2.view === 'search' && V2.P.B.loc && V2.P.B.loc.kind === 'doc'"));
-    check("…and B picks up where A was", await ctx.eval("V2.P.B.body.scrollTop > 1000"));
+    await qo("viewer"); await ctx.key("Enter", 12); await ctx.wait("!!document.querySelector('#pB #search .smeta')"); await ctx.sleep(400);
+    check("⇧⌘↵: the search opens in B, beside the doc in A", await ctx.eval("V2.kindOf('B') === 'search' && V2.kindOf('A') === 'doc'"));
+    check("…and A keeps its place", await ctx.eval("V2.P.A.body.scrollTop > 1000"));
     await ctx.click("#pB [data-t=close]");
 
     // the change view numbers its lines

@@ -107,7 +107,7 @@ t("Inv-6-d: highlight names carry the pane; old registrations are dropped before
 });
 t("Inv-6-e: a failed render drops what hung off the last good one", () => {
   const rendered = js.find.match(/V\.on\("rendered", \(k, entering\) => \{[\s\S]*?\n {2}\}\);/)[0];
-  assert.match(rendered, /if \(!\$\("\.md", P\[k\]\.body\)\) \{ h\.hits = \[\]; h\.cur = -1; if \(HL\) names\(k\)\.forEach\(n => CSS\.highlights\.delete\(n\)\); rail\(k\); count\(k\); return; \}/);
+  assert.match(rendered, /if \(!root\(k\)\) \{ h\.hits = \[\]; h\.cur = -1; if \(HL\) names\(k\)\.forEach\(n => CSS\.highlights\.delete\(n\)\); rail\(k\); count\(k\); return; \}/);
   const fail = js.reader.match(/function fail\(k, loc, e\) \{[\s\S]*?\n {2}\}/)[0];
   assert.match(fail, /V\.emit\("rendered", k, true\)/, "the error branch announces its (empty) content");
   assert.match(js.reader, /if \(opt\.entering\) \{ p\.cur = null; \$\$\("\.curline,\.lastmark", p\.body\)\.forEach\(x => x\.remove\(\)\); \}/);

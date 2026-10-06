@@ -95,7 +95,9 @@
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
     const cards = D.cards.filter(c => V.inScope(c.p));
     let h = `<button class="tr top ${V.view === "board" && V.focus === "A" ? "cur" : ""}" style="--d:0" data-goboard="1">`
-      + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`;
+      + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`
+      + `<button class="tr top ${V.view === "recent" ? "cur" : ""}" style="--d:0" data-recent="1" data-tip="dev_root 最近 25 次提交">`
+      + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`;
     if (V.GITWEB) h += `<a class="tr top" style="--d:0" href="${esc(V.GITWEB)}" target="_blank" rel="noopener" data-tip="浏览代码：gitweb，在新标签页打开">`
       + `<span class="cv">${V.I.code}</span><span class="nm">浏览代码</span></a>`;
     // dev: projects → open cards → closed (n) → the project's other files
@@ -156,6 +158,7 @@
   }
 
   V.click("[data-fold-k]", el => toggleFold(el.dataset.foldK));
+  V.click("[data-recent]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "recent" }); });
   V.click("[data-tsort]", el => {   // a time sort starts newest first, a name sort A→Z
     const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });

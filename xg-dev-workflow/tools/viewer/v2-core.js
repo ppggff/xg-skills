@@ -51,6 +51,7 @@ var V2 = (function () {
     find: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.3-4.3"/>', 1.7),
     hist: svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5V9h4.5"/><path d="M12 8v4.5l3 2"/>', 1.7),
     split: svg('<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M12 5v14"/>', 1.7),
+    mirror: svg('<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M12 5v14M6.5 10h3M14.5 10h3M6.5 13.5h3M14.5 13.5h3"/>', 1.5),
     width: svg('<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/>', 1.7),
     pin: svg('<path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/>', 1.7),
     up: svg('<path d="M6 15l6-6 6 6"/>', 2), down: svg('<path d="M6 9l6 6 6-6"/>', 2),
@@ -119,7 +120,7 @@ var V2 = (function () {
     app.style.setProperty("--wnu", W.wn + "px"); app.style.setProperty("--wsu", W.ws + "px");
     if (W.hd) app.style.setProperty("--hd", W.hd + "px"); else app.style.removeProperty("--hd");
     app.classList.toggle("hdset", !!W.hd); app.classList.toggle("dc", !!W.dc);
-    $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr"); app.style.setProperty("--waP", W.wa * 100 + "%");
+    $("#reader").style.setProperty("--wa", (W.wa / (1 - W.wa)) + "fr");
     app.classList.toggle("nx", !!W.nx && nar);
     app.classList.toggle("nc", W.nc || nar); app.classList.toggle("sc", W.sc || nar);
     const tip = nar ? (app.classList.contains("navpop") ? "恢复左侧竖条" : "完全收起左栏") : W.nc ? "展开导航" : "收起导航";
@@ -133,7 +134,7 @@ var V2 = (function () {
       if (!st) return; const dx = e.clientX - st.x, k = g.dataset.g;
       if (k === "nav") { W.nc = false; W.wn = Math.max(170, Math.min(520, st.wn + dx)); }
       else if (k === "side") { W.sc = false; W.ws = Math.max(190, Math.min(520, st.ws - dx)); }
-      else { const r = $("#centre").getBoundingClientRect(); W.wa = Math.max(.22, Math.min(.78, (e.clientX - r.left) / r.width)); }
+      else { const r = $("#reader").getBoundingClientRect(); W.wa = Math.max(.22, Math.min(.78, (e.clientX - r.left) / r.width)); }
       V.applyW();
     });
     const end = () => { if (!st) return; st = null; g.classList.remove("drag"); V.saveW(); V.relayout(); };
@@ -181,6 +182,9 @@ var V2 = (function () {
       { duration: 540, easing: "cubic-bezier(.65,0,.25,1)", pseudoElement: "::view-transition-new(root)" })).catch(() => {});
   };
   { const t0 = V.store.get("theme", ""); if (t0) document.documentElement.setAttribute("data-theme", t0); }
+  // brightness over every theme: a filter on the root keeps each theme's hues; 100 is the page as designed
+  V.setLum = v => { v = Math.max(90, Math.min(140, Math.round(+v) || 100)); document.documentElement.style.filter = v === 100 ? "" : `brightness(${v / 100})`; V.store.set("lum", v); return v; };
+  V.setLum(V.store.get("lum", 100));
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => V.emit("theme"));
 
   /* ---- popovers: one open at a time, placed under (or above) their anchor ---- */
@@ -198,7 +202,9 @@ var V2 = (function () {
     const cur = document.documentElement.getAttribute("data-theme") || "";
     const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
       + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
-    V.pop("themePop", V.THEMES.map(item).join(""), btn);
+    const lum = V.store.get("lum", 100);
+    V.pop("themePop", V.THEMES.map(item).join("") + `<div class="lum"><span>亮度</span><input id="lumIn" type="range" min="90" max="140" step="2" value="${lum}" aria-label="亮度">`
+      + `<em>${lum}%</em><button data-lum0 data-tip="回到 100%">复位</button></div>`, btn);
   };
 
   /* ---- status bar: the current view's line, or what the hovered control does ---- */
@@ -256,60 +262,76 @@ var V2 = (function () {
   const DRAWERS = ["navpop", "treepop", "tocpop"];
   V.layer(50, () => DRAWERS.some(c => app.classList.contains(c)), () => { app.classList.remove(...DRAWERS); V.applyW(); });
 
-  /* ---- views and panes: A is the main pane (board, search, diff or a doc), B holds docs beside it ---- */
-  V.view = "board";
-  const SECTIONS = { board: "#board", doc: "#reader", search: "#search", diff: "#diffv" };
-  // a board, search or diff in A keeps B's doc beside it ("beside"); only B of the reader is shown then
-  V.show = view => {
-    V.view = view;
-    const beside = view !== "doc" && V.isSplit() && !!P.B.loc;
-    Object.keys(SECTIONS).forEach(k => { $(SECTIONS[k]).hidden = k !== view && !(k === "doc" && beside); });
-    app.classList.toggle("v-board", view !== "doc" && !beside); app.classList.toggle("beside", beside);
-  };
-  V.isBeside = () => app.classList.contains("beside");
-  V.readingK = () => {   // the pane whose doc the keys act on, if any
-    const k = V.view === "doc" ? V.focus : V.isBeside() && V.focus === "B" ? "B" : null;
-    return k && P[k].loc && P[k].loc.kind === "doc" ? k : null;
-  };
+  /* ---- panes: A and B each show one thing — a doc, or one of the views (board, search, diff, recent) ---- */
   const P = V.P = { A: { k: "A", hist: [], fwd: [], loc: null }, B: { k: "B", hist: [], fwd: [], loc: null } };
+  const SECTIONS = { board: "#board", search: "#search", diff: "#diffv", recent: "#recent" };
+  V.view = "board";   // what the focused pane shows: the keys and the status bar follow it
   V.focus = "A";
   V.views = {};   // kind → render(k, loc, opt), registered by the area files
   V.isSplit = () => $("#reader").classList.contains("split");
+  V.other = k => (k === "A" ? "B" : "A");
+  V.kindOf = k => (P[k].loc ? P[k].loc.kind : null);
+  V.hostOf = kind => ["A", "B"].find(k => V.kindOf(k) === kind) || "A";
+  V.navPane = () => (V.isSplit() ? V.focus : "A");
+  V.readingK = () => (V.view === "doc" ? V.navPane() : null);   // the pane whose doc the keys act on, if any
+  // a view's one DOM section moves into the pane that shows it; that pane's doc chrome hides meanwhile
+  function mount() {
+    ["A", "B"].forEach(k => {
+      const kind = V.kindOf(k), sec = SECTIONS[kind] && $(SECTIONS[kind]), el = P[k].el;
+      if (sec && sec.parentElement !== el) el.appendChild(sec);
+      el.className = el.className.replace(/\bh-\w+/g, "").trim();
+      el.classList.toggle("hosting", !!sec); if (sec) el.classList.add("h-" + kind);
+    });
+    Object.keys(SECTIONS).forEach(kind => { $(SECTIONS[kind]).hidden = !["A", "B"].some(k => V.kindOf(k) === kind); });
+    V.view = V.kindOf(V.navPane()) || "blank";
+    const docShown = ["A"].concat(V.isSplit() ? ["B"] : []).some(k => V.kindOf(k) === "doc");
+    app.classList.toggle("v-board", !docShown && V.view !== "search");
+  }
+  V.paneHead = k => `<span class="ptag">${k}</span><span class="abw">${["A", "B"].map(x => `<button data-ab="${x}" class="${x === k ? "on" : ""}">${x}</button>`).join("")}</span>`;
+  V.paneEnd = k => (k === "A" ? `<button class="ib${V.isSplit() ? " on" : ""}" data-t="split" data-tip="双栏对照" data-key="\\" aria-label="双栏对照">${V.I.split}</button>`
+    : `<button class="ib" data-t="close" data-tip="关闭右栏" aria-label="关闭右栏">${V.I.x}</button>`);
   V.setFocus = k => {
     if (k === "B" && !V.isSplit()) k = "A";
     $$(".abw button").forEach(b => b.classList.toggle("on", b.dataset.ab === k));
     if (V.focus === k) return;
     V.focus = k; P.A.el.classList.toggle("focus", k === "A"); P.B.el.classList.toggle("focus", k === "B"); app.classList.toggle("fB", k === "B");
-    V.emit("focus", k); V.status();
+    mount(); V.emit("focus", k); V.status();
   };
   V.setSplit = on => {
     $("#reader").classList.toggle("split", on);
-    const sb = $('#pA [data-t="split"]'); if (sb) sb.classList.toggle("on", on);
+    $$('[data-t="split"]').forEach(b => b.classList.toggle("on", on));
+    if (on && !P.B.loc) V.emit("blank", "B");
     if (!on) V.setFocus("A");
-    V.show(V.view); V.emit("split", on); V.relayout(); V.status();
+    mount(); V.emit("split", on); V.relayout(); V.status();
   };
   const same = (a, b) => a && b && a.kind === b.kind && a.tree === b.tree && a.rel === b.rel && a.q === b.q && a.card === b.card;
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
     if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); }
-    if (k === "B" && (loc.kind !== "doc" || !P.A.loc)) k = "A";   // B holds docs only
-    const p = P[k];
+    if (k === "B" && !P.A.loc) k = "A";
+    const p = P[k], o = P[V.other(k)];
     if (p.loc) V.emit("leave", k, p.loc);
     if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(p.loc); p.fwd.length = 0; }
     p.loc = loc;
+    if (loc.kind !== "doc" && o.loc && o.loc.kind === loc.kind) {   // one board, one search: the other pane gives it up, keeping it in its history
+      V.emit("leave", o.k, o.loc); o.hist.push(o.loc); o.fwd.length = 0; o.loc = null; V.emit("blank", o.k);
+    }
     if (k === "B" && !V.isSplit()) V.setSplit(true);
-    if (loc.kind === "doc") { V.show(k === "A" ? "doc" : V.view); V.setFocus(k); }
-    else { V.show(loc.kind); V.setFocus("A"); }
+    mount(); V.setFocus(k);
     if (loc.kind === "doc" && opt.user !== false) V.recent.push("opened", loc.tree + ":" + loc.rel, 12);
     V.views[loc.kind](k, loc, Object.assign({ entering: true }, opt));
     V.paintHist(); V.emit("nav", k, loc);
   };
-  V.back = k => { const p = P[k || V.navPane()]; if (!p.hist.length) return; const to = p.hist.pop(); p.fwd.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
-  V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); p.hist.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
-  V.navPane = () => (V.isSplit() ? V.focus : "A");
+  V.goBoard = e => {   // the board where it already is, else in the target pane
+    const at = ["A"].concat(V.isSplit() ? ["B"] : []).find(k => V.kindOf(k) === "board");
+    if (at && !(e && e.shiftKey)) return V.setFocus(at);
+    V.nav(V.target(e), { kind: "board" });
+  };
+  V.back = k => { const p = P[k || V.navPane()]; if (!p.hist.length) return; const to = p.hist.pop(); if (p.loc) p.fwd.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
+  V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); if (p.loc) p.hist.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
   V.rerender = k => { const p = P[k]; if (p.loc) V.views[p.loc.kind](k, p.loc, { entering: false }); };
   V.locLabel = l => (!l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」"
-    : l.kind === "diff" ? l.card + " 的改动" : "看板");
+    : l.kind === "diff" ? l.card + " 的改动" : l.kind === "recent" ? "最近提交" : "看板");
   V.paintHist = () => {
     const p = P[V.navPane()], b = $("#back"), f = $("#fwd");
     b.disabled = !p.hist.length; f.disabled = !p.fwd.length;
@@ -338,9 +360,9 @@ var V2 = (function () {
   V.click("#back", () => V.back()); V.click("#fwd", () => V.fwd());
   V.click("[data-ab]", el => V.setFocus(el.dataset.ab));
   V.click("[data-navb]", () => { app.classList.toggle("navpop"); V.applyW(); if (app.classList.contains("navpop")) V.emit("tree-show"); });
-  V.click("[data-goboard]", (el, e) => { app.classList.remove("treepop"); V.nav("A", { kind: "board" }); });
+  V.click("[data-goboard]", (el, e) => { app.classList.remove("treepop"); V.goBoard(e); });
   V.hotkey("[", () => V.back()); V.hotkey("]", () => V.fwd());
-  V.hotkey("b", () => V.nav("A", { kind: "board" }));
+  V.hotkey("b", () => V.goBoard());
   V.on("click", e => {
     const t = e.target;
     if (app.classList.contains("navpop") && (!t.closest("#nav") || t.closest("[data-open],[data-goboard]"))) { app.classList.remove("navpop"); V.applyW(); }
@@ -353,10 +375,28 @@ var V2 = (function () {
     app.classList.toggle("treepop", on); $("#filesBtn").setAttribute("aria-expanded", on); if (on) V.emit("tree-show");
   });
 
+  document.addEventListener("input", e => { if (e.target.id === "lumIn") e.target.nextElementSibling.textContent = V.setLum(e.target.value) + "%"; });
+  V.click("[data-lum0]", () => { V.setLum(100); const i = $("#lumIn"); if (i) { i.value = 100; i.nextElementSibling.textContent = "100%"; } });
+
+  /* ---- help: every key in one panel ---- */
+  const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"]]],
+    ["文档", [["f", "在本文查找"], ["h", "钉住选中的词"], ["⇧H", "清空钉住词"], ["s", "加或取消星标"], ["⇧ 点击", "在另一栏打开"], ["↵", "跟随聚焦的引用或链接"]]],
+    ["看板", [["方向键", "移动选中的卡"], ["↵ / 双击", "打开 design.md"], ["⇧ 点击", "在另一栏打开"]]],
+    ["查找框", [["↵ ⇧↵", "下一个、上一个"], ["⌘↵", "钉住这个词"], ["↑ ↓", "查找历史"]]],
+    ["⌘K", [["↑ ↓", "选择"], ["↵", "打开"], ["⇧↵", "在另一栏打开"], ["⌘↵", "全文搜索"], ["⇧⌘↵", "在另一栏全文搜索"]]]];
+  V.toggleHelp = () => {
+    const h = $("#help"); h.hidden = !h.hidden; if (h.hidden) return;
+    h.firstChild.innerHTML = '<div class="pt">快捷键</div><div class="hgrid">' + KEYS.map(([g, rows]) => `<section><h4>${g}</h4>`
+      + rows.map(([k, d]) => `<div><kbd>${esc(k)}</kbd><span>${esc(d)}</span></div>`).join("") + "</section>").join("") + "</div>";
+  };
+  V.hotkey("?", () => V.toggleHelp());
+  V.click("#helpBtn", () => V.toggleHelp());
+  document.addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
+  V.layer(70, () => !$("#help").hidden, () => { $("#help").hidden = true; });
+
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
-    ["#board", "#search", "#diffv"].forEach(s => $(s).addEventListener("pointerdown", () => V.setFocus("A")));
     const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
       navTog: "colL", sideTog: "colR", sideOpen: "colL" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });

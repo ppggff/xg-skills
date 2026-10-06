@@ -22,24 +22,23 @@
   /* ---- pane chrome ---- */
   function shell(k) {
     const b = (t, icon, tip, key) => `<button class="ib" data-t="${t}" data-tip="${tip}"${key ? ` data-key="${key}"` : ""} aria-label="${tip}">${V.I[icon]}</button>`;
-    const ab = x => `<button data-ab="${x}" class="${k === x ? "on" : ""}">${x}</button>`;
     return '<div class="phd">'
       + `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>`
-      + `<span class="ptag">${k}</span><span class="abw">${ab("A")}${ab("B")}</span><div class="ppath"></div>`
+      + V.paneHead(k) + '<div class="ppath"></div>'
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button>`
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
-      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + (k === "A" ? b("split", "split", "双栏对照", "\\") : b("close", "x", "关闭右栏")) + "</div>"
+      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）") + V.paneEnd(k) + "</div>"
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
       + `<button class="secchip" data-sec data-tip="打开目录" aria-label="打开目录">${V.I.toc}<span></span></button>`;
   }
-  const BLANK_B = '<div class="empty"><div><svg width="42" height="28" viewBox="0 0 46 30" fill="none" stroke="currentColor">'
+  const BLANK = '<div class="empty"><div><svg width="42" height="28" viewBox="0 0 46 30" fill="none" stroke="currentColor">'
     + '<rect x=".5" y=".5" width="45" height="29" rx="3"/><path d="M23 .5v29"/><path d="M28 9h12M28 14h9M28 19h11" opacity=".5"/></svg>'
     + "点正文里的 [Fact-n]，或按住 ⇧ 点一个链接，<br>文档会在这一栏打开。</div></div>";
   const BLOCK_SEL = ".md p,.md li,.md h1,.md h2,.md h3,.md h4,.md h5,.md h6,.md pre,.md tr,.md blockquote,.md .mermaid";
   V.on("init", () => ["A", "B"].forEach(k => {
     const p = P[k]; p.el.innerHTML = shell(k); p.body = $(".pbody", p.el); p.doc = null;
-    if (k === "B") p.body.innerHTML = BLANK_B;
+    if (k === "B") p.body.innerHTML = BLANK;
     p.body.addEventListener("scroll", () => onScroll(k), { passive: true });
     p.el.addEventListener("pointerdown", () => V.setFocus(k));
     p.body.addEventListener("click", e => {
@@ -48,9 +47,9 @@
     });
   }));
   const keyOf = loc => loc.tree + ":" + loc.rel;
-  const shown = k => (k === "A" ? V.view === "doc" : V.isSplit());
-  const visible = k => shown(k) && !(V.isNarrow() && (V.isSplit() ? k !== V.focus : k === "B"));   // narrow shows one pane
-  const tocK = () => (V.view === "doc" ? V.focus : V.isBeside() ? "B" : null);   // whose headings the side column lists
+  const shown = k => (k === "A" || V.isSplit()) && V.kindOf(k) === "doc";
+  const visible = k => shown(k) && !(V.isNarrow() && V.isSplit() && k !== V.focus);   // narrow shows one pane
+  const tocK = () => { const f = V.navPane(), o = V.other(f); return shown(f) ? f : shown(o) ? o : null; };   // whose headings the side column lists
 
   /* ---- reading place: per (pane, doc), a content anchor first and pixels as the fallback ---- */
   const NOT_BLOCK = /^(lnum|curline|lastmark|mrule|fml|fmt)$/;
@@ -302,6 +301,7 @@
   let heads = [];
   const headLabel = h => SV.tocLabel(h.textContent);
   function toc() {
+    if (V.view === "search") return V.searchToc();
     $("#sideT").textContent = "目录";
     const k = tocK(); if (!k) return;
     const p = P[k];
@@ -343,11 +343,10 @@
     });
   }
   V.on("focus", k => {
-    if (!tocK()) return;
     toc();
     if (V.isNarrow() && visible(k) && P[k].doc && !P[k].doc.err) { applyMeasure(k); lineNumbers(k); recur(k); V.emit("content", k); }
   });
-  V.on("nav", (k, loc) => { if (loc.kind !== "doc") { $$(".secchip").forEach(c => c.classList.remove("on")); if (tocK()) toc(); } });
+  V.on("nav", (k, loc) => { if (loc.kind !== "doc") { $$(".secchip").forEach(c => c.classList.remove("on")); toc(); } });
   const jumpTo = (k, el, smooth) => {
     const b = P[k].body;
     if (smooth) b.scrollTo({ top: el.offsetTop - HEAD_PAD, behavior: V.RM ? "auto" : "smooth" }); else b.scrollTop = el.offsetTop - HEAD_PAD;
@@ -475,7 +474,7 @@
   function histHTML(k, loc, cs) {
     const back = P[k].chg ? `<button class="hi first last" data-chg="" data-pane="${k}"><i class="dt"></i><span class="hmsg">回到当前版本</span><span class="hmeta"></span></button>` : "";
     const row = (c, i) => {
-      const cls = [i === 0 && !P[k].chg ? "first" : "", i === cs.length - 1 ? "last" : "", P[k].chg === c.sha ? "li cur" : ""].join(" ");
+      const cls = [i === 0 && !P[k].chg ? "first" : "", i === cs.length - 1 ? "last" : "", P[k].chg === c.sha ? "cur" : ""].join(" ");
       const tip = esc(c.sha.slice(0, 7) + " · " + c.date + " · " + c.subject);
       return `<button class="hi ${cls}" data-chg="${esc(c.sha)}" data-pane="${k}" data-tip="${tip}"><i class="dt"></i>`
         + `<span class="hmsg">${esc(c.subject)}</span><span class="hmeta">${esc(c.sha.slice(0, 7))}　${esc(String(c.date).slice(5, 16))}</span></button>`;
@@ -487,7 +486,7 @@
     V.pop("histPop", `<div class="pt">${esc(loc.rel.split("/").pop())} 的变更历史</div><div class="qnone">读取中…</div>`, btn, "right").dataset.pane = k;
     const mine = () => V.isPop("histPop") && $("#histPop").dataset.pane === k && P[k].loc === loc;
     V.json("/api/filelog?path=" + encodeURIComponent(loc.tree + "/" + loc.rel))
-      .then(d => { if (mine()) $("#histPop").innerHTML = histHTML(k, loc, d.commits || []); })
+      .then(d => { P[k].clog = d.commits || []; if (mine()) $("#histPop").innerHTML = histHTML(k, loc, P[k].clog); })
       .catch(() => { if (mine()) $("#histPop").innerHTML = '<div class="qnone">历史读取失败</div>'; });
   }
   function changeArticle(d, loc, k) {
@@ -505,9 +504,11 @@
     markDoc(k, md, loc);
     return md;
   }
+  // the history stays open while stepping through commits; it re-marks the one on screen
+  const repaintHist = k => { if (V.isPop("histPop") && $("#histPop").dataset.pane === k && P[k].clog) $("#histPop").innerHTML = histHTML(k, P[k].loc, P[k].clog); };
   function changeView(k, sha) {
     const p = P[k], loc = p.loc;
-    if (!sha) { p.chg = null; $(".chgbar", p.el).hidden = true; return V.views.doc(k, loc, { entering: false }); }
+    if (!sha) { p.chg = null; $(".chgbar", p.el).hidden = true; repaintHist(k); return V.views.doc(k, loc, { entering: false }); }
     V.json("/api/filediff?path=" + encodeURIComponent(loc.tree + "/" + loc.rel) + "&sha=" + encodeURIComponent(sha)).then(d => {
       if (p.loc !== loc) return;
       p.chg = sha;
@@ -515,7 +516,7 @@
       p.body.innerHTML = ""; p.body.appendChild(md); renderMermaid(k, md); applyMeasure(k); lineNumbers(k); p.body.scrollTop = top;
       const bar = $(".chgbar", p.el); bar.hidden = false;
       bar.innerHTML = `<span>变更 <code>${esc(sha.slice(0, 7))}</code>：这次提交后的版本，新增与删除已标出（只读）</span><button data-chg="" data-pane="${k}">退出变更视图</button>`;
-      crumb(k, loc); V.emit("rendered", k, false); if (k === V.focus) toc();
+      crumb(k, loc); V.emit("rendered", k, false); if (k === tocK()) toc(); repaintHist(k);
     }).catch(() => { if (p.loc === loc) V.toast("这次提交的改动读不出来"); });
   }
 
@@ -544,18 +545,16 @@
     tb.hidden = !open; el.setAttribute("aria-expanded", open); V.emit("content", V.paneOf(el));
   });
   V.click("[data-stale]", el => { const k = V.paneOf(el); $(".stale", P[k].el).classList.remove("on"); V.rerender(k); });
-  V.click("[data-chg]", el => { V.closePops(); changeView(el.dataset.pane, el.dataset.chg); });
+  V.click("[data-chg]", el => { if (!el.closest("#histPop")) V.closePops(); changeView(el.dataset.pane, el.dataset.chg); });
   V.click('.phd [data-t="star"]', el => { const loc = P[V.paneOf(el)].loc; if (loc && loc.kind === "doc") V.toggleStar(keyOf(loc), el); });
   V.click('.phd [data-t="hist"]', el => (V.isPop("histPop") ? V.closePops() : histPop(V.paneOf(el), el)));
   V.click('.phd [data-t="split"]', () => V.setSplit(!V.isSplit()));   // B keeps what it last showed, or waits empty
   V.click('.phd [data-t="close"]', () => V.setSplit(false));
   V.hotkey("s", () => { const k = V.readingK(); if (!k) return false; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
-  V.hotkey("\\", () => { if (V.view !== "doc" && !V.isBeside()) return false; $('#pA [data-t="split"]').click(); });
-  V.on("split", on => {
-    if (!on && V.view === "doc") toc();
-    if (on && !P.B.loc) { P.B.el.classList.add("blank"); P.B.body.innerHTML = BLANK_B; }
-    if (!on && V.view !== "doc") toc();
-  });
+  V.hotkey("\\", () => V.setSplit(!V.isSplit()));
+  V.on("split", () => toc());
+  V.on("blank", k => { const p = P[k]; p.doc = null; p.el.classList.add("blank"); p.body.innerHTML = BLANK; $(".ppath", p.el).innerHTML = ""; });
+  V.click('.phd [data-t="mirror"]', el => { const k = V.paneOf(el), l = P[k].loc; if (l && l.kind === "doc") V.nav(V.other(k), Object.assign({}, l, { xid: null, line: 0 })); });
   V.on("theme", () => {
     if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, theme: V.isDark() ? "dark" : "default" });
     ["A", "B"].forEach(k => { if (shown(k) && P[k].doc && $(".mermaid", P[k].body)) V.rerender(k); });
@@ -566,11 +565,6 @@
     V.json("/api/rev?path=" + encodeURIComponent(loc.tree + "/" + loc.rel))
       .then(d => { if (d.mtime && d.mtime > p.doc.mtime + 1e-3 && p.loc === loc) $(".stale", p.el).classList.add("on"); }).catch(() => {});
   }));
-  V.carryPlace = () => {   // A's doc is about to reopen in B: B starts where A was
-    const a = P.A.loc; if (!a || a.kind !== "doc") return;
-    savePlace("A"); const mem = store.get("read", { order: [], map: {} }), e = mem.map[memKey("A", a)];
-    if (e) store.set("read", SV.recallPut(mem, memKey("B", a), e, 50));
-  };
   V.statusFns.doc = () => {
     const p = P[V.focus]; if (!p.loc || p.loc.kind !== "doc") return "";
     const b = p.body, max = b.scrollHeight - b.clientHeight, pct = max > 0 ? Math.round(b.scrollTop / max * 100) : 100;

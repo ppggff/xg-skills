@@ -13,6 +13,7 @@
   --active: #3355B5; --done: #2A7A52; --blocked: #B0402F; --paused: #976819; --todo: #1B7280; --dropped: #7C828A;
   --shadow: 0 18px 50px -18px rgba(20,24,30,.3), 0 2px 6px rgba(20,24,30,.07);
   --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --code: "Sarasa Fixed SC", "Sarasa Mono SC", var(--mono);   /* code text prefers a CJK fixed-width face, like the classic shell */
   --cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
   --ease: cubic-bezier(.2,.8,.2,1);
   --t-meta: 10.5px;
@@ -362,8 +363,15 @@ a.tr { text-decoration: none; }
 @media (max-width: 900px) { .bdg { grid-template-columns: 1fr; } }
 
 /* card diff view (a board-level view, like the doc reader) */
-#diffv { display: flex; flex-direction: column; }
-#diffv .dbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
+#diffv, #recent { display: flex; flex-direction: column; }
+#recent .commit { margin: 0 0 26px; }
+.sfl .sfr { display: flex; align-items: center; gap: 4px; padding-left: 8px; }
+.sfl .sfr input { margin: 0; accent-color: var(--sig); flex: none; }
+.sfl .sfr .ti { flex: 1; min-width: 0; }
+.sfl .sfr em { font: 400 10px var(--mono); font-style: normal; color: var(--faint); margin-left: auto; padding-left: 6px; }
+#recent .commit h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 8px; font: 500 13px var(--cjk); color: var(--ink); }
+#recent .commit h2 em { margin-left: auto; font: 400 10.5px var(--mono); font-style: normal; color: var(--faint); white-space: nowrap; }
+#diffv .dbody, #recent .dbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
 .dfile { margin: 0 0 18px; }
 .dfile h3 { margin: 0 0 6px; font: 400 11px var(--mono); color: var(--ink); }
 .dfile h3 button:hover { color: var(--sig); }
@@ -379,11 +387,9 @@ a.tr { text-decoration: none; }
 .ptag { font: 500 9.5px var(--mono); color: var(--faint); width: 16px; flex: none; }
 #reader:not(.split) .ptag { display: none; }
 #reader.split .pane.focus .ptag { color: var(--sig); }
-#reader.split .pane.focus .phd, .app.beside:not(.fB) :is(#bhd, #search .phd, #diffv .phd) { box-shadow: inset 0 2px 0 var(--sig); }
-/* beside: a board, search or diff in A with B's doc next to it */
-.app.beside :is(#board, #search, #diffv) { right: calc(100% - var(--waP, 50%)); }
-.app.beside #reader { left: var(--waP, 50%); grid-template-columns: 5px minmax(0,1fr); }
-.app.beside #pA { display: none; }
+#reader.split .pane.focus .phd { box-shadow: inset 0 2px 0 var(--sig); }
+/* a pane showing a view (board, search, diff, recent) hides its own doc chrome; search keeps the find bar and rail */
+.pane.hosting > :not(.view):not(.find):not(.frail), .pane.hosting:not(.h-search) > :is(.find, .frail) { display: none; }
 .pane.blank .phd .ib[data-t]:not([data-t=close]) { visibility: hidden; }
 .pbody { flex: 1; overflow: auto; overflow-x: hidden; position: relative; }   /* wide tables, code and diagrams scroll inside themselves */
 .empty { height: 100%; display: grid; place-items: center; text-align: center; color: var(--mu); font-size: 12px; line-height: 1.9; padding: 20px; }
@@ -413,9 +419,9 @@ a.tr { text-decoration: none; }
 .md a { color: var(--sig); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--sig) 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .md a:hover { text-decoration-color: var(--sig); }
 .md a.broken { color: var(--blocked); text-decoration-style: dashed; cursor: help; }
-.md code { font: 300 .8em var(--mono); color: var(--tx); padding: 0 .12em; letter-spacing: -.01em; }
-.md pre { background: var(--card); border-radius: 6px; padding: 12px 14px; overflow: auto; font: 400 12px/1.6 var(--mono); margin: 0 0 14px; }
-.md pre code { padding: 0; font-size: 1em; }
+.md code { font: 400 .92em var(--code); color: var(--tx); background: var(--card); padding: 1px 5px; border-radius: var(--r-sm); }
+.md pre { background: var(--card); border-radius: 6px; padding: 12px 14px; overflow: auto; font: 400 12.5px/1.6 var(--code); margin: 0 0 14px; }
+.md pre code { padding: 0; font-size: 1em; background: none; }
 .md table { border-collapse: collapse; display: block; overflow-x: auto; width: max-content; max-width: 100%; margin: 0 0 14px; font-size: 13px; }
 .md th, .md td { border: 1px solid var(--ln); padding: 5px 10px; text-align: left; vertical-align: top; }
 .md th { font-weight: 600; color: var(--ink); background: var(--card); }
@@ -574,6 +580,7 @@ a.tr { text-decoration: none; }
 .hi.last::before { display: none; }
 .hmsg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--tx); }
 .hi.first .hmsg { color: var(--ink); }
+.hi.cur { background: var(--sigs); }
 .hmeta { font: 400 10px var(--mono); color: var(--faint); white-space: nowrap; }
 .dif { font: 400 10px/1.65 var(--mono); }
 .dif div { padding: 0 9px; white-space: pre-wrap; word-break: break-all; }
@@ -653,6 +660,17 @@ a.tr { text-decoration: none; }
 .qr.qfull .qn { font-family: var(--cjk); color: var(--sig); }
 .qf { display: flex; gap: 14px; padding: 7px 12px; border-top: 1px solid var(--ln); font: 400 10px var(--cjk); color: var(--faint); flex-wrap: wrap; }
 .qf kbd { font: 400 9.5px var(--mono); margin-right: 3px; color: var(--mu); }
+.hbox { width: min(640px, 94vw); padding: 12px 16px 16px; }
+.hgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 22px; }
+.hgrid h4 { margin: 10px 0 4px; font: 500 11px var(--cjk); color: var(--mu); }
+.hgrid div { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; font: 400 12px var(--cjk); color: var(--tx); }
+.hgrid kbd { min-width: 64px; font: 400 10.5px var(--mono); color: var(--sig); }
+#helpBtn { font: 500 12px var(--mono); }
+.pop .lum { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 8px 6px 2px; border-top: 1px solid var(--ln); font: 400 11px var(--cjk); color: var(--mu); }
+.pop .lum input { flex: 1; accent-color: var(--sig); }
+.pop .lum em { font: 400 10px var(--mono); font-style: normal; width: 34px; text-align: right; }
+.pop .lum button { color: var(--faint); font-size: 10.5px; }
+.pop .lum button:hover { color: var(--tx); }
 .qf [data-qclear] { margin-left: auto; color: var(--faint); }
 .qf [data-qclear]:hover { color: var(--tx); }
 
@@ -705,9 +723,6 @@ a.tr { text-decoration: none; }
 .app.narrow #reader.split #pA:not(.focus), .app.narrow #reader.split #pB:not(.focus) { display: none; }
 .app.narrow #reader.split .abw { display: inline-flex; }
 .app.narrow #reader.split .ptag { display: none; }
-.app.narrow.beside #reader { left: 0; grid-template-columns: minmax(0,1fr); }
-.app.narrow.beside:not(.fB) #reader, .app.narrow.beside.fB :is(#board, #search, #diffv) { display: none; }
-.app.narrow.beside :is(#board, #search, #diffv) { right: 0; }
 .abw { gap: 1px; margin-right: 8px; background: var(--card); border-radius: var(--r-md); padding: 2px; }
 .abw button { font: 500 10px var(--mono); color: var(--mu); padding: 2px 7px; border-radius: 3px; }
 .abw button.on { background: var(--paper); color: var(--sig); }

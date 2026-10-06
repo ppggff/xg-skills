@@ -11,10 +11,17 @@
   const HL = window.CSS && CSS.highlights;
   const names = k => ["hit-" + k, "hitc-" + k, "echo-" + k, "p0-" + k, "p1-" + k, "p2-" + k, "p3-" + k];
 
+  /* ---- what a pane offers to find in: a doc's body, or the search results it hosts ---- */
+  const isSearch = k => V.kindOf(k) === "search";
+  const root = k => (isSearch(k) ? $("#search .sres") : V.kindOf(k) === "doc" ? $(".md", P[k].body) : null);
+  const scroller = k => (isSearch(k) ? $("#search .sres") : P[k].body);
+  const head = k => (isSearch(k) ? $("#search .phd") : $(".phd", P[k].el));
+  V.findK = () => (V.view === "doc" || V.view === "search" ? V.navPane() : null);
+
   /* ---- the index: the pane's readable text, whitespace folded, with a run table back to text nodes ---- */
   const SKIP = ".anc,.lnum,.mrule,.curline,.lastmark,.fml,.fmt,style,script";
   function buildIndex(k) {
-    const md = $(".md", P[k].body); if (!md) return null;
+    const md = root(k); if (!md) return null;
     const shells = [], w = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest(SKIP) ? 2 : 1) });
     let n;
     while ((n = w.nextNode())) {
@@ -53,9 +60,9 @@
     rail(k); count(k);
   }
   function rail(k) {
-    const h = H[k], r = $(".frail", P[k].el), b = P[k].body; if (!r) return;
+    const h = H[k], r = $(".frail", P[k].el), b = scroller(k); if (!r || !b) return;
     if (!h.idx || (!h.hits.length && !h.pins.length) || !b.scrollHeight) { r.innerHTML = ""; r.classList.remove("on"); return; }
-    r.style.top = $(".phd", P[k].el).offsetHeight + 2 + "px";
+    r.style.top = b.getBoundingClientRect().top - P[k].el.getBoundingClientRect().top + 2 + "px";
     const th = r.clientHeight, br = b.getBoundingClientRect(), seen = new Set(); let html = "";
     const mark = (x, cls, i) => {
       const rc = rectOf(h.idx, x); if (!rc) return;
@@ -91,15 +98,15 @@
   function find(k, q, still) {
     const h = H[k]; if (!h.idx) h.idx = buildIndex(k); if (!h.idx) return;
     h.q = (q || "").toLowerCase(); h.hits = h.q ? SV.scanHits(h.idx.text, h.q) : [];
-    const top = P[k].body.getBoundingClientRect().top;
+    const top = scroller(k).getBoundingClientRect().top;
     h.cur = h.hits.length ? Math.max(0, h.hits.findIndex(x => { const rc = rectOf(h.idx, x); return rc && rc.top >= top; })) : -1;
     paint(k); if (!still) show(k, false);
   }
-  function scrollToRect(k, rc) { const b = P[k].body; b.scrollTo({ top: b.scrollTop + rc.top - b.getBoundingClientRect().top - b.clientHeight * .35, behavior: V.RM ? "auto" : "smooth" }); }
+  function scrollToRect(k, rc) { const b = scroller(k); b.scrollTo({ top: b.scrollTop + rc.top - b.getBoundingClientRect().top - b.clientHeight * .35, behavior: V.RM ? "auto" : "smooth" }); }
   function show(k, force) {   // stepping through hits already on screen does not move the page
     const h = H[k], x = h.hits[h.cur]; if (!x) return;
     const rc = rectOf(h.idx, x); if (!rc) return;
-    const br = P[k].body.getBoundingClientRect();
+    const br = scroller(k).getBoundingClientRect();
     if (!force && rc.top >= br.top + 50 && rc.bottom <= br.bottom - 30) return;
     scrollToRect(k, rc);
   }
@@ -132,9 +139,9 @@
     count(k);
   }
   function open(k, seed, still) {
-    if (!k || !$(".md", P[k].body)) return;
+    if (!k || !root(k)) return;
     const h = H[k], f = $(".find", P[k].el);
-    if (!h.open) { h.open = true; bar(k); f.classList.add("on"); $('[data-t="find"]', P[k].el).classList.add("on"); }
+    if (!h.open) { h.open = true; bar(k); f.classList.add("on"); $('[data-t="find"]', head(k)).classList.add("on"); }
     const inp = $("input", f);
     if (seed) { inp.value = seed; clearTimeout(h.t); find(k, seed, still); }
     if (!still) { inp.focus(); inp.select(); }
@@ -144,12 +151,12 @@
     const h = H[k]; clearTimeout(h.t); if (!h.open) return;
     V.recent.push("find", h.q, 20);
     Object.assign(h, { open: false, q: "", hits: [], cur: -1, histAt: -1 });
-    const f = $(".find", P[k].el); f.classList.remove("on", "nohit"); $('[data-t="find"]', P[k].el).classList.remove("on");
+    const f = $(".find", P[k].el); f.classList.remove("on", "nohit"); const fb = $('[data-t="find"]', head(k)); if (fb) fb.classList.remove("on");
     if (f.contains(document.activeElement)) document.activeElement.blur();
     remember(k); paint(k); V.status();
   }
   function selected(k) {   // a short single-line selection inside this pane, else nothing
-    const s = window.getSelection(); if (!s || !s.rangeCount || !P[k].body.contains(s.anchorNode)) return "";
+    const s = window.getSelection(), sc = scroller(k); if (!s || !s.rangeCount || !sc || !sc.contains(s.anchorNode)) return "";
     const t = String(s).trim(); return t.length >= 2 && t.length <= 80 && !/\n/.test(t) ? t : "";
   }
 
@@ -198,7 +205,7 @@
   // every content change rebuilds the index; an error panel drops everything derived from the old content
   V.on("rendered", (k, entering) => {
     const h = H[k]; clearTimeout(h.t); h.idx = null;
-    if (!$(".md", P[k].body)) { h.hits = []; h.cur = -1; if (HL) names(k).forEach(n => CSS.highlights.delete(n)); rail(k); count(k); return; }
+    if (!root(k)) { h.hits = []; h.cur = -1; if (HL) names(k).forEach(n => CSS.highlights.delete(n)); rail(k); count(k); return; }
     if (entering) restore(k);
     rescan(k); paint(k);
   });
@@ -224,7 +231,7 @@
     }, 120);
   });
   document.addEventListener("mouseup", e => {
-    const pb = e.target.closest(".pbody"), sb = $("#selbar");
+    const pb = e.target.closest(".pbody,.sres"), sb = $("#selbar");
     if (!pb) { if (!e.target.closest("#selbar")) sb.classList.remove("on"); return; }
     setTimeout(() => {
       const s = window.getSelection(), txt = s.toString().trim();
@@ -238,7 +245,7 @@
   V.click("#selbar button", el => {
     const s = window.getSelection().toString().trim(), loc = P[selK].loc;
     $("#selbar").classList.remove("on");
-    if (el.dataset.s === "find") open(selK, s); else V.copy(`${loc.rel.split("/").pop()}：「${s}」`, "已复制为引用");
+    if (el.dataset.s === "find") open(selK, s); else V.copy(`${loc && loc.rel ? loc.rel.split("/").pop() : "搜索结果"}：「${s}」`, "已复制为引用");
   });
 
   /* ---- clicks, keys, layers ---- */
@@ -255,13 +262,13 @@
     if (best.dataset.hit != null) { h.cur = +best.dataset.hit; paint(k); show(k, true); return; }
     const rc = rectOf(h.idx, [+best.dataset.s, +best.dataset.e]); if (rc) scrollToRect(k, rc);
   });
-  V.hotkey("f", () => { const k = V.readingK(); if (!k) return false; open(k, selected(k)); });
+  V.hotkey("f", () => { const k = V.findK(); if (!k) return false; open(k, selected(k)); });
   V.hotkey("h", () => {
-    const k = V.readingK(); if (!k) return false;
-    const sel = window.getSelection(), t = sel && sel.rangeCount && P[k].body.contains(sel.anchorNode) ? String(sel).trim() : "";
+    const k = V.findK(); if (!k) return false;
+    const sel = window.getSelection(), t = sel && sel.rangeCount && scroller(k).contains(sel.anchorNode) ? String(sel).trim() : "";
     if (t) pin(k, t); else V.toast("先选中一个词，再按 h 钉住");
   });
-  V.hotkey("H", () => { const k = V.readingK(); if (!k) return false; clearPins(k); });
+  V.hotkey("H", () => { const k = V.findK(); if (!k) return false; clearPins(k); });
   V.layer(40, () => !!$("#selbar.on"), () => $("#selbar").classList.remove("on"));
-  V.layer(20, () => !!V.readingK() && H[V.readingK()].open, () => close(V.readingK()));
+  V.layer(20, () => !!V.findK() && H[V.findK()].open, () => close(V.findK()));
 })(V2);

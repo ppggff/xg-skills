@@ -36,12 +36,13 @@
     const forms = [["cards", "卡片形态", "grid"], ["cols", "列形态：每个分组一列", "cols"],
       ["table", "表格形态：可点表头排序", "tbl"], ["dots", "信号形态：一张卡一个点，悬停看卡片", "dots"]].map(([k, tip, ic]) => segB("data-form", k, f, tip, V.I[ic])).join("");
     const fltTip = hidden.size ? "已隐藏 " + [...hidden].join("、") + "，点开调整" : "按状态过滤";
-    return `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>`
+    const k = V.hostOf("board");
+    return `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
       + `<div class="ppath"><bdi>dev_root / <b>看板</b>${V.scope ? " · " + esc(V.scope) : ""}</bdi></div>`
       + `<div class="seg" style="margin-left:auto;margin-right:10px">${grp}</div><div class="seg">${forms}</div>`
       + `<div class="seg" style="margin-left:6px">`
       + `<button class="${hidden.size ? "on" : ""}" data-flt data-popbtn data-tip="${fltTip}" aria-label="过滤状态">${V.I.filter}</button>`
-      + `<button class="${trays ? "on" : ""}" data-trays data-tip="${trays ? "关闭" : "打开"}分组外框">${V.I.trays}</button></div>`;
+      + `<button class="${trays ? "on" : ""}" data-trays data-tip="${trays ? "关闭" : "打开"}分组外框">${V.I.trays}</button></div>` + V.paneEnd(k);
   }
 
   /* ---- forms ---- */
@@ -201,7 +202,8 @@
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + row(`<div>${reqsHTML(c)}</div>`) + "</div>";
   }
-  function paintDetail() { if (V.view === "board") $("#bdet").innerHTML = detailHTML(); }
+  const onShow = () => !$("#board").hidden;
+  function paintDetail() { if (onShow()) $("#bdet").innerHTML = detailHTML(); }
   function selectCard(id, open) {
     sel = id; store.set("sel", id);
     $$("#board [data-card]").forEach(e => e.classList.toggle("sel", e.dataset.card === id));
@@ -257,23 +259,40 @@
   }
   const setHidden = () => { store.set("hide", [...hidden]); render(); V.untip(); V.status(); };
 
-  /* ---- card diff view ---- */
+  /* ---- git views: a card's diff, and the recent commits of dev_root ---- */
+  const filesHTML = t => SV.diffFiles(t).map(f => `<div class="dfile"><h3>${f.name ? `<button data-open="dev:${esc(f.name)}">${esc(f.name)}</button>` : ""}</h3><div class="md"><pre class="dif">`
+    + f.lines.map(l => `<div class="${l.cls}">${esc(l.text) || " "}</div>`).join("") + "</pre></div></div>").join("");
   V.views.diff = (k, loc) => {
     const el = $("#diffv");
-    el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>`
+    el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
       + `<div class="ppath"><bdi>${esc(loc.card)} / <b>改动</b></bdi></div>`
-      + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button></div>`
+      + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button>${V.paneEnd(k)}</div>`
       + '<div class="dbody scroll"><div class="hint">读取中…</div></div>';
     V.api("/api/diff?card=" + encodeURIComponent(loc.card)).then(r => r.text()).then(t => {
-      if (V.P.A.loc !== loc) return;
-      const files = SV.diffFiles(t), head = f => (f.name ? `<button data-open="dev:${esc(f.name)}">${esc(f.name)}</button>` : "");
-      $(".dbody", el).innerHTML = files.map(f => `<div class="dfile"><h3>${head(f)}</h3><div class="md"><pre class="dif">`
-        + f.lines.map(l => `<div class="${l.cls}">${esc(l.text) || " "}</div>`).join("") + "</pre></div></div>").join("")
-        || '<div class="hint">这张卡在 dev_root 里没有未提交或最近的改动。</div>';
-    }).catch(e => { if (V.P.A.loc === loc) $(".dbody", el).innerHTML = `<div class="derr"><b>读不到改动</b><br>${esc(e.message)}</div>`; });
+      if (V.P[k].loc !== loc) return;
+      $(".dbody", el).innerHTML = filesHTML(t) || '<div class="hint">这张卡在 dev_root 里没有未提交或最近的改动。</div>';
+    }).catch(e => { if (V.P[k].loc === loc) $(".dbody", el).innerHTML = `<div class="derr"><b>读不到改动</b><br>${esc(e.message)}</div>`; });
     V.status();
   };
-  V.statusFns.diff = () => `<span><b>±diff</b>　${esc((V.P.A.loc || {}).card || "")}</span><span class="sp"></span>${V.stamp()}`;
+  V.views.recent = (k, loc, opt) => {   // a refresh keeps the scroll; entering starts at the top
+    const el = $("#recent"), old = $(".dbody", el), top = opt.entering || !old ? 0 : old.scrollTop;
+    el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
+      + '<div class="ppath"><bdi>dev_root / <b>最近提交</b></bdi></div>'
+      + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button>${V.paneEnd(k)}</div>`
+      + `<div class="dbody scroll">${old && !opt.entering ? old.innerHTML : '<div class="hint">读取中…</div>'}</div>`;
+    $(".dbody", el).scrollTop = top;
+    V.api("/api/log?n=25").then(r => r.text()).then(t => {
+      if (V.P[k].loc !== loc) return;
+      const b = $(".dbody", el), y = b.scrollTop;
+      b.innerHTML = SV.splitCommits(t).map(c => `<section class="commit"><h2>${esc(c.subject)}<em>${esc(c.sha.slice(0, 7))}　${esc(c.date)}</em></h2>${filesHTML(c.diff)}</section>`).join("")
+        || '<div class="hint">dev_root 还没有提交。</div>';
+      b.scrollTop = y;
+    }).catch(e => { if (V.P[k].loc === loc) $(".dbody", el).innerHTML = `<div class="derr"><b>读不到提交记录</b><br>${esc(e.message)}</div>`; });
+    V.status();
+  };
+  V.statusFns.recent = () => `<span><b>最近提交</b>　dev_root，最新 25 次</span><span class="sp"></span>${V.stamp()}`;
+  V.on("data", () => { if (!$("#recent").hidden) V.rerender(V.hostOf("recent")); });
+  V.statusFns.diff = () => `<span><b>±diff</b>　${esc((V.P[V.navPane()].loc || {}).card || "")}</span><span class="sp"></span>${V.stamp()}`;
 
   /* ---- the board view ---- */
   V.views.board = () => {
@@ -286,11 +305,12 @@
       + (hint ? "<span>单击看详情，双击打开 design.md，方向键移动</span>" : "") + `<span class="sp"></span>${V.stamp()}`;
   };
   V.on("nav", (k, loc) => { if (loc.kind === "board") store.set("hintN", store.get("hintN", 0) + 1); });
-  V.on("data", () => { if (V.view === "board") { render(); V.status(); } });
-  V.on("scope", () => { if (V.view === "board") { render(); V.status(); } });
-  V.on("narrow", () => { if (V.view === "board" && !store.get("form", null)) render(); });
+  V.on("data", () => { if (onShow()) { render(); V.status(); } });
+  V.on("scope", () => { if (onShow()) { render(); V.status(); } });
+  V.on("narrow", () => { if (onShow() && !store.get("form", null)) render(); });
+  V.on("split", () => { if (onShow()) render(); });
 
-  V.on("click", e => { if (V.view === "board" && sel && !e.target.closest("#bdet,[data-card],.pop,#hgut,.qo,#bhd,#reader")) closeDetail(); });
+  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold]")) closeDetail(); });
   V.click("[data-grp]", el => { groupBy = el.dataset.grp; store.set("grp", groupBy); unfold.clear(); render(); });
   V.click("[data-trays]", () => { trays = !trays; store.set("trays", trays); render(); V.untip(); });
   V.click("[data-form]", el => {
@@ -309,9 +329,9 @@
   V.click("[data-flt]", el => (V.isPop("fltPop") ? V.closePops() : fltPop(el)));
   V.click("[data-fold]", el => { const p = el.dataset.fold; unfold.has(p) ? unfold.delete(p) : unfold.add(p); render(); });
   V.click("[data-rq]", el => el.classList.toggle("x"));
-  V.click("[data-diff]", el => V.nav("A", { kind: "diff", card: el.dataset.diff }));
+  V.click("[data-diff]", (el, e) => { const k = V.paneOf(el); V.nav(e.shiftKey ? V.other(k) : k, { kind: "diff", card: el.dataset.diff }); });
   V.click("[data-card]", (el, e) => (e.shiftKey || e.detail >= 2 ? openCard(el.dataset.card, e) : selectCard(el.dataset.card)));
-  const boardKeys = () => V.view === "board" && V.focus === "A";   // beside, B's reader keeps its keys
+  const boardKeys = () => V.view === "board";
   ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (boardKeys() ? moveSel(e.key) : false)));
   V.hotkey("Enter", e => (boardKeys() && sel ? openCard(sel, e) : false));
   V.layer(10, () => V.view === "board" && !!sel, closeDetail);

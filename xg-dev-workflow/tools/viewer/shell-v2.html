@@ -23,7 +23,8 @@
       <button class="ib" id="trailBtn" data-popbtn data-tip="足迹：最近打开过的文档" aria-label="足迹"></button>
       <button class="ib" id="starBtn" data-popbtn data-tip="星标文档" aria-label="星标文档"></button>
       <button class="ib" id="qBtn" data-tip="搜索文档与卡片" data-key="⌘K" aria-label="搜索"></button>
-      <button class="ib" id="themeBtn" data-popbtn data-tip="主题" aria-label="主题"></button>
+      <button class="ib" id="themeBtn" data-popbtn data-tip="主题与亮度" aria-label="主题与亮度"></button>
+      <button class="ib" id="helpBtn" data-tip="快捷键" data-key="?" aria-label="快捷键">?</button>
       <button class="ib" id="navTog" data-col="nav" data-tip="收起导航" aria-label="收起导航"></button>
     </div>
     <div id="treeWrap"><div class="scope" id="scopeBar"></div><div id="tree" class="scroll"></div></div>
@@ -32,13 +33,14 @@
 
   <main class="col" id="centre">
     <section class="view" id="board"><div class="phd" id="bhd"></div><div id="bscroll" class="scroll"></div><div class="hgut" id="hgut"></div><div id="bdet" class="scroll"></div></section>
-    <section class="view" id="reader" hidden>
+    <section class="view" id="reader">
       <div class="pane focus" id="pA"></div>
       <div class="gut" data-g="ab"></div>
       <div class="pane blank" id="pB"></div>
     </section>
     <section class="view" id="search" hidden></section>
     <section class="view" id="diffv" hidden></section>
+    <section class="view" id="recent" hidden></section>
   </main>
   <div class="gut" data-g="side"></div>
 
@@ -60,6 +62,7 @@
 <div class="pop" id="starPop" role="dialog" aria-label="星标文档"></div>
 <div class="pop" id="selbar"><button data-s="find">在本文查找</button><button data-s="copy">复制为引用</button></div>
 <div class="qo" id="qo" hidden><div class="qbox" role="dialog" aria-label="搜索"><input id="qIn" placeholder="文档、卡片编号，或 Fact-12…" autocomplete="off" aria-label="搜索"><div class="ql scroll" id="qList"></div><div class="qf"><span><kbd>↑↓</kbd>选择</span><span><kbd>↵</kbd>打开</span><span><kbd>⇧↵</kbd>在右栏打开</span><span><kbd>⌘↵</kbd>全文搜索</span><span><kbd>esc</kbd>关闭</span><button data-qclear data-tip="清空最近打开、搜索与查找的历史">清空历史</button></div></div></div>
+<div class="qo" id="help" hidden><div class="qbox hbox" role="dialog" aria-label="快捷键"></div></div>
 <div id="toast"></div>
 <svg id="link" aria-hidden="true"></svg>
 

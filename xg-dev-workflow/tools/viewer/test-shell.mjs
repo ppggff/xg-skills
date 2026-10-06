@@ -990,6 +990,16 @@ t("diffFiles: one entry per file, lines classed add/del/hunk, headers left plain
   assert.deepEqual(SV.diffFiles(""), []);
 });
 
+t("splitCommits: one entry per commit with sha, date, subject and only the diff part", () => {
+  const log = "commit abc1234def\nAuthor: x <x@y>\nDate:   Tue Oct 6 15:16:56 2026 +0800\n\n    first subject\n\n    body line\n\ndiff --git a/a.md b/a.md\n+x\n"
+    + "commit 0123456789\nAuthor: x <x@y>\nDate:   Mon Oct 5 10:00:00 2026 +0800\n\n    second\n";
+  const c = SV.splitCommits(log);
+  assert.deepEqual(c.map((x) => [x.sha, x.subject, x.date]), [["abc1234def", "first subject", "Tue Oct 6 15:16:56 2026 +0800"], ["0123456789", "second", "Mon Oct 5 10:00:00 2026 +0800"]]);
+  assert.equal(c[0].diff, "diff --git a/a.md b/a.md\n+x");
+  assert.equal(c[1].diff, "");
+  assert.deepEqual(SV.splitCommits("(no commits)\n"), []);
+});
+
 console.log("\n" + pass + " shell-helper tests passed");
 
 // --- 026 T16: doc-native id anchors (SV pure half) + xid extension behavior ---
