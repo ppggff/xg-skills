@@ -152,6 +152,7 @@
   html.narrow #side:not(.filter-open) #filterbox:not(:has(input:not(:placeholder-shown))) { display: none; }   /* an active filter stays in view */
   html.narrow .navbtn { flex: 1 1 0; min-width: 0; white-space: nowrap; justify-content: center; border-radius: 0; }
   html.narrow .navbtn + .navbtn { border-left: 1px solid var(--line2); }
+  html.narrow .doc-head [data-fwd][disabled] { display: none; }   /* 041: forward shows only once there is somewhere to go — the crumb keeps its room on a phone */
   html.narrow .brand-btns .iconbtn, html.narrow .navbtn { box-sizing: border-box; height: 24px; padding-top: 0; padding-bottom: 0; }   /* one row height for the sidebar's controls; no display here — the hide rules must win */
   .crumb .base { display: none; } html.narrow .crumb .full { display: none; } html.narrow .crumb .base { display: inline; }
   /* R3/R4: header (focus bar + buttons + history) floats — sticky at the pane top (z-index above
