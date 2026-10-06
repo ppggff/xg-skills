@@ -1470,7 +1470,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   var reqCache = {};   // a lite card's Req headings, re-read when its design.md changes
   function reqsOf(c) {
-    var rel = c.project + "/" + c.dir + "/design.md", it = RAW.dev.find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0, key = c.project + "/" + c.nnn;
+    var rel = c.project + "/" + c.dir + "/design.md", mt = mtimeOf("dev", rel), key = c.project + "/" + c.nnn;
     var hit = reqCache[key]; if (hit && hit.mt === mt) return hit.list;
     if (!hit || hit.mt !== mt) {
       reqCache[key] = { mt: mt, list: hit ? hit.list : null };
@@ -2288,6 +2288,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   });
 
   // --- sidebar: project selector + tree (R13/R19/R25) ------------------------
+  function mtimeOf(tree, rel) { var it = (RAW[tree] || []).find(function (x) { return x.path === rel; }); return it ? it.mtime : 0; }   // a cache key: a changed file drops what was read from it
   var CARD_STATE = {};   // "project/NNN-slug" → state, so the dev tree can sort cards into open and closed (041 J-7)
   function loadTree() {
     var board = api("/api/board").then(function (r) { return r.json(); }).catch(function () { return {}; });
@@ -2592,8 +2593,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("[data-anc]"))) { e.preventDefault();
       var av = PANES[sideOf(t)]._view, link = av && av.rel.split("/").slice(-2).join("/") + "#" + SV.slug(t.parentElement.textContent);
-      if (link) { var ok = function () { flash("已复制 " + link); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(ok, function () { fallbackCopy(link); ok(); }); else { fallbackCopy(link); ok(); } }
+      if (link) copyText(link, "已复制 " + link);
       return; }
     if ((t = e.target.closest(".docbody a[data-hash]"))) { e.preventDefault();
       var hs = sideOf(t) && [].slice.call(PANES[sideOf(t)].querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
@@ -2728,9 +2728,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     cmtBtn.style.display = "none";
     if (b.dataset.sel === "find") return findOpen(focus);   // seeds from the live selection (R17)
     var text = (doc ? doc.rel.split("/").pop() : "") + "：「" + sel + "」";
-    var done = function () { flash("已复制为引用"); };   // same path as the basket's copy button
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
-    else { fallbackCopy(text); done(); }
+    copyText(text, "已复制为引用");
   });
   // R6/ADR-0001 D1 (041 J-6): the one selection listener. selectionchange covers keyboard and
   // programmatic selections too; a pause of 120ms (or the pointer coming up) settles it, so a drag
@@ -2780,6 +2778,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     else fallbackCopy(text);
   };
   document.getElementById("basket-clear").onclick = function () { basket = []; renderBasket(); };
+  function copyText(text, msg) {   // the clipboard API where allowed, else the textarea fallback; then the notice
+    var ok = function () { flash(msg); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, function () { fallbackCopy(text); ok(); });
+    else { fallbackCopy(text); ok(); }
+  }
   function fallbackCopy(text) {
     var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
     ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta);
@@ -3106,7 +3109,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   }
   function lpOpen(a) {
     var tree = a.dataset.tree, rel = a.dataset.rel, key = tree + ":" + rel, label = tree + "/" + rel; lpCur = key;
-    var it = (RAW[tree] || []).find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0;   // a changed file drops its cached preview
+    var mt = mtimeOf(tree, rel);
     if (lpCache[key] && lpCache[key].mt === mt) { lpRender(a, lpCache[key].html, label); return; }
     api("/raw/" + tree + "/" + rel).then(function (r) { return r.text(); }).then(function (text) {
       if (lpCur !== key) return;   // pointer moved on before it loaded
@@ -3117,7 +3120,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // 041: a citation's hover card — its definition in this doc, or a Fact's 事实 and 来源 from the card's facts.md
   var factCache = {};
   function factOf(rel, id) {
-    var it = RAW.dev.find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0, c = factCache[rel];
+    var mt = mtimeOf("dev", rel), c = factCache[rel];
     if (c && c.mt === mt) return Promise.resolve(c.map[id] || null);
     return api("/raw/dev/" + rel).then(function (r) { return r.text(); })
       .then(function (src) { factCache[rel] = { mt: mt, map: SV.factBlocks(src) }; return factCache[rel].map[id] || null; })
