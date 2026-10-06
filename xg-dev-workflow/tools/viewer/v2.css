@@ -733,6 +733,7 @@ a.tr { text-decoration: none; }
 @keyframes tocin { from { opacity: 0; transform: translateX(6px); } }
 .md pre { white-space: pre; }
 .app.narrow .md pre { white-space: pre-wrap; word-break: break-word; }
+.app.narrow .md td, .app.narrow .md th { overflow-wrap: anywhere; }   /* break inside long tokens so a table fits the pane, as in the classic shell */
 /* narrow: the left strip can go away entirely; the nav then opens as a drawer from the pane head */
 .app.narrow.nx .ib.navb { display: grid; }
 .app.narrow.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 34px; }

@@ -445,6 +445,9 @@ const SCENARIO = {
     await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')");
     check("…and is remembered", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
     await ctx.click("#themeBtn"); await ctx.click("[data-lum0]");
+    await ctx.viewport(390, 844); await ctx.eval(`V2.nav("A", { kind: "doc", tree: "dev", rel: ${J(o.doc.slice(4).split("/")[0] + "/index.md")} }); true`); await ctx.wait("!!document.querySelector('#pA .md table')"); await ctx.sleep(300);
+    check("narrow: tables wrap into the pane, none scrolls sideways", await ctx.eval("[...document.querySelectorAll('#pA .md table')].every(t => t.scrollWidth <= t.clientWidth + 1)"));
+    await ctx.viewport(1440, 900);
     check("复位 brings back the page as designed", await ctx.eval("document.documentElement.style.filter === '' && document.getElementById('lumIn').value === '100'"));
   },
   // The two panes sit above their content: either can hold the board, a search, a diff, the recent commits or a doc.
