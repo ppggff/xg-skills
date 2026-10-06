@@ -1199,6 +1199,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var pane = PANES[side], mt = 0;
     api("/raw/" + v.tree + "/" + v.rel).then(function (r) { mt = +r.headers.get("X-Mtime") || 0; return r.text(); }).then(function (text) {
       var fm = SV.parseFrontmatter(text), headings = collectHeadings(fm.body);
+      pane._renders = (pane._renders || 0) + 1;   // lets a waiter tell the new render from the old one (041 ⇧-citation connector)
       pane._doc = { tree: v.tree, rel: v.rel, body: fm.body, headings: headings, mtime: mt,
         fmLines: text.split("\n").length - fm.body.split("\n").length };   // R63: version; R4: frontmatter line offset
       if (staleSides[side]) { delete staleSides[side]; showStale(); }   // freshly (re)loaded → not stale
@@ -1352,7 +1353,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var storedMode = lsGet("sv-board-mode");
   var boardMode = BOARD_FORMS.indexOf(storedMode) >= 0 ? storedMode : SV.boardMode(storedMode, lsGet("sv-board-kanban"));   // null until the human picks a form
   var boardGroup = BOARD_GROUPS[lsGet("sv-board-group")] ? lsGet("sv-board-group") : boardMode === "kanban" ? "s" : "p";
-  if (boardMode === "kanban") boardMode = "cols";
+  if (boardMode === "kanban") { boardMode = "cols"; lsSet("sv-board-mode", "cols"); lsSet("sv-board-group", boardGroup); }
   var boardSort = BOARD_SORTS[lsGet("sv-board-sort") || ""] ? lsGet("sv-board-sort") || "" : "";
   var boardHideState = (function () { try { return JSON.parse(lsGet("sv-board-hide")) || { done: true, dropped: true }; }
     catch (e) { return { done: true, dropped: true }; } })();
@@ -1398,6 +1399,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       var states = []; all.forEach(function (c) { if (states.indexOf(c.state) === -1) states.push(c.state); });
       var cards = all.filter(function (c) { return !boardHideState[c.state]; });   // bar handles status
       var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "cols";
+      if (boardGroup !== "p") cards = cards.filter(function (c) { return !boardHideProj[c.project]; });   // the TOC's project ticks still hold, as they did for the kanban
       var gk = boardGroup === "s" ? function (c) { return c.state; } : boardGroup === "g" ? function (c) { return c.governance || "legacy"; } : function (c) { return c.project; };
       var byKey = {}, order = [];
       cards.forEach(function (c) { var k = gk(c); if (!byKey[k]) { byKey[k] = []; order.push(k); } byKey[k].push(c); });
@@ -1476,7 +1478,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       reqCache[key] = { mt: mt, list: hit ? hit.list : null };
       api("/raw/dev/" + rel).then(function (r) { return r.text(); })
         .then(function (t) { reqCache[key] = { mt: mt, list: SV.reqHeads(t) }; rerenderTrace(key); })
-        .catch(function () { reqCache[key] = { mt: mt, list: [] }; });
+        .catch(function () { reqCache[key] = { mt: mt, list: [] }; rerenderTrace(key); });
     }
     return reqCache[key].list;
   }
@@ -2395,7 +2397,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var byNo = function (a, b) { return sortKey === "mtime" ? cmp(a, b) : (a.name < b.name ? 1 : a.name > b.name ? -1 : 0) * treeSort.dev.dir; };
     var cardCmp = function (a, b) { return sortKey === "name" ? (b.name === "design.md") - (a.name === "design.md") || cmp(a, b) : cmp(a, b); };
     var card = function (p, e, d) {
-      return '<details class="kids" data-name="' + esc(e.name) + '"><summary' + pad(d) + '><span class="arrow"></span>' + esc(e.name) + when(e.mtime) + "</summary>" +
+      return '<details class="kids" data-name="' + esc(e.name) + '"' + (filt ? " open" : "") + "><summary" + pad(d) + '><span class="arrow"></span>' + esc(e.name) + when(e.mtime) + "</summary>" +
         nodeHtml(tree, e.node, d + 1, cardCmp, sortKey, filt, true) + "</details>"; };
     Object.keys(root.dirs).map(function (n) { return { name: n, node: root.dirs[n], mtime: root.dirs[n].mtime }; }).sort(cmp).forEach(function (pj) {
       if (filt && !dirMatches(pj.node, filt)) return;
@@ -2652,7 +2654,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return; }
     if ((t = e.target.closest("[data-nav]"))) { e.preventDefault();
       var side = e.shiftKey ? "right" : "left", kind = t.dataset.nav;
-      if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel, line: +t.dataset.line || 0 });
+      if (kind === "doc") { navigate(side, { kind: "doc", tree: t.dataset.tree, rel: t.dataset.rel, line: +t.dataset.line || 0, xid: t.dataset.xid || undefined });
         revealInTree(t.dataset.tree, t.dataset.rel); }   // 006 T4: user-opened → expand ancestors
       else if (kind === "diff") navigate(side, { kind: "diff", card: t.dataset.card });
       else if (kind === "trace") navigate(side, { kind: "trace", card: t.dataset.card });   // 007 R5
@@ -2728,7 +2730,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     cmtBtn.style.display = "none";
     if (b.dataset.sel === "find") return findOpen(focus);   // seeds from the live selection (R17)
     var text = (doc ? doc.rel.split("/").pop() : "") + "：「" + sel + "」";
-    copyText(text, "已复制为引用");
+    copyText(text, "已复制为引用"); window.getSelection().removeAllRanges();
   });
   // R6/ADR-0001 D1 (041 J-6): the one selection listener. selectionchange covers keyboard and
   // programmatic selections too; a pause of 120ms (or the pointer coming up) settles it, so a drag
@@ -2737,17 +2739,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
   var selT = 0, ptrDown = false;
   document.addEventListener("pointerdown", function () { ptrDown = true; });
   document.addEventListener("pointerup", function () { ptrDown = false; clearTimeout(selT); selT = setTimeout(onSelection, 0); });
+  document.addEventListener("pointercancel", function () { ptrDown = false; clearTimeout(selT); selT = setTimeout(onSelection, 0); });   // a long press that turns into a text selection ends here
   document.addEventListener("selectionchange", function () { clearTimeout(selT); selT = setTimeout(onSelection, 120); });
   function onSelection() {
     var sel = window.getSelection(), doc = PANES[focus] && PANES[focus]._doc;
-    var own = sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode);
+    var ae = document.activeElement, inField = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);   // a selection inside the find box is not the reader's
+    var own = !inField && sel.rangeCount && String(sel).trim() && PANES[focus].contains(sel.anchorNode) && sel.getRangeAt(0).getBoundingClientRect().height > 0;
     // find and quote work in every view; a comment needs a doc to anchor to. The echo is pane-level (R6).
     if (own && !ptrDown) {
       var r = sel.getRangeAt(0).getBoundingClientRect();
       cmtBtn.querySelector('[data-sel="comment"]').style.display = doc ? "" : "none";
       cmtBtn.style.top = (r.bottom + 6) + "px"; cmtBtn.style.left = Math.max(8, Math.min(r.left, innerWidth - 300)) + "px";
       cmtBtn.style.display = "flex";
-    } else if (!own && !cmtBtn.contains(document.activeElement)) {
+    } else if (!own && (inField || !cmtBtn.contains(document.activeElement))) {
       cmtBtn.style.display = "none";
     }
     updateSelectionEcho(focus, own ? sel : null);   // R6: T8; selection gone → echo clears, doesn't linger
@@ -3048,6 +3052,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (chSide) return chClose;
     if (lp && lp.classList.contains("show")) return lpHide;
     if (narrow && (sideOpen || tocOpen)) return closeOverlays;
+    if (cmtBtn.style.display === "flex") return function () { cmtBtn.style.display = "none"; };
     if (PANES[focus]._findOpen) return function () { findClose(focus); };
     var cd = PANES[focus].querySelector(".card-detail [data-cd-close]");
     if (cd) return function () { cd.click(); };
@@ -3146,6 +3151,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if (!xline) { xline = document.createElementNS("http://www.w3.org/2000/svg", "svg"); xline.id = "xline"; document.body.appendChild(xline); }
     var t0 = performance.now();
     (function step(now) {
+      if (!from.isConnected || !to.isConnected) { xline.innerHTML = ""; return; }
       var a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), t = now - t0;
       var x1 = a.right + 2, y1 = a.top + a.height / 2, x2 = b.left - 4, y2 = b.top + 11, mx = Math.round((x1 + x2) / 2) + .5;
       var op = t < 2300 ? 1 : Math.max(0, 1 - (t - 2300) / 700), grow = Math.min(1, t / 420);
@@ -3158,9 +3164,11 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var local = PANES[side].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]'), rel = local ? v.rel : SV.xidHomeRel(v.rel, id);
     var canon = rel && TREES[v.tree] && TREES[v.tree].get(rel.toLowerCase());
     if (!canon) { flash("未找到 " + id + " 的定义"); return; }
+    var r0 = PANES[other]._renders || 0;
     navigate(other, { kind: "doc", tree: v.tree, rel: canon, xid: id }); setFocus(side);
-    var n = 20; (function wait() {
-      var el = PANES[other].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]');
+    var n = 20; (function wait() {   // the old content stays until the fetch lands: wait for the new render, not a stale twin
+      var fresh = (PANES[other]._renders || 0) > r0;
+      var el = fresh && PANES[other].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]');
       if (el) setTimeout(function () { xlineDraw(a, el); }, 350); else if (n--) setTimeout(wait, 120);
     })();
   }

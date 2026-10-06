@@ -775,6 +775,27 @@ const SCENARIO = {
     await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
     check("theme and brightness survive a reload", await ctx.eval("document.documentElement.getAttribute('data-theme') === 'space' && document.documentElement.style.filter === 'brightness(1.2)'"));
     await ctx.eval("localStorage.removeItem('sv-theme'); localStorage.removeItem('sv-lum'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    // close-out review fixes
+    await ctx.eval("(() => { const f = document.getElementById('treeFilter'); f.value = 'facts'; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()"); await sleep(400);
+    check("filtering opens the card folders that hold a match", await ctx.eval("(() => { const a = [...document.querySelectorAll('#tree details[data-name=\"dev\"] a.file')]; return a.length > 3 && a.every(x => x.checkVisibility()); })()"));
+    await ctx.eval("(() => { const f = document.getElementById('treeFilter'); f.value = ''; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()"); await sleep(300);
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    await ctx.eval("(() => { const p = document.querySelector('#left .docbody p'); p.scrollIntoView({ block: 'center' }); const t = p.firstChild; const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(6, t.length)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; })()"); await sleep(400);
+    await ctx.key("f"); await sleep(400);
+    check("pressing f takes the selection bar away (no stray bar in the corner)", await ctx.eval("getComputedStyle(document.getElementById('cmt')).display === 'none'"));
+    await ctx.key("Escape");
+    await ctx.eval("(() => { const p = document.querySelector('#left .docbody p'); const t = p.firstChild; const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(6, t.length)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; })()"); await sleep(400);
+    await ctx.click("#cmt [data-sel=quote]"); await sleep(300);
+    check("after copy as a quote the bar stays gone", await ctx.eval("getComputedStyle(document.getElementById('cmt')).display === 'none'"));
+    await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/041"], #left .trow[data-key="xg-skills/041"]'); await ctx.wait("!!document.querySelector('#left .card-detail .cd-req')", 5000);
+    await ctx.click('#left .card-detail .cd-req[data-xid="Req-7"]'); await ctx.wait("!!document.querySelector('#left .docbody')", 5000); await sleep(800);
+    check("a Req row in the detail jumps to that Req", await ctx.eval("(() => { const h = document.querySelector('#left .docbody [data-xid=\"Req-7\"]'), p = document.getElementById('left'); const t = h.getBoundingClientRect().top - p.getBoundingClientRect().top; return t > -5 && t < 200; })()"));
+    await ctx.eval("localStorage.setItem('sv-board-mode', 'grid'); localStorage.setItem('sv-board-group', 'p'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board");
+    await ctx.eval("(() => { const c = [...document.querySelectorAll('#toc .tocf')].find(x => x.closest('.toc-row').textContent.includes('cbdb')); c.click(); return true; })()"); await sleep(300);
+    await ctx.click("#left [data-bgroup]"); await sleep(500);
+    check("a project unticked in the TOC stays hidden when grouped by status", await ctx.eval("!document.querySelector('#left .card[data-key^=\"cbdb/\"]')"));
+    await ctx.eval("localStorage.setItem('sv-board-mode', 'kanban'); localStorage.removeItem('sv-board-group'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    check("a migrated kanban stores its status grouping", await ctx.eval("localStorage.getItem('sv-board-group') === 's'"));
     await ctx.key("Escape");
     await ctx.key("Escape");
   },
