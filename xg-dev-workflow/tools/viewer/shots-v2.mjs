@@ -238,12 +238,13 @@ const SCENARIO = {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
     await ctx.key("f"); await ctx.eval("document.activeElement.blur(); true");
     await ctx.click("#themeBtn");
-    await ctx.key("k", 4); await ctx.sleep(100);
-    check("three layers open: find bar, theme popover, quick open", await ctx.eval("document.querySelector('#pA .find.on') && !document.getElementById('qo').hidden") === true || await ctx.eval("!!document.querySelector('#pA .find.on') && !document.getElementById('qo').hidden"));
+    check("two layers open: find bar and theme popover", await ctx.eval("!!document.querySelector('#pA .find.on') && document.getElementById('themePop').classList.contains('on')"));
     await ctx.key("Escape");
-    check("Esc 1 closes quick open only", await ctx.eval("document.getElementById('qo').hidden && !!document.querySelector('#pA .find.on')"));
+    check("Esc 1 closes the popover, the find bar stays", await ctx.eval("!document.getElementById('themePop').classList.contains('on') && !!document.querySelector('#pA .find.on')"));
+    await ctx.click("#themeBtn"); await ctx.key("k", 4); await ctx.sleep(100);
+    check("quick open replaces the popover over the find bar", await ctx.eval("!document.getElementById('qo').hidden && !document.getElementById('themePop').classList.contains('on')"));
     await ctx.key("Escape");
-    check("Esc 2 closes the popover, the find bar stays", await ctx.eval("!document.getElementById('themePop').classList.contains('on') && !!document.querySelector('#pA .find.on')"));
+    check("Esc 2 closes quick open only", await ctx.eval("document.getElementById('qo').hidden && !!document.querySelector('#pA .find.on')"));
     await ctx.key("Escape");
     check("Esc 3 closes the find bar", await ctx.eval("!document.querySelector('#pA .find.on')"));
     await ctx.key("b", 1); await ctx.key("b", 4);
@@ -418,12 +419,23 @@ const SCENARIO = {
 
     await ctx.eval("V2.W.nx = true; V2.applyW(); true"); await ctx.sleep(200);
     await ctx.click("#pA [data-navb]"); await ctx.sleep(250); await ctx.click("#themeBtn"); await ctx.sleep(250);
+    await ctx.viewport(1440, 900); await ctx.sleep(200); await ctx.click("#trailBtn"); await ctx.sleep(150); await ctx.eval("V2.chord.k(); true"); await ctx.sleep(150);
+    check("quick open covers a popover that was open", await ctx.eval("(() => { const r = document.querySelector('#qo .qbox').getBoundingClientRect(), e = document.elementFromPoint(r.left + 20, r.top + 20); return !!e && !!e.closest('#qo'); })() && !document.getElementById('trailPop').classList.contains('on')"));
+    await ctx.key("Escape"); await ctx.viewport(768, 1024); await ctx.sleep(300); await ctx.click("#pA [data-navb]"); await ctx.sleep(250); await ctx.click("#themeBtn"); await ctx.sleep(250);
     check("narrow drawer: the theme popover shows above it", await ctx.eval("(() => { const r = document.getElementById('themePop').getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && !!e.closest('#themePop'); })()"));
     await ctx.key("Escape"); await ctx.key("Escape");
 
     await ctx.click("#sideX"); await ctx.sleep(250);
     check("narrow: the side rail collapses fully", await ctx.eval("document.getElementById('app').classList.contains('sx') && document.getElementById('side').getBoundingClientRect().width === 0"));
     check("…and the pane head gets a TOC button", await ctx.eval("getComputedStyle(document.querySelector('#pA .tocb')).display !== 'none'"));
+    check("…and nothing of the rail is left over the pane head", await ctx.eval("(() => { const r = document.querySelector('#pA .phd [data-t=split]').getBoundingClientRect(), e = document.elementFromPoint(r.right - 3, r.top + r.height / 2); return !!e && !e.closest('#side'); })()"));
+    await ctx.eval("V2.W.nx = false; V2.applyW(); true"); await ctx.viewport(390, 844); await ctx.sleep(300);
+    check("phone with the side collapse remembered: the nav strip keeps its 40px", await ctx.eval("getComputedStyle(document.getElementById('app')).gridTemplateColumns.split(' ')[0] === '40px'"));
+    await ctx.click("#pA .tocb"); await ctx.sleep(200);
+    check("phone: the drawer's button only closes it", await ctx.eval("document.getElementById('sideTog').dataset.tip === '关闭目录'"));
+    await ctx.click("#sideTog"); await ctx.sleep(200);
+    check("…and does so, the collapse untouched", await ctx.eval("!document.getElementById('app').classList.contains('tocpop') && V2.W.sx === true"));
+    await ctx.viewport(768, 1024); await ctx.sleep(300);
     await ctx.click("#pA .tocb"); await ctx.sleep(250);
     check("…which opens the whole side column as a drawer, titled, with a restore button", await ctx.eval("document.getElementById('app').classList.contains('tocpop') && getComputedStyle(document.querySelector('#side .chd')).display !== 'none' && document.querySelectorAll('#sbody .ti').length > 0 && /恢复右侧竖条/.test(document.getElementById('sideTog').dataset.tip)"));
     await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')"); await ctx.go("doc");

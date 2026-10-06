@@ -125,7 +125,7 @@ var V2 = (function () {
     app.classList.toggle("nc", W.nc || nar); app.classList.toggle("sc", W.sc || nar);
     const tip = nar ? (app.classList.contains("navpop") ? "恢复左侧竖条" : "完全收起左栏") : W.nc ? "展开导航" : "收起导航";
     nt.dataset.tip = tip; nt.setAttribute("aria-label", tip);
-    const st = $("#sideTog"), stip = nar ? (app.classList.contains("tocpop") ? "恢复右侧竖条" : "完全收起右栏") : W.sc ? "展开右栏" : "收起右栏";
+    const st = $("#sideTog"), stip = app.classList.contains("phone") ? "关闭目录" : nar ? (W.sx ? "恢复右侧竖条" : "完全收起右栏") : W.sc ? "展开右栏" : "收起右栏";
     st.dataset.tip = stip; st.setAttribute("aria-label", stip);
   };
   V.relayout = () => V.emit("layout");
@@ -158,7 +158,10 @@ var V2 = (function () {
     if (k === "det") return V.emit("detail-close");
     if (V.isNarrow()) {
       if (k === "nav") { W.nx = !app.classList.contains("navpop"); app.classList.remove("navpop", "treepop"); V.applyW(); V.saveW(); }
-      else if (el && (el.id === "sideTog" || el.id === "sideX")) { W.sx = !app.classList.contains("tocpop"); app.classList.remove("tocpop"); V.applyW(); V.saveW(); }
+      else if (el && (el.id === "sideTog" || el.id === "sideX")) {   // a phone has no side rail: the button only closes the drawer
+        if (!app.classList.contains("phone")) W.sx = !W.sx;
+        app.classList.remove("tocpop"); V.applyW(); V.saveW();
+      }
       else app.classList.toggle("tocpop");
       return;
     }
@@ -390,6 +393,7 @@ var V2 = (function () {
     ["⌘K", [["↑ ↓", "选择"], ["↵", "打开"], ["⇧↵", "在另一栏打开"], ["⌘↵", "全文搜索"], ["⇧⌘↵", "在另一栏全文搜索"]]]];
   V.toggleHelp = () => {
     const h = $("#help"); h.hidden = !h.hidden; if (h.hidden) return;
+    V.closePops();
     h.firstChild.innerHTML = '<div class="pt">快捷键</div><div class="hgrid">' + KEYS.map(([g, rows]) => `<section><h4>${g}</h4>`
       + rows.map(([k, d]) => `<div><kbd>${esc(k)}</kbd><span>${esc(d)}</span></div>`).join("") + "</section>").join("") + "</div>";
   };

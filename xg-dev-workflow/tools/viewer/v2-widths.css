@@ -20,8 +20,9 @@
 .app.narrow.tocpop #side > .chd { display: flex; }
 .app.narrow.tocpop #side > #sbody { display: block; flex: 1; min-height: 0; }
 .app.narrow.tocpop #side > .srail { display: none; }
-.app.narrow.sx { grid-template-columns: 34px 0 minmax(0,1fr) 0 0; }
-.app.narrow.sx.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 0; }
+.app.narrow:not(.phone).sx { grid-template-columns: 34px 0 minmax(0,1fr) 0 0; }
+.app.narrow:not(.phone).sx.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 0; }
+.app.narrow.sx:not(.tocpop) #side { visibility: hidden; }   /* a 0-wide column still lets the rail's buttons spill over the pane head */
 .app.narrow.sx .ib.tocb { display: grid; }
 @keyframes tocin { from { opacity: 0; transform: translateX(6px); } }
 .md pre { white-space: pre; }

@@ -80,7 +80,7 @@
   const paintSel = () => $$("#qList .qr").forEach((b, i) => { b.classList.toggle("sel", i === sel); if (i === sel) b.scrollIntoView({ block: "nearest" }); });
   let back = null;   // where the focus returns when quick open closes
   function open() {
-    back = document.activeElement; $("#qo").hidden = false; $("#qIn").value = ""; sel = 0;
+    back = document.activeElement; V.closePops(); $("#qo").hidden = false; $("#qIn").value = ""; sel = 0;
     render(); loadFacts(); setTimeout(() => $("#qIn").focus(), 10);
   }
   const close = () => {
