@@ -4,6 +4,23 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-06 — status viewer: /v2 closes the detail gaps to the classic shell (card xg-skills/040)
+
+A side-by-side run of `/` and `/v2`, first item by item and then detail by detail, found v2 missing or weaker in places
+the feature list had not shown. The fixes:
+- Reading width is back to the classic model: the body sits left, each edge has its own rule, and the width button
+  cycles default → the dragged width → full.
+- With a board, search or diff in A, a ⇧-open puts the doc in B beside it, as the classic shell did, instead of
+  replacing A.
+- Quick open breaks score ties by the most recently changed doc. Card and Fact rows match each term as a contiguous
+  run, and an exact id comes first.
+- Tree times show only under the time sort, which starts newest first.
+- The table and signal forms fold done/dropped cards.
+- Smaller fixes: find skips the frontmatter and keeps the pin colours on the rail; a link preview can be entered and
+  scrolled; the change view has line numbers; Enter follows a focused citation.
+
+A `parity` scenario in `shots-v2.mjs` holds one check per item.
+
 ## 2026-10-06 — status viewer: `--help` prints usage, an unknown argument exits
 
 `viewer.py` used to skip any argument it did not know, so `viewer.py --help` started a real server on the fixed
