@@ -762,6 +762,19 @@ const SCENARIO = {
     check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name^="040-"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].tagName === 'A' && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.tagName === 'A'); })()`));
     await docAt("dev", "xg-skills/039-viewer-small-screen-touch/design.md");
     check("opening a doc of a closed card reveals it inside closed (n)", await ctx.eval(`document.querySelector('${proj} > details[data-name="closed"]').open && !!document.querySelector('#tree a.file.active[data-rel="xg-skills/039-viewer-small-screen-touch/design.md"]')`));
+    // Req-7-b the theme button opens a choice (J-11): five themes and a brightness slider; the button still shows the current one
+    await ctx.click("#themeToggle"); await sleep(200);
+    check("the theme button opens five themes and a brightness slider", await ctx.eval("(() => { const p = document.getElementById('themePop'); return !!p && p.classList.contains('show') && p.querySelectorAll('[data-theme-k]').length === 5 && !!p.querySelector('#lumIn'); })()"));
+    await ctx.click('#themePop [data-theme-k="space"]'); await sleep(300);
+    check("深空 applies its palette, the button shows it", await ctx.eval("document.documentElement.getAttribute('data-theme') === 'space' && getComputedStyle(document.body).backgroundColor === 'rgb(13, 16, 21)' && document.getElementById('themeToggle').textContent === '◆'"));
+    await ctx.click("#themeToggle"); await sleep(150);
+    await ctx.eval("(() => { const i = document.getElementById('lumIn'); i.value = 120; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+    check("brightness 120% brightens the page", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
+    await ctx.key("Escape"); await sleep(100);
+    check("Esc closes the theme popover", await ctx.eval("!document.getElementById('themePop').classList.contains('show')"));
+    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    check("theme and brightness survive a reload", await ctx.eval("document.documentElement.getAttribute('data-theme') === 'space' && document.documentElement.style.filter === 'brightness(1.2)'"));
+    await ctx.eval("localStorage.removeItem('sv-theme'); localStorage.removeItem('sv-lum'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
     await ctx.key("Escape");
     await ctx.key("Escape");
   },

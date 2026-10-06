@@ -44,7 +44,26 @@
     --side: #15181d; --chip: #1e222a; --sel: #4a3d1a; --badge-fg: #13161b;
     --s-active:#6ea8fe; --s-done:#66d98a; --s-blocked:#f2837a; --s-paused:#e5a54f;
     --s-todo:#4fd0de; --s-backlog:#818995; --s-dropped:#6b7280; --s-unknown:#4a515b;
+  }  /* 041 J-11: the refined frontend's 骨白 and 深空, on this shell's variables (amber = light, amber-dark = dark above) */
+  :root[data-theme="bone"] {
+    color-scheme: light;
+    --bg: #e9e9e4; --fg: #16181c; --body: #33373e; --muted: #6a6e75; --line: #cfd0c9; --line2: #bdbeb7;
+    --accent: #2a3cc8; --accent-soft: rgba(42,60,200,.09); --red: #c9432f; --green: #1f8f4e; --hunk: #7c3aed;
+    --diff-add-bg: rgba(31,143,78,.10); --diff-add-bar: rgba(31,143,78,.5); --diff-del-bg: rgba(201,67,47,.09); --diff-del-bar: rgba(201,67,47,.42); --diff-del-fg: #9a6b6b;   /* R5: low-saturation inline diff */
+    --side: #dfe0da; --chip: #e1e2dc; --sel: rgba(214,158,52,.38); --badge-fg: #ffffff;
+    --s-active:#3355b5; --s-done:#2a7a52; --s-blocked:#b0402f; --s-paused:#976819;
+    --s-todo:#1b7280; --s-backlog:#6a6e75; --s-dropped:#7c828a; --s-unknown:#9b9ea3;
   }
+  :root[data-theme="space"] {
+    color-scheme: dark;
+    --bg: #0d1015; --fg: #dce1e7; --body: #a9b1bc; --muted: #6b7482; --line: #1a2029; --line2: #252d38;
+    --accent: #7f8ef0; --accent-soft: rgba(127,142,240,.12); --red: #f2837a; --green: #66d98a; --hunk: #b39dff;
+    --diff-add-bg: rgba(102,217,138,.13); --diff-add-bar: rgba(102,217,138,.5); --diff-del-bg: rgba(242,131,122,.13); --diff-del-bar: rgba(242,131,122,.42); --diff-del-fg: #bf8f8f;   /* R5 */
+    --side: #08090c; --chip: #13171d; --sel: rgba(214,158,52,.3); --badge-fg: #13161b;
+    --s-active:#6190e0; --s-done:#4faf80; --s-blocked:#d8685a; --s-paused:#c08e43;
+    --s-todo:#48a8b4; --s-backlog:#6b7482; --s-dropped:#646d79; --s-unknown:#474f5b;
+  }
+
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body { margin: 0; background: var(--bg); color: var(--fg);
@@ -489,6 +508,15 @@
   .sdot.st-active { background: var(--s-active); } .sdot.st-done { background: var(--s-done); } .sdot.st-blocked { background: var(--s-blocked); }
   .sdot.st-paused { background: var(--s-paused); } .sdot.st-todo { background: var(--s-todo); } .sdot.st-dropped { background: var(--line2); }
   .sdot.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
+  #themePop { display: none; position: fixed; z-index: 60; width: 230px; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); font-size: 12px; }
+  #themePop.show { display: block; }
+  #themePop [data-theme-k] { display: flex; gap: 8px; width: 100%; padding: 5px 6px; border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; font: inherit; }
+  #themePop [data-theme-k]:hover { background: var(--chip); }
+  #themePop [data-theme-k].on { color: var(--accent); }
+  #themePop .lum { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 6px 6px 2px; border-top: 1px solid var(--line); color: var(--muted); }
+  #themePop .lum input { flex: 1; min-width: 0; accent-color: var(--accent); }
+  #themePop .lum em { font-style: normal; width: 34px; text-align: right; }
+  #themePop .lum button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; }
   #xline { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 40; }
   #xline path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
   #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
@@ -675,7 +703,7 @@
 <button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button>
 <div id="layout">
   <aside id="side" class="pane">
-    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" data-svpop="stars" title="收藏" aria-label="收藏">★</button><button class="iconbtn" data-svpop="trail" title="足迹：最近打开过的文档" aria-label="足迹">◷</button><button class="iconbtn" id="themeToggle" title="theme: follow / light / dark" aria-label="toggle theme">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
+    <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" data-svpop="stars" title="收藏" aria-label="收藏">★</button><button class="iconbtn" data-svpop="trail" title="足迹：最近打开过的文档" aria-label="足迹">◷</button><button class="iconbtn" id="themeToggle" title="主题与亮度" aria-label="主题与亮度">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
     <div class="side-top">
     <select id="proj" class="ctl" title="project scope"></select>
     <input id="search" class="ctl" type="search" list="recent-searches" placeholder="search docs… (Enter)">
@@ -754,30 +782,48 @@
 // wins over @media (see the CSS). __onThemeChange lets the app re-theme mermaid on toggle.
 (function () {
   "use strict";
+  // 041 J-11: the toggle opens a choice of five themes and a brightness slider; its glyph shows the current theme
   var KEY = "sv-theme", root = document.documentElement;
+  var THEMES = [["", "跟随系统", "◐"], ["light", "亮", "☀"], ["dark", "暗", "☾"], ["bone", "骨白", "◇"], ["space", "深空", "◆"]];
   function saved() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
-  function apply(v) { if (v === "light" || v === "dark") root.setAttribute("data-theme", v);
+  function apply(v) { if (THEMES.some(function (t) { return t[0] && t[0] === v; })) root.setAttribute("data-theme", v);
     else root.removeAttribute("data-theme"); }
-  function effective() {
+  function effective() {   // "dark" or "light", whatever the palette (mermaid follows it)
     var v = root.getAttribute("data-theme");
-    return v || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    return v ? (v === "dark" || v === "space" ? "dark" : "light") : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   }
-  apply(saved());
-  var btn = document.getElementById("themeToggle");
+  // brightness over every theme: a filter on the root keeps each palette's hues; 100 is the page as designed
+  function lum(v) { v = Math.max(90, Math.min(140, Math.round(+v) || 100)); root.style.filter = v === 100 ? "" : "brightness(" + v / 100 + ")";
+    try { v === 100 ? localStorage.removeItem("sv-lum") : localStorage.setItem("sv-lum", String(v)); } catch (e) {} return v; }
+  apply(saved()); try { lum(localStorage.getItem("sv-lum") || 100); } catch (e) {}
+  var btn = document.getElementById("themeToggle"), pop = document.createElement("div"); pop.id = "themePop";
   function paint() {
-    // ◐ follow · ☀ forced light · ☾ forced dark
-    var v = root.getAttribute("data-theme");
-    if (btn) btn.textContent = v === "light" ? "☀" : v === "dark" ? "☾" : "◐";
+    var v = root.getAttribute("data-theme") || "", t = THEMES.filter(function (x) { return x[0] === v; })[0] || THEMES[0];
+    if (btn) btn.textContent = t[2];
+  }
+  function openPop() {
+    var v = root.getAttribute("data-theme") || "", l = Math.round(parseFloat((root.style.filter.match(/[\d.]+/) || [1])[0]) * 100);
+    pop.innerHTML = THEMES.map(function (t) { return '<button data-theme-k="' + t[0] + '" class="' + (t[0] === v ? "on" : "") + '"><span>' + t[2] + "</span>" + t[1] + "</button>"; }).join("") +
+      '<div class="lum"><span>亮度</span><input id="lumIn" type="range" min="90" max="140" step="2" value="' + l + '" aria-label="亮度"><em>' + l + '%</em><button data-lum0 title="回到 100%">复位</button></div>';
+    var r = btn.getBoundingClientRect(); pop.style.top = (r.bottom + 6) + "px"; pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 240)) + "px";
+    pop.classList.add("show");
   }
   paint();
-  if (btn) btn.onclick = function () {
-    var v = root.getAttribute("data-theme");
-    var next = v === "light" ? "dark" : v === "dark" ? null : "light";
-    apply(next);
-    try { next ? localStorage.setItem(KEY, next) : localStorage.removeItem(KEY); } catch (e) {}
-    paint();
-    if (typeof window.__onThemeChange === "function") window.__onThemeChange(effective());
-  };
+  if (btn) {
+    document.body.appendChild(pop);
+    btn.onclick = function (e) { e.stopPropagation(); if (pop.classList.contains("show")) pop.classList.remove("show"); else openPop(); };
+    pop.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var t = e.target.closest("[data-theme-k]");
+      if (t) { var next = t.dataset.themeK || null; apply(next);
+        try { next ? localStorage.setItem(KEY, next) : localStorage.removeItem(KEY); } catch (ex) {}
+        paint(); pop.classList.remove("show");
+        if (typeof window.__onThemeChange === "function") window.__onThemeChange(effective()); }
+      if (e.target.closest("[data-lum0]")) { lum(100); openPop(); }
+    });
+    pop.addEventListener("input", function (e) { if (e.target.id === "lumIn") e.target.nextElementSibling.textContent = lum(e.target.value) + "%"; });
+    document.addEventListener("click", function () { pop.classList.remove("show"); });
+  }
   window.__effectiveTheme = effective;
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {   // following the OS: re-theme mermaid when it flips
     if (!root.hasAttribute("data-theme") && typeof window.__onThemeChange === "function") window.__onThemeChange(effective());
@@ -2994,6 +3040,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function escLayer() {
     if (helpEl.classList.contains("show")) return closeHelp;
     if (svPopEl.classList.contains("show")) return svPopClose;
+    var tp = document.getElementById("themePop");
+    if (tp && tp.classList.contains("show")) return function () { tp.classList.remove("show"); };
     if (chSide) return chClose;
     if (lp && lp.classList.contains("show")) return lpHide;
     if (narrow && (sideOpen || tocOpen)) return closeOverlays;
