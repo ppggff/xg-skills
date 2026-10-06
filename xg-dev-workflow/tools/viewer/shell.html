@@ -480,6 +480,8 @@
   /* 041: stars and the trail */
   .file .star { color: var(--accent); font-size: 10px; margin-left: 4px; }
   .doc-head [data-star].on { color: var(--accent); }
+  #xline { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 40; }
+  #xline path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
   #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
   #svpop.show { display: block; }
   #svpop .svh { font-size: 11px; color: var(--muted); padding: 2px 6px 6px; }
@@ -1207,7 +1209,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (key) { var i = key.indexOf(":"); a.setAttribute("data-nav", "doc");
         a.setAttribute("data-tree", key.slice(0, i)); a.setAttribute("data-rel", key.slice(i + 1)); a.removeAttribute("href"); }
       else if (/^https?:\/\//i.test(raw)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
-      else if (raw.charAt(0) === "#") { a.setAttribute("data-hash", raw.slice(1)); a.removeAttribute("href"); }   // headings carry sec_ ids: matched by slug on click
+      else if (raw.charAt(0) === "#") {   // an id citation keeps its #xid: href; an in-page anchor is matched by slug on click (headings carry sec_ ids)
+        if (!a.classList.contains("xid")) { a.setAttribute("data-hash", raw.slice(1)); a.removeAttribute("href"); } }
       // R6: any other internal link is inert (broken) so a click can never navigate the whole
       // window to a server 404 page.
       else { a.classList.add("broken"); a.removeAttribute("href"); a.title = "unresolved: " + raw; }
@@ -2450,8 +2453,10 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // --- global click: shift → right (R31); toc jump (R29); back/close/mirror/swap
   document.addEventListener("click", function (e) {
     var t;
-    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // id jump
-      xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
+    if ((t = e.target.closest("a.xid"))) { e.preventDefault();   // id jump: in this pane (J-5), or ⇧ beside it
+      lpHide();
+      if (e.shiftKey && !narrow) xidBeside(sideOf(t) || focus, t, (t.getAttribute("href") || "").slice(5));
+      else xidJump(sideOf(t) || focus, (t.getAttribute("href") || "").slice(5));
       return; }
     if ((t = e.target.closest(".docbody a[data-hash]"))) { e.preventDefault();
       var hs = sideOf(t) && [].slice.call(PANES[sideOf(t)].querySelectorAll(".docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6"));
@@ -2908,13 +2913,62 @@ if (typeof window !== "undefined" && window.marked) (function () {
       lpCache[key] = { mt: mt, html: bodyHtml }; lpRender(a, bodyHtml, label);
     }).catch(function () { if (lpCur === key) lpRender(a, "", "无法预览 " + label, true); });
   }
+  // 041: a citation's hover card — its definition in this doc, or a Fact's 事实 and 来源 from the card's facts.md
+  var factCache = {};
+  function factOf(rel, id) {
+    var it = RAW.dev.find(function (x) { return x.path === rel; }), mt = it ? it.mtime : 0, c = factCache[rel];
+    if (c && c.mt === mt) return Promise.resolve(c.map[id] || null);
+    return api("/raw/dev/" + rel).then(function (r) { return r.text(); })
+      .then(function (src) { factCache[rel] = { mt: mt, map: SV.factBlocks(src) }; return factCache[rel].map[id] || null; })
+      .catch(function () { return null; });
+  }
+  function xidTip(a) {
+    var side = sideOf(a), v = PANES[side]._view, id = (a.getAttribute("href") || "").slice(5), key = "xid:" + id; if (!v || v.kind !== "doc" || !id) return;
+    lpCur = key;
+    var local = PANES[side].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]');
+    if (local) { lpRender(a, "<p>" + esc(local.textContent.trim().slice(0, 300)) + "</p>", "本文 · " + id); return; }
+    var home = v.tree === "dev" && SV.xidHomeRel(v.rel, id); if (!home) return;
+    factOf(home, id).then(function (md) {
+      if (lpCur !== key || !md) return;
+      var grab = function (k) { var m = md.match(new RegExp("^- " + k + "[:：]\\s*([\\s\\S]*?)(?=\\n- [^\\n]{1,8}[:：]|$)", "m")); return m ? m[1].replace(/\s+/g, " ").trim() : ""; };
+      var fact = grab("事实") || SV.factGist(md), src = grab("来源");
+      lpRender(a, window.marked.parse("**" + md.split("\n")[0].replace(/^### /, "") + "**\n\n" + fact + (src ? "\n\n来源：" + src : "")), home.split("/").pop() + " · " + id);
+    });
+  }
+  // ⇧ on a citation: the definition opens in the other pane and an elbow line joins the two for a moment
+  var xline = null;
+  function xlineDraw(from, to) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!xline) { xline = document.createElementNS("http://www.w3.org/2000/svg", "svg"); xline.id = "xline"; document.body.appendChild(xline); }
+    var t0 = performance.now();
+    (function step(now) {
+      var a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), t = now - t0;
+      var x1 = a.right + 2, y1 = a.top + a.height / 2, x2 = b.left - 4, y2 = b.top + 11, mx = Math.round((x1 + x2) / 2) + .5;
+      var op = t < 2300 ? 1 : Math.max(0, 1 - (t - 2300) / 700), grow = Math.min(1, t / 420);
+      xline.innerHTML = '<path d="M' + x1 + "," + y1 + " H" + mx + " V" + y2 + " H" + x2 + '" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:' + (1 - grow) + ";opacity:" + op + '"/>';
+      if (op > 0) requestAnimationFrame(step); else xline.innerHTML = "";
+    })(t0);
+  }
+  function xidBeside(side, a, id) {
+    var v = PANES[side]._view, other = side === "left" ? "right" : "left";
+    var local = PANES[side].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]'), rel = local ? v.rel : SV.xidHomeRel(v.rel, id);
+    var canon = rel && TREES[v.tree] && TREES[v.tree].get(rel.toLowerCase());
+    if (!canon) { flash("未找到 " + id + " 的定义"); return; }
+    navigate(other, { kind: "doc", tree: v.tree, rel: canon, xid: id }); setFocus(side);
+    var n = 20; (function wait() {
+      var el = PANES[other].querySelector('.docbody [data-xid="' + cssEsc(id) + '"]');
+      if (el) setTimeout(function () { xlineDraw(a, el); }, 350); else if (n--) setTimeout(wait, 120);
+    })();
+  }
   document.addEventListener("mouseover", function (e) {
     if (narrow) return;   // below the breakpoint a tap synthesizes mouseover; the preview would pop over the page just navigated to
+    var x = e.target.closest && e.target.closest(".docbody a.xid");
+    if (x) { clearTimeout(lpHideT); clearTimeout(lpShowT); lpShowT = setTimeout(function () { xidTip(x); }, 180); return; }
     var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
     clearTimeout(lpHideT); clearTimeout(lpShowT); lpShowT = setTimeout(function () { lpOpen(a); }, 250);
   });
   document.addEventListener("mouseout", function (e) {
-    var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"]'); if (!a) return;
+    var a = e.target.closest && e.target.closest('.docbody a[data-nav="doc"], .docbody a.xid'); if (!a) return;
     clearTimeout(lpShowT); lpHideT = setTimeout(lpHide, 450);   // grace period to move the pointer into the preview
   });
   window.addEventListener("scroll", function (e) { if (lp && lp.contains(e.target)) return; lpHide(); }, true);   // page scroll dismisses; scrolling the preview itself must not

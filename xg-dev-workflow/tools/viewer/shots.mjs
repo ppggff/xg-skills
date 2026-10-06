@@ -662,6 +662,25 @@ const SCENARIO = {
     await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail')");
     await ctx.key("Escape"); await sleep(200);
     check("Esc closes the board detail", await ctx.eval("!document.querySelector('#left .card-detail')"));
+    // Req-4-c citation hover cards; a plain click stays in the pane (J-5), ⇧ opens the definition beside with a connector
+    await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    const shiftClick = (sel) => ctx.eval(`(() => { const e = document.querySelector(${J(sel)}); if (!e) return false; e.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })); return true; })()`);
+    const factCite = "#left .docbody a.xid[href*='Fact-']";
+    await ctx.mouseMove(factCite); await sleep(900);
+    check("hovering a Fact citation shows its fact", await ctx.eval("(() => { const l = document.getElementById('lp'); return !!l && getComputedStyle(l).display !== 'none' && /facts\\.md/.test(l.textContent) && /Fact-\\d+/.test(l.textContent); })()"));
+    await ctx.key("Escape");
+    if (await ctx.eval("!!document.querySelector('#left .docbody a.xid[href*=\"Req-\"]')")) {
+      const at = await ctx.eval("(() => { const e = document.querySelector('#left .docbody a.xid[href*=\"Req-\"]'); e.scrollIntoView({ block: 'center' }); const r = e.getClientRects()[0]; return [r.x + r.width / 2, r.y + r.height / 2]; })()");
+      await sleep(300); await ctx.mouseAt(at[0], at[1]); await sleep(700);   // a scroll dismisses the card, so scroll first and then hover
+      check("hovering a citation defined in this doc shows its definition", await ctx.eval("/^本文/.test(document.querySelector('#lp .lp-path').textContent)"));
+      await ctx.key("Escape");
+    }
+    await shiftClick(factCite); await ctx.wait("!!document.querySelector('#right .docbody')", 5000); await sleep(700);
+    check("⇧ on a citation opens the definition in the other pane", await ctx.eval("/facts\\.md$/.test(document.querySelector('#right .crumb .base').textContent) && /design\\.md$/.test(document.querySelector('#left .crumb .base').textContent)"));
+    check("…with a connector line drawn", await ctx.eval("!!document.querySelector('#xline path')"));
+    await ctx.click("[data-closeright]"); await sleep(300);
+    await ctx.click(factCite); await ctx.wait("/facts\\.md$/.test(document.querySelector('#left .crumb .base').textContent)", 5000);
+    check("a plain click on a citation still jumps in the same pane", await ctx.eval("!document.querySelector('#right.show')"));
   },
   // Narrow-mode state survives the live refresh (a doc changing on disk re-renders the tree).
   async refresh(ctx, check, o) {
