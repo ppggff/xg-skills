@@ -484,6 +484,11 @@
   .docbody .anc::before { content: "#"; }
   .docbody :is(h2, h3, h4):hover .anc, .docbody .anc:focus-visible { opacity: 1; }
   #toc a.spy { box-shadow: inset 2px 0 0 var(--accent); }
+  .sdots { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 12px; }
+  .sdot { width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--s-backlog); }
+  .sdot.st-active { background: var(--s-active); } .sdot.st-done { background: var(--s-done); } .sdot.st-blocked { background: var(--s-blocked); }
+  .sdot.st-paused { background: var(--s-paused); } .sdot.st-todo { background: var(--s-todo); } .sdot.st-dropped { background: var(--line2); }
+  .sdot.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
   #xline { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 40; }
   #xline path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
   #svpop { display: none; position: fixed; z-index: 60; width: 330px; max-height: 60vh; overflow: auto; padding: 6px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--chrome); }
@@ -1295,7 +1300,14 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // Status filter lives in the bar (R56/R60, default hides done+dropped); project filter moved to
   // the TOC checkboxes (R61). Both are display-only, kept across re-renders.
   // R65: persist board view prefs (mode + status filter); project filter (boardHideProj) stays session-only.
-  var boardMode = SV.boardMode(lsGet("sv-board-mode"), lsGet("sv-board-kanban"));   // null until the human picks a form
+  // 041 (J-10): four forms and three groupings. A form SV.boardMode predates (cols, dots) is read here;
+  // a stored kanban becomes the cols form grouped by status, which is what it was.
+  var BOARD_FORMS = ["grid", "cols", "table", "dots"], BOARD_GROUPS = { p: "项目", s: "状态", g: "治理" }, BOARD_SORTS = { "": "默认", n: "编号", m: "更新", r: "进度" };
+  var storedMode = lsGet("sv-board-mode");
+  var boardMode = BOARD_FORMS.indexOf(storedMode) >= 0 ? storedMode : SV.boardMode(storedMode, lsGet("sv-board-kanban"));   // null until the human picks a form
+  var boardGroup = BOARD_GROUPS[lsGet("sv-board-group")] ? lsGet("sv-board-group") : boardMode === "kanban" ? "s" : "p";
+  if (boardMode === "kanban") boardMode = "cols";
+  var boardSort = BOARD_SORTS[lsGet("sv-board-sort") || ""] ? lsGet("sv-board-sort") || "" : "";
   var boardHideState = (function () { try { return JSON.parse(lsGet("sv-board-hide")) || { done: true, dropped: true }; }
     catch (e) { return { done: true, dropped: true }; } })();
   var boardHideProj = {};
@@ -1339,30 +1351,39 @@ if (typeof window !== "undefined" && window.marked) (function () {
       boardCardMap = {}; all.forEach(function (c) { boardCardMap[c.project + "/" + c.nnn] = c; });   // R64: detail-drawer lookup
       var states = []; all.forEach(function (c) { if (states.indexOf(c.state) === -1) states.push(c.state); });
       var cards = all.filter(function (c) { return !boardHideState[c.state]; });   // bar handles status
-      var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "kanban";
-      if (isKanban) {                               // kanban groups by status; project filter still applies
-        body = kanban(cards.filter(function (c) { return !boardHideProj[c.project]; })); tf = null;
-      } else {                                      // grid and rows group by project; TOC checkboxes hide groups
-        var byProj = {}, order = [];
-        cards.forEach(function (c) { if (!byProj[c.project]) { byProj[c.project] = []; order.push(c.project); } byProj[c.project].push(c); });
-        body = mode === "table" ? boardTable(order, byProj, SV.cardMtimes(RAW.dev)) : list(order, byProj);
-        tf = { set: boardHideProj, keys: order };
+      var body, tf, mode = boardMode || (narrow ? "table" : "grid"), isKanban = mode === "cols";
+      var gk = boardGroup === "s" ? function (c) { return c.state; } : boardGroup === "g" ? function (c) { return c.governance || "legacy"; } : function (c) { return c.project; };
+      var byKey = {}, order = [];
+      cards.forEach(function (c) { var k = gk(c); if (!byKey[k]) { byKey[k] = []; order.push(k); } byKey[k].push(c); });
+      if (boardGroup === "s") order = STATE_ORDER.filter(function (k) { return byKey[k]; }).concat(order.filter(function (k) { return STATE_ORDER.indexOf(k) === -1; }));
+      if (isKanban) {                               // a column per group; the project filter still applies
+        body = kanban(order, byKey); tf = null;
+      } else {                                      // grid, table and dots wrap each group so the TOC can hide it (by project)
+        body = mode === "table" ? boardTable(order, byKey, SV.cardMtimes(RAW.dev)) : mode === "dots" ? dots(order, byKey) : list(order, byKey);
+        tf = boardGroup === "p" ? { set: boardHideProj, keys: order } : null;
       }
       if (!cards.length) { body = emptyHtml("没有匹配的卡片", "调整上方状态筛选,或右侧项目范围"); tf = null; }   // R10
-      var next = { grid: "kanban", kanban: "table", table: "grid" }[mode];   // one button cycles the three forms; its label is the current one
+      var next = BOARD_FORMS[(BOARD_FORMS.indexOf(mode) + 1) % BOARD_FORMS.length];   // one button cycles the forms; its label is the current one
+      var groupKeys = Object.keys(BOARD_GROUPS), sortKeys = Object.keys(BOARD_SORTS);
       pane.innerHTML = paneHead(side, "Board",
-        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → kanban → table (now ' + mode + ')">' + mode + "</button>") +
+        '<button class="iconbtn" data-bmode="' + next + '" title="board form: grid → cols → table → dots (now ' + mode + ')">' + mode + "</button>" +
+        '<button class="iconbtn" data-bgroup="' + groupKeys[(groupKeys.indexOf(boardGroup) + 1) % 3] + '" title="分组：项目 → 状态 → 治理">' + BOARD_GROUPS[boardGroup] + "</button>" +
+        (mode === "table" ? '<button class="iconbtn" data-bsort="' + sortKeys[(sortKeys.indexOf(boardSort) + 1) % 4] + '" title="排序：默认 → 编号 → 更新 → 进度">' + BOARD_SORTS[boardSort] + "</button>" : "")) +
         boardFilters(states) + body + cardDetailHtml();
       applyGrpHidden(pane, boardHideProj);
       padForDrawer(pane);
       pane.querySelectorAll("[data-bmode]").forEach(function (b) {
         b.onclick = function () { boardMode = b.dataset.bmode; lsSet("sv-board-mode", boardMode); render(side); }; });
+      pane.querySelectorAll("[data-bgroup]").forEach(function (b) {
+        b.onclick = function () { boardGroup = b.dataset.bgroup; lsSet("sv-board-group", boardGroup); render(side); }; });
+      pane.querySelectorAll("[data-bsort]").forEach(function (b) {
+        b.onclick = function () { boardSort = b.dataset.bsort; lsSet("sv-board-sort", boardSort); render(side); }; });
       pane.querySelectorAll("[data-fstate]").forEach(function (b) {
         b.onclick = function () { boardHideState[b.dataset.fstate] = !boardHideState[b.dataset.fstate];
           lsSet("sv-board-hide", JSON.stringify(boardHideState)); render(side); }; });
       var secs = [].slice.call(pane.querySelectorAll(isKanban ? ".col h3" : "h2.sec"));
       tagSections(side, secs, secs.map(function (s) { return { text: s.textContent, depth: 1 }; }));
-      afterRender(side, ".card, .trow, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
+      afterRender(side, ".card, .trow, .sdot, " + (isKanban ? ".col h3" : "h2.sec"), tf);   // R52 blocks + R61 TOC filter
     }).catch(function (e) { pane.innerHTML = paneHead(side, "Board") + "<p class='broken'>" + esc(e.message) + "</p>"; reset(side); });   // D18 hookpoint 3
   }
   function boardFilters(states) {                   // R60: status chips only (no dots), colored by status
@@ -1522,7 +1543,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   function barH(bar) { return bar ? bar.getBoundingClientRect().height : 0; }
   function updateDetail(side) {
     var pane = PANES[side];
-    pane.querySelectorAll(".card, .trow").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
+    pane.querySelectorAll(".card, .trow, .sdot").forEach(function (el) { el.classList.toggle("selected", el.dataset.key === boardSelected); });
     var existing = pane.querySelector(".card-detail"), html = cardDetailHtml();
     if (existing) { if (html) existing.outerHTML = html; else existing.remove(); }
     else if (html) pane.insertAdjacentHTML("beforeend", html);
@@ -1531,18 +1552,28 @@ if (typeof window !== "undefined" && window.marked) (function () {
     padForDrawer(pane);
     invalidateGeometry(side);   // S9 hookpoint 6: drawer open/close changes the docbody's available height
   }
-  function list(order, byProj) {                    // R61: each project group wrapped so the TOC can hide it
-    return order.map(function (p) {
-      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
-        ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
-        '<div class="board">' + byProj[p].map(cardHtml).join("") + "</div></section>"; }).join("");
+  function grpHead(k, n) { return '<h2 class="sec sec-proj">' + esc(k) + ' <span class="muted">· ' + n + "</span></h2>"; }
+  function list(order, byKey) {                     // R61: each group wrapped so the TOC can hide it
+    return order.map(function (k) {
+      return '<section class="grp" data-key="' + esc(k) + '">' + grpHead(k, byKey[k].length) +
+        '<div class="board">' + byKey[k].map(cardHtml).join("") + "</div></section>"; }).join("");
   }
-  function boardTable(order, byProj, mtimes) {      // one table per project group; the title wraps instead of truncating
+  function dots(order, byKey) {                     // the signal form: one dot per card, coloured by status
+    return order.map(function (k) {
+      return '<section class="grp" data-key="' + esc(k) + '">' + grpHead(k, byKey[k].length) + '<div class="sdots">' +
+        byKey[k].map(function (c) { var key = c.project + "/" + c.nnn;
+          return '<button class="sdot ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '" title="' +
+            esc(key + " " + c.dir.replace(/^\d+-/, "") + " · " + c.state + (c.governance === "lite" ? " · " + liteBar(c).replace(/<[^>]*>/g, "") : "")) + '"></button>'; }).join("") +
+        "</div></section>"; }).join("");
+  }
+  function boardTable(order, byKey, mtimes) {       // one table per group; the title wraps instead of truncating
+    var val = function (c) { var v = SV.cardView(c);   // J-3 丙: a sort from the board head, no header row
+      return boardSort === "n" ? c.nnn : boardSort === "m" ? mtimes[c.project + "/" + c.dir] || 0 : v.lite ? (v.req ? v.ok / v.req : 0) : v.ph.filter(function (x) { return x === 2; }).length / 6; };
     return order.map(function (p) {
-      return '<section class="grp" data-key="' + esc(p) + '"><h2 class="sec sec-proj">' + esc(p) +
-        ' <span class="muted">· ' + byProj[p].length + "</span></h2>" +
+      var rows = boardSort ? byKey[p].slice().sort(function (a, b) { var x = val(a), y = val(b); return x < y ? 1 : x > y ? -1 : 0; }) : byKey[p];
+      return '<section class="grp" data-key="' + esc(p) + '">' + grpHead(p, byKey[p].length) +
         '<table class="btable">' +
-        byProj[p].map(function (c) {
+        rows.map(function (c) {
           var key = c.project + "/" + c.nnn, mt = mtimes[c.project + "/" + c.dir];
           var prog = c.governance === "lite" ? liteBar(c) : esc(SV.legacyPhase(c.steps));
           return '<tr class="trow ' + stClass(c.state) + (key === boardSelected ? " selected" : "") + '" data-key="' + esc(key) + '">' +
@@ -1552,14 +1583,12 @@ if (typeof window !== "undefined" && window.marked) (function () {
             '<td class="tnext">' + esc(c.effective_next || "") + "</td>" +
             '<td class="twhen">' + (mt ? relTime(mt) : "") + "</td></tr>"; }).join("") + "</table></section>"; }).join("");
   }
-  function kanban(cards) {
-    var cols = {}, order = ["backlog", "todo", "active", "blocked", "paused", "done", "dropped"];
-    cards.forEach(function (c) { (cols[c.state] = cols[c.state] || []).push(c); });
-    var keys = order.filter(function (k) { return cols[k]; }).concat(Object.keys(cols).filter(function (k) { return order.indexOf(k) === -1; }));
+  function kanban(order, byKey) {                   // a column per group; grouped by status this is the old kanban
+    var keys = order.filter(function (k) { return boardGroup !== "p" || !boardHideProj[k]; });
     return '<div class="board kanban">' + keys.map(function (k) {
-      return '<div class="col" style="--lane:var(' + stVar(k) + ')"><h3><span class="sw"></span><span class="nm">' +
-        esc(k) + '</span><span class="ct">' + cols[k].length + "</span></h3>" +
-        cols[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
+      return '<div class="col" style="--lane:' + (boardGroup === "s" ? "var(" + stVar(k) + ")" : "var(--line2)") + '"><h3><span class="sw"></span><span class="nm">' +
+        esc(k) + '</span><span class="ct">' + byKey[k].length + "</span></h3>" +
+        byKey[k].map(cardHtml).join("") + "</div>"; }).join("") + "</div>";
   }
 
   // --- trace/detail view (007 R5, V1 shape): the card's task table + per-R matrix.
@@ -2548,7 +2577,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
       if (dr && dr.classList.contains("trm-drow")) { dr.hidden = !dr.hidden; t.classList.toggle("x", !dr.hidden);
         invalidateGeometry(sideOf(t)); }   // S9 hookpoint 3: the revealed row pushes every mark below it down
       return; }
-    if ((t = e.target.closest(".card, .trow")) && t.dataset.key) {           // R64: select a card (or a table row) → detail drawer
+    if ((t = e.target.closest(".card, .trow, .sdot")) && t.dataset.key) {           // R64: select a card (or a table row) → detail drawer
       boardSelected = t.dataset.key; detailOpen = true;
       try { localStorage.setItem("sv-detail-card", boardSelected); localStorage.setItem("sv-detail-open", "1"); } catch (ex) {}
       updateDetail(e.target.closest("#right") ? "right" : "left"); return; }
