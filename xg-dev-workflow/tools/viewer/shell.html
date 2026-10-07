@@ -421,18 +421,22 @@
     color: var(--fg); border-radius: var(--radius); padding: 2px 10px; }
   .fchip:hover { filter: brightness(1.08); border-color: var(--accent); }
   .fchip.off { opacity: .4; text-decoration: line-through; }
-  .card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line2); border-left: 3px solid var(--s-backlog);
-    border-radius: var(--radius); padding: 9px 12px; background: var(--side); min-height: 142px; }
+  .card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line2); position: relative; --stripe: var(--s-backlog);
+    border-radius: var(--radius); padding: 9px 12px 9px 14px; background: var(--side); min-height: 142px; }
+  /* the state stripe lies over the left border: a 3px border met the 1px top/bottom borders on a slant */
+  .card::before { content: ""; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 3px; background: var(--stripe);
+    border-radius: var(--radius) 0 0 var(--radius); }
   /* R3/R4/R8 card skeleton (frontend-design: hierarchy + de-boxing + alignment):
      eyebrow (state pill + proj·nnn) → title (focus) → Now/Next (aligned) → gate-track (signature, pinned bottom). */
-  .card .eyebrow { display: flex; align-items: baseline; gap: 8px; font-family: var(--chrome);
+  .card .eyebrow { display: flex; align-items: baseline; gap: 8px; font-family: var(--chrome); white-space: nowrap; overflow: hidden;
     font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .card .eyebrow .dep { margin-left: auto; }
+  .card .eyebrow > * { flex: none; }
+  .card .eyebrow .dep { margin-left: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }   /* one line: a long deps note is cut, full text on hover */
   .card .title { display: block; text-decoration: none; cursor: pointer; }
   .card a.title:hover { color: var(--accent); text-decoration: underline; }
   .card .title { font: 600 13.5px/1.35 var(--chrome); color: var(--fg); margin: var(--sp2) 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card .nn { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 12.5px; line-height: 1.5; }
+  .card .nn { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 12.5px; line-height: 1.5; min-height: calc(3em + 3px); }   /* room for Now + Next, so a one-line card is as tall */
   /* Now/Next show as bare lines (labels dropped for content room); single-line ellipsis, full text on
      hover via title=. Now in body tone, Next muted — a quiet cue without the label column. */
   .card .nn dd { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -448,11 +452,11 @@
   .card a.step { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11px; }
   .card a.step:hover { text-decoration: underline; }
   /* R20: 整体状态 color-coded (card left border + badge) */
-  .card.st-active { border-left-color: var(--s-active); } .card.st-done { border-left-color: var(--s-done); }
-  .card.st-blocked { border-left-color: var(--s-blocked); } .card.st-paused { border-left-color: var(--s-paused); }
-  .card.st-todo { border-left-color: var(--s-todo); } .card.st-backlog { border-left-color: var(--s-backlog); }
-  .card.st-dropped { border-left-color: var(--s-dropped); opacity: .6; }
-  .card.st-unknown { border-left-color: var(--s-unknown); border-left-style: dashed; }
+  .card.st-active { --stripe: var(--s-active); } .card.st-done { --stripe: var(--s-done); }
+  .card.st-blocked { --stripe: var(--s-blocked); } .card.st-paused { --stripe: var(--s-paused); }
+  .card.st-todo { --stripe: var(--s-todo); } .card.st-backlog { --stripe: var(--s-backlog); }
+  .card.st-dropped { --stripe: var(--s-dropped); opacity: .6; }
+  .card.st-unknown::before { background: repeating-linear-gradient(var(--s-unknown) 0 4px, transparent 4px 7px); }
   .card { cursor: pointer; }   /* R64: click selects → detail drawer */
   /* R64: selected-card highlight + a collapsible detail drawer pinned to the board pane's bottom.
      Compact (one-line rows only — task/trace detail lives on the trace page), so the sticky
@@ -510,7 +514,7 @@
   .docbody .anc { border: 0; background: none; padding: 0 .3em; margin-left: .2em; font: inherit; font-weight: 400; color: var(--muted); cursor: pointer; opacity: 0; }
   .docbody .anc::before { content: "#"; }
   .docbody :is(h2, h3, h4):hover .anc, .docbody .anc:focus-visible { opacity: 1; }
-  #toc a.spy { box-shadow: inset 2px 0 0 var(--accent); }
+  #toc a.spy { background: linear-gradient(var(--accent), var(--accent)) left / 2px 100% no-repeat; }   /* not an inset shadow: on a phone it bled onto the top and bottom edges */
   .sdots { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 12px; }
   .sdot { width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--s-backlog); }
   .sdot.st-active { background: var(--s-active); } .sdot.st-done { background: var(--s-done); } .sdot.st-blocked { background: var(--s-blocked); }
@@ -1534,7 +1538,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var eyebrow = '<div class="eyebrow"><span class="badge state ' + st + '">' + esc(c.state) + "</span>" +
       SV.governanceBadge(c.governance) +
       '<span class="pn">' + esc(c.project) + " · " + esc(c.nnn) + "</span>" +
-      (c.deps && c.deps !== "—" ? '<span class="badge dep">deps ' + esc(c.deps) + "</span>" : "") + "</div>";
+      (c.deps && c.deps !== "—" ? '<span class="badge dep" title="deps ' + esc(c.deps) + '">deps ' + esc(c.deps) + "</span>" : "") + "</div>";
     var nn = '<dl class="nn">' + (c.now ? '<dd class="now" title="' + esc(c.now) + '">' + esc(c.now) + "</dd>" : "") +
       '<dd class="next" title="' + esc(c.effective_next) + '">' + esc(c.effective_next) + "</dd></dl>";
     return '<div class="card ' + st + sel + '" data-key="' + esc(key) + '">' + eyebrow +
