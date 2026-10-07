@@ -108,11 +108,11 @@
     const prog = c => c.lite && c.req
       ? `<span class="mt"><i style="width:${(c.ok / c.req * 100).toFixed(1)}%"></i></span>${V.frac(c.ok, c.req)}`
       : `<span class="mu">${esc(V.phaseNow(c))}</span>`;
-    const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n">${c.n}</td><td class="nm" data-tip="${esc(c.id + " " + c.slug)}">${esc(c.slug)}</td>`
-      + (groupBy !== "p" ? `<td class="mu">${esc(c.p)}</td>` : "") + (groupBy !== "s" ? `<td style="color:var(--c)">${c.st}</td>` : "")
-      + (groupBy !== "g" ? `<td class="mu">${esc(c.gov)}</td>` : "") + `<td>${prog(c)}</td><td class="mu nxc" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
-      + `<td class="mu">${V.ago(mt[c.dir])}</td></tr>`;
-    const th = cols.map(([k, l]) => `<th data-sort="${k}" class="${sortK === k ? "on" + (sortDesc ? " desc" : "") : ""}">${l}</th>`).join("");
+    const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n c-n">${c.n}</td><td class="nm c-slug" data-tip="${esc(c.id + " " + c.slug)}">${esc(c.slug)}</td>`
+      + (groupBy !== "p" ? `<td class="mu c-p">${esc(c.p)}</td>` : "") + (groupBy !== "s" ? `<td class="c-st" style="color:var(--c)">${c.st}</td>` : "")
+      + (groupBy !== "g" ? `<td class="mu c-gov">${esc(c.gov)}</td>` : "") + `<td class="c-prog">${prog(c)}</td><td class="mu c-nx" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
+      + `<td class="mu c-mt">${V.ago(mt[c.dir])}</td></tr>`;
+    const th = cols.map(([k, l]) => `<th data-sort="${k}" class="c-${k}${sortK === k ? " on" + (sortDesc ? " desc" : "") : ""}">${l}</th>`).join("");
     let h = `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>`;
     gs.forEach(g => {
       const { open, closed, show } = split(g), sorted = list => (sortK ? [...list].sort(cmp) : list);

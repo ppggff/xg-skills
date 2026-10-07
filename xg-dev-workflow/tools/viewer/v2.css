@@ -255,7 +255,10 @@ a.tr { text-decoration: none; }
 .kcol .rows { grid-template-columns: minmax(0,1fr); }
 
 /* table form */
-.tbl { width: 100%; border-collapse: collapse; font: 400 11px var(--cjk); color: var(--tx); font-variant-numeric: tabular-nums; }
+.tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font: 400 11px var(--cjk); color: var(--tx); font-variant-numeric: tabular-nums; }
+/* fixed columns take their width; name and next share the rest and cut with an ellipsis, so the table never scrolls sideways */
+.tbl .c-n { width: 52px; } .tbl .c-p { width: 92px; } .tbl .c-st { width: 72px; } .tbl .c-gov { width: 76px; }
+.tbl .c-prog { width: 112px; } .tbl .c-mt { width: 60px; } .tbl .c-nx { width: 30%; }
 .tbl th {
   position: sticky; top: 0; background: var(--paper); z-index: 1; text-align: left; font: 400 var(--t-meta) var(--cjk); color: var(--mu); padding: 6px 10px;
   border-bottom: 1px solid var(--ln); white-space: nowrap; cursor: pointer; user-select: none;
@@ -263,14 +266,12 @@ a.tr { text-decoration: none; }
 .tbl th:hover, .tbl th.on { color: var(--tx); }
 .tbl th.on::after { content: " ↑"; color: var(--sig); }
 .tbl th.on.desc::after { content: " ↓"; }
-.tbl td { padding: 4px 10px; border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); white-space: nowrap; vertical-align: middle; }
+.tbl td { padding: 4px 10px; border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); white-space: nowrap; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
 .tbl tr[data-card]:hover td { background: var(--hover); }
 .tbl tr.sel td, .tbl tr.sel:hover td { background: var(--card2); }
 .tbl .n, .tbl .nm { font-family: var(--mono); }
 .tbl .n { color: var(--faint); }
 .tbl tr.sel .n { color: var(--sig); }
-.tbl .nm { max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
-.tbl .nxc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
 .tbl .tfold td { padding: 0 6px 4px; border-bottom: 0; }
 .tbl .tfold .fold { margin-top: 2px; }
 .tbl .mu { color: var(--mu); }

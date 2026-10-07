@@ -446,6 +446,15 @@ const SCENARIO = {
       t.innerHTML = '<tr>' + '<th>column heading</th>'.repeat(6) + '</tr><tr>' + '<td>a_rather_long_token_without_spaces_inside</td>'.repeat(6) + '</tr>';
       md.appendChild(t); const ok = t.getBoundingClientRect().right <= md.getBoundingClientRect().right + 1 && t.scrollWidth <= t.clientWidth + 1; t.remove(); return ok; })()`);
     check("phone: a wide table fits the pane, no sideways scroll", fits);
+    await ctx.go("board"); await ctx.eval("V2.setForm('table'); true"); await ctx.sleep(500);
+    const tableFits = "(() => { const t = document.querySelector('#bscroll .tbl'), b = document.getElementById('bscroll'); return t.getBoundingClientRect().right <= b.getBoundingClientRect().right + 1 && b.scrollWidth <= b.clientWidth + 1; })()";
+    for (const w of [390, 768, 1024, 1440]) {
+      await ctx.viewport(w, 900); await ctx.sleep(400);
+      check(`${w}: the board table fits without sideways scroll`, await ctx.eval(tableFits));
+    }
+    await ctx.viewport(390, 844); await ctx.sleep(400);
+    check("phone: the board table keeps 编号 · 名称 · 状态 · 进度, the progress text uncut", await ctx.eval("(() => { const v = [...document.querySelectorAll('#bscroll .tbl thead th')].filter(th => th.offsetWidth > 0).map(th => th.textContent.replace(/[↑↓ ]/g, '')); return v.join() === '编号,名称,状态,进度' && [...document.querySelectorAll('#bscroll .tbl td.c-prog')].every(td => td.scrollWidth <= td.clientWidth + 1); })()"));
+    await ctx.eval("V2.setForm('cards'); true");
   },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
   // the classic code fonts, the help panel, the search side list, mirror, and the brightness slider.
