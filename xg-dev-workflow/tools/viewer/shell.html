@@ -333,6 +333,7 @@
     white-space: nowrap; overflow: hidden; }
   .tree summary { cursor: pointer; list-style: none; color: var(--fg); font-weight: 500; }
   .tree .file { color: var(--body); text-overflow: ellipsis; }
+  .tree .file { width: 100%; box-sizing: border-box; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }   /* a <button> row: iOS treats it as tappable, so a quick tap no longer goes to the folder row above */
   .tree .arrow { flex: none; width: 1.1em; text-align: center; color: var(--line2); font-size: .85em; }  /* R6: dimmer arrows */
   .tree summary .arrow::before { content: "▸"; }
   .tree details[open] > summary .arrow::before { content: "▾"; }
@@ -2479,8 +2480,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       node.files.slice().sort(cmp).forEach(function (f) {
         if (filt && f.name.toLowerCase().indexOf(filt) === -1) return;   // R3: only matching files
         var w = sortKey === "mtime" ? '<span class="when">' + relTime(f.mtime) + "</span>" : "";
-        o += '<a class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
-          '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + (isStarred(tree + ":" + f.path) ? '<span class="star">★</span>' : "") + w + "</a>";
+        o += '<button type="button" class="file" data-nav="doc" data-tree="' + tree + '" data-rel="' + esc(f.path) + '"' + pad +
+          '><span class="arrow"></span>' + (filt ? hlmark(f.name, filt) : esc(f.name)) + (isStarred(tree + ":" + f.path) ? '<span class="star">★</span>' : "") + w + "</button>";
       });
       return o;
     }
@@ -2490,7 +2491,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
   // made the tree "drift" (and the async toggle chain then persisted the drift as user state).
   function markInTree(tree, rel) {
     treeEl.querySelectorAll(".file.active").forEach(function (a) { a.classList.remove("active"); });
-    var a = treeEl.querySelector('a.file[data-tree="' + tree + '"][data-rel="' + cssEsc(rel) + '"]');
+    var a = treeEl.querySelector('button.file[data-tree="' + tree + '"][data-rel="' + cssEsc(rel) + '"]');
     if (!a) return null;
     a.classList.add("active");
     a.scrollIntoView({ block: "nearest" });
@@ -2854,19 +2855,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var re = treeEl.querySelector('.secctl[data-tree="' + tree + '"] .sx[data-act="' + act + '"]'); if (re) re.focus();   // keep keyboard focus on the rebuilt control
   }
   treeEl.addEventListener("click", function (e) { var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
-  // iOS hands a quick tap on a file row to the folder row just above it (folding it instead of opening the
-  // file), though the touch itself lands on the file: open on touchend and drop the browser's own click.
-  var fileTouch = null;
-  treeEl.addEventListener("touchstart", function (e) {
-    var t = e.touches[0], a = e.touches.length === 1 && e.target.closest && e.target.closest("a.file");
-    fileTouch = a ? { a: a, x: t.clientX, y: t.clientY } : null;
-  }, { passive: true });
-  treeEl.addEventListener("touchend", function (e) {
-    var ft = fileTouch, t = e.changedTouches[0]; fileTouch = null;
-    if (!ft || !ft.a.isConnected || Math.abs(t.clientX - ft.x) > 10 || Math.abs(t.clientY - ft.y) > 10) return;
-    e.preventDefault(); ft.a.click();
-  }, { passive: false });
-  treeEl.addEventListener("touchcancel", function () { fileTouch = null; });
   treeEl.addEventListener("keydown", function (e) { if (e.key !== "Enter" && e.key !== " ") return; var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
   // R2: F collapses this section's folders; if already fully collapsed, restores the pre-collapse set.
   // Decision keys off live DOM state (any folder open?), NOT a flag — <details> toggle events are async,

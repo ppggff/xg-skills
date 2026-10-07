@@ -368,7 +368,7 @@ const SCENARIO = {
     await ctx.click("[data-bmode]"); await ctx.wait("!!document.querySelector('#left .btable')");                     // kanban → table
     check("the kanban leads on to the table", await ctx.eval("document.querySelector('[data-bmode]').textContent.trim() === 'table'"));
     await ctx.click("#left .btable .trow .tid"); check("tapping a table row opens the detail drawer and marks the row", await ctx.eval("!!document.querySelector('#left .card-detail') && !!document.querySelector('#left .trow.selected')"));
-    await ctx.eval("localStorage.setItem('sv-board-mode', 'rows'); location.reload(); true"); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board");
+    await ctx.eval("localStorage.setItem('sv-board-mode', 'rows'); location.reload(); true"); await ctx.wait("!!document.querySelector('#tree .file')"); await ctx.go("board");
     check("a stored rows pick (retired) reads as the table", await ctx.eval("!!document.querySelector('#left .btable') && !document.querySelector('#left .row')"));
     await ctx.viewport(768, 1024); await ctx.load(); await ctx.go("board");
     check("768: columns line up across the project groups, each table spans the pane, id, progress and time on one line", await ctx.eval(aligned));
@@ -467,11 +467,11 @@ const SCENARIO = {
     check("375: the file-filter ⌕ sits right after the scope toggle", await ctx.eval("(() => { const a = document.querySelector('[data-sidetop]'), f = document.querySelector('[data-treefilter]'); return a.nextElementSibling === f && Math.abs(a.getBoundingClientRect().top - f.getBoundingClientRect().top) < 1; })()"));
     await ctx.click("[data-sidetop]");
     check("375: the toggle unfolds scope and search", await ctx.eval("!!document.getElementById('proj').offsetParent && !!document.getElementById('search').offsetParent"));
-    check("375: tree text 13px, inputs stay 16px", (await fs("#tree a.file")) === 13 && (await fs("#search")) === 16);
+    check("375: tree text 13px, inputs stay 16px", (await fs("#tree .file")) === 13 && (await fs("#search")) === 16);
     await ctx.click("[data-sidetop]");
     check("375: tree rows 30px, the help hint and the file filter are out of the way", await ctx.eval("(() => { const r = document.querySelector('#tree summary').getBoundingClientRect().height; return r <= 31 && getComputedStyle(document.querySelector('#side .hint')).display === 'none' && getComputedStyle(document.getElementById('filterbox')).display === 'none'; })()"));
     await ctx.eval("document.querySelectorAll('#tree details').forEach(d => d.open = true); true"); await sleep(300);
-    check("375: a long file name drags sideways on its own row, the tree does not", await ctx.eval("(() => { const f = [...document.querySelectorAll('#tree a.file')].sort((a, b) => b.scrollWidth - a.scrollWidth)[0], t = document.getElementById('tree'); return f.scrollWidth > f.clientWidth && getComputedStyle(f).overflowX === 'auto' && t.scrollWidth <= t.clientWidth; })()"));
+    check("375: a long file name drags sideways on its own row, the tree does not", await ctx.eval("(() => { const f = [...document.querySelectorAll('#tree .file')].sort((a, b) => b.scrollWidth - a.scrollWidth)[0], t = document.getElementById('tree'); return f.scrollWidth > f.clientWidth && getComputedStyle(f).overflowX === 'auto' && t.scrollWidth <= t.clientWidth; })()"));
     await ctx.eval("document.querySelectorAll('#tree details').forEach(d => d.open = false); true");
     await ctx.click("[data-treefilter]");
     check("375: ⌕ opens the file filter", await ctx.eval("!!document.getElementById('treeFilter').offsetParent"));
@@ -622,11 +622,11 @@ const SCENARIO = {
     await docAt("dev", D);
     await ctx.click("#left .doc-head [data-star]"); await sleep(200);
     check("the star button stars the doc", await ctx.eval(`(JSON.parse(localStorage.getItem('sv-stars') || '[]')).some(x => x.key === 'dev:${D}') && /★/.test(document.querySelector('#left .doc-head [data-star]').textContent)`));
-    check("the tree marks the starred doc", await ctx.eval(`!!document.querySelector('#tree a.file[data-rel="${D}"] .star')`));
+    check("the tree marks the starred doc", await ctx.eval(`!!document.querySelector('#tree .file[data-rel="${D}"] .star')`));
     await ctx.key("s"); await sleep(200);
     check("s unstars it", await ctx.eval(`!(JSON.parse(localStorage.getItem('sv-stars') || '[]')).some(x => x.key === 'dev:${D}')`));
     await ctx.key("s"); await sleep(200);
-    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await docAt("dev", D);
+    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')"); await docAt("dev", D);
     check("the star survives a reload", await ctx.eval(`/★/.test(document.querySelector('#left .doc-head [data-star]').textContent)`));
     await ctx.click('[data-svpop="stars"]'); await sleep(200);
     check("the stars popover lists it", await ctx.eval(`!!document.querySelector('#svpop.show a[data-rel="${D}"]')`));
@@ -749,27 +749,27 @@ const SCENARIO = {
     check("…and leaving it hides the card", await ctx.eval("getComputedStyle(document.getElementById('dotpop')).display === 'none'"));
     await ctx.click("#left .sdot"); await ctx.wait("!!document.querySelector('#left .card-detail')", 3000);
     check("…a dot still opens the card's detail", true);
-    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board"); await sleep(300);
+    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')"); await ctx.go("board"); await sleep(300);
     check("the form survives a reload", await ctx.eval(`${label("[data-bmode]")} === 'dots'`));
-    await ctx.eval("localStorage.setItem('sv-board-mode', 'cols'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')"); await ctx.go("board"); await sleep(300);
+    await ctx.eval("localStorage.setItem('sv-board-mode', 'cols'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')"); await ctx.go("board"); await sleep(300);
     check("a stored cols reads as the kanban", await ctx.eval(`${label("[data-bmode]")} === 'kanban' && !!document.querySelector('#left .board.kanban')`));
     // Req-8-e the sidebar's icons: the pane head's line icons at the pane head's size
     const icoW = await ctx.eval("Math.round(([...document.querySelectorAll('#left .doc-head .iconbtn svg')].map(s => s.getBoundingClientRect().width).find(w => w > 0)) || 0)");
     check(`sidebar buttons carry line icons at the head's size (${icoW}px)`, await ctx.eval(`(() => { const b = [...document.querySelectorAll('#side .brand-btns .iconbtn:not([data-sidetop]), #side .navbtn .k')].filter(x => x.offsetParent); return b.length >= 7 && b.every(x => { const s = x.querySelector('svg.ic'); return !!s && Math.round(s.getBoundingClientRect().width) === ${icoW}; }); })()`));
     // Req-7-a the dev tree by card (J-7): open cards first (newest first), the project's other files, closed (n) last
-    await ctx.eval("localStorage.removeItem('sv-tree-open'); localStorage.removeItem('sv-tree-sort'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    await ctx.eval("localStorage.removeItem('sv-tree-open'); localStorage.removeItem('sv-tree-sort'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')");
     const proj = `#tree details[data-name="dev"] > details[data-name="xg-skills"]`;
     await ctx.eval(`(() => { const d = document.querySelector('${proj}'); d.open = true; return true; })()`); await sleep(200);
-    const kids = await ctx.eval(`[...document.querySelector('${proj}').children].filter(e => e.tagName === 'DETAILS' || e.tagName === 'A').map(e => e.dataset.name || ('file:' + e.dataset.rel.split('/').pop()))`);
+    const kids = await ctx.eval(`[...document.querySelector('${proj}').children].filter(e => e.tagName === 'DETAILS' || e.classList.contains('file')).map(e => e.dataset.name || ('file:' + e.dataset.rel.split('/').pop()))`);
     const cardAt = kids.findIndex(k => /^\d{3}-/.test(k)), nonCard = kids.findIndex(k => !/^\d{3}-/.test(k));
     check(`open cards come first in their project (${kids.slice(0, 3).join(", ")} …)`, cardAt === 0 && (nonCard < 0 || kids.slice(0, nonCard).every(k => /^\d{3}-/.test(k))));
     check("…newest card first", (() => { const c = kids.filter(k => /^\d{3}-/.test(k)); return c.every((k, i) => !i || c[i - 1] > k); })());
     check("closed (n) is the project's last entry", kids[kids.length - 1] === "closed" && await ctx.eval(`/^closed \\(\\d+\\)/.test(document.querySelector('${proj} > details[data-name="closed"] > summary').textContent)`));
     check("…holding the done and dropped cards", await ctx.eval(`!!document.querySelector('${proj} > details[data-name="closed"] details[data-name^="039-"]') && !document.querySelector('${proj} > details[data-name^="039-"]')`));
     await ctx.eval(`(() => { const d = document.querySelector('${proj} > details[data-name^="040-"]'); d.open = true; return true; })()`); await sleep(150);
-    check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name^="040-"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].tagName === 'A' && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.tagName === 'A'); })()`));
+    check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name^="040-"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].classList.contains('file') && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.classList.contains('file')); })()`));
     await docAt("dev", "xg-skills/039-viewer-small-screen-touch/design.md");
-    check("opening a doc of a closed card reveals it inside closed (n)", await ctx.eval(`document.querySelector('${proj} > details[data-name="closed"]').open && !!document.querySelector('#tree a.file.active[data-rel="xg-skills/039-viewer-small-screen-touch/design.md"]')`));
+    check("opening a doc of a closed card reveals it inside closed (n)", await ctx.eval(`document.querySelector('${proj} > details[data-name="closed"]').open && !!document.querySelector('#tree .file.active[data-rel="xg-skills/039-viewer-small-screen-touch/design.md"]')`));
     // Req-7-b the theme button opens a choice (J-11): five themes and a brightness slider; the button still shows the current one
     await ctx.click("#themeToggle"); await sleep(200);
     check("the theme button opens five themes and a brightness slider", await ctx.eval("(() => { const p = document.getElementById('themePop'); return !!p && p.classList.contains('show') && p.querySelectorAll('[data-theme-k]').length === 5 && !!p.querySelector('#lumIn'); })()"));
@@ -780,9 +780,9 @@ const SCENARIO = {
     check("brightness 120% brightens the page", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
     await ctx.key("Escape"); await sleep(100);
     check("Esc closes the theme popover", await ctx.eval("!document.getElementById('themePop').classList.contains('show')"));
-    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')");
     check("theme and brightness survive a reload", await ctx.eval("document.documentElement.getAttribute('data-theme') === 'space' && document.documentElement.style.filter === 'brightness(1.2)'"));
-    await ctx.eval("localStorage.removeItem('sv-theme'); localStorage.removeItem('sv-lum'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    await ctx.eval("localStorage.removeItem('sv-theme'); localStorage.removeItem('sv-lum'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree .file')");
     // Req-9 narrow: a bottom chip names the current section and opens the TOC; the doc scrolls under an open drawer
     await ctx.viewport(390, 844); await sleep(300); await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
     await ctx.eval("(() => { const h = [...document.querySelectorAll('#left .docbody h2')][3]; document.getElementById('left').scrollTop += h.getBoundingClientRect().top - document.getElementById('left').getBoundingClientRect().top - 20; return true; })()"); await sleep(500);
@@ -801,7 +801,7 @@ const SCENARIO = {
     await ctx.key("Escape"); await ctx.viewport(1440, 900); await sleep(300);
     // close-out review fixes
     await ctx.eval("(() => { const f = document.getElementById('treeFilter'); f.value = 'facts'; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()"); await sleep(400);
-    check("filtering opens the card folders that hold a match", await ctx.eval("(() => { const a = [...document.querySelectorAll('#tree details[data-name=\"dev\"] a.file')]; return a.length > 3 && a.every(x => x.checkVisibility()); })()"));
+    check("filtering opens the card folders that hold a match", await ctx.eval("(() => { const a = [...document.querySelectorAll('#tree details[data-name=\"dev\"] .file')]; return a.length > 3 && a.every(x => x.checkVisibility()); })()"));
     await ctx.eval("(() => { const f = document.getElementById('treeFilter'); f.value = ''; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()"); await sleep(300);
     await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
     await ctx.eval("(() => { const p = document.querySelector('#left .docbody p'); p.scrollIntoView({ block: 'center' }); const t = p.firstChild; const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(6, t.length)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; })()"); await sleep(400);
@@ -868,7 +868,7 @@ function compare([a, b]) {
 
 const o = parseArgs(process.argv.slice(2));
 UI = /\/v2\/?$/.test(new URL(o.url).pathname) ? (await import("./shots-v2.mjs")).default
-  : { VIEW, MEASURE, SCENARIO, ready: "!!document.querySelector('#tree a.file')", mask: ".doc-head, .findbar" };
+  : { VIEW, MEASURE, SCENARIO, ready: "!!document.querySelector('#tree .file')", mask: ".doc-head, .findbar" };
 if (UI.views && o.views === DEF.views) o.views = UI.views;
 if (o.compare) process.exit(compare(o.compare));
 if (o.scenario) process.exit(await scenarios(o));

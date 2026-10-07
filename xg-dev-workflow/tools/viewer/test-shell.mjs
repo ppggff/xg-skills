@@ -1373,7 +1373,7 @@ t("hovercard is gated by width, touch targets grow by width — no pointer or ho
   assert.doesNotMatch(html, /html\.narrow \.iconbtn \{/, "buttons keep their desktop size (real-device pass)");
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "every input is 16px so a phone does not zoom into it");
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px;/, "tree rows 30px (tightened after the real-device pass)");
-  assert.match(html, /treeEl\.addEventListener\("touchend", function \(e\) \{[\s\S]{0,260}e\.preventDefault\(\); ft\.a\.click\(\);/, "a tap on a tree file opens it on touchend, before iOS can retarget the click");
+  assert.match(html, /o \+= '<button type="button" class="file" data-nav="doc"/, "tree file rows are buttons: iOS sends a quick tap to them, not to the folder row above");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
 });
 
