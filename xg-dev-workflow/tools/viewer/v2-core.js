@@ -96,8 +96,6 @@ var V2 = (function () {
       D.sets[k] = new Map(t[k].map(it => [it.path.toLowerCase(), it.path]));
       D.mtime[k] = {}; t[k].forEach(it => { D.mtime[k][it.path] = it.mtime; });
     });
-    D.projects = SV.projectsFromTree(t.dev.map(x => x.path), t.kb.map(x => x.path));
-    if (V.scope && D.projects.indexOf(V.scope) < 0) V.scope = "";
   });
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };
@@ -106,9 +104,6 @@ var V2 = (function () {
     const d = V.docsOf(c), m = d.find(x => x.rel === c.dir + "/design.md") || d.find(x => x.rel === c.dir + "/requirement.md") || d[0];
     return m ? m.rel : null;
   };
-  V.scope = V.store.get("scope", "");
-  V.inScope = p => !V.scope || p === V.scope;
-  V.setScope = p => { V.scope = p; V.store.set("scope", p); V.emit("scope"); };
 
   /* ---- columns: drag to resize, click to collapse; width regimes by viewport only ---- */
   const app = $("#app"); V.app = app;
@@ -127,6 +122,8 @@ var V2 = (function () {
     nt.dataset.tip = tip; nt.setAttribute("aria-label", tip);
     const st = $("#sideTog"), stip = app.classList.contains("phone") ? "关闭目录" : nar ? (W.sx ? "恢复右侧竖条" : "完全收起右栏") : W.sc ? "展开右栏" : "收起右栏";
     st.dataset.tip = stip; st.setAttribute("aria-label", stip);
+    const so = $("#sideOpen"), otip = nar ? "完全收起右栏" : "展开目录";
+    so.dataset.tip = otip; so.setAttribute("aria-label", otip);
   };
   V.relayout = () => V.emit("layout");
   $$(".gut").forEach(g => {
@@ -158,7 +155,7 @@ var V2 = (function () {
     if (k === "det") return V.emit("detail-close");
     if (V.isNarrow()) {
       if (k === "nav") { W.nx = !app.classList.contains("navpop"); app.classList.remove("navpop", "treepop"); V.applyW(); V.saveW(); }
-      else if (el && (el.id === "sideTog" || el.id === "sideX")) {   // a phone has no side rail: the button only closes the drawer
+      else if (el && (el.id === "sideTog" || el.id === "sideOpen")) {   // as on the nav: the rail's button hides the rail; a phone has no rail, so it only closes the drawer
         if (!app.classList.contains("phone")) W.sx = !W.sx;
         app.classList.remove("tocpop"); V.applyW(); V.saveW();
       }
@@ -406,7 +403,7 @@ var V2 = (function () {
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
     const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
-      navTog: "colL", sideTog: "colR", sideOpen: "colL", sideX: "colR" };
+      navTog: "colL", sideTog: "colR", sideOpen: "colL" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });
     $('#nav [data-goboard]').innerHTML = V.I.grid;
     V.emit("init");

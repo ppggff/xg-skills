@@ -27,7 +27,8 @@
 @keyframes tocin { from { opacity: 0; transform: translateX(6px); } }
 .md pre { white-space: pre; }
 .app.narrow .md pre { white-space: pre-wrap; word-break: break-word; }
-.app.narrow .md td, .app.narrow .md th { overflow-wrap: anywhere; }   /* break inside long tokens so a table fits the pane, as in the classic shell */
+.app.narrow .md table { display: table; width: auto; }   /* fits the pane and wraps in its cells, no sideways scroll, as in the classic shell */
+.app.narrow .md td, .app.narrow .md th { overflow-wrap: anywhere; }
 /* narrow: the left strip can go away entirely; the nav then opens as a drawer from the pane head */
 .app.narrow.nx .ib.navb { display: grid; }
 .app.narrow.nx { grid-template-columns: 0 0 minmax(0,1fr) 0 34px; }
@@ -48,7 +49,6 @@
 @media (max-width: 899px) { .qbox input { font-size: 16px; } }
 .app.narrow .ib { width: 32px; height: 32px; }
 .app.narrow.sc #side .srail { padding-top: 1px; }   /* (34px head − 32px button) / 2 */
-.app.narrow #sideX { display: grid; }
 .app.narrow .tr { height: 28px; }
 .app.narrow .seg button { padding: 6px 8px; }
 /* phone */

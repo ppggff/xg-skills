@@ -59,6 +59,7 @@
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }   /* iOS enlarged the text on turning to landscape */
 body { margin: 0; background: var(--chrome); color: var(--tx); font: 12px/1.55 var(--cjk); -webkit-font-smoothing: antialiased; overflow: hidden; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; }
 input { font: inherit; color: inherit; }
@@ -97,7 +98,7 @@ input { font: inherit; color: inherit; }
 .app.nc #nav > :not(.chd), .app.sc #side > :not(.srail) { display: none; }
 .ib.nconly, .srail, .ib.navb, .abw, .ib.tocb { display: none; }
 .app.nc #nav .chd { flex-direction: column; height: auto; padding: 6px 0; gap: 4px; border-bottom: 0; }
-.app.nc #nav .chd .brand { margin: 4px 0 6px; }
+.app.nc #nav .chd .brand { margin: 8px 0 15px; }   /* the dot stays where it sits in the open head; the buttons start below the head line (y 34) */
 .app.nc #nav .chd .ib.nconly { display: grid; }
 .app.nc #navTog svg { transform: scaleX(-1); }
 .app.nc.treepop #nav > #treeWrap {
@@ -106,7 +107,6 @@ input { font: inherit; color: inherit; }
 }
 @keyframes treein { from { opacity: 0; transform: translateX(-6px); } }
 .app.sc #side .srail { display: flex; flex-direction: column; align-items: center; height: 100%; padding: 4px 0 6px; }   /* (34px head − 26px button) / 2 */
-#sideX { display: none; }
 .sticks { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 0; overflow: hidden; }
 .stk { width: 100%; height: var(--h,12px); display: flex; align-items: center; justify-content: flex-end; padding-right: calc(50% - var(--mw,14px) / 2); flex: none; }
 .stk i { display: block; height: 1.5px; border-radius: 1px; background: var(--faint); width: var(--w); transition: width .15s, background .15s; }
@@ -166,8 +166,6 @@ a.tr { text-decoration: none; }
 .tsec .tc { font: 400 10px var(--mono); color: var(--faint); padding: 1px 4px; border-radius: var(--r-sm); }
 .tsec .tc:hover { background: var(--hover); color: var(--tx); }
 .tsec .tc.on { color: var(--sig); }
-.scope { display: flex; align-items: center; gap: 6px; padding: 6px 8px 2px; font: 400 var(--t-meta) var(--cjk); color: var(--faint); }
-.scope select { flex: 1; min-width: 0; height: 22px; border: 1px solid var(--ln); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: 400 11px var(--mono); padding: 0 4px; }
 
 /* ---- centre ---- */
 #centre { background: var(--paper); }

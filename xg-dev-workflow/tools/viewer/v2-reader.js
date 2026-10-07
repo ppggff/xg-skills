@@ -25,9 +25,9 @@
     return '<div class="phd">'
       + `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>`
       + V.paneHead(k) + '<div class="ppath"></div>'
-      + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button>`
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
-      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）") + V.paneEnd(k) + "</div>"
+      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）") + V.paneEnd(k)
+      + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
       + `<button class="secchip" data-sec data-tip="打开目录" aria-label="打开目录">${V.I.toc}<span></span></button>`;

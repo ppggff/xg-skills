@@ -1,4 +1,4 @@
-/* status viewer v2 — nav: project scope, the dev tree (organized by card) and the KB tree, per-section
+/* status viewer v2 — nav: the dev tree (organized by card) and the KB tree, per-section
    sort and one-click collapse, remembered folds, stars and the trail of recently opened docs. */
 "use strict";
 (function (V) {
@@ -93,7 +93,7 @@
     + `<button class="tc ${snap[t] ? "on" : ""}" data-tcol="${t}" data-tip="${snap[t] ? "恢复折叠前的展开" : "折叠这一区的全部文件夹"}">F</button>`;
   function render(reveal) {
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
-    const cards = D.cards.filter(c => V.inScope(c.p));
+    const cards = D.cards;
     let h = `<button class="tr top ${V.view === "board" ? "cur" : ""}" style="--d:0" data-goboard="1">`
       + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`
       + `<button class="tr top ${V.view === "recent" ? "cur" : ""}" style="--d:0" data-recent="1" data-tip="dev_root 最近 25 次提交">`
@@ -104,7 +104,7 @@
     const dc = SV.sortCmp(sorts.dev.key, sorts.dev.dir), devOpen = isOpen("dev");
     h += `<div class="tsec"><button class="nm" data-fold-k="dev">dev_root</button>${ctl("dev")}</div>`;
     if (devOpen) {
-      const devItems = D.tree.dev.filter(it => it.path.indexOf("/") < 0 || V.inScope(it.path.split("/")[0]));
+      const devItems = D.tree.dev;
       const root = SV.buildTree(devItems.filter(it => !V.cardOfPath("dev", it.path)));
       const projs = [...new Set(devItems.map(it => it.path.split("/")[0]).filter(p => devItems.some(it => it.path.startsWith(p + "/"))))]
         .map(p => ({ name: p, mtime: Math.max(0, ...devItems.filter(it => it.path.startsWith(p + "/")).map(it => it.mtime)) })).sort(dc);
@@ -127,21 +127,14 @@
       });
       root.files.slice().sort(dc).forEach(f => { h += fileRow("dev", f.path, f.name, 0, cur); });
     }
-    // kb: the knowledge base, scoped to raw/<project> and wiki/<project>
+    // kb: the knowledge base
     h += `<div class="tsec"><button class="nm" data-fold-k="kb">知识库</button>${ctl("kb")}</div>`;
     if (isOpen("kb")) {
-      const kbItems = D.tree.kb.filter(it => { const s = it.path.split("/"); return s.length < 3 || V.inScope(s[1]); });
-      h += nodeRows("kb", SV.buildTree(kbItems), "", 0, SV.sortCmp(sorts.kb.key, sorts.kb.dir), cur, false);
+      h += nodeRows("kb", SV.buildTree(D.tree.kb), "", 0, SV.sortCmp(sorts.kb.key, sorts.kb.dir), cur, false);
     }
     tree.innerHTML = h; tree.scrollTop = top;
     const cr = $("#tree .tr.cur:not([data-goboard])");
     if (reveal && cr && (cr.offsetTop < tree.scrollTop || cr.offsetTop > tree.scrollTop + tree.clientHeight - 30)) tree.scrollTop = cr.offsetTop - tree.clientHeight / 3;
-  }
-  function scopeBar() {
-    const D = V.D;
-    const opts = (D.projects || []).map(p => `<option ${p === V.scope ? "selected" : ""}>${esc(p)}</option>`).join("");
-    $("#scopeBar").innerHTML = '<span>范围</span><select id="scopeSel" aria-label="项目范围" data-tip="项目范围：作用于树、看板和全文搜索（⌘K 不受限）">'
-      + `<option value="">全部项目</option>${opts}</select>`;
   }
   // opening a doc unfolds its ancestors for this session only — a programmatic expand is not a preference
   V.revealDoc = (tree, rel) => {
@@ -171,7 +164,6 @@
   });
   V.click("#starBtn", el => (V.isPop("starPop") ? V.closePops() : starPop(el)));
   V.click("#trailBtn", el => (V.isPop("trailPop") ? V.closePops() : trailPop(el)));
-  document.addEventListener("change", e => { if (e.target.id === "scopeSel") V.setScope(e.target.value); });
-  ["data", "scope", "tree-show", "stars", "focus", "split"].forEach(ev => V.on(ev, () => { if (ev === "data") scopeBar(); render(ev === "tree-show"); }));
+  ["data", "tree-show", "stars", "focus", "split"].forEach(ev => V.on(ev, () => render(ev === "tree-show")));
   V.on("nav", (k, loc) => { if (loc.kind === "doc") V.revealDoc(loc.tree, loc.rel); render(true); });
 })(V2);

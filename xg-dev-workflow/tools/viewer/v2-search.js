@@ -1,5 +1,5 @@
-/* status viewer v2 — search: ⌘K quick open over docs, cards and Fact blocks (not limited by the project
-   scope), and the full-text search view (limited by it), with search history. */
+/* status viewer v2 — search: ⌘K quick open over docs, cards and Fact blocks, and the full-text search
+   view, with search history. */
 "use strict";
 (function (V) {
   const { $, $$, esc } = V;
@@ -176,18 +176,18 @@
       if (e.key === "Enter") { e.preventDefault(); fullSearch(e.target.value); }
       else if (e.key === "Escape") { e.stopPropagation(); e.target.blur(); }
     });
-    const meta = $(".smeta", el), res = $(".sres", el), scope = V.scope ? "，范围 " + V.scope : "";
+    const meta = $(".smeta", el), res = $(".sres", el);
     if (!loc.q || loc.q.length < 2) {
       meta.textContent = "输入后按 ↵ 搜索；⇧ 点结果在右栏打开。"; setTimeout(() => $("#sIn").focus(), 10); V.status(); return;
     }
     meta.textContent = "搜索中…";
     const y = loc.y || 0;
-    V.json("/api/search?q=" + encodeURIComponent(loc.q) + "&project=" + encodeURIComponent(V.scope)).then(d => {
+    V.json("/api/search?q=" + encodeURIComponent(loc.q)).then(d => {
       if (V.P[k].loc !== loc) return;
       if (d.note) { meta.textContent = d.note; res.innerHTML = ""; return; }
       const groups = SV.groupHits(d.hits || []);
-      meta.textContent = `${(d.hits || []).length}${d.truncated ? "+" : ""} 条命中，${groups.length} 个文件${scope}`;
-      res.innerHTML = resultsHTML(groups, loc.q) || `<div class="qnone">没有找到「${esc(loc.q)}」${V.scope ? "（范围 " + esc(V.scope) + "）" : ""}。</div>`;
+      meta.textContent = `${(d.hits || []).length}${d.truncated ? "+" : ""} 条命中，${groups.length} 个文件`;
+      res.innerHTML = resultsHTML(groups, loc.q) || `<div class="qnone">没有找到「${esc(loc.q)}」。</div>`;
       res.scrollTop = y;
       V.emit("rendered", k, true); V.emit("search-files", groups);
       V.status();
@@ -201,6 +201,5 @@
     if (V.kindOf(at) === "search" && (at === "A" || V.isSplit()) && $("#sIn")) { V.setFocus(at); const i = $("#sIn"); i.focus(); i.select(); return; }
     V.nav(V.target(), { kind: "search", q: "" });
   });
-  V.on("scope", () => { if (!$("#search").hidden) V.rerender(V.hostOf("search")); });
   V.on("leave", (k, loc) => { const r = $("#search .sres"); if (loc.kind === "search" && r) loc.y = r.scrollTop; });   // back to the results lands where they were left
 })(V2);

@@ -87,15 +87,9 @@ const SCENARIO = {
     await ctx.go("diff");
     check("the diff view renders for the card", await ctx.eval("!!document.querySelector('#diffv .dfile, #diffv .hint')"));
   },
-  // Nav: the project scope narrows tree, board and search; folds a user opens survive a reload, a reveal
-  // does not persist; sort and one-click collapse per section.
+  // Nav: folds a user opens survive a reload, a reveal does not persist; sort and one-click collapse per section.
   async tree(ctx, check, o) {
     await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
-    const proj = await ctx.eval("document.querySelector('#scopeSel option:nth-child(2)').value");
-    await ctx.eval(`(() => { const s = document.getElementById('scopeSel'); s.value = ${J(proj)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-    check(`scope ${proj}: the tree shows only that project`, await ctx.eval(`[...document.querySelectorAll('#tree .tr.top.dir .nm')].every(n => n.textContent === ${J(proj)})`));
-    check(`scope ${proj}: the board shows only its cards`, await ctx.eval(`[...document.querySelectorAll('#bscroll [data-card]')].every(c => c.dataset.card.startsWith(${J(proj + "/")}))`));
-    await ctx.eval("(() => { const s = document.getElementById('scopeSel'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
     const key = await ctx.eval("document.querySelector('#tree .tr.top.dir').dataset.foldK");
     await ctx.click(`#tree [data-fold-k="${key}"]`);
     check("a click opens a project folder", await ctx.eval(`document.querySelector('#tree [data-fold-k="${key}"]').classList.contains('open')`));
@@ -268,8 +262,7 @@ const SCENARIO = {
     check("picking in the drawer closes it", await ctx.eval("!document.getElementById('app').classList.contains('navpop') && V2.view === 'board'"));
     await ctx.eval("location.reload(); true"); await ctx.sleep(300); await ctx.wait(VIEW.board().ready);
     check("the choice is remembered", await ctx.eval("document.getElementById('app').classList.contains('nx')"));
-    await ctx.wait(has("#scopeSel"));
-    check("768: inputs are 16px (no iOS zoom)", await ctx.eval("parseFloat(getComputedStyle(document.getElementById('scopeSel')).fontSize) >= 16"));
+    check("768: inputs are 16px (no iOS zoom)", await ctx.eval("(() => { const i = document.getElementById('app').appendChild(document.createElement('input')), f = parseFloat(getComputedStyle(i).fontSize); i.remove(); return f >= 16; })()"));
     await ctx.key("k", 4); await ctx.sleep(100);
     check("768: the quick-open box is 16px too", await ctx.eval("parseFloat(getComputedStyle(document.getElementById('qIn')).fontSize) >= 16"));
     await ctx.key("Escape");
@@ -390,15 +383,6 @@ const SCENARIO = {
     await ctx.viewport(768, 1024); await ctx.sleep(300); await ctx.eval("V2.setFocus('B'); true"); await ctx.sleep(300);
     check("narrow: the pane that comes into view gets its line numbers", await ctx.eval("(() => { const t = [...document.querySelectorAll('#pB .lnum')].map(x => parseFloat(x.style.top)); return t.length > 2 && new Set(t).size === t.length; })()"));
   },
-  // Collapsing a section under a project scope leaves the other projects' remembered folds alone.
-  async foldscope(ctx, check) {
-    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("board");
-    const [p1, p2] = await ctx.eval("[...document.querySelectorAll('#scopeSel option')].slice(1, 3).map(o => o.value)");
-    await ctx.click(`#tree [data-fold-k="dev:${p1}"]`);
-    await ctx.eval(`(() => { const s = document.getElementById('scopeSel'); s.value = ${J(p2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-    await ctx.click('[data-tcol="dev"]');
-    check(`F under scope ${p2} keeps ${p1}'s remembered fold`, await ctx.eval(`JSON.parse(localStorage.getItem('svd2-tree-open')).includes(${J("dev:" + p1)})`));
-  },
   // The human's fourth round: one cycling button per board setting, popovers over the narrow drawers,
   // the collapsed side rail aligned with the head row, and a side column that collapses fully when narrow.
   async round4(ctx, check, o) {
@@ -425,7 +409,7 @@ const SCENARIO = {
     check("narrow drawer: the theme popover shows above it", await ctx.eval("(() => { const r = document.getElementById('themePop').getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && !!e.closest('#themePop'); })()"));
     await ctx.key("Escape"); await ctx.key("Escape");
 
-    await ctx.click("#sideX"); await ctx.sleep(250);
+    await ctx.click("#sideOpen"); await ctx.sleep(250);
     check("narrow: the side rail collapses fully", await ctx.eval("document.getElementById('app').classList.contains('sx') && document.getElementById('side').getBoundingClientRect().width === 0"));
     check("…and the pane head gets a TOC button", await ctx.eval("getComputedStyle(document.querySelector('#pA .tocb')).display !== 'none'"));
     check("…and nothing of the rail is left over the pane head", await ctx.eval("(() => { const r = document.querySelector('#pA .phd [data-t=split]').getBoundingClientRect(), e = document.elementFromPoint(r.right - 3, r.top + r.height / 2); return !!e && !e.closest('#side'); })()"));
@@ -442,6 +426,26 @@ const SCENARIO = {
     check("the full collapse is remembered", await ctx.eval("document.getElementById('app').classList.contains('sx')"));
     await ctx.click("#pA .tocb"); await ctx.sleep(200); await ctx.click("#sideTog"); await ctx.sleep(250);
     check("restore brings the rail back and closes the drawer", await ctx.eval("!document.getElementById('app').classList.contains('sx') && !document.getElementById('app').classList.contains('tocpop') && document.getElementById('side').getBoundingClientRect().width > 0"));
+  },
+  // The human's fifth round: no project scope, narrow tables fit the pane, the TOC button sits last in the head,
+  // one button on the narrow side rail (it hides the rail, as the nav's does), the collapsed nav keeps its dot in place.
+  async round5(ctx, check) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc");
+    check("no project scope in the nav", await ctx.eval("!document.getElementById('scopeBar') && !document.getElementById('scopeSel')"));
+    const dot = "Math.round(document.querySelector('#nav .brand i').getBoundingClientRect().top)";
+    const open = await ctx.eval(dot);
+    await ctx.eval("V2.W.nc = true; V2.applyW(); true"); await ctx.sleep(250);
+    check(`collapsed nav: the dot stays where it was (${open}px)`, await ctx.eval(dot) === open);
+    check("…and the first button starts below the head line", await ctx.eval("(() => { const b = [...document.querySelectorAll('#nav .chd .ib')].find(x => x.checkVisibility()), h = document.querySelector('#pA .phd').getBoundingClientRect(); return b.getBoundingClientRect().top >= h.bottom; })()"));
+    await ctx.eval("V2.W.nc = false; V2.applyW(); true");
+    await ctx.viewport(768, 1024); await ctx.sleep(400);
+    check("narrow: the side rail has one button, and it hides the rail", await ctx.eval("!document.getElementById('sideX') && document.getElementById('sideOpen').dataset.tip === '完全收起右栏'"));
+    await ctx.viewport(390, 844); await ctx.sleep(400);
+    check("phone: the TOC button is the last one in the head", await ctx.eval("(() => { const b = [...document.querySelectorAll('#pA .phd .ib')].filter(x => x.checkVisibility()); return b[b.length - 1].classList.contains('tocb'); })()"));
+    const fits = await ctx.eval(`(() => { const md = document.querySelector('#pA .md'), t = document.createElement('table');
+      t.innerHTML = '<tr>' + '<th>column heading</th>'.repeat(6) + '</tr><tr>' + '<td>a_rather_long_token_without_spaces_inside</td>'.repeat(6) + '</tr>';
+      md.appendChild(t); const ok = t.getBoundingClientRect().right <= md.getBoundingClientRect().right + 1 && t.scrollWidth <= t.clientWidth + 1; t.remove(); return ok; })()`);
+    check("phone: a wide table fits the pane, no sideways scroll", fits);
   },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
   // the classic code fonts, the help panel, the search side list, mirror, and the brightness slider.

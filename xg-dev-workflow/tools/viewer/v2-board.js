@@ -19,7 +19,7 @@
   const selCls = c => (c.id === sel ? "sel" : "");
 
   function groupsOf() {
-    const vis = V.D.cards.filter(c => V.inScope(c.p) && !hidden.has(c.st));
+    const vis = V.D.cards.filter(c => !hidden.has(c.st));
     const of = (key, name, pick, extra) => Object.assign({ key, name, cs: vis.filter(pick).sort(newest) }, extra);
     if (groupBy === "s") return STATES.map(st => of("s:" + st, st, c => c.st === st, { st, closed: !isOpenSt(st) })).filter(g => g.cs.length);
     if (groupBy === "g") {
@@ -39,7 +39,7 @@
     const fltTip = hidden.size ? "已隐藏 " + [...hidden].join("、") + "，点开调整" : "按状态过滤";
     const k = V.hostOf("board");
     return `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
-      + `<div class="ppath"><bdi>dev_root / <b>看板</b>${V.scope ? " · " + esc(V.scope) : ""}</bdi></div>`
+      + `<div class="ppath"><bdi>dev_root / <b>看板</b></bdi></div>`
       + `<div class="seg" style="margin-left:auto">${grp}${forms}`
       + `<button class="${hidden.size ? "on" : ""}" data-flt data-popbtn data-tip="${fltTip}" aria-label="过滤状态">${V.I.filter}</button>`
       + `<button class="${trays ? "on" : ""}" data-trays data-tip="${trays ? "关闭" : "打开"}分组外框">${V.I.trays}</button></div>` + V.paneEnd(k);
@@ -124,8 +124,8 @@
   function bodyHTML() {
     const gs = groupsOf(), f = form();
     if (!gs.length) {
-      if (V.D.cards.some(c => V.inScope(c.p))) return '<div class="empty-b">过滤后没有卡片。<br><button data-fltall>全部显示</button></div>';
-      return `<div class="empty-b">这个范围里没有卡片${V.scope ? "。<br><button data-scope-all>看全部项目</button>" : "。"}</div>`;
+      if (V.D.cards.length) return '<div class="empty-b">过滤后没有卡片。<br><button data-fltall>全部显示</button></div>';
+      return '<div class="empty-b">没有卡片。</div>';
     }
     if (f === "dots") return dotsHTML(gs);
     if (f === "table") return tableHTML(gs);
@@ -251,7 +251,7 @@
 
   /* ---- filter popover ---- */
   function fltPop(btn) {
-    const count = st => V.D.cards.filter(c => V.inScope(c.p) && c.st === st).length;
+    const count = st => V.D.cards.filter(c => c.st === st).length;
     const chips = STATES.filter(st => count(st)).map(st => `<button class="chip ${hidden.has(st) ? "off" : ""}" data-chip="${st}" data-st="${st}" `
       + `data-tip="${hidden.has(st) ? "显示" : "隐藏"} ${st} 的卡"><i class="gl ${st}"></i>${st}<em>${count(st)}</em></button>`).join("");
     const all = hidden.size ? '<button class="fall" data-fltall>全部显示</button>' : "";
@@ -300,13 +300,12 @@
     const el = sel && $(`#bscroll [data-card="${V.cssEsc(sel)}"]`); if (el) el.scrollIntoView({ block: "nearest" });
   };
   V.statusFns.board = () => {
-    const n = V.D.cards.filter(c => V.inScope(c.p)).length, hint = store.get("hintN", 0) < 5;
+    const n = V.D.cards.length, hint = store.get("hintN", 0) < 5;
     return `<span><b>看板</b>　${n} 张卡${hidden.size ? "，隐藏了 " + [...hidden].join("、") : ""}</span>`
       + (hint ? "<span>单击看详情，双击打开 design.md，方向键移动</span>" : "") + `<span class="sp"></span>${V.stamp()}`;
   };
   V.on("nav", (k, loc) => { if (loc.kind === "board") store.set("hintN", store.get("hintN", 0) + 1); });
   V.on("data", () => { if (onShow()) { render(); V.status(); } });
-  V.on("scope", () => { if (onShow()) { render(); V.status(); } });
   V.on("narrow", () => { if (onShow() && !store.get("form", null)) render(); });
   V.on("split", () => { if (onShow()) render(); });
 
@@ -328,7 +327,6 @@
   });
   V.click("[data-chip]", el => { const s = el.dataset.chip; hidden.has(s) ? hidden.delete(s) : hidden.add(s); setHidden(); fltPop(); });
   V.click("[data-fltall]", () => { hidden.clear(); setHidden(); if (V.isPop("fltPop")) fltPop(); });
-  V.click("[data-scope-all]", () => V.setScope(""));
   V.click("[data-flt]", el => (V.isPop("fltPop") ? V.closePops() : fltPop(el)));
   V.click("[data-fold]", el => { const p = el.dataset.fold; unfold.has(p) ? unfold.delete(p) : unfold.add(p); render(); });
   V.click("[data-rq]", el => el.classList.toggle("x"));

@@ -811,7 +811,7 @@ const SCENARIO = {
     await ctx.eval("(() => { const p = document.querySelector('#left .docbody p'); const t = p.firstChild; const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(6, t.length)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; })()"); await sleep(400);
     await ctx.click("#cmt [data-sel=quote]"); await sleep(300);
     check("after copy as a quote the bar stays gone", await ctx.eval("getComputedStyle(document.getElementById('cmt')).display === 'none'"));
-    await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/041"], #left .trow[data-key="xg-skills/041"]'); await ctx.wait("!!document.querySelector('#left .card-detail .cd-req')", 5000);
+    await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/040"], #left .trow[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail .cd-req')", 5000);
     await ctx.click('#left .card-detail .cd-req[data-xid="Req-7"]'); await ctx.wait("!!document.querySelector('#left .docbody')", 5000); await sleep(800);
     check("a Req row in the detail jumps to that Req", await ctx.eval("(() => { const h = document.querySelector('#left .docbody [data-xid=\"Req-7\"]'), p = document.getElementById('left'); const t = h.getBoundingClientRect().top - p.getBoundingClientRect().top; return t > -5 && t < 200; })()"));
 

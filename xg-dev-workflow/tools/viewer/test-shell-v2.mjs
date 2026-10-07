@@ -123,4 +123,8 @@ t("Inv-6-g: nothing sticks to a bottom edge — the one sticky element is a tabl
   assert.strictEqual(sticky.length, 1); assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/);
 });
 
+t("round 5: iOS keeps the text size on turning to landscape", () => {
+  assert.match(css, /html \{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; \}/);
+});
+
 console.log(`${pass} v2 shell tests passed`);
