@@ -1034,6 +1034,12 @@ t("045 todo marks: done date on tick, meta parsing, subtask progress", () => {
   const m = SV.todoMeta("fix it ⏫ @p ➕ 2026-10-01 09:30 📅 2026-10-09 ✅ 2026-10-08");
   assert.deepEqual(m, { created: "2026-10-01 09:30", due: "2026-10-09", done: "2026-10-08", prio: 1, text: "fix it @p" });
   assert.deepEqual(SV.todoMeta("plain 🔽"), { created: "", due: "", done: "", prio: 3, text: "plain" });
+  // 045 review: astral emoji stay whole; unticking takes only the trailing ✅ (with its time); bare dates are local
+  assert.equal(SV.todoMeta("fix bug 🔥 📝 ⏫").text, "fix bug 🔥 📝");
+  assert.equal(SV.editTodo("- [x] cost ✅2024-01-01 receipt ✅ 2026-10-07", 0, { done: false, today: "x" }), "- [ ] cost ✅2024-01-01 receipt");
+  assert.equal(SV.editTodo("- [ ] a ✅ 2026-10-01 12:00", 0, { done: true, today: "2026-10-07" }), "- [x] a ✅ 2026-10-07");
+  assert.equal(SV.todoDate("2026-10-07").getHours(), 0);
+  assert.equal(SV.continueLine("- [ ] 😀 ok").empty, false);
   const it = SV.parseTodo("- [ ] p\n  - [x] a\n  - [ ] b\n    - [x] c\n- [ ] q");
   assert.deepEqual(it.map(x => x.depth), [0, 2, 2, 4, 0]);
   assert.deepEqual([SV.todoProgress(it, 0), SV.todoProgress(it, 2), SV.todoProgress(it, 4)], [[2, 3], [1, 1], null]);

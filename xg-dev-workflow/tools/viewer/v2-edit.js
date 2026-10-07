@@ -34,7 +34,7 @@
       box.disabled = false; box.dataset.tline = ln; box.classList.add("tbox");
     });
     // @tags as chips; the date and priority marks of each task as the same small labels the todo view shows
-    const MARK = /[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/;
+    const MARK = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|⏫|🔼|🔽/;   // spelled out: astral emoji in a class would split
     const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !(/(^|\s)@[\w.-]/.test(n.data) || MARK.test(n.data)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     const texts = []; while (walk.nextNode()) texts.push(walk.currentNode);
     texts.forEach(n => {
@@ -91,9 +91,9 @@
   const lineEnd = (v, i) => { const j = v.indexOf("\n", i); return j < 0 ? v.length : j; };
   const stamp = () => SV.todoStamp(new Date()), day = n => SV.todoStamp(new Date(Date.now() + n * 864e5)).slice(0, 10);
   const PREFIX = /^(\s*)(?:>\s?|#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
-  function wrap(ta, mark) {
+  function wrap(ta, mark, end = mark) {
     const a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b);
-    ins(ta, mark + sel + mark, a, b);
+    ins(ta, mark + sel + end, a, b);
     if (!sel) ta.setSelectionRange(a + mark.length, a + mark.length);
   }
   function lines(ta, fn) {   // rewrite the selected lines; a caret (no selection) keeps its distance from the line's end
@@ -112,7 +112,7 @@
   }
   function mark(ta, sym, date) {   // a date or priority mark at the end of the current line, replacing one of its kind
     const v = ta.value, a = lineStart(v, ta.selectionStart), b = lineEnd(v, ta.selectionStart), line = v.slice(a, b);
-    const kind = sym === "📅" ? /\s*📅\s*\d{4}-\d{2}-\d{2}/ : /\s*[⏫🔼🔽]/;
+    const kind = sym === "📅" ? /\s*📅\s*\d{4}-\d{2}-\d{2}/ : /\s*(?:⏫|🔼|🔽)/;
     const add = " " + sym + (date ? " " + date : "");
     const nl = kind.test(line) ? line.replace(kind, add) : line.replace(/\s*(?=➕|$)/, add + (/➕/.test(line) ? " " : ""));
     ins(ta, nl, a, b);
@@ -143,7 +143,8 @@
   /* ---- open, close, save ---- */
   function open(k, line) {
     const p = P[k], loc = p.loc; if (!isTodo(loc) || !p.doc || p.edit) return;
-    const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text }, draft = V.store.get(DK(loc.rel), null);
+    const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text }, d = V.store.get(DK(loc.rel), null);
+    const draft = d && typeof d === "object" ? d : d != null ? { text: d, mtime: 0 } : null;
     p.edit = ed;
     p.body.innerHTML = `<div class="tedw"><div class="tedbar"><b>编辑 ${esc(fileOf(loc))}</b><span>/ 命令　@ 项目　[[ 文档　⌘S 保存　Esc 退出</span>`
       + `<button data-tsave>保存</button><button data-tcancel>取消</button></div>`
@@ -151,12 +152,13 @@
       + `<div class="ted"><pre class="thl" aria-hidden="true"></pre><textarea class="tta" spellcheck="false" aria-label="编辑 ${esc(fileOf(loc))}"></textarea>`
       + `<div class="tac" hidden></div></div></div>`;
     const ta = $(".tta", p.body), hl = $(".thl", p.body);
-    if (draft != null && draft !== ed.orig && confirm("这个文件有没保存的草稿，恢复它吗？")) ta.value = draft; else { ta.value = ed.orig; dropDraft(loc.rel); }
+    // a restored draft keeps the version it was written against, so a file changed since then is caught as a conflict
+    if (draft && draft.text !== ed.orig && confirm("这个文件有没保存的草稿，恢复它吗？")) { ta.value = draft.text; ed.base = draft.mtime; }
+    else { ta.value = ed.orig; dropDraft(loc.rel); }
     hl.innerHTML = highlight(ta.value);
-    let dt = 0;
     ta.addEventListener("input", () => {
       hl.innerHTML = highlight(ta.value); complete(ed, ta);
-      clearTimeout(dt); dt = setTimeout(() => (ta.value === ed.orig ? dropDraft(loc.rel) : V.store.set(DK(loc.rel), ta.value)), 400);
+      clearTimeout(ed.dt); ed.dt = setTimeout(() => { if (p.edit === ed) ta.value === ed.orig ? dropDraft(loc.rel) : V.store.set(DK(loc.rel), { text: ta.value, mtime: ed.base }); }, 400);
     });
     ta.addEventListener("scroll", () => { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; });
     ta.addEventListener("keydown", e => keys(ed, ta, e));
@@ -173,7 +175,7 @@
   function close(k, saved) {
     const p = P[k], ta = p.edit && $(".tta", p.body); if (!p.edit) return;
     if (!saved && ta && ta.value !== p.edit.orig && !confirm("放弃没保存的修改？")) return;
-    dropDraft(p.edit.loc.rel); p.edit = null; V.rerender(k);
+    clearTimeout(p.edit.dt); dropDraft(p.edit.loc.rel); p.edit = null; V.rerender(k);
   }
   // a save refused because the file changed elsewhere keeps the text and asks: overwrite with mine, or take theirs
   function save(k, force) {
@@ -186,7 +188,11 @@
       if (res.status === 409) $(".tedbar span", p.body).innerHTML = '<b class="tconf">这个文件在别处改过了。</b><button data-tforce>用我的覆盖</button><button data-ttheirs>放弃我的，看最新的</button>';
     });
   }
-  V.on("nav", k => { P[k].edit = null; });   // the draft is already in local storage
+  V.on("nav", k => {   // the draft goes to local storage now, not 400ms later
+    const p = P[k], ed = p.edit, ta = ed && $(".tta", p.body); if (!ed) return;
+    clearTimeout(ed.dt); if (ta && ta.value !== ed.orig) V.store.set(DK(ed.loc.rel), { text: ta.value, mtime: ed.base });
+    p.edit = null;
+  });
   // on a phone the toolbar rides just above the on-screen keyboard
   function keyboardBar(p) {
     const vv = window.visualViewport, bar = $(".ttool", p.body); if (!vv || !bar || !V.isNarrow()) return;
@@ -209,7 +215,10 @@
   const fuzzy = (q, s) => { const l = s.toLowerCase(), i = l.indexOf(q); if (!q) return 1; if (i >= 0) return 3 - (i > 0) + (l.lastIndexOf("/") < i); let j = 0; for (const c of l) if (c === q[j]) j++; return j === q.length ? 0.5 : -1; };
   function choices(tok) {
     const q = tok.q.toLowerCase();
-    if (tok.kind === "/") return CMDS.map(c => [c, Math.max(fuzzy(q, c[0]), fuzzy(q, c[1]), fuzzy(q, c[2]))]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    if (tok.kind === "/") {   // a name or one of its words must start with what was typed: "and /or" opens nothing
+      const hit = c => !q || [c[0], c[1], ...c[2].split(" "), ...c[1].split(/[\s：]/)].some(w => w.toLowerCase().startsWith(q));
+      return CMDS.filter(hit);
+    }
     const pool = tok.kind === "@" ? Object.keys(V.D.board || {}).sort() : V.docChoices();
     return pool.map(s => [s, fuzzy(q, s)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
   }
@@ -244,7 +253,7 @@
   function enter(ta, e) {   // a list line continues itself; an empty item ends the list; the caret before trailing marks counts as the end
     const v = ta.value, at = ta.selectionStart; if (at !== ta.selectionEnd) return;
     const a = lineStart(v, at), b = lineEnd(v, at), c = SV.continueLine(v.slice(a, b));
-    if (!c || !/^\s*(?:[➕📅✅⏫🔼🔽].*)?$/.test(v.slice(at, b))) return;
+    if (!c || !/^\s*(?:(?:➕|📅|✅|⏫|🔼|🔽).*)?$/.test(v.slice(at, b))) return;
     e.preventDefault();
     if (c.empty) return ins(ta, /^\s*/.exec(v.slice(a, b))[0], a, b);
     const head = "\n" + c.next;
@@ -268,7 +277,7 @@
     if (!sel && (k === "]" || k === ")" || k === "`") && v[at] === k) { e.preventDefault(); return ta.setSelectionRange(at + 1, at + 1); }   // step over the closing half
     if (PAIRS[k] && !(k === "`" && (v[at - 1] === "`" || v[at] === "`"))) {   // the other half comes too (not inside a run of backticks)
       e.preventDefault();
-      if (sel) return wrap(ta, k === "`" ? "`" : k) || null;
+      if (sel) return wrap(ta, k, PAIRS[k]);
       ins(ta, k + PAIRS[k], at, at); ta.setSelectionRange(at + 1, at + 1);
     }
   }
@@ -285,9 +294,11 @@
     const k = V.paneOf(md); if (!isTodo(P[k].loc)) return;
     const li = e.target.closest("li"), box = li && li.querySelector(":scope > input.tbox");
     let line = box ? +box.dataset.tline : V.lineOf(k, e.target);
-    if (!box && li && line != null) {   // inside a list block: the line whose text starts like this item's
-      const want = (li.firstChild && li.firstChild.textContent || "").trim().slice(0, 12), ls = P[k].doc.text.split("\n");
-      const j = want ? ls.findIndex((l, n) => n >= line && l.includes(want)) : -1; if (j >= 0) line = j;
+    if (!box && li && line != null) {   // inside a list block: the line of this block whose text starts like this item's
+      const bare = t => t.replace(/[*_`~\[\]()]/g, ""), want = bare((li.firstChild && li.firstChild.textContent || "").trim()).slice(0, 12);
+      const ls = P[k].doc.text.split("\n"), span = (P[k].spans || []).find(sp => sp.start + P[k].doc.fmLines === line);
+      const last = span ? span.end + P[k].doc.fmLines : line;
+      const j = want ? ls.findIndex((l, n) => n >= line && n <= last && bare(l).includes(want)) : -1; if (j >= 0) line = j;
     }
     window.getSelection().removeAllRanges(); open(k, line);
   });

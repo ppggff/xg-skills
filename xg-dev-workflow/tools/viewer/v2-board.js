@@ -217,7 +217,7 @@
       + (c.block && c.block !== "—" ? row(`<div class="bv blk"><span><b>block</b>${esc(c.block)}</span></div>`) : "")
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
-      + (V.todosOfCard && V.todosOfCard(c).length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${V.todosOfCard(c).length}</em></div>${V.todosOfCard(c).map(V.todoRowHTML).join("")}</div>`) : "")
+      + ((ts => (ts.length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${ts.length}</em></div>${ts.map(V.todoRowHTML).join("")}</div>`) : ""))(V.todosOfCard ? V.todosOfCard(c) : []))
       + row(`<div>${reqsHTML(c)}</div>`) + "</div>";
   }
   const onShow = () => !$("#board").hidden;

@@ -25,7 +25,9 @@
       if (!res.ok) V.toast(res.d && res.d.error === "exists" ? "已经有同名的文件" : res.status === 409 ? "这个 todo 文件在别处改过了，已重新读取，请再改一次" : "保存失败（" + res.status + "）");
       return V.load().then(() => V.emit("data")).then(() => res);   // the tree, the reader and this view all re-read
     }).catch(() => { V.toast("保存失败：连不上 viewer"); return { ok: false }; });
-  const save = (name, text) => V.todoWrite("write", name, { text, mtime: F[name] ? F[name].base : 0 });
+  // the version edits are addressed by: this view's snapshot once it has painted, else (rows shown elsewhere) the disk text
+  const seen = n => (F[n].shown != null ? F[n].shown : F[n].text);
+  const save = (name, text) => V.todoWrite("write", name, { text, mtime: F[name] ? (F[name].shown != null ? F[name].base : F[name].mtime) : 0 });
   const refresh = () => load().then(paint).catch(e => { const b = $("#todo .tmain"); if (b) b.innerHTML = `<div class="derr"><b>读不到 todo 目录</b><br>${esc(e.message)}</div>`; });
 
   // an item's text: wikilinks and links open their doc, @tags and #tags are chips — tags only in the plain text between
@@ -47,10 +49,12 @@
     return h + plain(text.slice(last));
   };
 
-  function itemsAll() {
+  // items across the files; only this view's own paint takes the snapshot (shown/base) that edits are addressed by —
+  // other readers (quick open, the board) parse the disk text and leave the snapshot alone
+  function itemsAll(snap) {
     return Object.keys(F).sort().flatMap(n => {
-      F[n].shown = F[n].text; F[n].base = F[n].mtime;
-      const its = SV.parseTodo(F[n].shown);
+      if (snap) { F[n].shown = F[n].text; F[n].base = F[n].mtime; }
+      const its = SV.parseTodo(snap ? F[n].shown : F[n].text);
       return its.map((it, i) => Object.assign({ file: n, meta: SV.todoMeta(it.text), prog: SV.todoProgress(its, i) }, it));
     });
   }
@@ -58,11 +62,11 @@
   const today = () => SV.todoStamp(new Date()).slice(0, 10);
   const PRIO = ["", "⏫", "🔼", "🔽"];
   V.todoMetaHTML = (m, done) => {
-    const t = today(), when = m.created && new Date(m.created.replace(" ", "T"));
+    const t = today(), when = m.created && SV.todoDate(m.created);
     return (m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级">${PRIO[m.prio]}</span>` : "")
       + (m.due ? `<span class="tdue${!done && m.due < t ? " late" : !done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">📅 ${m.due.slice(5)}</span>` : "")
       + (m.done ? `<span class="tmeta" data-tip="完成 ${m.done}">✅ ${m.done.slice(5)}</span>` : "")
-      + (when && !isNaN(when) ? `<span class="tmeta" data-tip="创建 ${m.created}">${V.relT(when.getTime())}</span>` : "");
+      + (when ? `<span class="tmeta" data-tip="创建 ${m.created}">${V.relT(when.getTime())}</span>` : "");
   };
   function rowHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = SV.todoMeta(it.text);
@@ -80,11 +84,11 @@
   const RANGES = [["week", "本周"], ["lastweek", "上周"], ["month", "本月"], ["lastmonth", "上月"], ["custom", "自定"]];
   const ymd = d => SV.todoStamp(d).slice(0, 10);
   function range(kind) {   // [from, to], inclusive YYYY-MM-DD
-    const d = new Date(), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
-    if (kind === "week" || kind === "lastweek") { const a = new Date(mon.getTime() - (kind === "lastweek" ? 7 : 0) * 864e5); return [ymd(a), ymd(new Date(a.getTime() + 6 * 864e5))]; }
+    const d = new Date(), y = d.getFullYear(), m = d.getMonth(), mon = d.getDate() - (d.getDay() + 6) % 7;   // calendar days, not 24h steps
+    if (kind === "week" || kind === "lastweek") { const a = mon - (kind === "lastweek" ? 7 : 0); return [ymd(new Date(y, m, a)), ymd(new Date(y, m, a + 6))]; }
     if (kind === "month") return [ymd(new Date(d.getFullYear(), d.getMonth(), 1)), ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
     if (kind === "lastmonth") return [ymd(new Date(d.getFullYear(), d.getMonth() - 1, 1)), ymd(new Date(d.getFullYear(), d.getMonth(), 0))];
-    return [store.get("todo-from", ymd(mon)), store.get("todo-to", ymd(d))];
+    return [store.get("todo-from", ymd(new Date(y, m, mon))), store.get("todo-to", ymd(d))];
   }
   const within = (x, r) => x && x.slice(0, 10) >= r[0] && x.slice(0, 10) <= r[1];
   function whenOk(it, w) {
@@ -95,7 +99,7 @@
     return !m.due;
   }
   function sorted(list, by) {
-    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -(new Date((i.meta.created || "1970-01-01").replace(" ", "T")).getTime() || 0) }[by];
+    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()) }[by];
     return key ? list.slice().sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0)) : list;
   }
   function reviewHTML(items) {
@@ -111,7 +115,7 @@
   }
   function paint() {
     const el = $("#todo"), main = el && $(".tmain", el), side = el && $(".tfiles", el); if (!main) return;
-    const all = itemsAll(), tags = [...new Set(all.flatMap(i => i.tags))].sort(), files = Object.keys(F).sort();
+    const all = itemsAll(true), tags = [...new Set(all.flatMap(i => i.tags))].sort(), files = Object.keys(F).sort();
     if (tag && !tags.includes(tag)) tag = "";
     const mode = store.get("todo-mode", "list"), w = store.get("todo-when", ""), by = store.get("todo-sort", "file");
     const items = all.filter(i => !tag || i.tags.includes(tag));
@@ -145,9 +149,9 @@
   // 045: [[project/NNN]] names a card; the reader, the todo view and the board's detail all read it this way
   V.cardOf = x => { const m = /^([\w.-]+\/\d{3})$/.exec(String(x).split("|")[0].trim()); return m ? V.card(m[1]) : null; };
   V.cardWiki = raw => { const m = /^\[\[(.+?)\]\]$/.exec(String(raw).trim()), c = m && V.cardOf(m[1]), d = c && V.mainDoc(c); return d ? "dev:" + d : null; };
-  V.todoItems = () => itemsAll();
+  V.todoItems = () => itemsAll(false);
   V.todoRowHTML = it => rowHTML(it);
-  V.todosOfCard = c => itemsAll().filter(t => !t.done && (t.text.includes("[[" + c.id + "]]") || t.text.includes("[[" + c.dir + "/") || t.text.includes("[[" + c.id + "|")));
+  V.todosOfCard = c => itemsAll(false).filter(t => !t.done && (t.text.includes("[[" + c.id + "]]") || t.text.includes("[[" + c.dir + "/") || t.text.includes("[[" + c.id + "|")));
   /* ---- capture: t anywhere, or 记为 todo on a selection — a line into inbox.md with the context filled in ---- */
   const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
   V.todoAppend = (name, body) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.text().then(t => [t, +r.headers.get("X-Mtime") || 0]))
@@ -176,11 +180,15 @@
     if (!text) return $(".capin", box).focus();
     if (proj) store.set("todo-proj", proj);
     const body = text + (proj && !text.includes("@" + proj) ? " @" + proj : "") + (link ? " [[" + link + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
-    capClose();
-    V.todoAppend("inbox.md", body).then(res => { if (res.ok) V.toast("记下了：todo/inbox.md"); });
+    if (box.dataset.busy) return;
+    box.dataset.busy = "1";   // the box stays open, text and all, until the line is really written
+    V.todoAppend("inbox.md", body).then(res => {
+      delete box.dataset.busy;
+      if (res.ok) { capClose(); V.toast("记下了：todo/inbox.md"); }
+    }, () => { delete box.dataset.busy; V.toast("没记下：读不到 inbox.md"); });
   });
   V.todoOpen = () => Object.values(F).reduce((n, f) => n + SV.parseTodo(f.text).filter(i => !i.done).length, 0);
-  const find = id => { const i = id.lastIndexOf("|"), file = id.slice(0, i), line = +id.slice(i + 1); return F[file] && SV.parseTodo(F[file].shown).find(x => x.line === line) && { file, line }; };
+  const find = id => { const i = id.lastIndexOf("|"), file = id.slice(0, i), line = +id.slice(i + 1); return F[file] && SV.parseTodo(seen(file)).find(x => x.line === line) && { file, line }; };
 
   V.views.todo = (k, loc, opt) => {
     const el = $("#todo");
@@ -205,10 +213,10 @@
     if (!text) return $(".tin", add).focus();
     store.set("todo-proj", proj); store.set("todo-into", into);
     const body = text + (proj && !new RegExp("[@#]" + proj.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(text) ? " @" + proj : "") + (doc ? " [[" + doc + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
-    save(into, SV.addTodo(F[into] ? F[into].shown : "", body));
+    save(into, SV.addTodo(F[into] ? seen(into) : "", body));
   });
-  V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(F[at.file].shown).find(x => x.line === at.line); save(at.file, SV.editTodo(F[at.file].shown, at.line, { done: !it.done, today: today() })); });
-  V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(F[at.file].shown, at.line, { remove: true })); });
+  V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })); });
+  V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(seen(at.file), at.line, { remove: true })); });
   V.click("[data-ttag]", el => { tag = el.dataset.ttag; store.set("todo-tag", tag); paint(); });
   V.click("[data-tdone]", () => { showDone = !showDone; paint(); });
   V.click("[data-tmode]", el => { store.set("todo-mode", el.dataset.tmode); paint(); });
@@ -229,11 +237,15 @@
   document.addEventListener("keydown", e => {
     const inp = e.target.closest && e.target.closest("#todo .tedit"); if (!inp) return;
     if (e.key === "Escape") { e.stopPropagation(); editing = null; paint(); }
-    else if (e.key === "Enter") { e.preventDefault(); const v = inp.value.trim(), at = find(inp.dataset.id); editing = null; if (v && at) save(at.file, SV.editTodo(F[at.file].shown, at.line, { text: v })); else paint(); }
+    else if (e.key === "Enter") { e.preventDefault(); const v = inp.value.trim(), at = find(inp.dataset.id); editing = null; if (v && at) save(at.file, SV.editTodo(seen(at.file), at.line, { text: v })); else paint(); }
   }, true);
   document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#todo .tedit") && editing !== null) { editing = null; paint(); } });
   V.on("data", () => {
     const busy = editing !== null || $("#todo .tin:focus, #todo .tdoc:focus, #todo .tnew input:focus");
-    if (!$("#todo").hidden && !busy) refresh(); else load().then(() => V.emit("todo-count"));   // busy: data only; the screen keeps its version
+    if (!$("#todo").hidden && !busy) return refresh();
+    load().then(() => {   // busy: data only, the screen keeps its version; hidden: no screen, so no snapshot either
+      if ($("#todo").hidden) Object.values(F).forEach(f => { f.shown = null; });
+      V.emit("todo-count");
+    });
   });
 })(V2);

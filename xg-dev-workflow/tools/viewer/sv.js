@@ -668,8 +668,8 @@ var SV = (function () {
     if (!m) return String(text || "");
     if (change.remove) { ls.splice(line, 1); return ls.join("\n"); }
     var done = change.done !== undefined ? change.done : m[2] !== " ", body = change.text !== undefined ? change.text : m[4];
-    if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away
-      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/g, "");
+    if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away (only the trailing mark)
+      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?\s*$/, "");
       if (done) body = body.replace(/\s+$/, "") + " ✅ " + change.today;
     }
     ls[line] = m[1] + (done ? "x" : " ") + m[3] + body;
@@ -680,9 +680,11 @@ var SV = (function () {
   function todoMeta(text) {
     var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "\\s*(\\d{4}-\\d{2}-\\d{2})(?:\\s+(\\d{2}:\\d{2}))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
     var p = /⏫/.test(t) ? 1 : /🔼/.test(t) ? 2 : /🔽/.test(t) ? 3 : 0;
-    var plain = t.replace(/[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/g, "").replace(/\s{2,}/g, " ").trim();
+    var plain = t.replace(TODO_MARKS, "").replace(/\s{2,}/g, " ").trim();
     return { created: d("➕"), due: d("📅").slice(0, 10), done: d("✅").slice(0, 10), prio: p, text: plain };
   }
+  // 045: a mark's date or date-and-time as a local Date (a bare "YYYY-MM-DD" would otherwise parse as UTC midnight)
+  function todoDate(s) { var d = new Date(String(s || "").length === 10 ? s + "T00:00" : String(s || "").replace(" ", "T")); return isNaN(d) ? null : d; }
   // 045: an item's subtasks are the items right after it that sit deeper: [done, total], or null when it has none
   function todoProgress(items, i) {
     var n = 0, k = 0;
@@ -701,11 +703,13 @@ var SV = (function () {
   }
   // 045: how a list line continues on Enter — the next line's prefix (same indent, quote and bullet; an ordered number
   // +1; a task restarts unticked), and whether this item is empty (only its prefix and date marks), which ends the list
+  // the marks spelled out: 📅 🔼 🔽 are astral, so a [character class] without the u flag would split them
+  var TODO_MARKS = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|⏫|🔼|🔽/g;
   var LIST_RE = /^(\s*(?:>\s?)*)(?:([-*+])|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?(.*)$/;
   function continueLine(line) {
     var m = LIST_RE.exec(line || "");
     if (!m) { var q = /^(\s*(?:>\s?)+)(.*)$/.exec(line || ""); return q ? { next: q[1], empty: !q[2].trim(), todo: false } : null; }
-    var bullet = m[2] || (+m[3] + 1) + m[4], rest = m[7].replace(/[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/g, "").trim();
+    var bullet = m[2] || (+m[3] + 1) + m[4], rest = m[7].replace(TODO_MARKS, "").trim();
     return { next: m[1] + bullet + m[5] + (m[6] ? "[ ] " : ""), empty: !rest, todo: !!m[6] };
   }
   function todoStamp(d) {   // "YYYY-MM-DD HH:MM", local time — the Obsidian Tasks date with the minute
@@ -734,7 +738,8 @@ var SV = (function () {
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny,
-           continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress };
+           continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
+           todoDate: todoDate };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
