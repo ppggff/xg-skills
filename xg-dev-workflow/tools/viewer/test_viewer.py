@@ -290,6 +290,14 @@ class TExtraRoots(unittest.TestCase):
     def test_history_of_a_non_git_root_is_empty(self):
         self.assertEqual(json.loads(get(self.base, "/api/filelog?path=ext/notes/e.md")[1])["commits"], [])
 
+    def test_project_paths_parse_with_and_without_pyyaml(self):   # 043 Q-6: a list at the key's own indent
+        spec = importlib.util.spec_from_file_location("rp_fresh", Path(viewer.__file__).parent / "resolve-project.py")
+        rp = importlib.util.module_from_spec(spec); spec.loader.exec_module(rp)   # viewer._rp is stubbed by another test
+        proj = "projects:\n  a:\n    paths:\n    - /x  # c\n    other:\n    - /nope\n  b:\n    paths:\n      - /y\n"
+        for load in (rp._load, lambda t: None):
+            rp._load = load
+            self.assertEqual([(n, [str(p) for p in ps]) for n, ps in rp.parse_projects(proj)], [("a", ["/x"]), ("b", ["/y"])])
+
     def test_config_list_parses_with_and_without_pyyaml(self):
         text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir  # gone\ngitweb_repos:\n- /x\n" % self.ext   # own-indent list, a comment
         for load in (viewer._gw._rp._load, lambda t: None):
@@ -297,6 +305,7 @@ class TExtraRoots(unittest.TestCase):
             try:
                 self.assertEqual(viewer._gw.parse_path_list(text, "extra_roots"), [str(self.ext), "/no/such/dir"])
                 self.assertEqual(viewer._gw.parse_gitweb_repos(text), ["/x"])
+
             finally:
                 viewer._gw._rp._load = saved
 

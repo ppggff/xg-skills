@@ -4,6 +4,13 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 entry, newest first, whenever the skill's behavior changes — including when an `xg-dev-workflow` M6
 retro lands a fix in this skill. Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — project paths read without PyYAML too (card xg-skills/043)
+
+`tools/resolve-project.py` (synced with xg-dev-workflow): its text fallback, used when PyYAML is not installed,
+skipped a `paths:` list written at the key's own indent (`    - /path`), so every project came back without paths
+and resolving the project from the working directory failed. It now reads that form, drops ` # comments` on items,
+and ends a project's list at its next key; the result matches PyYAML on the shared config.
+
 ## 2026-09-26 — Query names what the KB didn't cover (card xg-skills/036)
 
 Source: the Opus 5.5 usage-guide audit (dev_root `xg-skills/notes/2026-09-25-opus55-guide-audit.md`) — ask for

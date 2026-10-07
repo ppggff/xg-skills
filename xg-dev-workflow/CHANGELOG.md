@@ -17,6 +17,8 @@ Each entry says *what changed* and *why*, not the raw diff.
   - the change history lists uncommitted changes first;
   - a jump within a doc can be undone with back; history entries keep the scroll position;
   - text sizes scale with one factor (`--fz`), the common sizes are tokens, and behaviour numbers sit in one block.
+- `resolve-project.py` (synced with xg-knowledge-lite): without PyYAML, a `paths:` list written at the key's own indent
+  (`    - /path`) was skipped, leaving every project without paths; the text fallback now reads it, as PyYAML does.
 
 ## 2026-10-07 — status viewer: v2 is the main frontend (card xg-skills/042)
 

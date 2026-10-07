@@ -23,6 +23,7 @@ Project resolution:
 dev_root resolution: config `dev_root:` if present, else default ~/dev-workflow (exit 0).
 """
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -97,8 +98,11 @@ def parse_projects(text: str):
                         paths.append(Path(os.path.expanduser(x)).resolve(strict=False))
                 in_paths = False
             continue
-        if in_paths and indent >= 6 and line.lstrip().startswith("-"):
-            item = line.lstrip()[1:].strip().strip("\"'")
+        if indent == 4 and not line.lstrip().startswith("-"):   # another key of this project ends its paths list
+            in_paths = False
+            continue
+        if in_paths and indent >= 4 and line.lstrip().startswith("-"):   # YAML lets the list sit at the key's own indent
+            item = re.split(r"\s#", line.lstrip()[1:], maxsplit=1)[0].strip().strip("\"'")
             if item:
                 paths.append(Path(os.path.expanduser(item)).resolve(strict=False))
     if name is not None:
