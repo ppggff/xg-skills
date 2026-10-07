@@ -15,6 +15,7 @@ Each entry says *what changed* and *why*, not the raw diff.
 - The collapsed nav keeps its dot at the open head's height and starts its buttons below the head line.
 - The board table fits every width: name and next cut with an ellipsis, governance drops below 900px, and a phone
   keeps number, name, state and progress.
+- Narrow reads in one pane: no split or mirror, a view sent to B lands in A, and the A/B switch is gone.
 
 ## 2026-10-07 — status viewer: the classic shell (/) gets its bugs fixed and v2's best parts (card xg-skills/041)
 
