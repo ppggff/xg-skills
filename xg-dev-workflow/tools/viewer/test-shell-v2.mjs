@@ -10,7 +10,7 @@ import vm from "node:vm";
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), "utf8");
 const AREAS = ["core", "tree", "board", "reader", "search", "find"];
-const page = read("shell-v2.html"), css = read("v2.css") + "\n" + read("v2-widths.css");
+const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css");
 const js = Object.fromEntries(AREAS.map((a) => [a, read(`v2-${a}.js`)]));
 const allJs = Object.values(js).join("\n");
 const viewerPy = read("../viewer.py");
@@ -21,7 +21,7 @@ function t(name, fn) { fn(); pass++; console.log("ok  -", name); }
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {
-  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
+  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ["v2-themes.css", read("v2-themes.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
     assert.ok(src.split("\n").length <= 820, `${f} has ${src.split("\n").length} lines`);
 });
 

@@ -26,7 +26,8 @@
       + `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>`
       + V.paneHead(k) + '<div class="ppath"></div>'
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
-      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）") + V.paneEnd(k)
+      + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）")
+      + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + V.paneEnd(k)
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
@@ -151,11 +152,30 @@
       md.insertAdjacentHTML("beforeend", `<span class="lnum" style="top:${top}px">${nums[i]}</span>`);
     });
   }
+  const SHA = /^[0-9a-f]{7,40}$/i;
+  // 043: commits named in a doc (inline code, frontmatter go/skill) and its frontmatter branch open in gitweb
+  function linkGit(k, md, loc) {
+    if (!V.GITWEB) return;
+    const c = V.cardOfPath(loc.tree, loc.rel), fm = P[k].doc.fields, own = x => (fm[x] || "").split("#")[0].trim();
+    const repo = own("repo") || (c && (c.repo || c.p)) || "";
+    const wrap = (el, href, tip) => { const a = document.createElement("a"); a.className = "gitl"; a.href = href; a.target = "_blank"; a.rel = "noopener"; a.dataset.tip = tip; el.replaceWith(a); a.appendChild(el); };
+    if (repo) $$("[data-branch]", md).forEach(el => wrap(el, `${V.GITWEB}?p=${encodeURIComponent(repo)};a=shortlog;h=refs/heads/${encodeURIComponent(el.dataset.branch)}`, `在 gitweb 看分支 ${el.dataset.branch}（${repo}）`));
+    const els = $$(":not(pre) > code", md).filter(el => SHA.test(el.textContent.trim())).concat($$("[data-sha]", md));
+    if (!els.length) return;
+    const sha = el => (el.dataset.sha || el.textContent).trim().toLowerCase(), prefer = [repo, loc.tree === "kb" ? "knowledge" : "dev-workflow"].filter(Boolean);
+    V.json("/api/shas?" + [...new Set(els.map(sha))].map(h => "h=" + h).concat(prefer.map(p => "prefer=" + encodeURIComponent(p))).join("&")).then(map => {
+      if (P[k].loc !== loc) return;
+      els.forEach(el => { const h = sha(el), r = map[h]; if (r && el.isConnected) wrap(el, `${V.GITWEB}?p=${encodeURIComponent(r)};a=commit;h=${h}`, `在 gitweb 看这次提交（${r}）`); });
+    }).catch(() => {});
+  }
   function fmLine(f) {
     const keys = Object.keys(f); if (!keys.length) return "";
-    const g = x => (f[x] || "").split("#")[0].trim(), bits = [g("status"), g("governance"), g("created"), g("go") && "go " + g("go")].filter(Boolean);
-    return `<div class="fml">${bits.map(b => `<span>${esc(b)}</span>`).join("")}<button data-fmx aria-expanded="false">${keys.length} 项</button></div>`
-      + `<div class="fmt" hidden>${keys.map(x => `<b>${esc(x)}</b><span>${esc(f[x])}</span>`).join("")}</div>`;
+    const g = x => (f[x] || "").split("#")[0].trim(), bits = [g("status"), g("governance"), g("created")].map(esc);
+    if (g("branch")) bits.push(`<span data-branch="${esc(g("branch"))}">⎇ ${esc(g("branch"))}</span>`);
+    if (SHA.test(g("go"))) bits.push(`go <span data-sha="${esc(g("go"))}">${esc(g("go"))}</span>`);
+    const val = x => (SHA.test(g(x)) ? `<span data-sha="${esc(g(x))}">${esc(f[x])}</span>` : x === "branch" && g(x) ? `<span data-branch="${esc(g(x))}">${esc(f[x])}</span>` : esc(f[x]));
+    return `<div class="fml">${bits.filter(Boolean).map(b => `<span>${b}</span>`).join("")}<button data-fmx aria-expanded="false">${keys.length} 项</button></div>`
+      + `<div class="fmt" hidden>${keys.map(x => `<b>${esc(x)}</b><span>${val(x)}</span>`).join("")}</div>`;
   }
   function crumb(k, loc) {
     const s = loc.rel.split("/"), pre = loc.tree !== "dev" ? V.ROOT_NAME[loc.tree] + " / " : "", at = P[k].chg ? " @ " + esc(shaLabel(P[k].chg)) : "";
@@ -192,7 +212,7 @@
     const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
     p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}">${inner}</article>`;
     const md = $(".md", p.body);
-    if (!src) { markDoc(k, md, loc); renderMermaid(k, md); }
+    if (!src) { markDoc(k, md, loc); renderMermaid(k, md); linkGit(k, md, loc); }
     applyMeasure(k); crumb(k, loc); lineNumbers(k);
     place(k, loc, opt, keepTop);
     p.chars = (md.textContent || "").replace(/\s/g, "").length;
@@ -552,6 +572,11 @@
   V.click("[data-stale]", el => { const k = V.paneOf(el); $(".stale", P[k].el).classList.remove("on"); V.rerender(k); });
   V.click("[data-chg]", el => { if (!el.closest("#histPop")) V.closePops(); changeView(el.dataset.pane, el.dataset.chg); });
   V.click('.phd [data-t="star"]', el => { const loc = P[V.paneOf(el)].loc; if (loc && loc.kind === "doc") V.toggleStar(keyOf(loc), el); });
+  V.click('.phd [data-t="gitweb"]', el => {
+    const l = P[V.paneOf(el)].loc; if (!l || l.kind !== "doc") return;
+    if (l.tree === "ext") return V.toast("外部目录的文档不在 gitweb 的仓库列表里");
+    window.open(`${V.GITWEB}?p=${l.tree === "kb" ? "knowledge" : "dev-workflow"};a=blob;f=${encodeURIComponent(l.rel)};hb=HEAD`, "_blank", "noopener");
+  });
   V.click('.phd [data-t="hist"]', el => (V.isPop("histPop") ? V.closePops() : histPop(V.paneOf(el), el)));
   V.click('.phd [data-t="split"]', () => V.setSplit(!V.isSplit()));   // B keeps what it last showed, or waits empty
   V.click('.phd [data-t="close"]', () => V.setSplit(false));

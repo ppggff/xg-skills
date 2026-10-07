@@ -185,6 +185,22 @@
     }).join("");
     return `<div class="rhead"><span class="vt">${bars}</span><span class="bfr"><s style="font-size:var(--t-sm);color:var(--mu)">${esc(V.phaseNow(c))}</s></span></div>` + steps;
   }
+  // 043: the card's branch and its commits not yet on the repo's main line, refreshed at most once a minute
+  const branchCache = {};
+  function branchHTML(c) {
+    const repo = c.repo || c.p, key = repo + "|" + c.branch, hit = branchCache[key];
+    if (!hit || Date.now() - hit.at > 60000) {
+      branchCache[key] = { at: Date.now(), d: hit && hit.d };
+      V.json(`/api/branchlog?repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(c.branch)}`)
+        .then(d => { branchCache[key] = { at: Date.now(), d }; if (sel === c.id) paintDetail(); }).catch(() => {});
+    }
+    const d = branchCache[key].d, gw = `${esc(V.GITWEB)}?p=${encodeURIComponent(repo)}`;
+    const state = !d ? "读取中…" : !d.found ? "仓库里没有这个分支" : `${d.commits.length}${d.commits.length === 30 ? "+" : ""} 个提交${d.base ? "不在 " + esc(d.base) + " 上" : ""}`;
+    const list = d && d.found ? d.commits.slice(0, 8).map(x => `<a class="bc" href="${gw};a=commit;h=${esc(x.sha)}" target="_blank" rel="noopener" data-tip="${esc(x.subject)}">`
+      + `<code>${esc(x.sha.slice(0, 7))}</code><span>${esc(x.subject)}</span><em>${esc(x.date)}</em></a>`).join("") : "";
+    return `<div class="bbr"><a href="${gw};a=shortlog;h=refs/heads/${encodeURIComponent(c.branch)}" target="_blank" rel="noopener" data-tip="在 gitweb 看这个分支（${esc(repo)}）">⎇ ${esc(c.branch)}</a>`
+      + `<em>${state}</em>${list}</div>`;
+  }
   function detailHTML() {
     const c = V.card(sel), head = `<button class="ib bx" data-col="det" data-tip="关闭详情，再点一张卡会重新打开" aria-label="关闭详情">${V.I.x}</button>`;
     if (!c) return head + '<div class="hint">单击一张卡看详情，双击直接打开它的 design.md，⇧ 单击在右栏打开。</div>';
@@ -200,6 +216,7 @@
       + (c.now ? row(`<div class="bv"><span><b>now</b>${esc(c.now)}</span></div>`) : "")
       + (c.block && c.block !== "—" ? row(`<div class="bv blk"><span><b>block</b>${esc(c.block)}</span></div>`) : "")
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
+      + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
       + row(`<div>${reqsHTML(c)}</div>`) + "</div>";
   }
   const onShow = () => !$("#board").hidden;

@@ -49,6 +49,11 @@ def dev_root():
     return os.path.expanduser("~/dev-workflow")
 
 
+def fm_value(fields, key):
+    """A frontmatter value without its trailing `# comment` ("" when only a comment is there)."""
+    return fields.get(key, "").split("#")[0].strip()
+
+
 def frontmatter(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -333,7 +338,10 @@ def iter_cards(root, want=None):
                 "effective_next": effective_next(state, g, nxt),
                 "state_noncanonical": state != "?" and state not in CANON_STATES,
                 # 003/R6: optional card→branch, deep-linked to that branch in the gitweb companion
-                "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", ""),
+                "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", "")
+                          or fm_value(frontmatter(os.path.join(c, "design.md")), "branch"),   # 043: a lite card names it in design.md
+                # 043: the gitweb repo label of the card's code when it is not the project's own
+                "repo": fm_value(frontmatter(os.path.join(c, "design.md")), "repo"),
                 # 010: active ledger rows for the drawer ([] = no ledger); rides /api/board as-is
                 "decisions": card_decisions(c),
                 # 017 D1: governance mode (two-level cascade); board tile + drawer render it

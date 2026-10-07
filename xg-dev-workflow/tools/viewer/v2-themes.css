@@ -1,0 +1,55 @@
+/* status viewer v2 — design tokens and themes: the font face, sizes, colours per theme. Loaded first by the
+   main page, and injected into the gitweb pages served under /gitweb/ so both follow the chosen theme. */
+
+@font-face { font-family: "Martian Mono"; src: url(/assets/martian-mono.woff2) format("woff2"); font-weight: 100 800; font-style: normal; font-display: swap; }
+
+/* ---- tokens ---- */
+:root {
+  color-scheme: light;
+  --chrome: #DFE0DA; --paper: #E9E9E4; --card: #E1E2DC; --card2: #D6D7D0; --ink: #16181C; --tx: #33373E; --mu: #6A6E75; --faint: #9B9EA3; --ln: #CFD0C9; --ln2: #BDBEB7;
+  --sig: #2A3CC8; --sigs: rgba(42,60,200,.09); --hit: rgba(214,158,52,.38); --hitc: #D69E34;
+  --active: #3355B5; --done: #2A7A52; --blocked: #B0402F; --paused: #976819; --todo: #1B7280; --dropped: #7C828A;
+  --shadow: 0 18px 50px -18px rgba(20,24,30,.3), 0 2px 6px rgba(20,24,30,.07);
+  --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --code: "Sarasa Fixed SC", "Sarasa Mono SC", var(--mono);   /* code text prefers a CJK fixed-width face, like the classic shell */
+  --cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --fz: 1;   /* one factor scales every text size; the tokens below are the common steps */
+  --t-xs: calc(10px * var(--fz)); --t-sm: calc(11px * var(--fz)); --t-md: calc(12px * var(--fz)); --t-lg: calc(13px * var(--fz));
+  --t-meta: calc(10.5px * var(--fz));
+  --hh: 34px; --rail: 34px;   /* pane/column head height; a collapsed column's width */
+  --hover: color-mix(in srgb, var(--ink) 6%, transparent);
+  --tray: color-mix(in srgb, var(--card) 30%, var(--paper)); --tile: var(--paper);
+  --r-sm: 4px; --r-md: 5px; --r-lg: 8px; --r-tray: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) {
+  color-scheme: dark;
+  --chrome: #08090C; --paper: #0D1015; --card: #13171D; --card2: #1A1F27; --ink: #DCE1E7; --tx: #A9B1BC; --mu: #6B7482; --faint: #474F5B; --ln: #1A2029; --ln2: #252D38;
+  --sig: #7F8EF0; --sigs: rgba(127,142,240,.12); --hit: rgba(214,158,52,.3); --hitc: #D6A04A;
+  --active: #6190E0; --done: #4FAF80; --blocked: #D8685A; --paused: #C08E43; --todo: #48A8B4; --dropped: #646D79;
+  --shadow: 0 18px 50px -18px rgba(0,0,0,.75), 0 2px 6px rgba(0,0,0,.35);
+  --tile: var(--card);
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --chrome: #08090C; --paper: #0D1015; --card: #13171D; --card2: #1A1F27; --ink: #DCE1E7; --tx: #A9B1BC; --mu: #6B7482; --faint: #474F5B; --ln: #1A2029; --ln2: #252D38;
+  --sig: #7F8EF0; --sigs: rgba(127,142,240,.12); --hit: rgba(214,158,52,.3); --hitc: #D6A04A;
+  --active: #6190E0; --done: #4FAF80; --blocked: #D8685A; --paused: #C08E43; --todo: #48A8B4; --dropped: #646D79;
+  --shadow: 0 18px 50px -18px rgba(0,0,0,.75), 0 2px 6px rgba(0,0,0,.35);
+  --tile: var(--card);
+}
+:root[data-theme="amber"] {
+  color-scheme: light;
+  --chrome: #EDEDEA; --paper: #F7F7F4; --card: #E2E2DC; --card2: #D8D8D1; --ink: #17191C; --tx: #3D424A; --mu: #666C75; --faint: #9A9EA5; --ln: #D6D6CF; --ln2: #C0C0B8;
+  --sig: #B9761A; --sigs: #F3E6CF; --hit: #F0DCA8; --hitc: #B9761A;
+  --active: #2563EB; --done: #1F8F4E; --blocked: #C9432F; --paused: #A86B16; --todo: #0E8296; --dropped: #9AA0AA;
+  --shadow: 0 12px 30px -14px rgba(20,24,30,.28), 0 1px 3px rgba(20,24,30,.08);
+}
+:root[data-theme="amber-dark"] {
+  color-scheme: dark;
+  --chrome: #15181D; --paper: #0A0B0D; --card: #1E222A; --card2: #262B34; --ink: #E4E8EE; --tx: #B4BBC4; --mu: #818995; --faint: #4F5763; --ln: #2F353F; --ln2: #434C58;
+  --sig: #E5A54F; --sigs: #31260F; --hit: #4A3D1A; --hitc: #E5A54F;
+  --active: #6EA8FE; --done: #66D98A; --blocked: #F2837A; --paused: #E5A54F; --todo: #4FD0DE; --dropped: #6B7280;
+  --shadow: 0 12px 30px -14px rgba(0,0,0,.8), 0 1px 3px rgba(0,0,0,.4);
+  --tile: var(--card);
+}

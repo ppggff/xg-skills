@@ -16,7 +16,8 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 ```
 - Lay-1 (S: v, u) — the project root holds only the files above; every board row has a card dir and every card dir a row.
 - Lay-2 (S: p, ai, aj) — `design.md` frontmatter: `governance: lite` · `status` ∈ draft · executing · closing · done (no inline
-  comment on the value) · `skill: <skill-repo HEAD the card was drafted against>` (a hint when it trails the current HEAD);
+  comment on the value) · `skill: <skill-repo HEAD the card was drafted against>` (a hint when it trails the current HEAD) ·
+  optional `branch:` / `repo:` (the code branch and its gitweb repo label, read by the board and the viewer);
   when `requirement.md` also carries `governance`, the two agree (requirement.md wins).
 - Lay-3 (S: aj) — other card files exist only once their content appears, never as empty containers; `notes/human-messages.md`
   holds the human's messages verbatim, one `- YYYY-MM-DD <原话>` line each, appended as they arrive — its last date is never older

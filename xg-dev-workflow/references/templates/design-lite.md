@@ -7,6 +7,8 @@ status: draft      # draft | executing | closing | done — checks read `status`
 created: YYYY-MM-DD
 go:                # at go: the dev_root commit (tag optional) of the authorization baseline
 skill:             # the skill repo HEAD the card was drafted against; re-read the rules when it moves
+branch:            # optional: the code branch this card's commits land on (the viewer lists its commits, links gitweb)
+repo:              # optional: that branch's gitweb repo label, when it is not the project's own
 ---
 <!-- templates/design-lite.md — the design.md skeleton for a lite card (steps/lite.md「Card files」).
 `new` copies it verbatim and fills id / title / project / created. Text after a heading is guidance; keep or delete.

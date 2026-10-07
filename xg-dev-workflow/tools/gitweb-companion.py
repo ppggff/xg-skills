@@ -100,13 +100,13 @@ def parse_path_list(text, key):
         line = raw.rstrip()
         if not line.strip() or line.lstrip().startswith("#"):
             continue
-        if len(line) - len(line.lstrip()) == 0:
-            inside = line.strip().startswith(key + ":")
-            continue
-        if inside and line.lstrip().startswith("-"):
+        if inside and line.lstrip().startswith("-"):   # YAML lets a list sit at the key's own indent
             item = line.lstrip()[1:].strip().strip("\"'")
             if item:
                 out.append(os.path.expanduser(item))
+            continue
+        if len(line) - len(line.lstrip()) == 0:
+            inside = line.strip().startswith(key + ":")
     return out
 
 

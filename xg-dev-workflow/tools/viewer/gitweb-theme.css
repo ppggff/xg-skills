@@ -1,0 +1,45 @@
+/* status viewer — gitweb pages in the viewer's theme. Injected after gitweb's own stylesheet, with
+   v2-themes.css before it; every colour and face comes from those tokens. */
+html, body { background: var(--paper); color: var(--tx); }
+body { margin: 0; border: 0; font: var(--t-md)/1.55 var(--cjk); }
+a, a:visited, a:active { color: var(--sig); }
+a:hover { color: var(--ink); }
+div.page_header { background: var(--chrome); color: var(--ink); border-bottom: 1px solid var(--ln); font-family: var(--mono); }
+div.page_header a, div.page_header a:visited, a.header { color: var(--ink); }
+div.page_header a:hover { color: var(--sig); }
+div.page_nav, div.page_path { background: var(--paper); color: var(--mu); border-color: var(--ln); }
+div.page_nav a:visited { color: var(--sig); }
+div.page_footer { background: var(--chrome); color: var(--mu); border-top: 1px solid var(--ln); }
+div.page_body { background: var(--paper); }
+div.title, a.title { background: var(--card); color: var(--ink); border-color: var(--ln); font-family: var(--mono); }
+a.title:hover { background: var(--card2); color: var(--ink); }
+div.log_body, div.title_text, div.readme { background: var(--paper); color: var(--tx); border-color: var(--ln); }
+a.list, a.list:visited { color: var(--tx); }
+a.list:hover { color: var(--sig); }
+table, th, td { border-color: var(--ln); }
+th { background: var(--card); color: var(--mu); }
+tr.light, tr.dark { background: var(--paper); }
+tr.dark { background: color-mix(in srgb, var(--card) 45%, var(--paper)); }
+tr.light:hover, tr.dark:hover { background: var(--hover); }
+td.sha1, td.mode, td.size, span.age, td.age0, td.age1, td.age2, td.noage, i { color: var(--mu); }
+table.project_list td.age0 { color: var(--done); }
+table.project_list td.age1 { color: var(--tx); }
+td.pre, div.pre, div.diff, td.sha1, a.linenr, table.blame { font-family: var(--code); }
+a.linenr, a.linenr:visited { color: var(--faint); }
+div.diff.from_file, div.diff.to_file, div.diff.extended_header { color: var(--mu); }
+div.diff.extended_header { background: var(--card); }
+div.diff.add { color: var(--done); }
+div.diff.rem { color: var(--blocked); }
+div.diff.add span.marked { background: color-mix(in srgb, var(--done) 22%, transparent); }
+div.diff.rem span.marked { background: color-mix(in srgb, var(--blocked) 22%, transparent); }
+div.diff.chunk_header, div.diff.chunk_header span.chunk_info, div.diff.chunk_header span.section { color: var(--sig); border-color: var(--ln); background: var(--card); }
+div.chunk_block.rem div.old div.diff.rem { background: color-mix(in srgb, var(--blocked) 10%, transparent); }
+div.chunk_block.add div.new div.diff.add { background: color-mix(in srgb, var(--done) 10%, transparent); }
+table.diff_tree span.file_status.new { color: var(--done); }
+table.diff_tree span.file_status.deleted { color: var(--blocked); }
+span.refs span { background: var(--card2); border-color: var(--ln2); color: var(--tx); }
+span.refs span.head { background: var(--sigs); border-color: var(--sig); color: var(--sig); }
+span.refs span.tag { background: color-mix(in srgb, var(--paused) 18%, transparent); border-color: var(--paused); color: var(--paused); }
+span.signoff { color: var(--mu); }
+span.match { color: var(--ink); background: var(--hit); }
+input, select, textarea { background: var(--paper); color: var(--tx); border: 1px solid var(--ln2); }

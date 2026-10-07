@@ -295,6 +295,15 @@ class BoardFields(unittest.TestCase):
                                                 "done": True, "notes": "ok",
                                                 "part": ""})
 
+    def test_lite_branch_and_repo_from_design_md(self):   # 043: comments stripped, empty stays empty
+        root = tempfile.mkdtemp()
+        for d, fm in (("003-a", "branch: feat/a   # the code branch\nrepo: other\n"), ("004-b", "branch:     # optional\n")):
+            os.makedirs(os.path.join(root, "proj", d))
+            open(os.path.join(root, "proj", d, "design.md"), "w").write("---\ngovernance: lite\n" + fm + "---\n# x\n")
+        open(os.path.join(root, "proj", "index.md"), "w").write("| 003 | lite | active | — |\n| 004 | lite | active | — |\n")
+        got = {c["nnn"]: (c["branch"], c["repo"]) for c in ws.iter_cards(root, ["proj"])}
+        self.assertEqual(got, {"003": ("feat/a", "other"), "004": ("", "")})
+
     def test_no_progress_md_degrades_to_empty_list(self):
         root = tempfile.mkdtemp()
         os.makedirs(os.path.join(root, "proj", "002-y"))

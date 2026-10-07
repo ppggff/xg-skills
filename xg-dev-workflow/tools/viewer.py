@@ -49,7 +49,8 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
           "sv.js": "text/javascript",
           "martian-mono.woff2": "font/woff2",
-          "v2.css": "text/css", "v2-widths.css": "text/css",
+          "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css",
+          "gitweb-theme.css": "text/css", "gitweb-theme.js": "text/javascript",
           **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find")}}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
@@ -58,6 +59,8 @@ GITWEB_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsaf
               "connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'")
 DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
+GITWEB_THEME = (b'<link rel="stylesheet" href="/assets/v2-themes.css"><link rel="stylesheet" href="/assets/gitweb-theme.css">'
+                b'<script src="/assets/gitweb-theme.js"></script>')
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
@@ -125,6 +128,8 @@ def safe_join(root: Path, relpath: str):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     ext_roots = {}                                   # label -> Path, from config `extra_roots:`; read-only like dev and kb
+    repos = {}                                       # gitweb label -> git dir, the companion's repos (empty without gitweb)
+    sha_home = {}                                    # sha -> repo label, filled by /api/shas (misses are not kept: the commit may come later)
     dev_root: Path = None
     kb_root: Path = None
     gitweb_port: int = 0              # 003: companion port; its URL is built per request from the Host used (0 = disabled)
@@ -190,6 +195,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_filelog(qs.get("path", [""])[0])
         elif path == "/api/filediff":
             self._serve_filediff(qs.get("path", [""])[0], qs.get("sha", [""])[0])
+        elif path == "/api/branchlog":
+            self._serve_branchlog(qs.get("repo", [""])[0], qs.get("branch", [""])[0])
+        elif path == "/api/shas":
+            self._serve_shas(qs.get("h", []), qs.get("prefer", []))
         else:
             self._send(404, "not found\n")
 
@@ -229,7 +238,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if u.netloc in ("", "127.0.0.1:%d" % self.gitweb_port):
                 loc = "/gitweb" + (u.path or "/") + ("?" + u.query if u.query else "")
             extra["Location"] = loc
-        self._send(r.status, body, r.getheader("Content-Type", "application/octet-stream"), extra)
+        ctype = r.getheader("Content-Type", "application/octet-stream")
+        if ctype.startswith("text/html") and b"</head>" in body:   # gitweb pages take the viewer's theme (043)
+            body = re.sub(rb"<!DOCTYPE html \[.*?\]>", b"<!DOCTYPE html>", body, count=1, flags=re.S)   # an XML subset prints "]>" in HTML
+            body = body.replace(b"</head>", GITWEB_THEME + b"</head>", 1)
+        self._send(r.status, body, ctype, extra)
 
     def _serve_asset(self, name):
         # static files from the hardcoded VIEWER_DIR by an exact-name allowlist — never a user path.
@@ -411,6 +424,54 @@ class Handler(http.server.BaseHTTPRequestHandler):
         patch = _git(root, "-c", "core.quotepath=false", "show", "--format=", "-p", "--no-color", sha, "--", rel)
         adds, dels = _parse_file_patch(patch)
         self._json({"after": after, "adds": adds, "dels": dels})
+
+
+    def _serve_branchlog(self, repo, branch):
+        # 043: a card's branch → its commits not on the repo's main line (newest first, at most 30).
+        gd = self.repos.get(repo)
+        if not gd or not re.fullmatch(r"[\w][\w./-]*", branch or "") or ".." in branch:
+            self._json({"commits": [], "base": "", "found": False})
+            return
+        head = "refs/heads/" + branch
+        if not _gitd(gd, "rev-parse", "--verify", "-q", head).strip():
+            self._json({"commits": [], "base": "", "found": False})
+            return
+        base = next((b for b in ("refs/remotes/origin/HEAD", "refs/heads/main", "refs/heads/master")
+                     if b != head and _gitd(gd, "rev-parse", "--verify", "-q", b).strip()), "")
+        out = _gitd(gd, "log", "--format=%H%x1f%s%x1f%cs", "-n", "30", base + ".." + head if base else head)
+        commits = [dict(zip(("sha", "subject", "date"), l.split("\x1f"))) for l in out.splitlines() if l.count("\x1f") == 2]
+        self._json({"commits": commits, "base": base.rsplit("/", 1)[-1], "found": True})
+
+    def _serve_shas(self, shas, prefer):
+        # 043: which gitweb repo holds each sha (7-40 hex), trying the preferred labels first; unknown → absent.
+        shas = [h.lower() for h in shas if re.fullmatch(r"[0-9a-fA-F]{7,40}", h)][:60]
+        todo = [h for h in dict.fromkeys(shas) if h not in self.sha_home]
+        order = [l for l in prefer if l in self.repos] + [l for l in self.repos if l not in prefer]
+        for label in order:
+            if not todo:
+                break
+            found = _sha_lookup(self.repos[label], todo)
+            for h in found:
+                self.sha_home[h] = label
+            todo = [h for h in todo if h not in found]
+        self._json({h: self.sha_home[h] for h in shas if self.sha_home.get(h)})
+
+def _gitd(git_dir, *args):
+    """git against a bare git dir (the companion's repos are known by git dir, not work tree)."""
+    try:
+        return subprocess.run(["git", "--git-dir", git_dir, *args], capture_output=True, text=True, timeout=15).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def _sha_lookup(git_dir, shas):
+    """The subset of shas that name a commit in this repo (one git process for the lot)."""
+    try:
+        r = subprocess.run(["git", "--git-dir", git_dir, "cat-file", "--batch-check=%(objecttype)"],
+                           input="".join(h + "^{commit}\n" for h in shas), capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    return {h for h, line in zip(shas, r.stdout.splitlines()) if line.strip() == "commit"}
 
 
 def _parse_file_patch(patch):
@@ -647,6 +708,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
                              "pass --no-gitweb to run the viewer alone.\n")
             sys.exit(1)
         Handler.gitweb_port = companion["port"]
+        Handler.repos = dict(_gw.collect_repos())
         print("gitweb companion on 127.0.0.1:%d, served at /gitweb/ (%d repos)" % (companion["port"], len(companion["repos"])), file=sys.stderr)
     else:
         Handler.gitweb_port = 0

@@ -148,6 +148,48 @@ def _git(cwd, *a):
     return subprocess.run(["git", "-C", str(cwd), *a], capture_output=True, text=True, env=env).stdout
 
 
+class TShas(unittest.TestCase):
+    """043 Req-3-a: /api/shas names the gitweb repo holding each commit, preferred repos first."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        dev, kb = self.tmp / "dev", self.tmp / "kb"
+        dev.mkdir(); kb.mkdir()
+        self.shas, repos = {}, {}
+        for name in ("alpha", "beta"):
+            r = self.tmp / name; r.mkdir()
+            _git(r, "init", "-q"); _git(r, "commit", "-q", "--allow-empty", "-m", name)
+            self.shas[name] = _git(r, "rev-parse", "HEAD").strip()
+            repos[name] = str(r / ".git")
+        viewer.Handler.repos, viewer.Handler.sha_home = repos, {}
+        self.httpd, self.base = start(dev, kb)
+
+    def tearDown(self):
+        viewer.Handler.repos, viewer.Handler.sha_home = {}, {}
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def q(self, *params):
+        return json.loads(get(self.base, "/api/shas?" + urllib.parse.urlencode(params))[1])
+
+    def test_finds_each_sha_in_its_repo(self):
+        a, b = self.shas["alpha"][:10], self.shas["beta"]
+        self.assertEqual(self.q(("h", a), ("h", b), ("h", "deadbeef"), ("h", "nothex!"), ("h", "abc")), {a: "alpha", b: "beta"})
+
+    def test_branchlog_lists_commits_off_the_main_line(self):
+        r = self.tmp / "alpha"
+        _git(r, "checkout", "-q", "-b", "feat/x")
+        for m in ("one", "two"):
+            _git(r, "commit", "-q", "--allow-empty", "-m", m)
+        d = json.loads(get(self.base, "/api/branchlog?repo=alpha&branch=feat/x")[1])
+        self.assertEqual(([c["subject"] for c in d["commits"]], d["found"]), (["two", "one"], True))
+        self.assertIn(d["base"], ("main", "master"))
+        for repo, branch in (("alpha", "nope"), ("nope", "feat/x"), ("alpha", "../x"), ("alpha", "-x")):
+            self.assertFalse(json.loads(get(self.base, "/api/branchlog?" + urllib.parse.urlencode({"repo": repo, "branch": branch}))[1])["found"], (repo, branch))
+
+    def test_a_miss_is_retried_later(self):
+        self.assertEqual(self.q(("h", "0123456789")), {})
+        self.assertNotIn("0123456789", viewer.Handler.sha_home)
+
+
 class TExtraRoots(unittest.TestCase):
     """043 Req-5: config `extra_roots:` → a third, read-only tree confined like dev and kb."""
     def setUp(self):
@@ -179,7 +221,7 @@ class TExtraRoots(unittest.TestCase):
         self.assertEqual(json.loads(get(self.base, "/api/filelog?path=ext/notes/e.md")[1])["commits"], [])
 
     def test_config_list_parses_with_and_without_pyyaml(self):
-        text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir\ngitweb_repos:\n  - /x\n" % self.ext
+        text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir\ngitweb_repos:\n- /x\n" % self.ext   # a list at the key's own indent too
         for load in (viewer._gw._rp._load, lambda t: None):
             saved = viewer._gw._rp._load; viewer._gw._rp._load = load
             try:
@@ -227,7 +269,7 @@ class T345Endpoints(unittest.TestCase):
         d = json.loads(body)
         card = d["foo"][0]
         for k in ("project", "nnn", "dir", "phase", "state", "deps", "steps",
-                  "now", "next_progress", "blockers", "effective_next", "branch"):  # 003/R6
+                  "now", "next_progress", "blockers", "effective_next", "branch", "repo"):  # 003/R6, 043
             self.assertIn(k, card)
         self.assertEqual(card["dir"], "001-x")
 

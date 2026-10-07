@@ -595,7 +595,7 @@ var SV = (function () {
       liteSt: lite ? (s0.split(":")[1] || "").split(" · ")[0].trim() : "",
       ph: steps.map(function (s) { var f = stepFill(s.slice(s.indexOf(":") + 1)); return f === "done" ? 2 : f === "doing" ? 1 : 0; }),
       steps: steps, next: String(c.effective_next || "").replace(/^next:\s*/, ""), now: c.now || "", block: c.blockers || "",
-      deps: c.deps || "", branch: c.branch || "" };
+      deps: c.deps || "", branch: c.branch || "", repo: c.repo || "" };
   }
   // A facts.md's "### Fact-n …" blocks: {"Fact-n": "<the block, heading included>"}; the first one wins.
   function factBlocks(src) {
