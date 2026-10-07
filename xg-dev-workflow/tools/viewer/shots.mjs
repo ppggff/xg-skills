@@ -244,6 +244,7 @@ async function session(o, fn) {
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c[0], y: c[1] }] }, sid);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }, sid);
       },
+      wheel: (x, y, dy) => cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x, y, deltaX: 0, deltaY: dy }, sid),   // a real wheel at a point
       media: (features) => cdp.send("Emulation.setEmulatedMedia", { features }, sid),   // e.g. [{ name: "prefers-color-scheme", value: "dark" }]
       mouseAt: (x, y) => cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y }, sid),   // no scrolling first
       mouseMove: async (sel) => { const c = await centerOf(sel); await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: c[0], y: c[1] }, sid); },
@@ -311,7 +312,7 @@ const SCENARIO = {
     await ctx.click("[data-side]"); await ctx.eval("const s = document.getElementById('search'); s.value = 'viewer'; s.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true");
     await ctx.wait("!!document.querySelector('#left .hit, #left h2.sec')");
     check("searching from inside the overlay closes it too", await ctx.eval("!document.querySelector('#side').classList.contains('open')"));
-    await ctx.click("[data-side]"); await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')");
+    await ctx.click('[data-find="left"]'); await ctx.wait("!!document.querySelector('#left [data-find-input]')"); await ctx.click("[data-side]");   // find first: a tap outside an open drawer only closes it (041 Req-9)
     await ctx.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
     check("Escape closes the overlay before the find bar under it", await ctx.eval("!document.querySelector('#side').classList.contains('open') && !!document.querySelector('#left [data-find-input]')"));
     await ctx.go("doc");
@@ -666,7 +667,8 @@ const SCENARIO = {
     await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
     const shiftClick = (sel) => ctx.eval(`(() => { const e = document.querySelector(${J(sel)}); if (!e) return false; e.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true })); return true; })()`);
     const factCite = "#left .docbody a.xid[href*='Fact-']";
-    await ctx.mouseMove(factCite); await sleep(900);
+    const fAt = await ctx.eval(`(() => { const e = document.querySelector(${J(factCite)}); e.scrollIntoView({ block: 'center' }); const r = e.getClientRects()[0]; return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+    await sleep(300); await ctx.mouseAt(fAt[0], fAt[1]); await sleep(900);   // scroll first: a scroll dismisses the card
     check("hovering a Fact citation shows its fact", await ctx.eval("(() => { const l = document.getElementById('lp'); return !!l && getComputedStyle(l).display !== 'none' && /facts\\.md/.test(l.textContent) && /Fact-\\d+/.test(l.textContent); })()"));
     await ctx.key("Escape");
     if (await ctx.eval("!!document.querySelector('#left .docbody a.xid[href*=\"Req-\"]')")) {
@@ -781,6 +783,22 @@ const SCENARIO = {
     await ctx.eval("location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
     check("theme and brightness survive a reload", await ctx.eval("document.documentElement.getAttribute('data-theme') === 'space' && document.documentElement.style.filter === 'brightness(1.2)'"));
     await ctx.eval("localStorage.removeItem('sv-theme'); localStorage.removeItem('sv-lum'); location.reload(); true"); await sleep(600); await ctx.wait("!!document.querySelector('#tree a.file')");
+    // Req-9 narrow: a bottom chip names the current section and opens the TOC; the doc scrolls under an open drawer
+    await ctx.viewport(390, 844); await sleep(300); await docAt("dev", "xg-skills/040-viewer-refined-frontend/design.md");
+    await ctx.eval("(() => { const h = [...document.querySelectorAll('#left .docbody h2')][3]; document.getElementById('left').scrollTop += h.getBoundingClientRect().top - document.getElementById('left').getBoundingClientRect().top - 20; return true; })()"); await sleep(500);
+    check("narrow: a bottom chip names the section on screen", await ctx.eval("(() => { const c = document.getElementById('secchip'), h = [...document.querySelectorAll('#left .docbody h2')][3]; return !!c && getComputedStyle(c).display !== 'none' && c.textContent.trim() === h.textContent.trim(); })()"));
+    await ctx.click("#secchip"); await sleep(300);
+    check("…and opens the TOC drawer", await ctx.eval("document.getElementById('toc').classList.contains('open') && getComputedStyle(document.getElementById('secchip')).display === 'none'"));
+    const y0 = await ctx.eval("document.getElementById('left').scrollTop");
+    await ctx.wheel(30, 400, 300); await sleep(500);
+    check("narrow: the doc scrolls under the open TOC drawer", await ctx.eval("document.getElementById('left').scrollTop") > y0 + 50);
+    const crumbBefore = await ctx.eval("document.querySelector('#left .crumb .base').textContent");
+    await ctx.eval(`(() => { window.__hit = 0; document.addEventListener('click', () => { window.__hit++; }, { once: true }); const e = document.elementFromPoint(30, 400); e.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 30, clientY: 400 })); return true; })()`); await sleep(400);
+    check("a tap outside the drawer closes it and does not reach the page", await ctx.eval(`!document.getElementById('toc').classList.contains('open') && document.querySelector('#left .crumb .base').textContent === ${J(crumbBefore)} && window.__hit === 0`));
+    await ctx.click("#left [data-side]"); await sleep(300); const y1 = await ctx.eval("document.getElementById('left').scrollTop");
+    await ctx.wheel(370, 400, 300); await sleep(500);
+    check("narrow: the doc scrolls under the open sidebar too", await ctx.eval("document.getElementById('left').scrollTop") > y1 + 50);
+    await ctx.key("Escape"); await ctx.viewport(1440, 900); await sleep(300);
     // close-out review fixes
     await ctx.eval("(() => { const f = document.getElementById('treeFilter'); f.value = 'facts'; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()"); await sleep(400);
     check("filtering opens the card folders that hold a match", await ctx.eval("(() => { const a = [...document.querySelectorAll('#tree details[data-name=\"dev\"] a.file')]; return a.length > 3 && a.every(x => x.checkVisibility()); })()"));

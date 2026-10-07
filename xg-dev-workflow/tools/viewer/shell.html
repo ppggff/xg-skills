@@ -150,7 +150,7 @@
   html.narrow .card a.title, html.narrow .card .steps a { padding: 6px 2px; display: inline-block; }
   html.narrow #toc a { display: flex; align-items: center; min-height: 30px; padding-top: 2px; padding-bottom: 2px; font-size: 13px; }   /* rows as tall as the tree's */
   html.narrow .crumb, html.narrow .hint { font-size: 12px; }
-  #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); }
+  #scrim { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .35); pointer-events: none; }   /* 041: a dim only — the doc still scrolls under an open drawer; a tap outside closes it (capture listener) */
   html.narrow #scrim.show { display: block; }
   html.narrow [data-mirror], html.narrow [data-swap], html.narrow [data-resetlayout] { display: none; }
   [data-side] { display: none; } html.narrow [data-side] { display: inline-flex; }
@@ -161,6 +161,11 @@
     background: var(--bg); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
   html.narrow:has(#left .findbar) #totop.show { bottom: 72px; }   /* clear of the find bar */
   html.narrow:has(#left .card-detail) #totop { display: none; }   /* the board drawer owns the bottom */
+  #secchip { display: none; }
+  html.narrow #secchip.show { display: block; position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 25; max-width: 62vw;
+    padding: 6px 14px; border: 1px solid var(--line2); border-radius: 999px; background: var(--bg); color: var(--fg); box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    font: 12px var(--chrome); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  html.narrow:has(#left .findbar) #secchip.show { bottom: 72px; }   /* clear of the find bar */
   html.narrow #side:not(.top-open) .side-top { display: none; }   /* scope + search fold away; ⌘K covers search */
   .side-top { display: contents; }   /* layout-neutral on the desktop: its children stay #side's flex items */
   html.narrow .side-top { display: flex; flex-direction: column; gap: 6px; }
@@ -709,7 +714,7 @@
 </head>
 <body>
 <button id="reopen" class="iconbtn" title="show sidebar">☰</button>
-<button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button>
+<button id="totop" class="iconbtn" title="回到开头" aria-label="back to top">↑</button><button id="secchip" title="当前章节 · 点击打开目录"></button>
 <div id="layout">
   <aside id="side" class="pane">
     <div class="brand"><span><span class="dot">▪</span> status viewer</span><span class="brand-btns"><button class="iconbtn" data-sidetop="1" title="project scope & search"><span class="scope">all</span> ▾</button><button class="iconbtn" data-treefilter="1" title="filter files">⌕</button><button class="iconbtn" data-svpop="stars" title="收藏" aria-label="收藏">★</button><button class="iconbtn" data-svpop="trail" title="足迹：最近打开过的文档" aria-label="足迹">◷</button><button class="iconbtn" id="themeToggle" title="主题与亮度" aria-label="主题与亮度">◐</button><button class="iconbtn" data-collapse="side" title="collapse" aria-label="collapse sidebar">⟨</button></span></div>
@@ -916,7 +921,15 @@ if (typeof window !== "undefined" && window.marked) (function () {
     document.getElementById("side").classList.toggle("open", narrow && sideOpen);
     tocPane.classList.toggle("open", narrow && tocOpen);
     document.getElementById("scrim").classList.toggle("show", narrow && (sideOpen || tocOpen));
+    spyToc();
   }
+  // the scrim lets scrolling through, so a tap outside an open drawer is caught here: it closes the
+  // drawer and goes no further (it must not follow a link the drawer was covering)
+  document.addEventListener("click", function (e) {
+    if (!narrow || !(sideOpen || tocOpen)) return;
+    if (e.target.closest("#side, #toc, [data-side], [data-tocbtn], #secchip")) return;
+    e.preventDefault(); e.stopPropagation(); closeOverlays();
+  }, true);
   function closeOverlays() { sideOpen = false; tocOpen = false; setOverlays(); }
   function toggleSide() { sideOpen = !sideOpen; if (sideOpen) tocOpen = false; setOverlays(); }
   function toggleToc() {
@@ -1860,6 +1873,9 @@ if (typeof window !== "undefined" && window.marked) (function () {
     for (var i = 0; i < secs.length; i++) { var el = document.getElementById("sec_" + focus + "_" + i); if (!el) break; if (el.getBoundingClientRect().top <= top) at = i; else break; }
     tocPane.querySelectorAll("a.spy").forEach(function (a) { a.classList.remove("spy"); });
     var ta = at >= 0 && tocPane.querySelector('a[data-toc="' + at + '"]'); if (ta) ta.classList.add("spy");
+    var chip = document.getElementById("secchip"), v = p._view;   // Req-9: narrow names the section on screen at the bottom
+    var on = narrow && !sideOpen && !tocOpen && v && v.kind === "doc" && at >= 0;
+    chip.classList.toggle("show", !!on); if (on) chip.textContent = secs[at].text;
   }
   ["left", "right"].forEach(function (s) {   // the current-line band sits in pane coordinates: a kanban scrolling sideways must carry it
     PANES[s].addEventListener("scroll", function (e) { if (e.target !== PANES[s] && e.target.classList && e.target.classList.contains("kanban")) invalidateGeometry(s); }, true); });
@@ -2633,6 +2649,7 @@ if (typeof window !== "undefined" && window.marked) (function () {
     if ((t = e.target.closest("#toc a[data-toc]"))) { e.preventDefault();
       scrollToSection(focus, +t.dataset.toc); return; }   // R6: TOC follows the line
     if ((t = e.target.closest("[data-side]"))) { e.preventDefault(); if (narrow) toggleSide(); else document.getElementById("reopen").click(); return; }
+    if ((t = e.target.closest("#secchip"))) { e.preventDefault(); toggleToc(); return; }
     if ((t = e.target.closest("#totop"))) { e.preventDefault(); PANES.left.scrollTop = 0; totop.classList.remove("show"); return; }
     if ((t = e.target.closest("[data-sidetop]"))) { e.preventDefault(); document.getElementById("side").classList.toggle("top-open"); return; }
     if ((t = e.target.closest("[data-treefilter]"))) { e.preventDefault();
