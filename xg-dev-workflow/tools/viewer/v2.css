@@ -336,6 +336,16 @@ a.tr { text-decoration: none; }
 #todo .tmain { overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; max-width: 920px; }
 .titem .tfile { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
 .titem .tfile:hover { color: var(--sig); }
+/* extra roots popover (044) */
+#rootPop { width: 360px; }
+#rootPop .rr { display: flex; align-items: baseline; gap: 8px; padding: 3px 4px; font: 400 var(--t-md) var(--cjk); }
+#rootPop .rr span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--mu); font: 400 var(--t-sm) var(--mono); direction: rtl; text-align: left; }
+#rootPop .rr em { font: 400 var(--t-xs) var(--mono); font-style: normal; color: var(--faint); }
+#rootPop .rr button { color: var(--faint); } #rootPop .rr button:hover { color: var(--blocked); }
+#rootPop .radd { display: flex; gap: 6px; margin: 8px 4px 4px; }
+#rootPop .radd input { flex: 1; min-width: 0; height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); padding: 0 6px; font: 400 var(--t-md) var(--mono); }
+#rootPop .radd button { padding: 0 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); }
+#rootPop .rnote { margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
 .pane:not(.tododoc) .phd [data-t="tedit"] { display: none; }
 .md .ttag, .titem .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }

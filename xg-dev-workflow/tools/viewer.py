@@ -101,17 +101,48 @@ def migrate_todo(dev_root: Path):
         print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
 
 
+def ui_roots_path():
+    return _rp.config_path().parent / "viewer-roots.json"   # the viewer's own file; config.yaml is never rewritten
+
+
+def ui_roots():
+    try:
+        roots = json.loads(ui_roots_path().read_text(encoding="utf-8")).get("roots", [])
+        return [r for r in roots if isinstance(r, str)]
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
+def save_ui_roots(roots):
+    f = ui_roots_path()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=f.parent, prefix=".viewer-roots.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as h:
+            json.dump({"roots": roots}, h, ensure_ascii=False, indent=2)
+        os.replace(tmp, f)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def extra_roots():
-    """Config `extra_roots:` → {label: Path}: directories whose docs the viewer also shows, read-only.
-    A label is the directory name, suffixed when two collide; a missing directory is skipped."""
+    """Config `extra_roots:` plus the page-set ones → ({label: Path}, {label: "config" | "page"}): directories whose
+    docs the viewer also shows, read-only. A label is the directory name, suffixed when two collide; a missing
+    directory is skipped, and one listed in both places counts once, as config."""
     cp = _rp.config_path()
     text = cp.read_text(encoding="utf-8") if cp.exists() else ""
-    out, seen = {}, set()
-    for p in _gw.parse_path_list(text, "extra_roots"):
+    out, src, seen, have = {}, {}, set(), set()
+    for p, where in [(p, "config") for p in _gw.parse_path_list(text, "extra_roots")] + [(p, "page") for p in ui_roots()]:
         root = Path(p).resolve(strict=False)
-        if root.is_dir():
-            out[_gw._uniq(root.name, seen)] = root
-    return out
+        if root.is_dir() and root not in have:
+            have.add(root)
+            label = _gw._uniq(root.name, seen)
+            out[label], src[label] = root, where
+    return out, src
 
 
 def safe_join(root: Path, relpath: str):
@@ -140,7 +171,8 @@ def safe_join(root: Path, relpath: str):
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-    ext_roots = {}                                   # label -> Path, from config `extra_roots:`; read-only like dev and kb
+    ext_roots = {}                                   # label -> Path, from config `extra_roots:` and the page; read-only like dev and kb
+    ext_from = {}                                    # label -> "config" | "page"
     repos = {}                                       # gitweb label -> git dir, the companion's repos (empty without gitweb)
     sha_home = {}                                    # sha -> repo label, filled by /api/shas (misses are not kept: the commit may come later)
     dev_root: Path = None
@@ -177,12 +209,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
     todo_lock = threading.Lock()
 
     def do_POST(self):
-        # 043: the only write. The path is fixed (not taken from the request); a cross-site page cannot send
-        # it: JSON plus a custom header needs a CORS preflight the viewer never answers, and Origin must match.
+        # The writes: todo files (043/044) and the page-set extra roots (044). A cross-site page cannot send them:
+        # JSON plus a custom header needs a CORS preflight the viewer never answers, and Origin must match.
         if not self._host_ok():
             self._send(403, "forbidden: non-localhost Host\n")
             return
-        if urllib.parse.urlparse(self.path).path != "/api/todo":
+        route = urllib.parse.urlparse(self.path).path
+        if route not in ("/api/todo", "/api/roots"):
             self._send(404, "not found\n")
             return
         origin = self.headers.get("Origin")
@@ -199,6 +232,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         try:
             body = json.loads(self.rfile.read(n).decode("utf-8"))
+            if route == "/api/roots":
+                op, path = body["op"], body["path"]
+                if op not in ("add", "remove") or not isinstance(path, str):
+                    raise ValueError
+                self._roots_op(op, path)
+                return
             op, name, base = body.get("op", "write"), body["file"], int(body["mtime"])
             text, to = body.get("text"), body.get("to")
         except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError, OverflowError):
@@ -209,6 +248,36 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(400, "bad request\n")
             return
         self._todo_op(op, name, base, text, to)
+
+    def _roots_json(self):
+        return [{"label": l, "path": str(r), "from": self.ext_from.get(l, "config")} for l, r in self.ext_roots.items()]
+
+    def _roots_op(self, op, path):
+        """add / remove a page-set extra root. Only an existing directory under the home directory (not home itself);
+        roots from config.yaml are left to config.yaml. Every change is logged."""
+        with self.todo_lock:
+            mine = ui_roots()
+            real = Path(os.path.expanduser(path.strip())).resolve(strict=False)
+            if op == "add":
+                home = Path.home().resolve()
+                if not real.is_dir() or real == home or home not in real.parents:
+                    self._json({"error": "只能添加家目录之下已存在的目录"}, 400)
+                    return
+                if str(real) not in mine:
+                    mine.append(str(real))
+            else:
+                if str(real) not in mine:
+                    self._json({"error": "这个目录不是在页面里加的（在 config.yaml 里删）"}, 400)
+                    return
+                mine.remove(str(real))
+            try:
+                save_ui_roots(mine)
+            except OSError as e:
+                self._json({"error": str(e)}, 500)
+                return
+            Handler.ext_roots, Handler.ext_from = extra_roots()
+            sys.stderr.write("viewer roots - %s %s %s (from %s)\n" % (self.client_address[0], op, real, self.headers.get("Host", "")))
+            self._json({"roots": self._roots_json()})
 
     def _todo_op(self, op, name, base, text, to):
         """write / rename / delete one todo file, only when it is still the version the page read (mtime ms, 0 = absent)."""
@@ -290,6 +359,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_filediff(qs.get("path", [""])[0], qs.get("sha", [""])[0])
         elif path == "/api/branchlog":
             self._serve_branchlog(qs.get("repo", [""])[0], qs.get("branch", [""])[0])
+        elif path == "/api/roots":
+            self._json({"roots": self._roots_json()})
         elif path == "/api/shas":
             self._serve_shas(qs.get("h", []), qs.get("prefer", []))
         else:
@@ -787,7 +858,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           lan=False, hosts=()):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
-    Handler.ext_roots = extra_roots()
+    Handler.ext_roots, Handler.ext_from = extra_roots()
     migrate_todo(dev_root)
     bind = "0.0.0.0" if lan else "127.0.0.1"
     ip = lan_ip() if lan else None

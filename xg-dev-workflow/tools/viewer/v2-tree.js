@@ -134,10 +134,9 @@
     if (isOpen("kb")) {
       h += nodeRows("kb", SV.buildTree(D.tree.kb), "", 0, SV.sortCmp(sorts.kb.key, sorts.kb.dir), cur, false);
     }
-    if (D.tree.ext.length) {   // the config's extra_roots, read-only
-      h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button>${ctl("ext")}</div>`;
-      if (isOpen("ext")) h += nodeRows("ext", SV.buildTree(D.tree.ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
-    }
+    // extra roots, read-only: from config.yaml's extra_roots and from the page (the ⚙ in this head)
+    h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button><button class="tc" data-troots data-tip="设置外部目录">⚙</button>${D.tree.ext.length ? ctl("ext") : ""}</div>`;
+    if (isOpen("ext") && D.tree.ext.length) h += nodeRows("ext", SV.buildTree(D.tree.ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
     tree.innerHTML = h; tree.scrollTop = top;
     const cr = $("#tree .tr.cur:not([data-goboard])");
     if (reveal && cr && (cr.offsetTop < tree.scrollTop || cr.offsetTop > tree.scrollTop + tree.clientHeight - 30)) tree.scrollTop = cr.offsetTop - tree.clientHeight / 3;
@@ -163,6 +162,23 @@
     const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tcol]", el => collapse(el.dataset.tcol));
+  /* ---- extra roots set from the page (044): list, add, remove; changes apply at once ---- */
+  function rootPop(anchor, roots) {
+    const rows = roots.map(r => `<div class="rr"><b>${esc(r.label)}</b><span data-tip="${esc(r.path)}">${esc(r.path)}</span>`
+      + (r.from === "page" ? `<button data-rdel="${esc(r.path)}" data-tip="移除">×</button>` : `<em data-tip="在 config.yaml 的 extra_roots 里改">config</em>`) + "</div>").join("");
+    V.pop("rootPop", `<div class="pt">外部目录（只读）</div>${rows || '<div class="qnone">还没有外部目录</div>'}`
+      + `<form class="radd"><input placeholder="~/某个目录" aria-label="新的外部目录"><button>添加</button></form>`
+      + '<div class="rnote">只能添加家目录之下已存在的目录；局域网里能打开 viewer 的设备也能改。</div>', anchor, "left");
+  }
+  const roots = (op, path) => fetch("/api/roots", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" }, body: JSON.stringify({ op, path }) })
+    .then(r => r.json().catch(() => ({})).then(d => {
+      if (!r.ok) return V.toast(d.error || "没改成（" + r.status + "）");
+      if (op === "add") reveal.add("ext");   // show what was just added
+      return V.load().then(() => V.emit("data")).then(() => rootPop($("[data-troots]"), d.roots));
+    })).catch(() => V.toast("没改成：连不上 viewer"));
+  V.click("[data-troots]", el => (V.isPop("rootPop") ? V.closePops() : V.json("/api/roots").then(d => rootPop(el, d.roots)).catch(() => V.toast("读不到外部目录设置"))));
+  V.click("[data-rdel]", el => roots("remove", el.dataset.rdel));
+  document.addEventListener("submit", e => { const f = e.target.closest("#rootPop .radd"); if (!f) return; e.preventDefault(); const v = $("input", f).value.trim(); if (v) roots("add", v); });
   V.click("[data-unstar]", (el, e) => { e.stopPropagation(); V.toggleStar(el.dataset.unstar); starPop($("#starBtn")); });
   V.click("[data-open]", (el, e) => {
     V.closePops(); V.app.classList.remove("treepop");

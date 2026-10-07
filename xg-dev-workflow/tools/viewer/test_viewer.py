@@ -237,6 +237,57 @@ class TTodo(unittest.TestCase):
         self.assertEqual((self.t / "inbox.md").read_text(encoding="utf-8"), "old")
 
 
+class TRoots(unittest.TestCase):
+    """044 Req-2: extra roots set from the page — any client may change them, within the guards."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp()).resolve()
+        dev, kb, self.home = self.tmp / "dev", self.tmp / "kb", self.tmp / "home"
+        for d in (dev, kb, self.home / "notes", self.home / "cfg"):
+            d.mkdir(parents=True)
+        (self.home / "notes" / "n.md").write_text("n", encoding="utf-8")
+        (self.home / "cfg" / "c.md").write_text("c", encoding="utf-8")
+        (self.tmp / "config.yaml").write_text("extra_roots:\n  - %s\n" % (self.home / "cfg"), encoding="utf-8")
+        self.saved = (viewer._rp.config_path, viewer.Path.home)
+        viewer._rp.config_path = lambda: self.tmp / "config.yaml"
+        viewer.Path.home = classmethod(lambda cls: self.home)
+        viewer.Handler.ext_roots, viewer.Handler.ext_from = viewer.extra_roots()
+        self.httpd, self.base = start(dev, kb)
+
+    def tearDown(self):
+        viewer._rp.config_path, viewer.Path.home = self.saved
+        viewer.Handler.ext_roots, viewer.Handler.ext_from = {}, {}
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def post(self, body):
+        req = urllib.request.Request(self.base + "/api/roots", data=json.dumps(body).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "X-SV-Write": "1"})
+        try:
+            r = urllib.request.urlopen(req, timeout=3)
+            return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode("utf-8", "replace")
+
+    def test_add_list_remove(self):
+        code, d = self.post({"op": "add", "path": str(self.home / "notes")})
+        self.assertEqual(code, 200)
+        self.assertEqual(sorted((r["label"], r["from"]) for r in d["roots"]), [("cfg", "config"), ("notes", "page")])
+        self.assertEqual(get(self.base, "/raw/ext/notes/n.md"), (200, "n"))      # live, no restart
+        self.assertEqual(json.loads((self.tmp / "viewer-roots.json").read_text())["roots"], [str(self.home / "notes")])
+        self.assertEqual((self.tmp / "config.yaml").read_text(), "extra_roots:\n  - %s\n" % (self.home / "cfg"))   # config.yaml untouched
+        self.assertEqual(self.post({"op": "remove", "path": str(self.home / "cfg")})[0], 400)   # a config root stays in config
+        self.assertEqual(self.post({"op": "remove", "path": str(self.home / "notes")})[0], 200)
+        self.assertEqual(get(self.base, "/raw/ext/notes/n.md")[0], 404)
+        self.assertEqual([r["label"] for r in json.loads(get(self.base, "/api/roots")[1])["roots"]], ["cfg"])
+
+    def test_only_existing_dirs_under_home(self):
+        for bad in ("/", str(self.home), str(self.tmp / "dev"), str(self.home / "nope"), str(self.home / "notes" / "n.md"),
+                    str(self.home / "notes" / ".." / ".."), "~/../.."):
+            self.assertEqual(self.post({"op": "add", "path": bad})[0], 400, bad)
+        self.assertEqual(self.post({"op": "drop", "path": "x"})[0], 400)
+        self.assertEqual(self.post({"op": "add", "path": 3})[0], 400)
+        self.assertFalse((self.tmp / "viewer-roots.json").exists())
+
+
 class TShas(unittest.TestCase):
     """043 Req-3-a: /api/shas names the gitweb repo holding each commit, preferred repos first."""
     def setUp(self):
