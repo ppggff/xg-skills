@@ -142,6 +142,7 @@
   html.narrow .board-filters::-webkit-scrollbar { display: none; }
   html.narrow .fchip { flex: none; }
   html.narrow .tree { font-size: 13px; }
+  html.narrow .tree { touch-action: manipulation; }   /* a quick tap on a file right after opening its folder read as a double-tap on iOS and folded the folder */
   html.narrow .tree summary, html.narrow .tree .file { min-height: 30px; padding: 2px 6px; }
   html.narrow .tree summary, html.narrow .tree .file { overflow-x: auto; scrollbar-width: none; }   /* a long name drags sideways on its own row */
   html.narrow .tree summary::-webkit-scrollbar, html.narrow .tree .file::-webkit-scrollbar { display: none; }

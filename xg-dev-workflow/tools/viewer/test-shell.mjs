@@ -1373,6 +1373,7 @@ t("hovercard is gated by width, touch targets grow by width — no pointer or ho
   assert.doesNotMatch(html, /html\.narrow \.iconbtn \{/, "buttons keep their desktop size (real-device pass)");
   assert.match(html, /html\.narrow \.ctl, html\.narrow #filterbox input, html\.narrow #qo input, html\.narrow \.findbar input \{ font-size: 16px; \}/, "every input is 16px so a phone does not zoom into it");
   assert.match(html, /html\.narrow \.tree summary, html\.narrow \.tree \.file \{ min-height: 30px;/, "tree rows 30px (tightened after the real-device pass)");
+  assert.match(html, /html\.narrow \.tree \{[^}]*touch-action: manipulation;/, "tree taps are never read as a double-tap (iOS folded the folder instead of opening the file)");
   assert.doesNotMatch(html, /\(pointer: coarse\)|\(hover: none\)|\(hover: hover\)/, "width only");
 });
 
