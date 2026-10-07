@@ -641,15 +641,17 @@ var SV = (function () {
       return { sha: /^commit ([0-9a-f]+)/.exec(b)[1], date: date ? date[1].trim() : "", subject: subj ? subj[1].trim() : "", diff: at < 0 ? "" : b.slice(at + 1) };
     });
   }
-  // 043: todo.md is a markdown checklist; only "- [ ] " / "- [x] " lines are items, every other line is kept as is.
-  // An item's #words are its tags; edits address an item by its line and rewrite that line alone.
+  // 043/044: a todo file is markdown; only "- [ ] " / "- [x] " lines outside code fences are items, every other line
+  // is kept as is. An item's @words (and the older #words) are its project tags; edits address an item by its line.
   var TODO_RE = /^(\s*)[-*] \[( |x|X)\] (.*)$/;
   function parseTodo(text) {
-    var out = [];
+    var out = [], fence = null;
     String(text || "").split("\n").forEach(function (l, i) {
-      var m = TODO_RE.exec(l), tags = [];
+      var f = /^\s*(```|~~~)/.exec(l);
+      if (f) { fence = fence === null ? f[1] : (f[1] === fence ? null : fence); return; }
+      var m = fence === null && TODO_RE.exec(l), tags = [];
       if (!m) return;
-      m[3].replace(/(^|\s)#([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
+      m[3].replace(/(^|\s)[@#]([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
       out.push({ line: i, done: m[2] !== " ", text: m[3], tags: tags });
     });
     return out;
@@ -661,6 +663,16 @@ var SV = (function () {
     else ls[line] = m[1] + "- [" + ((change.done !== undefined ? change.done : m[2] !== " ") ? "x" : " ") + "] "
       + (change.text !== undefined ? change.text : m[3]);
     return ls.join("\n");
+  }
+  // 044: a wikilink may name any doc by its path — dev_root by default, kb (also via wiki/ or raw/), or ext/<label>/…;
+  // ".md" is optional. resolveLink keeps the older, KB-only reading for the classic shell.
+  function resolveWikiAny(href, treeSets) {
+    var w = String(href).trim().match(/^\[\[(.+?)\]\]$/);
+    if (!w) return null;
+    var x = w[1].split("|")[0].split("#")[0].trim(), tree = "dev", m = x.match(/^(dev|kb|ext)\//);
+    if (m) { tree = m[1]; x = x.slice(m[0].length); } else if (/^(wiki|raw)\//.test(x)) tree = "kb";
+    var t = /\.md$/i.test(x) ? x : x + ".md", canon = treeSets[tree] && treeSets[tree].get(t.toLowerCase());
+    return canon ? tree + ":" + canon : null;
   }
   function addTodo(text, body) {
     var t = String(text || "");
@@ -683,7 +695,7 @@ var SV = (function () {
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
-           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo };
+           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;

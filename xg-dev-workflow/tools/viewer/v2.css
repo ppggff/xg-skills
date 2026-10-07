@@ -323,11 +323,24 @@ a.tr { text-decoration: none; }
 #recent .commit h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 8px; font: 500 var(--t-lg) var(--cjk); color: var(--ink); }
 #recent .commit h2 em { margin-left: auto; font: 400 var(--t-meta) var(--mono); font-style: normal; color: var(--faint); white-space: nowrap; }
 #diffv .dbody, #recent .dbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
-/* todo (043): an add row, tag chips, then the open items; done ones behind a fold */
-#todo .tbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; max-width: 920px; }
+/* todo (043, 044): the files on the left; on the right an add row, project chips, every open item, done ones folded */
+#todo .tbody { flex: 1; min-height: 0; display: grid; grid-template-columns: 190px minmax(0,1fr); }
+#todo .tfiles { border-right: 1px solid var(--ln); padding: 12px 8px; overflow: auto; font: 400 var(--t-md) var(--cjk); }
+#todo .tfh { font: 400 var(--t-meta) var(--cjk); color: var(--faint); margin: 0 4px 6px; }
+#todo .tf { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: var(--r-sm); }
+#todo .tf:hover { background: var(--hover); }
+#todo .tf > button:first-child { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tx); }
+#todo .tf em { font: 400 var(--t-xs) var(--mono); font-style: normal; color: var(--mu); }
+#todo .tfx { color: var(--faint); opacity: 0; } #todo .tf:hover .tfx { opacity: 1; } #todo .tfx:hover { color: var(--sig); }
+#todo .tnew input { width: 100%; margin-top: 8px; height: 26px; border: 1px dashed var(--ln2); border-radius: var(--r-sm); background: none; color: var(--tx); padding: 0 6px; font: inherit; }
+#todo .tmain { overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; max-width: 920px; }
+.titem .tfile { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
+.titem .tfile:hover { color: var(--sig); }
+.app.narrow #todo .tbody { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); }
+.app.narrow #todo .tfiles { border-right: 0; border-bottom: 1px solid var(--ln); max-height: 30vh; }
 .tadd { display: flex; gap: 6px; margin: 0 0 12px; }
 .tadd input, .tadd select { height: 28px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: 400 var(--t-md) var(--cjk); padding: 0 8px; min-width: 0; }
-.tadd .tin { flex: 3; } .tadd .tdoc { flex: 2; } .tadd .tproj { flex: none; }
+.tadd .tin { flex: 3; } .tadd .tdoc { flex: 2; } .tadd .tproj, .tadd .tinto { flex: none; max-width: 9em; }
 .tadd .tgo { flex: none; padding: 0 12px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); font: 400 var(--t-md) var(--cjk); }
 .tadd .tgo:hover { color: var(--sig); }
 .tchips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; }

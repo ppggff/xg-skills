@@ -1008,6 +1008,18 @@ t("043 todo: items are the checklist lines; tags from #words; edits touch one li
   assert.equal(SV.addTodo("x", "b"), "x\n- [ ] b\n");
   assert.deepEqual(SV.parseTodo("a #b#c and #d-e.f"), []);
   assert.deepEqual(SV.parseTodo("- [ ] a #b#c and #d-e.f")[0].tags, ["b", "d-e.f"]);
+  assert.deepEqual(SV.parseTodo("- [ ] ship @xg-skills and #old")[0].tags, ["xg-skills", "old"]);   // 044: @ is the new form
+  assert.deepEqual(SV.parseTodo("- [ ] a\n```\n- [ ] in code\n```\n- [x] b").map(x => x.line), [0, 4]);
+});
+t("044 resolveWikiAny: a wikilink names any doc by path, .md optional, kb and ext by prefix", () => {
+  const sets = { dev: new Map([["p/a.md", "p/A.md"]]), kb: new Map([["wiki/x/y.md", "wiki/x/y.md"]]), ext: new Map([["n/e.md", "n/e.md"]]) };
+  assert.equal(SV.resolveWikiAny("[[p/a]]", sets), "dev:p/A.md");
+  assert.equal(SV.resolveWikiAny("[[p/a.md|label]]", sets), "dev:p/A.md");
+  assert.equal(SV.resolveWikiAny("[[wiki/x/y]]", sets), "kb:wiki/x/y.md");
+  assert.equal(SV.resolveWikiAny("[[kb/wiki/x/y]]", sets), "kb:wiki/x/y.md");
+  assert.equal(SV.resolveWikiAny("[[ext/n/e]]", sets), "ext:n/e.md");
+  assert.equal(SV.resolveWikiAny("[[nope]]", sets), null);
+  assert.equal(SV.resolveWikiAny("p/a.md", sets), null);
 });
 t("splitCommits: one entry per commit with sha, date, subject and only the diff part", () => {
   const log = "commit abc1234def\nAuthor: x <x@y>\nDate:   Tue Oct 6 15:16:56 2026 +0800\n\n    first subject\n\n    body line\n\ndiff --git a/a.md b/a.md\n+x\n"

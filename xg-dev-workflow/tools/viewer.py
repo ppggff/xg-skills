@@ -63,7 +63,8 @@ SNAPSHOT_GREP = "auto: data snapshot"
 GITWEB_THEME = (b'<link rel="stylesheet" href="/assets/v2-themes.css"><link rel="stylesheet" href="/assets/gitweb-theme.css">'
                 b'<script src="/assets/gitweb-theme.js"></script>')
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
-TODO_FILE = "todo.md"                            # the one file the viewer writes, at the dev_root top (043)
+TODO_DIR = "todo"                                # the viewer writes only <dev_root>/todo/<name>.md (043, 044)
+TODO_NAME = re.compile(r"[^/\\\x00.][^/\\\x00]{0,118}\.md")   # one path segment, not hidden
 TODO_MAX = 256 * 1024
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
@@ -89,6 +90,15 @@ def resolve_roots(dev_arg=None, kb_arg=None):
     kb = kb_arg or (_rp.parse_kb_root(text) if text is not None else _rp.DEFAULT_KB_ROOT)
     return (Path(os.path.expanduser(dev)).resolve(strict=False),
             Path(os.path.expanduser(kb)).resolve(strict=False))
+
+
+def migrate_todo(dev_root: Path):
+    """043 kept todos in <dev_root>/todo.md; 044 keeps a directory of them. Move the old file in once."""
+    old, new = dev_root / "todo.md", dev_root / TODO_DIR / "inbox.md"
+    if old.is_file() and not old.is_symlink() and not new.exists():
+        new.parent.mkdir(exist_ok=True)
+        os.rename(old, new)
+        print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
 
 
 def extra_roots():
@@ -189,39 +199,60 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         try:
             body = json.loads(self.rfile.read(n).decode("utf-8"))
-            text, base = body["text"], int(body["mtime"])
-        except (ValueError, KeyError, TypeError, UnicodeDecodeError, OverflowError):
+            op, name, base = body.get("op", "write"), body["file"], int(body["mtime"])
+            text, to = body.get("text"), body.get("to")
+        except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError, OverflowError):
             self._send(400, "bad request\n")
             return
-        if not isinstance(text, str):
+        if op not in ("write", "rename", "delete") or not isinstance(name, str) or not TODO_NAME.fullmatch(name) \
+                or (op == "write" and not isinstance(text, str)) or (op == "rename" and not (isinstance(to, str) and TODO_NAME.fullmatch(to))):
             self._send(400, "bad request\n")
             return
-        self._write_todo(text, base)
+        self._todo_op(op, name, base, text, to)
 
-    def _write_todo(self, text, base):
-        """Replace todo.md only when it is still the version the page read (mtime in ms, 0 = absent)."""
-        real = self.dev_root / TODO_FILE
-        if real.is_symlink():                          # writing through a link could land outside dev_root
-            self._send(403, "forbidden: todo.md is a link\n")
+    def _todo_op(self, op, name, base, text, to):
+        """write / rename / delete one todo file, only when it is still the version the page read (mtime ms, 0 = absent)."""
+        tdir = self.dev_root / TODO_DIR
+        if tdir.is_symlink() or (tdir.exists() and not tdir.is_dir()):   # a link could carry the write outside dev_root
+            self._send(403, "forbidden: todo/ is not a plain directory\n")
+            return
+        real = tdir / name
+        if real.is_symlink():
+            self._send(403, "forbidden: a link\n")
             return
         with self.todo_lock:
             cur = int(real.stat().st_mtime * 1000) if real.is_file() else 0
-            if cur != base:
+            if cur != base or (op != "write" and not cur):
                 self._json({"error": "changed", "mtime": cur}, 409)
                 return
-            fd, tmp = tempfile.mkstemp(dir=self.dev_root, prefix=".todo.", suffix=".tmp")   # O_EXCL: never an existing path or link
             try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    f.write(text)
-                os.replace(tmp, real)
-            except OSError as e:
+                if op == "delete":
+                    real.unlink()
+                    self._json({"mtime": 0})
+                    return
+                if op == "rename":
+                    dst = tdir / to
+                    if dst.exists() or dst.is_symlink():
+                        self._json({"error": "exists"}, 409)
+                        return
+                    os.rename(real, dst)
+                    self._json({"mtime": int(dst.stat().st_mtime * 1000)})
+                    return
+                tdir.mkdir(exist_ok=True)
+                fd, tmp = tempfile.mkstemp(dir=tdir, prefix=".todo.", suffix=".tmp")   # O_EXCL: never an existing path or link
                 try:
-                    os.unlink(tmp)
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
+                        f.write(text)
+                    os.replace(tmp, real)
                 except OSError:
-                    pass
+                    try:
+                        os.unlink(tmp)
+                    except OSError:
+                        pass
+                    raise
+                self._json({"mtime": int(real.stat().st_mtime * 1000)})
+            except OSError as e:
                 self._json({"error": str(e)}, 500)
-                return
-            self._json({"mtime": int(real.stat().st_mtime * 1000)})
 
     def do_GET(self):
         if not self._host_ok():
@@ -757,6 +788,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
     Handler.ext_roots = extra_roots()
+    migrate_todo(dev_root)
     bind = "0.0.0.0" if lan else "127.0.0.1"
     ip = lan_ip() if lan else None
     if lan:
@@ -783,7 +815,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           (url, dev_root, kb_root), file=sys.stderr)
     if lan:
         print("--lan: also on http://%s:%d/ (Host allowlist: %s) — anyone on this network can read dev_root, the KB "
-              "and every repo (gitweb at /gitweb/), and rewrite <dev_root>/todo.md" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
+              "and every repo (gitweb at /gitweb/), and rewrite the files in <dev_root>/todo/" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
     # serve_forever runs in a worker thread so the main thread can shut it down from a signal
     # handler (shutdown() must be called from a different thread). Installing the handlers
     # explicitly also overrides an inherited SIG_IGN (e.g. when launched backgrounded).

@@ -111,7 +111,7 @@
     })).catch(() => {});
   }
   function markLink(a, loc) {
-    const raw = a.getAttribute("href"), key = SV.resolveLink(raw, loc.tree, loc.rel, V.D.sets);
+    const raw = a.getAttribute("href"), key = SV.resolveLink(raw, loc.tree, loc.rel, V.D.sets) || SV.resolveWikiAny(raw, V.D.sets);
     if (key) {
       const i = key.indexOf(":");
       a.dataset.tree = key.slice(0, i); a.dataset.rel = key.slice(i + 1); a.removeAttribute("href"); a.tabIndex = 0; a.setAttribute("role", "link");
