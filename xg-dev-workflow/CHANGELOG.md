@@ -4,6 +4,17 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: a fuller todo editor, dated todos, capture, review (card xg-skills/045)
+
+- The todo editor opens on `e` or a double-click, has a toolbar and a Notion/Obsidian-style `/` menu, continues lists
+  on Enter, indents with Tab, pairs brackets, turns a pasted URL into a link and keeps drafts in the browser.
+- Todos carry Obsidian Tasks marks (➕ created, 📅 due, ✅ done, ⏫🔼🔽 priority), shown as small labels; ticking
+  writes the done date; sub-lists show progress; the todo view filters by due date, sorts, and has a review of what
+  was created, done and left due in a chosen period.
+- `t` anywhere, or 记为 todo on a selection, adds a line to `todo/inbox.md` with the context linked (`[[doc#L12]]`
+  opens at that line). Quick open finds single todos; `[[project/NNN]]` links a card, and a card's detail lists the
+  todos that link it.
+
 ## 2026-10-07 — status viewer: todo files, a todo editor, extra roots from the page (card xg-skills/044)
 
 - Todos are markdown files in `<dev_root>/todo/` (the 043 `todo.md` moves in as `inbox.md` once). The todo view lists
