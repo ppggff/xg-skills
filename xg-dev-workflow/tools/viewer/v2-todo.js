@@ -46,33 +46,90 @@
   };
 
   function itemsAll() {
-    return Object.keys(F).sort().flatMap(n => { F[n].shown = F[n].text; F[n].base = F[n].mtime; return SV.parseTodo(F[n].shown).map(it => Object.assign({ file: n }, it)); });
+    return Object.keys(F).sort().flatMap(n => {
+      F[n].shown = F[n].text; F[n].base = F[n].mtime;
+      const its = SV.parseTodo(F[n].shown);
+      return its.map((it, i) => Object.assign({ file: n, meta: SV.todoMeta(it.text), prog: SV.todoProgress(its, i) }, it));
+    });
   }
+  /* ---- an item's marks as small labels: when it was made, when it is due (late in red), when it was done, how urgent ---- */
+  const today = () => SV.todoStamp(new Date()).slice(0, 10);
+  const PRIO = ["", "⏫", "🔼", "🔽"];
+  V.todoMetaHTML = (m, done) => {
+    const t = today(), when = m.created && new Date(m.created.replace(" ", "T"));
+    return (m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级">${PRIO[m.prio]}</span>` : "")
+      + (m.due ? `<span class="tdue${!done && m.due < t ? " late" : !done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">📅 ${m.due.slice(5)}</span>` : "")
+      + (m.done ? `<span class="tmeta" data-tip="完成 ${m.done}">✅ ${m.done.slice(5)}</span>` : "")
+      + (when && !isNaN(when) ? `<span class="tmeta" data-tip="创建 ${m.created}">${V.relT(when.getTime())}</span>` : "");
+  };
   function rowHTML(it) {
-    const id = esc(it.file) + "|" + it.line;
+    const id = esc(it.file) + "|" + it.line, m = SV.todoMeta(it.text);
     if (editing === id) return `<div class="titem ed"><input class="tedit" data-id="${id}" value="${esc(it.text)}" aria-label="改这一条"></div>`;
-    return `<div class="titem${it.done ? " done" : ""}"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
-      + `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(it.text, it.file)}</span>`
-      + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-tip="打开 ${esc(it.file)}">${esc(it.file.replace(/\.md$/, ""))}</button>`
+    return `<div class="titem${it.done ? " done" : ""}" style="--td:${Math.min(it.depth, 8)}"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
+      + `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`
+      + V.todoMetaHTML(m, it.done)
+      + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button>`
       + `<button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></div>`;
+  }
+
+  /* ---- time filters, sorting, and the review: chosen in the view, remembered ---- */
+  const WHEN = [["", "全部"], ["today", "今天到期"], ["late", "已过期"], ["week", "本周"], ["none", "无截止日期"]];
+  const SORTS = [["file", "文件顺序"], ["due", "截止日期"], ["prio", "优先级"], ["created", "最近创建"]];
+  const RANGES = [["week", "本周"], ["lastweek", "上周"], ["month", "本月"], ["lastmonth", "上月"], ["custom", "自定"]];
+  const ymd = d => SV.todoStamp(d).slice(0, 10);
+  function range(kind) {   // [from, to], inclusive YYYY-MM-DD
+    const d = new Date(), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
+    if (kind === "week" || kind === "lastweek") { const a = new Date(mon.getTime() - (kind === "lastweek" ? 7 : 0) * 864e5); return [ymd(a), ymd(new Date(a.getTime() + 6 * 864e5))]; }
+    if (kind === "month") return [ymd(new Date(d.getFullYear(), d.getMonth(), 1)), ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
+    if (kind === "lastmonth") return [ymd(new Date(d.getFullYear(), d.getMonth() - 1, 1)), ymd(new Date(d.getFullYear(), d.getMonth(), 0))];
+    return [store.get("todo-from", ymd(mon)), store.get("todo-to", ymd(d))];
+  }
+  const within = (x, r) => x && x.slice(0, 10) >= r[0] && x.slice(0, 10) <= r[1];
+  function whenOk(it, w) {
+    const m = it.meta, t = today(); if (!w) return true;
+    if (w === "today") return m.due === t;
+    if (w === "late") return !it.done && m.due && m.due < t;
+    if (w === "week") return within(m.due, range("week"));
+    return !m.due;
+  }
+  function sorted(list, by) {
+    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -(new Date((i.meta.created || "1970-01-01").replace(" ", "T")).getTime() || 0) }[by];
+    return key ? list.slice().sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0)) : list;
+  }
+  function reviewHTML(items) {
+    const kind = store.get("todo-range", "week"), r = range(kind);
+    const groups = [["created", "新建", i => within(i.meta.created, r)], ["done", "完成", i => within(i.meta.done, r)],
+      ["due", "到期未完成", i => !i.done && within(i.meta.due, r)]].map(([k, l, f]) => [k, l, items.filter(f)]);
+    const byProj = list => { const g = {}; list.forEach(i => { (g[i.tags[0] || ""] = g[i.tags[0] || ""] || []).push(i); }); return Object.keys(g).sort().map(p => `<div class="trp">${p ? "@" + esc(p) : "未标项目"}<em>${g[p].length}</em></div>` + g[p].map(rowHTML).join("")).join(""); };
+    return `<div class="trange">${RANGES.map(([k, l]) => `<button class="chip ${k === kind ? "on" : ""}" data-trange="${k}">${l}</button>`).join("")}`
+      + (kind === "custom" ? `<input type="date" class="tfrom" value="${r[0]}" aria-label="起"><span>到</span><input type="date" class="tto" value="${r[1]}" aria-label="止">` : `<span class="trr">${r[0]} 到 ${r[1]}</span>`) + "</div>"
+      + `<div class="tsum">${groups.map(([k, l, list]) => `<span><b>${list.length}</b> ${l}</span>`).join("")}</div>`
+      + groups.map(([k, l, list]) => `<h3 class="trh">${l}<em>${list.length}</em></h3>` + (list.length ? byProj(list) : '<div class="hint">这段时间里没有</div>')).join("")
+      + '<div class="hint">只统计带日期标记的条目：➕ 创建、✅ 完成、📅 截止。</div>';
   }
   function paint() {
     const el = $("#todo"), main = el && $(".tmain", el), side = el && $(".tfiles", el); if (!main) return;
-    const items = itemsAll(), tags = [...new Set(items.flatMap(i => i.tags))].sort(), files = Object.keys(F).sort();
+    const all = itemsAll(), tags = [...new Set(all.flatMap(i => i.tags))].sort(), files = Object.keys(F).sort();
     if (tag && !tags.includes(tag)) tag = "";
-    const shown = items.filter(i => !tag || i.tags.includes(tag)), open = shown.filter(i => !i.done), done = shown.filter(i => i.done);
+    const mode = store.get("todo-mode", "list"), w = store.get("todo-when", ""), by = store.get("todo-sort", "file");
+    const items = all.filter(i => !tag || i.tags.includes(tag));
+    const shown = items.filter(i => whenOk(i, w)), open = sorted(shown.filter(i => !i.done), by), done = shown.filter(i => i.done);
     const projs = Object.keys(V.D.board || {}).sort(), cur = store.get("todo-proj", ""), into = store.get("todo-into", "inbox.md");
     side.innerHTML = `<div class="tfh">文件</div>` + files.map(n => `<div class="tf"><button data-open="dev:${DIR}${esc(n)}" data-tip="在阅读栏打开">${esc(n.replace(/\.md$/, ""))}</button>`
       + `<em>${SV.parseTodo(F[n].text).filter(i => !i.done).length || ""}</em><button class="tfx" data-tren="${esc(n)}" data-tip="改名">✎</button>`
       + `<button class="tfx" data-tdelf="${esc(n)}" data-tip="删除这个文件">×</button></div>`).join("")
       + `<form class="tnew"><input placeholder="新建文件…" aria-label="新建 todo 文件"></form>`;
-    const chips = tags.length ? `<div class="tchips"><button class="chip ${tag ? "" : "on"}" data-ttag="">全部<em>${items.filter(i => !i.done).length}</em></button>`
-      + tags.map(t => `<button class="chip ${t === tag ? "on" : ""}" data-ttag="${esc(t)}">@${esc(t)}<em>${items.filter(i => !i.done && i.tags.includes(t)).length}</em></button>`).join("") + "</div>" : "";
-    main.innerHTML = `<form class="tadd"><input class="tin" placeholder="写一条 todo，回车添加" aria-label="新的一条">`
+    const chips = tags.length ? `<div class="tchips"><button class="chip ${tag ? "" : "on"}" data-ttag="">全部项目<em>${all.filter(i => !i.done).length}</em></button>`
+      + tags.map(t => `<button class="chip ${t === tag ? "on" : ""}" data-ttag="${esc(t)}">@${esc(t)}<em>${all.filter(i => !i.done && i.tags.includes(t)).length}</em></button>`).join("") + "</div>" : "";
+    const modes = `<div class="tmodes"><button class="chip ${mode === "list" ? "on" : ""}" data-tmode="list">待办</button><button class="chip ${mode === "review" ? "on" : ""}" data-tmode="review">回顾</button></div>`;
+    if (mode === "review") { main.innerHTML = modes + chips + reviewHTML(items); V.emit("todo-count"); V.status(); return; }
+    main.innerHTML = modes + `<form class="tadd"><input class="tin" placeholder="写一条 todo，回车添加（带创建时间）" aria-label="新的一条">`
       + `<select class="tinto" aria-label="写进哪个文件">${(files.includes(into) ? files : [into].concat(files)).map(n => `<option ${n === into ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>`
       + `<select class="tproj" aria-label="项目"><option value="">不标项目</option>${projs.map(p => `<option ${p === cur ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>`
       + `<input class="tdoc" list="tdocs" placeholder="引用文档（可选）" aria-label="引用文档"><datalist id="tdocs">${V.docChoices().map(d => `<option value="${esc(d)}">`).join("")}</datalist><button class="tgo">添加</button></form>`
-      + chips + (open.length ? open.map(rowHTML).join("") : `<div class="hint">${items.length ? "这里没有未完成的" : "还没有 todo。写在上面，存在 dev_root/todo/ 里。"}</div>`)
+      + chips + `<div class="twhen">${WHEN.map(([k, l]) => `<button class="chip ${k === w ? "on" : ""}" data-twhen="${k}">${l}<em>${items.filter(i => !i.done && whenOk(i, k)).length}</em></button>`).join("")}`
+      + `<select class="tsort" aria-label="排序">${SORTS.map(([k, l]) => `<option value="${k}" ${k === by ? "selected" : ""}>${l}</option>`).join("")}</select></div>`
+      + (open.length ? open.map(rowHTML).join("") : `<div class="hint">${all.length ? "这里没有未完成的" : "还没有 todo。写在上面，存在 dev_root/todo/ 里。"}</div>`)
       + (done.length ? `<button class="tfold" data-tdone>${showDone ? "收起" : "展开"}已完成 ${done.length}</button>` + (showDone ? done.map(rowHTML).join("") : "") : "");
     const ed = $(".tedit", main); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
     V.emit("todo-count"); V.status();
@@ -108,13 +165,21 @@
     const text = $(".tin", add).value.trim(), proj = $(".tproj", add).value, into = $(".tinto", add).value, doc = $(".tdoc", add).value.trim();
     if (!text) return $(".tin", add).focus();
     store.set("todo-proj", proj); store.set("todo-into", into);
-    const body = text + (proj && !new RegExp("[@#]" + proj.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(text) ? " @" + proj : "") + (doc ? " [[" + doc + "]]" : "");
+    const body = text + (proj && !new RegExp("[@#]" + proj.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(text) ? " @" + proj : "") + (doc ? " [[" + doc + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
     save(into, SV.addTodo(F[into] ? F[into].shown : "", body));
   });
-  V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(F[at.file].shown).find(x => x.line === at.line); save(at.file, SV.editTodo(F[at.file].shown, at.line, { done: !it.done })); });
+  V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(F[at.file].shown).find(x => x.line === at.line); save(at.file, SV.editTodo(F[at.file].shown, at.line, { done: !it.done, today: today() })); });
   V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(F[at.file].shown, at.line, { remove: true })); });
   V.click("[data-ttag]", el => { tag = el.dataset.ttag; store.set("todo-tag", tag); paint(); });
   V.click("[data-tdone]", () => { showDone = !showDone; paint(); });
+  V.click("[data-tmode]", el => { store.set("todo-mode", el.dataset.tmode); paint(); });
+  V.click("[data-twhen]", el => { store.set("todo-when", el.dataset.twhen); paint(); });
+  V.click("[data-trange]", el => { store.set("todo-range", el.dataset.trange); paint(); });
+  document.addEventListener("change", e => {
+    const t = e.target;
+    if (t.matches && t.matches("#todo .tsort")) { store.set("todo-sort", t.value); paint(); }
+    if (t.matches && t.matches("#todo .tfrom, #todo .tto") && t.value) { store.set(t.matches(".tfrom") ? "todo-from" : "todo-to", t.value); paint(); }
+  });
   V.click("[data-tren]", el => {
     const n = el.dataset.tren, raw = (prompt("新文件名", n.replace(/\.md$/, "")) || "").trim(); if (!raw) return;
     const to = raw.replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md";

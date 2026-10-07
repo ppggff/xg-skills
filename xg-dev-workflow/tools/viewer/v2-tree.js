@@ -183,7 +183,7 @@
   V.click("[data-open]", (el, e) => {
     V.closePops(); V.app.classList.remove("treepop");
     const key = el.dataset.open, i = key.indexOf(":");
-    V.openDoc(key.slice(0, i), key.slice(i + 1), e);
+    V.openDoc(key.slice(0, i), key.slice(i + 1), e, el.dataset.oline ? { line: +el.dataset.oline } : undefined);
   });
   V.click("#starBtn", el => (V.isPop("starPop") ? V.closePops() : starPop(el)));
   V.click("#trailBtn", el => (V.isPop("trailPop") ? V.closePops() : trailPop(el)));

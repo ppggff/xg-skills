@@ -1027,6 +1027,17 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("045 todo marks: done date on tick, meta parsing, subtask progress", () => {
+  assert.equal(SV.editTodo("- [ ] a ➕ 2026-10-01 09:00", 0, { done: true, today: "2026-10-07" }), "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-07");
+  assert.equal(SV.editTodo("- [x] a ✅ 2026-10-07", 0, { done: false, today: "2026-10-08" }), "- [ ] a");
+  assert.equal(SV.editTodo("- [ ] a", 0, { done: true }), "- [x] a");   // no today given: the mark alone
+  const m = SV.todoMeta("fix it ⏫ @p ➕ 2026-10-01 09:30 📅 2026-10-09 ✅ 2026-10-08");
+  assert.deepEqual(m, { created: "2026-10-01 09:30", due: "2026-10-09", done: "2026-10-08", prio: 1, text: "fix it @p" });
+  assert.deepEqual(SV.todoMeta("plain 🔽"), { created: "", due: "", done: "", prio: 3, text: "plain" });
+  const it = SV.parseTodo("- [ ] p\n  - [x] a\n  - [ ] b\n    - [x] c\n- [ ] q");
+  assert.deepEqual(it.map(x => x.depth), [0, 2, 2, 4, 0]);
+  assert.deepEqual([SV.todoProgress(it, 0), SV.todoProgress(it, 2), SV.todoProgress(it, 4)], [[2, 3], [1, 1], null]);
+});
 t("044 resolveWikiAny: a wikilink names any doc by path, .md optional, kb and ext by prefix", () => {
   const sets = { dev: new Map([["p/a.md", "p/A.md"]]), kb: new Map([["wiki/x/y.md", "wiki/x/y.md"]]), ext: new Map([["n/e.md", "n/e.md"]]) };
   assert.equal(SV.resolveWikiAny("[[p/a]]", sets), "dev:p/A.md");

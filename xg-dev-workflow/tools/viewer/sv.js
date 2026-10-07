@@ -659,17 +659,35 @@ var SV = (function () {
       if (!m) return;
       m[4].replace(/\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)/g, " ")   // a tag inside a link's text or target is not a tag
         .replace(/(^|\s)[@#]([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
-      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags });
+      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^\s*/.exec(m[1])[0].length });
     });
     return out;
   }
   function editTodo(text, line, change) {   // change: { done } | { text } | { remove: true }
     var ls = String(text || "").split("\n"), m = TODO_RE.exec(ls[line] || "");
     if (!m) return String(text || "");
-    if (change.remove) ls.splice(line, 1);
-    else ls[line] = m[1] + ((change.done !== undefined ? change.done : m[2] !== " ") ? "x" : " ") + m[3]
-      + (change.text !== undefined ? change.text : m[4]);
+    if (change.remove) { ls.splice(line, 1); return ls.join("\n"); }
+    var done = change.done !== undefined ? change.done : m[2] !== " ", body = change.text !== undefined ? change.text : m[4];
+    if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away
+      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/g, "");
+      if (done) body = body.replace(/\s+$/, "") + " ✅ " + change.today;
+    }
+    ls[line] = m[1] + (done ? "x" : " ") + m[3] + body;
     return ls.join("\n");
+  }
+  // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
+  // … 3 low, 0 none) — and its text with the marks taken out
+  function todoMeta(text) {
+    var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "\\s*(\\d{4}-\\d{2}-\\d{2})(?:\\s+(\\d{2}:\\d{2}))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
+    var p = /⏫/.test(t) ? 1 : /🔼/.test(t) ? 2 : /🔽/.test(t) ? 3 : 0;
+    var plain = t.replace(/[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/g, "").replace(/\s{2,}/g, " ").trim();
+    return { created: d("➕"), due: d("📅").slice(0, 10), done: d("✅").slice(0, 10), prio: p, text: plain };
+  }
+  // 045: an item's subtasks are the items right after it that sit deeper: [done, total], or null when it has none
+  function todoProgress(items, i) {
+    var n = 0, k = 0;
+    for (var j = i + 1; j < items.length && items[j].depth > items[i].depth; j++) { n++; if (items[j].done) k++; }
+    return n ? [k, n] : null;
   }
   // 044: a wikilink may name any doc by its path — dev_root by default, kb (also via wiki/ or raw/), or ext/<label>/…;
   // ".md" is optional. resolveLink keeps the older, KB-only reading for the classic shell.
@@ -716,7 +734,7 @@ var SV = (function () {
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny,
-           continueLine: continueLine, todoStamp: todoStamp };
+           continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;

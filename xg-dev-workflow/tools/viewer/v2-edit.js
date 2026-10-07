@@ -33,16 +33,29 @@
       if (!m || (m[2] !== " ") !== box.checked) return;
       box.disabled = false; box.dataset.tline = ln; box.classList.add("tbox");
     });
-    const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !/(^|\s)@[\w.-]/.test(n.data) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+    // @tags as chips; the date and priority marks of each task as the same small labels the todo view shows
+    const MARK = /[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/;
+    const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !(/(^|\s)@[\w.-]/.test(n.data) || MARK.test(n.data)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     const texts = []; while (walk.nextNode()) texts.push(walk.currentNode);
-    texts.forEach(n => { const s = document.createElement("span"); s.innerHTML = esc(n.data).replace(/(^|\s)@([\w.-]+)/g, '$1<span class="ttag">@$2</span>'); n.replaceWith(...s.childNodes); });
+    texts.forEach(n => {
+      const li = n.parentElement.closest("li"), m = SV.todoMeta(n.data), s = document.createElement("span");
+      s.innerHTML = esc(MARK.test(n.data) ? n.data.replace(new RegExp(MARK.source, "g"), "").replace(/\s+$/, " ") : n.data).replace(/(^|\s)@([\w.-]+)/g, '$1<span class="ttag">@$2</span>')
+        + (MARK.test(n.data) ? V.todoMetaHTML(m, !!(li && li.querySelector(":scope > input:checked"))) : "");
+      n.replaceWith(...s.childNodes);
+    });
+    $$("li", md).forEach(li => {   // subtask progress on an item whose own list has tasks
+      const own = li.querySelector(":scope > input[type=checkbox]"), subs = $$(":scope > ul input[type=checkbox], :scope > ol input[type=checkbox]", li);
+      if (!own || !subs.length) return;
+      const b = document.createElement("span"); b.className = "tprog"; b.textContent = subs.filter(x => x.checked).length + "/" + subs.length;
+      const sub = li.querySelector(":scope > ul, :scope > ol"); li.insertBefore(b, sub);
+    });
   });
   document.addEventListener("change", e => {
     const box = e.target.closest && e.target.closest(".pbody .md input.tbox"); if (!box) return;
     const k = V.paneOf(box), p = P[k], loc = p.loc; if (!isTodo(loc)) return;
-    const ls = p.doc.text.split("\n"), ln = +box.dataset.tline;
-    ls[ln] = ls[ln].replace(TOG, (all, a, mark, b) => a + (box.checked ? "x" : " ") + b);
-    const text = ls.join("\n");
+    const ln = +box.dataset.tline, day = SV.todoStamp(new Date()).slice(0, 10);
+    let text = SV.editTodo(p.doc.text, ln, { done: box.checked, today: day });   // a plain task line: the mark and ✅ today
+    if (text === p.doc.text) { const ls = text.split("\n"); ls[ln] = ls[ln].replace(TOG, (all, a, mark, b) => a + (box.checked ? "x" : " ") + b); text = ls.join("\n"); }
     V.todoWrite("write", fileOf(loc), { text, mtime: p.doc.mtime }).then(() => { if (p.loc === loc) V.rerender(k); });
   });
 

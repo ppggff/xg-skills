@@ -395,6 +395,20 @@ a.tr { text-decoration: none; }
 .titem .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; }
 .titem .tdl.broken { color: var(--blocked); }
 .titem.ed .tedit { flex: 1; height: 28px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
+/* 045: an item's labels — priority, due (late in red, today in the signal colour), done, created — and its subtask count */
+.tmeta, .tdue, .tpri, .tprog { flex: none; margin-left: 6px; font: 400 var(--t-xs) var(--mono); color: var(--faint); white-space: nowrap; }
+.tdue { color: var(--mu); } .tdue.now { color: var(--sig); } .tdue.late { color: var(--blocked); }
+.tprog { color: var(--done); }
+.titem { padding-left: calc(4px + var(--td, 0) * 7px); }
+.tmodes, .twhen, .trange { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 10px; }
+.tmodes .chip, .twhen .chip, .trange .chip { width: auto; }
+.twhen .chip em { padding-left: 6px; }
+.twhen .tsort, .trange input { margin-left: auto; height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: 400 var(--t-sm) var(--cjk); padding: 0 6px; }
+.trange input { margin-left: 0; } .trange .trr, .trange span { font: 400 var(--t-sm) var(--mono); color: var(--mu); margin-left: 6px; }
+.tsum { display: flex; gap: 18px; margin: 4px 0 12px; font: 400 var(--t-md) var(--cjk); color: var(--mu); } .tsum b { font: 500 var(--t-lg) var(--mono); color: var(--ink); }
+.trh { margin: 16px 0 4px; font: 500 var(--t-lg) var(--cjk); color: var(--ink); } .trh em, .trp em { font-style: normal; color: var(--faint); margin-left: 8px; font-weight: 400; }
+.trp { margin: 8px 0 2px; font: 400 var(--t-sm) var(--mono); color: var(--sig); }
+.md .tmeta, .md .tdue, .md .tpri, .md .tprog { font-size: var(--t-xs); }
 .tfold { margin: 12px 0 6px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
 .tfold:hover { color: var(--tx); }
 .app.phone .tadd { flex-wrap: wrap; } .app.phone .tadd .tin { flex-basis: 100%; }
