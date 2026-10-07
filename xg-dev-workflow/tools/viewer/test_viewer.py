@@ -195,11 +195,15 @@ class TTodo(unittest.TestCase):
         self.assertEqual(self.post({"op": "delete", "file": "收件箱.md", "mtime": d["mtime"]})[0], 200)
         self.assertFalse((self.t / "收件箱.md").exists())
         self.assertEqual(self.post({"op": "delete", "file": "none.md", "mtime": 0})[0], 409)
+        _, d = self.w("Case.md", "c", 0)                       # a case-only rename on a case-insensitive disk is not a clash
+        self.assertEqual(self.post({"op": "rename", "file": "Case.md", "to": "case.md", "mtime": d["mtime"]})[0], 200)
 
     def test_names_stay_in_the_directory(self):
         for bad in ("../x.md", "a/b.md", ".hidden.md", "x.txt", "", "a.md\x00"):
             self.assertEqual(self.w(bad, "x", 0)[0], 400, bad)
         self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "../x.md", "mtime": 0})[0], 400)
+        for bad in ("x\nb.md", "x\tb.md", "字" * 90 + ".md", "a.MD"):   # 044 review: control chars, > 240 bytes, the suffix as written
+            self.assertEqual(self.w(bad, "x", 0)[0], 400, bad)
         self.assertEqual(self.post({"op": "chmod", "file": "a.md", "mtime": 0})[0], 400)
         self.assertFalse((self.tmp / "x.md").exists())
 
@@ -227,6 +231,15 @@ class TTodo(unittest.TestCase):
         self.assertFalse(self.t.exists())
         host = urllib.parse.urlsplit(self.base).netloc
         self.assertEqual(self.post(ok, headers={"Origin": "http://" + host})[0], 200)
+
+    def test_the_043_file_never_moves_out_of_dev_root(self):   # 044 review: todo/ as a link or a file
+        (self.dev / "todo.md").write_text("old", encoding="utf-8")
+        out = self.tmp / "out"; out.mkdir(); self.t.symlink_to(out)
+        viewer.migrate_todo(self.dev)
+        self.assertFalse((out / "inbox.md").exists()); self.assertTrue((self.dev / "todo.md").exists())
+        self.t.unlink(); self.t.write_text("not a dir", encoding="utf-8")
+        viewer.migrate_todo(self.dev)                # no crash, nothing moved
+        self.assertTrue((self.dev / "todo.md").exists())
 
     def test_the_043_file_moves_in_once(self):
         (self.dev / "todo.md").write_text("old", encoding="utf-8")
@@ -279,9 +292,28 @@ class TRoots(unittest.TestCase):
         self.assertEqual(get(self.base, "/raw/ext/notes/n.md")[0], 404)
         self.assertEqual([r["label"] for r in json.loads(get(self.base, "/api/roots")[1])["roots"]], ["cfg"])
 
+    def test_a_big_root_is_capped_and_skips_hidden_dirs(self):
+        big = self.home / "big"
+        for d in ("a", ".git", "node_modules"):
+            (big / d).mkdir(parents=True)
+        for i in range(5):
+            (big / "a" / ("%d.md" % i)).write_text("x", encoding="utf-8")
+        (big / ".git" / "h.md").write_text("x", encoding="utf-8"); (big / "node_modules" / "m.md").write_text("x", encoding="utf-8")
+        saved, viewer.EXT_SCAN_MAX = viewer.EXT_SCAN_MAX, 3
+        try:
+            self.post({"op": "add", "path": str(big)})
+            ext = [x["path"] for x in json.loads(get(self.base, "/api/tree")[1])["ext"] if x["path"].startswith("big/")]
+            self.assertEqual(len(ext), 3)
+            self.assertFalse(any(".git" in x or "node_modules" in x for x in ext))
+        finally:
+            viewer.EXT_SCAN_MAX = saved
+
     def test_only_existing_dirs_under_home(self):
         for bad in ("/", str(self.home), str(self.tmp / "dev"), str(self.home / "nope"), str(self.home / "notes" / "n.md"),
                     str(self.home / "notes" / ".." / ".."), "~/../.."):
+            self.assertEqual(self.post({"op": "add", "path": bad})[0], 400, bad)
+        (self.home / ".secret").mkdir(); (self.home / "Library" / "x").mkdir(parents=True)
+        for bad in (str(self.home / ".secret"), str(self.home / "Library"), str(self.home / "Library" / "x"), "notes", "./notes"):
             self.assertEqual(self.post({"op": "add", "path": bad})[0], 400, bad)
         self.assertEqual(self.post({"op": "drop", "path": "x"})[0], 400)
         self.assertEqual(self.post({"op": "add", "path": 3})[0], 400)

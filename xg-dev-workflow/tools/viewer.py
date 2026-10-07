@@ -64,7 +64,8 @@ GITWEB_THEME = (b'<link rel="stylesheet" href="/assets/v2-themes.css"><link rel=
                 b'<script src="/assets/gitweb-theme.js"></script>')
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
 TODO_DIR = "todo"                                # the viewer writes only <dev_root>/todo/<name>.md (043, 044)
-TODO_NAME = re.compile(r"[^/\\\x00.][^/\\\x00]{0,118}\.md")   # one path segment, not hidden
+TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")   # one path segment, not hidden, no control characters
+EXT_SCAN_MAX = 5000                              # an extra root lists at most this many docs (hidden dirs and node_modules skipped)
 TODO_MAX = 256 * 1024
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
@@ -94,11 +95,26 @@ def resolve_roots(dev_arg=None, kb_arg=None):
 
 def migrate_todo(dev_root: Path):
     """043 kept todos in <dev_root>/todo.md; 044 keeps a directory of them. Move the old file in once."""
-    old, new = dev_root / "todo.md", dev_root / TODO_DIR / "inbox.md"
+    old, tdir = dev_root / "todo.md", dev_root / TODO_DIR
+    new = tdir / "inbox.md"
+    if tdir.is_symlink() or (tdir.exists() and not tdir.is_dir()):   # the move must stay inside dev_root
+        if old.is_file():
+            print("left %s in place: %s is not a plain directory" % (old, tdir), file=sys.stderr)
+        return
     if old.is_file() and not old.is_symlink() and not new.exists():
         new.parent.mkdir(exist_ok=True)
         os.rename(old, new)
         print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
+
+
+def root_allowed(real: Path):
+    """A page-set root: strictly under the home directory, not inside a hidden directory or ~/Library (config and
+    keys live there, and ~/Library is too big to walk on every refresh)."""
+    home = Path.home().resolve()
+    if real == home or home not in real.parents:
+        return False
+    parts = real.relative_to(home).parts
+    return not any(x.startswith(".") for x in parts) and parts[0] != "Library"
 
 
 def ui_roots_path():
@@ -138,6 +154,8 @@ def extra_roots():
     out, src, seen, have = {}, {}, set(), set()
     for p, where in [(p, "config") for p in _gw.parse_path_list(text, "extra_roots")] + [(p, "page") for p in ui_roots()]:
         root = Path(p).resolve(strict=False)
+        if where == "page" and not root_allowed(root):   # re-checked on every load: a saved path may have become a link
+            continue
         if root.is_dir() and root not in have:
             have.add(root)
             label = _gw._uniq(root.name, seen)
@@ -243,8 +261,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError, OverflowError):
             self._send(400, "bad request\n")
             return
-        if op not in ("write", "rename", "delete") or not isinstance(name, str) or not TODO_NAME.fullmatch(name) \
-                or (op == "write" and not isinstance(text, str)) or (op == "rename" and not (isinstance(to, str) and TODO_NAME.fullmatch(to))):
+        ok_name = lambda x: isinstance(x, str) and TODO_NAME.fullmatch(x) and len(x.encode("utf-8")) <= 240
+        if op not in ("write", "rename", "delete") or not ok_name(name) \
+                or (op == "write" and not isinstance(text, str)) or (op == "rename" and not ok_name(to)):
             self._send(400, "bad request\n")
             return
         self._todo_op(op, name, base, text, to)
@@ -256,12 +275,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         """add / remove a page-set extra root. Only an existing directory under the home directory (not home itself);
         roots from config.yaml are left to config.yaml. Every change is logged."""
         with self.todo_lock:
-            mine = ui_roots()
-            real = Path(os.path.expanduser(path.strip())).resolve(strict=False)
+            mine, p = ui_roots(), path.strip()
+            if not (p.startswith("/") or p == "~" or p.startswith("~/")):
+                self._json({"error": "请写完整路径（/… 或 ~/…）"}, 400)
+                return
+            real = Path(os.path.expanduser(p)).resolve(strict=False)
             if op == "add":
-                home = Path.home().resolve()
-                if not real.is_dir() or real == home or home not in real.parents:
-                    self._json({"error": "只能添加家目录之下已存在的目录"}, 400)
+                if not real.is_dir() or not root_allowed(real):
+                    self._json({"error": "只能添加家目录之下已存在的目录，且不能是隐藏目录或 ~/Library"}, 400)
                     return
                 if str(real) not in mine:
                     mine.append(str(real))
@@ -301,7 +322,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return
                 if op == "rename":
                     dst = tdir / to
-                    if dst.exists() or dst.is_symlink():
+                    if dst.is_symlink() or (dst.exists() and not os.path.samefile(real, dst)):   # a case-only rename is the same file
                         self._json({"error": "exists"}, 409)
                         return
                     os.rename(real, dst)
@@ -453,14 +474,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(404, "not found\n")      # same code: don't leak existence
             return
         try:
+            mt = int(real.stat().st_mtime * 1000)      # R63: lets the client detect a doc update; taken before the read,
+        except OSError:                                # so a write in between leaves an older mtime (a later save is refused, not lost)
+            mt = 0
+        try:
             data = real.read_text(encoding="utf-8")
         except OSError:
             self._send(404, "not found\n")
             return
-        try:
-            mt = int(real.stat().st_mtime * 1000)      # R63: lets the client detect a doc update
-        except OSError:
-            mt = 0
         self._send(200, data, extra={"X-Mtime": str(mt)})
 
     def _serve_tree(self):
@@ -468,7 +489,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # followlinks=False + realpath confinement, so an out-of-root symlink target never
         # leaks a filename into the listing.
         ext = [dict(it, path=label + "/" + it["path"]) for label, root in self.ext_roots.items()
-               for it in scan_tree(root, with_mtime=True)]
+               for it in scan_tree(root, with_mtime=True, limit=EXT_SCAN_MAX)]
         self._json({"dev": scan_tree(self.dev_root, with_mtime=True),
                     "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext})
 
@@ -526,7 +547,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # no path → a cheap 'did anything change?' token per tree (see _rev_token).
         if not p:
             self._json({"dev": _rev_token(self.dev_root), "kb": _rev_token(self.kb_root),
-                        "ext": ",".join(_rev_token(r) for r in self.ext_roots.values())})
+                        "ext": ",".join(_rev_token(r, EXT_SCAN_MAX) for r in self.ext_roots.values())})
             return
         m = re.match(r"^(dev|kb|ext)/(.*)$", p)
         root, relpath = self._root_of(m.group(1), m.group(2)) if m else (None, None)
@@ -674,25 +695,39 @@ def _trace_empty(card, err):
             "generated_at": "", "rows": [], "orphans": [], "error": err}
 
 
-def _rev_token(root: Path):
+def _rev_token(root: Path, limit=None):
     """Change token for live refresh (R63): "<newest .md mtime ms>.<.md count>" under root.
     The count makes deletions flip the token too — max-mtime alone misses removing a non-newest file."""
     best = n = 0
-    for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+    for dirpath, dirnames, filenames in _walk(root, limit):
         for fn in filenames:
-            if fn.endswith(".md"):
+            if fn.endswith(".md") and not (limit and n >= limit):
                 n += 1
                 try:
                     best = max(best, int((Path(dirpath) / fn).stat().st_mtime * 1000))
                 except OSError:
                     pass
+        if limit and n >= limit:
+            break
     return "%d.%d" % (best, n)
 
 
-def scan_tree(root: Path, with_mtime=False):
+def _walk(root, limit):
+    """os.walk; with a limit (an extra root) hidden directories and node_modules are not entered."""
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        if limit:
+            dirnames[:] = [d for d in dirnames if not d.startswith(".") and d != "node_modules"]
+        yield dirpath, dirnames, filenames
+
+
+def scan_tree(root: Path, with_mtime=False, limit=None):
     out = []
-    for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+    for dirpath, _dirnames, filenames in _walk(root, limit):
+        if limit and len(out) >= limit:
+            break
         for fn in filenames:
+            if limit and len(out) >= limit:
+                break
             if not fn.endswith(".md"):
                 continue
             real = (Path(dirpath) / fn).resolve(strict=False)

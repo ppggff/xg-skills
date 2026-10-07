@@ -1010,6 +1010,12 @@ t("043 todo: items are the checklist lines; tags from #words; edits touch one li
   assert.deepEqual(SV.parseTodo("- [ ] a #b#c and #d-e.f")[0].tags, ["b", "d-e.f"]);
   assert.deepEqual(SV.parseTodo("- [ ] ship @xg-skills and #old")[0].tags, ["xg-skills", "old"]);   // 044: @ is the new form
   assert.deepEqual(SV.parseTodo("- [ ] a\n```\n- [ ] in code\n```\n- [x] b").map(x => x.line), [0, 4]);
+  // 044 review: fences close only on a bare fence at least as long; other markers count and are kept on edit; no tags in links
+  assert.deepEqual(SV.parseTodo("````\n```js\n- [ ] in\n```\n````\n- [ ] out").map(x => x.line), [5]);
+  assert.deepEqual(SV.parseTodo("+ [ ] a\n1. [x] b\n* [ ] c").map(x => [x.line, x.done]), [[0, false], [1, true], [2, false]]);
+  assert.equal(SV.editTodo("1. [ ] b", 0, { done: true }), "1. [x] b");
+  assert.equal(SV.editTodo("+ [ ] a", 0, { text: "z" }), "+ [ ] z");
+  assert.deepEqual(SV.parseTodo("- [ ] see [[a @x]] and [t @y](u) @real")[0].tags, ["real"]);
 });
 t("044 resolveWikiAny: a wikilink names any doc by path, .md optional, kb and ext by prefix", () => {
   const sets = { dev: new Map([["p/a.md", "p/A.md"]]), kb: new Map([["wiki/x/y.md", "wiki/x/y.md"]]), ext: new Map([["n/e.md", "n/e.md"]]) };

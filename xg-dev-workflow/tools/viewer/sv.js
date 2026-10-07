@@ -643,16 +643,23 @@ var SV = (function () {
   }
   // 043/044: a todo file is markdown; only "- [ ] " / "- [x] " lines outside code fences are items, every other line
   // is kept as is. An item's @words (and the older #words) are its project tags; edits address an item by its line.
-  var TODO_RE = /^(\s*)[-*] \[( |x|X)\] (.*)$/;
+  var TODO_RE = /^(\s*(?:[-*+]|\d+[.)]) \[)( |x|X)(\] )(.*)$/;   // lead · mark · "] " · text — the marker is kept on edit
+  var FENCE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
   function parseTodo(text) {
     var out = [], fence = null;
     String(text || "").split("\n").forEach(function (l, i) {
-      var f = /^\s*(```|~~~)/.exec(l);
-      if (f) { fence = fence === null ? f[1] : (f[1] === fence ? null : fence); return; }
-      var m = fence === null && TODO_RE.exec(l), tags = [];
+      var f = FENCE_RE.exec(l);
+      if (fence === null) {
+        if (f && !(f[1].charAt(0) === "`" && f[2].indexOf("`") >= 0)) { fence = f[1]; return; }
+      } else {   // a fence closes on the same character, at least as long, with nothing after it
+        if (f && f[1].charAt(0) === fence.charAt(0) && f[1].length >= fence.length && !f[2].trim()) fence = null;
+        return;
+      }
+      var m = TODO_RE.exec(l), tags = [];
       if (!m) return;
-      m[3].replace(/(^|\s)[@#]([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
-      out.push({ line: i, done: m[2] !== " ", text: m[3], tags: tags });
+      m[4].replace(/\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)/g, " ")   // a tag inside a link's text or target is not a tag
+        .replace(/(^|\s)[@#]([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
+      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags });
     });
     return out;
   }
@@ -660,8 +667,8 @@ var SV = (function () {
     var ls = String(text || "").split("\n"), m = TODO_RE.exec(ls[line] || "");
     if (!m) return String(text || "");
     if (change.remove) ls.splice(line, 1);
-    else ls[line] = m[1] + "- [" + ((change.done !== undefined ? change.done : m[2] !== " ") ? "x" : " ") + "] "
-      + (change.text !== undefined ? change.text : m[3]);
+    else ls[line] = m[1] + ((change.done !== undefined ? change.done : m[2] !== " ") ? "x" : " ") + m[3]
+      + (change.text !== undefined ? change.text : m[4]);
     return ls.join("\n");
   }
   // 044: a wikilink may name any doc by its path — dev_root by default, kb (also via wiki/ or raw/), or ext/<label>/…;

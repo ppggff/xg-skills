@@ -22,23 +22,28 @@
     body: JSON.stringify(Object.assign({ op, file: name }, extra)) })
     .then(r => r.json().catch(() => ({})).then(d => ({ ok: r.ok, status: r.status, d })))
     .then(res => {
-      if (!res.ok) V.toast(res.status === 409 ? "这个 todo 文件在别处改过了，已重新读取，请再改一次" : "保存失败（" + res.status + "）");
+      if (!res.ok) V.toast(res.d && res.d.error === "exists" ? "已经有同名的文件" : res.status === 409 ? "这个 todo 文件在别处改过了，已重新读取，请再改一次" : "保存失败（" + res.status + "）");
       return V.load().then(() => V.emit("data")).then(() => res);   // the tree, the reader and this view all re-read
     }).catch(() => { V.toast("保存失败：连不上 viewer"); return { ok: false }; });
   const save = (name, text) => V.todoWrite("write", name, { text, mtime: F[name] ? F[name].base : 0 });
   const refresh = () => load().then(paint).catch(e => { const b = $("#todo .tmain"); if (b) b.innerHTML = `<div class="derr"><b>读不到 todo 目录</b><br>${esc(e.message)}</div>`; });
 
-  // an item's text: wikilinks and links open their doc, @tags and #tags are chips, the rest is plain text
-  V.todoItemHTML = (text, file) => esc(text)
-    .replace(/\[\[([^\]]+)\]\]/g, (all, x) => {
-      const key = SV.resolveWikiAny("[[" + x.replace(/&amp;/g, "&") + "]]", V.D.sets), label = esc(x.split("|").pop().split("/").pop());
-      return key ? `<button class="tdl" data-open="${esc(key)}" data-tip="${esc(key)}">${label}</button>` : `<span class="tdl broken" data-tip="找不到：${x}">${label}</span>`;
-    })
-    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, label, href) => {
-      const key = SV.resolveLink(href.replace(/&amp;/g, "&"), "dev", DIR + file, V.D.sets);
-      return key ? `<button class="tdl" data-open="${esc(key)}" data-tip="${esc(key)}">${label}</button>` : `<span class="tdl broken" data-tip="找不到：${href}">${label}</span>`;
-    })
-    .replace(/(^|\s)([@#])([\w.-]+)/g, (all, sp, m, t) => `${sp}<span class="ttag">${m}${t}</span>`);
+  // an item's text: wikilinks and links open their doc, @tags and #tags are chips — tags only in the plain text between
+  // links, and every piece escaped once, so nothing lands inside an attribute
+  const LINK = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)\s]+)\)/g;
+  const link = (key, label, miss) => (key ? `<button class="tdl" data-open="${esc(key)}" data-tip="${esc(key)}">${esc(label)}</button>`
+    : `<span class="tdl broken" data-tip="找不到：${esc(miss)}">${esc(label)}</span>`);
+  const plain = t => esc(t).replace(/(^|\s)([@#])([\w.-]+)/g, '$1<span class="ttag">$2$3</span>');
+  V.todoItemHTML = (text, file) => {
+    let h = "", last = 0;
+    text.replace(LINK, (all, wiki, label, href, at) => {
+      h += plain(text.slice(last, at)); last = at + all.length;
+      h += wiki ? link(SV.resolveWikiAny("[[" + wiki + "]]", V.D.sets), wiki.split("|").pop().split("/").pop(), wiki)
+        : link(SV.resolveLink(href, "dev", DIR + file, V.D.sets), label, href);
+      return all;
+    });
+    return h + plain(text.slice(last));
+  };
 
   function itemsAll() {
     return Object.keys(F).sort().flatMap(n => { F[n].shown = F[n].text; F[n].base = F[n].mtime; return SV.parseTodo(F[n].shown).map(it => Object.assign({ file: n }, it)); });
@@ -96,8 +101,7 @@
     const add = e.target.closest("#todo .tadd"), mk = e.target.closest("#todo .tnew"); if (!add && !mk) return;
     e.preventDefault();
     if (mk) {
-      let n = $("input", mk).value.trim().replace(/[/\\]/g, "-"); if (!n) return;
-      if (!/\.md$/i.test(n)) n += ".md";
+      const n = $("input", mk).value.trim().replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md"; if (n === ".md") return;
       if (F[n]) return V.toast("已经有 " + n);
       return V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 });
     }
@@ -112,8 +116,8 @@
   V.click("[data-ttag]", el => { tag = el.dataset.ttag; store.set("todo-tag", tag); paint(); });
   V.click("[data-tdone]", () => { showDone = !showDone; paint(); });
   V.click("[data-tren]", el => {
-    const n = el.dataset.tren; let to = (prompt("新文件名", n.replace(/\.md$/, "")) || "").trim().replace(/[/\\]/g, "-"); if (!to) return;
-    if (!/\.md$/i.test(to)) to += ".md";
+    const n = el.dataset.tren, raw = (prompt("新文件名", n.replace(/\.md$/, "")) || "").trim(); if (!raw) return;
+    const to = raw.replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md";
     if (to !== n) V.todoWrite("rename", n, { to, mtime: F[n].mtime });
   });
   V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; if (confirm(`删除 ${n}？里面的 todo 会一起删掉。`)) V.todoWrite("delete", n, { mtime: F[n].mtime }); });

@@ -8,14 +8,30 @@
   const fileOf = loc => loc.rel.slice("todo/".length);
 
   /* ---- reading: tickable checkboxes and @project tags ---- */
+  // marked's own task items, in render order, located in the source by their raw text; a box is enabled only when
+  // the line found is a task line in the same state, so an item we cannot place stays read-only rather than wrong
+  const TOG = /^(\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])/;
+  function taskLines(body) {
+    const at = [];
+    const walk = (tokens, from) => { let pos = from; (tokens || []).forEach(t => {
+      const i = t.raw ? body.indexOf(t.raw, pos) : -1, s = i >= 0 ? i : pos;
+      if (t.type === "list_item" && t.task) at.push(i >= 0 ? body.slice(0, i).split("\n").length - 1 : -1);
+      walk(t.items, s); walk(t.tokens, s);
+      if (i >= 0) pos = i + t.raw.length;
+    }); };
+    walk(window.marked.lexer(body), 0);
+    return at;
+  }
   V.on("rendered", k => {
     const p = P[k], loc = p.loc, todo = isTodo(loc) && p.doc && !p.doc.err && !p.chg;
+    if (p.edit && !$(".tta", p.body)) p.edit = null;   // a re-render replaced the editor
     p.el.classList.toggle("tododoc", !!todo);
     if (!todo) return;
-    const md = $(".md", p.body), items = SV.parseTodo(p.doc.text);
+    const md = $(".md", p.body), lines = p.doc.text.split("\n"), at = taskLines(p.doc.body);
     $$('input[type="checkbox"]', md).forEach((box, i) => {
-      const it = items[i]; if (!it) return;
-      box.disabled = false; box.dataset.tline = it.line; box.classList.add("tbox");
+      const ln = at[i] >= 0 ? at[i] + p.doc.fmLines : -1, m = ln >= 0 && TOG.exec(lines[ln] || "");
+      if (!m || (m[2] !== " ") !== box.checked) return;
+      box.disabled = false; box.dataset.tline = ln; box.classList.add("tbox");
     });
     const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !/(^|\s)@[\w.-]/.test(n.data) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     const texts = []; while (walk.nextNode()) texts.push(walk.currentNode);
@@ -24,7 +40,9 @@
   document.addEventListener("change", e => {
     const box = e.target.closest && e.target.closest(".pbody .md input.tbox"); if (!box) return;
     const k = V.paneOf(box), p = P[k], loc = p.loc; if (!isTodo(loc)) return;
-    const text = SV.editTodo(p.doc.text, +box.dataset.tline, { done: box.checked });
+    const ls = p.doc.text.split("\n"), ln = +box.dataset.tline;
+    ls[ln] = ls[ln].replace(TOG, (all, a, mark, b) => a + (box.checked ? "x" : " ") + b);
+    const text = ls.join("\n");
     V.todoWrite("write", fileOf(loc), { text, mtime: p.doc.mtime }).then(() => { if (p.loc === loc) V.rerender(k); });
   });
 
@@ -45,15 +63,18 @@
       return HL.reduce((h, [re, to]) => h.replace(re, to), esc(l));
     }).join("\n") + "\n";
   }
+  const drafts = {};   // unsaved editor text per file, kept when the pane moves on; offered back on the next 编辑
+  addEventListener("beforeunload", e => { if (["A", "B"].some(k => P[k].edit && $(".tta", P[k].body) && $(".tta", P[k].body).value !== P[k].edit.orig)) e.preventDefault(); });
   function open(k) {
     const p = P[k], loc = p.loc; if (!isTodo(loc) || !p.doc) return;
-    const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text };
+    const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text }, draft = drafts[loc.rel];
     p.edit = ed;
     p.body.innerHTML = `<div class="tedw"><div class="tedbar"><b>编辑 ${esc(fileOf(loc))}</b><span>输入 @ 补全项目，[[ 补全文档　⌘S 保存　Esc 退出</span>`
       + `<button data-tsave>保存</button><button data-tcancel>取消</button></div><div class="ted"><pre class="thl" aria-hidden="true"></pre>`
       + `<textarea class="tta" spellcheck="false" aria-label="编辑 ${esc(fileOf(loc))}"></textarea><div class="tac" hidden></div></div></div>`;
     const ta = $(".tta", p.body), hl = $(".thl", p.body);
-    ta.value = ed.orig; hl.innerHTML = highlight(ta.value);
+    ta.value = draft && draft !== ed.orig && confirm("上次有没保存的修改，恢复它吗？") ? draft : ed.orig; delete drafts[loc.rel];
+    hl.innerHTML = highlight(ta.value);
     ta.addEventListener("input", () => { hl.innerHTML = highlight(ta.value); complete(ed, ta); });
     ta.addEventListener("scroll", () => { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; });
     ta.addEventListener("keydown", e => keys(ed, ta, e));
@@ -61,15 +82,22 @@
     ta.focus();
   }
   function close(k, saved) {
-    const p = P[k]; if (!p.edit) return;
-    if (!saved && $(".tta", p.body).value !== p.edit.orig && !confirm("放弃没保存的修改？")) return;
+    const p = P[k], ta = p.edit && $(".tta", p.body); if (!p.edit) return;
+    if (!saved && ta && ta.value !== p.edit.orig && !confirm("放弃没保存的修改？")) return;
     p.edit = null; V.rerender(k);
   }
-  function save(k) {
-    const p = P[k], ed = p.edit; if (!ed) return;
-    V.todoWrite("write", fileOf(ed.loc), { text: $(".tta", p.body).value, mtime: ed.base }).then(res => { if (res.ok && p.edit === ed) close(k, true); });
+  // a save refused because the file changed elsewhere keeps the text and asks: overwrite with mine, or take theirs
+  function save(k, force) {
+    const p = P[k], ed = p.edit, ta = ed && $(".tta", p.body); if (!ta) return;
+    const send = mtime => V.todoWrite("write", fileOf(ed.loc), { text: ta.value, mtime });
+    const go = force ? V.api("/raw/dev/" + ed.loc.rel).then(r => +r.headers.get("X-Mtime") || 0).catch(() => 0).then(send) : send(ed.base);
+    go.then(res => {
+      if (p.edit !== ed) return;
+      if (res.ok) return close(k, true);
+      if (res.status === 409) $(".tedbar span", p.body).innerHTML = '<b class="tconf">这个文件在别处改过了。</b><button data-tforce>用我的覆盖</button><button data-ttheirs>放弃我的，看最新的</button>';
+    });
   }
-  V.on("nav", k => { if (P[k].edit) P[k].edit = null; });
+  V.on("nav", k => { const p = P[k], ta = p.edit && $(".tta", p.body); if (ta && ta.value !== p.edit.orig) drafts[p.edit.loc.rel] = ta.value; p.edit = null; });
 
   /* ---- completion: the token before the caret decides what is offered ---- */
   function tokenAt(ta) {
@@ -110,6 +138,7 @@
     $(".tac", P[ed.k].body).hidden = true; $(".thl", P[ed.k].body).innerHTML = highlight(ta.value); ta.focus();
   }
   function keys(ed, ta, e) {
+    if (e.isComposing || e.keyCode === 229) return;   // an IME is choosing: its Enter and arrows are not ours
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); e.stopPropagation(); return save(ed.k); }
     const ac = ed.ac;
     if (ac && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); ac.sel = (ac.sel + (e.key === "ArrowDown" ? 1 : ac.list.length - 1)) % ac.list.length; return paintAc(ed, $(".tac", P[ed.k].body)); }
@@ -120,4 +149,10 @@
   V.click('.phd [data-t="tedit"]', el => open(V.paneOf(el)));
   V.click("[data-tsave]", el => save(V.paneOf(el)));
   V.click("[data-tcancel]", el => close(V.paneOf(el)));
+  document.addEventListener("click", e => {   // the stale notice's 刷新 re-renders the pane: keep the text as a draft first
+    const b = e.target.closest && e.target.closest("[data-stale]"); if (!b) return;
+    const p = P[V.paneOf(b)], ta = p.edit && $(".tta", p.body); if (ta && ta.value !== p.edit.orig) drafts[p.edit.loc.rel] = ta.value;
+  }, true);
+  V.click("[data-tforce]", el => save(V.paneOf(el), true));
+  V.click("[data-ttheirs]", el => { const k = V.paneOf(el); if (P[k].edit) { P[k].edit.orig = $(".tta", P[k].body).value; close(k, true); } });
 })(V2);
