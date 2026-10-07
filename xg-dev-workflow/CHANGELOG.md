@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: /v2 fifth round from daily use (card xg-skills/040)
+
+- The project scope is gone from the nav; the tree, board and search always show every project.
+- On a phone, turning to landscape no longer enlarges the text.
+- Narrow doc tables fit the pane and wrap inside cells, as in the classic shell.
+- The TOC button sits last in the pane head.
+- The narrow side rail has one button, which hides the rail as the nav rail's does; the TOC then opens from the pane
+  head, and the drawer's button brings the rail back.
+- The collapsed nav keeps its dot at the open head's height and starts its buttons below the head line.
+
 ## 2026-10-07 — status viewer: the classic shell (/) gets its bugs fixed and v2's best parts (card xg-skills/041)
 
 The human still preferred the classic frontend after comparing it with /v2, so the classic shell was improved
