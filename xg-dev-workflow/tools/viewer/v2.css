@@ -96,7 +96,7 @@ input { font: inherit; color: inherit; }
 .chd { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 6px 0 10px; flex: none; border-bottom: 1px solid var(--ln); }
 .chd .t { font: 400 var(--t-meta) var(--cjk); color: var(--faint); margin-right: auto; white-space: nowrap; overflow: hidden; }
 .app.nc #nav > :not(.chd), .app.sc #side > :not(.srail) { display: none; }
-.ib.nconly, .srail, .ib.navb, .abw, .ib.tocb { display: none; }
+.ib.nconly, .srail, .ib.navb, .ib.tocb { display: none; }
 .app.nc #nav .chd { flex-direction: column; height: auto; padding: 6px 0; gap: 4px; border-bottom: 0; }
 .app.nc #nav .chd .brand { margin: 8px 0 15px; }   /* the dot stays where it sits in the open head; the buttons start below the head line (y 34) */
 .app.nc #nav .chd .ib.nconly { display: grid; }

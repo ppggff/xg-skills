@@ -5,13 +5,7 @@
 .app.narrow.v-board { grid-template-columns: 34px 0 minmax(0,1fr) 0 0; }
 .app.narrow > .gut { visibility: hidden; pointer-events: none; }
 .app.narrow #reader .gut { display: none; }
-.app.narrow #reader.split { grid-template-columns: minmax(0,1fr); }
-.app.narrow #reader.split #pA:not(.focus), .app.narrow #reader.split #pB:not(.focus) { display: none; }
-.app.narrow #reader.split .abw { display: inline-flex; }
-.app.narrow #reader.split .ptag { display: none; }
-.abw { gap: 1px; margin-right: 8px; background: var(--card); border-radius: var(--r-md); padding: 2px; }
-.abw button { font: 500 10px var(--mono); color: var(--mu); padding: 2px 7px; border-radius: 3px; }
-.abw button.on { background: var(--paper); color: var(--sig); }
+.app.narrow .phd :is([data-t="split"], [data-t="mirror"]) { display: none; }   /* narrow reads in one pane: no B */
 /* narrow: the side column opens as a drawer from the right, title and collapse button included, like the nav's */
 .app.narrow.tocpop #side {
   position: fixed; right: 0; top: 0; bottom: 22px; width: min(300px,84vw); z-index: 40; display: flex; flex-direction: column; background: var(--chrome);

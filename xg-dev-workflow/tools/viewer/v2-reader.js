@@ -408,11 +408,11 @@
     if (local && !e.shiftKey) return jumpTo(k, local, true);
     const home = local ? loc.rel : SV.xidHomeRel(loc.rel, id), canon = home && V.D.sets[loc.tree].get(home.toLowerCase());
     if (!canon) { V.toast(`没找到 ${id} 的定义`); return; }
-    const o = k === "A" ? "B" : "A", there = P[o].loc;   // narrow: it opens in the other pane and that pane takes the screen (A/B switch)
+    if (V.isNarrow()) return V.nav(k, { kind: "doc", tree: loc.tree, rel: canon, xid: id });   // one pane on narrow: the definition replaces this doc
+    const o = k === "A" ? "B" : "A", there = P[o].loc;
     if (there && there.kind === "doc" && there.rel === canon && P[o].doc) {
       const el = $(`[data-xid="${V.cssEsc(id)}"]`, P[o].body); if (el) jumpTo(o, el, false);
     } else V.nav(o, { kind: "doc", tree: loc.tree, rel: canon, xid: id });
-    if (V.isNarrow()) { V.setFocus(o); return; }
     V.setFocus(k);
     const wait = n => {
       const el = P[o].doc && $(`[data-xid="${V.cssEsc(id)}"]`, P[o].body);

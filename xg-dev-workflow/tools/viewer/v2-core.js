@@ -169,7 +169,11 @@ var V2 = (function () {
     const w = innerWidth, h = innerHeight, was = V.isNarrow();
     app.classList.toggle("narrow", w < 900); app.classList.toggle("phone", w < 600);
     app.classList.toggle("short", h < 500); app.classList.toggle("mid", w >= 900 && w < 1180);
-    if (was !== V.isNarrow()) { app.classList.remove("treepop", "tocpop", "navpop"); V.emit("narrow", V.isNarrow()); }
+    if (was !== V.isNarrow()) {
+      app.classList.remove("treepop", "tocpop", "navpop");
+      if (V.isNarrow() && V.isSplit()) V.setSplit(false);   // narrow reads in one pane; B keeps what it showed for the next split
+      V.emit("narrow", V.isNarrow());
+    }
     V.applyW(); V.relayout();
   };
 
@@ -291,17 +295,17 @@ var V2 = (function () {
     const docShown = ["A"].concat(V.isSplit() ? ["B"] : []).some(k => V.kindOf(k) === "doc");
     app.classList.toggle("v-board", !docShown && V.view !== "search");
   }
-  V.paneHead = k => `<span class="ptag">${k}</span><span class="abw">${["A", "B"].map(x => `<button data-ab="${x}" class="${x === k ? "on" : ""}">${x}</button>`).join("")}</span>`;
+  V.paneHead = k => `<span class="ptag">${k}</span>`;
   V.paneEnd = k => (k === "A" ? `<button class="ib${V.isSplit() ? " on" : ""}" data-t="split" data-tip="双栏对照" data-key="\\" aria-label="双栏对照">${V.I.split}</button>`
     : `<button class="ib" data-t="close" data-tip="关闭右栏" aria-label="关闭右栏">${V.I.x}</button>`);
   V.setFocus = k => {
     if (k === "B" && !V.isSplit()) k = "A";
-    $$(".abw button").forEach(b => b.classList.toggle("on", b.dataset.ab === k));
     if (V.focus === k) return;
     V.focus = k; P.A.el.classList.toggle("focus", k === "A"); P.B.el.classList.toggle("focus", k === "B"); app.classList.toggle("fB", k === "B");
     mount(); V.emit("focus", k); V.status();
   };
   V.setSplit = on => {
+    if (on && V.isNarrow()) return;
     $("#reader").classList.toggle("split", on);
     $$('[data-t="split"]').forEach(b => b.classList.toggle("on", on));
     if (on && !P.B.loc) V.emit("blank", "B");
@@ -311,7 +315,7 @@ var V2 = (function () {
   const same = (a, b) => a && b && a.kind === b.kind && a.tree === b.tree && a.rel === b.rel && a.q === b.q && a.card === b.card;
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
-    if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); }
+    if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); k = "A"; }
     if (k === "B" && !P.A.loc && opt.push !== false) k = "A";   // a new pick fills a blank A first; back/forward stay in their pane
     const p = P[k], o = P[V.other(k)];
     if (p.loc) V.emit("leave", k, p.loc);
@@ -362,7 +366,6 @@ var V2 = (function () {
   V.click("#themeBtn", el => (V.isPop("themePop") ? V.closePops() : V.themePop(el)));
   V.click("[data-col]", el => { V.toggleCol(el.dataset.col, el); V.applyW(); });
   V.click("#back", () => V.back()); V.click("#fwd", () => V.fwd());
-  V.click("[data-ab]", el => V.setFocus(el.dataset.ab));
   V.click("[data-navb]", () => { app.classList.toggle("navpop"); V.applyW(); if (app.classList.contains("navpop")) V.emit("tree-show"); });
   V.click("[data-goboard]", (el, e) => { app.classList.remove("treepop"); V.goBoard(e); });
   V.hotkey("[", () => V.back()); V.hotkey("]", () => V.fwd());

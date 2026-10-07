@@ -345,10 +345,8 @@ const SCENARIO = {
     await ctx.viewport(768, 1024); await ctx.go("doc"); await ctx.sleep(300);
     const cite = await ctx.eval("(() => { const c = document.querySelector('#pA .cite[data-ref^=Fact]'); return c ? c.dataset.ref : null; })()");
     if (cite) {
-      await ctx.click(`#pA .cite[data-ref="${cite}"]`); await ctx.wait(`!!document.querySelector('#pB [data-xid="${cite}"]')`); await ctx.sleep(200);
-      check("narrow: a citation opens in the other pane, which takes the screen", await ctx.eval("V2.focus === 'B' && getComputedStyle(document.getElementById('pA')).display === 'none'"));
-      await ctx.click('#pB .abw [data-ab="A"]');
-      check("narrow: the A/B switch shows A and hides B", await ctx.eval("getComputedStyle(document.getElementById('pB')).display === 'none' && getComputedStyle(document.getElementById('pA')).display !== 'none'"));
+      await ctx.click(`#pA .cite[data-ref="${cite}"]`); await ctx.wait(`!!document.querySelector('#pA [data-xid="${cite}"]')`); await ctx.sleep(200);
+      check("narrow: a citation opens its definition in the one pane, no split", await ctx.eval("V2.focus === 'A' && !V2.isSplit() && /facts\\.md$/.test(V2.P.A.loc.rel)"));
     }
   },
   // The human's 2026-10-05 review of the live page, one check per point.
@@ -412,7 +410,7 @@ const SCENARIO = {
     await ctx.click("#sideOpen"); await ctx.sleep(250);
     check("narrow: the side rail collapses fully", await ctx.eval("document.getElementById('app').classList.contains('sx') && document.getElementById('side').getBoundingClientRect().width === 0"));
     check("…and the pane head gets a TOC button", await ctx.eval("getComputedStyle(document.querySelector('#pA .tocb')).display !== 'none'"));
-    check("…and nothing of the rail is left over the pane head", await ctx.eval("(() => { const r = document.querySelector('#pA .phd [data-t=split]').getBoundingClientRect(), e = document.elementFromPoint(r.right - 3, r.top + r.height / 2); return !!e && !e.closest('#side'); })()"));
+    check("…and nothing of the rail is left over the pane head", await ctx.eval("(() => { const b = [...document.querySelectorAll('#pA .phd .ib')].filter(x => x.checkVisibility()).pop(), r = b.getBoundingClientRect(), e = document.elementFromPoint(r.right - 3, r.top + r.height / 2); return !!e && !e.closest('#side'); })()"));
     await ctx.eval("V2.W.nx = false; V2.applyW(); true"); await ctx.viewport(390, 844); await ctx.sleep(300);
     check("phone with the side collapse remembered: the nav strip keeps its 40px", await ctx.eval("getComputedStyle(document.getElementById('app')).gridTemplateColumns.split(' ')[0] === '40px'"));
     await ctx.click("#pA .tocb"); await ctx.sleep(200);
@@ -525,9 +523,11 @@ const SCENARIO = {
     await ctx.eval("V2.nav('B', { kind: 'recent' }); true"); await ctx.wait("!!document.querySelector('#pB #recent .commit, #pB #recent .hint:not(:first-child)')", 8000);
     check("the recent commits open in B", await ctx.eval("V2.kindOf('B') === 'recent' && document.querySelectorAll('#pB #recent .commit').length > 0"));
     await ctx.viewport(768, 1024); await ctx.sleep(400);
-    check("narrow: the board's head has the A/B switch", await ctx.eval("getComputedStyle(document.querySelector('#bhd .abw')).display !== 'none'"));
-    await ctx.click("#bhd [data-ab=B]"); await ctx.sleep(200);
-    check("narrow: switching to B shows the recent commits, hides the board", await ctx.eval("getComputedStyle(document.getElementById('pB')).display !== 'none' && getComputedStyle(document.getElementById('pA')).display === 'none'"));
+    check("narrow: the split closes, A takes the screen, and the head has no split button", await ctx.eval("!V2.isSplit() && getComputedStyle(document.getElementById('pB')).display === 'none' && getComputedStyle(document.querySelector('#bhd [data-t=split]')).display === 'none'"));
+    await ctx.eval("V2.setSplit(true); true"); await ctx.sleep(200);
+    check("narrow: a split cannot be opened", await ctx.eval("!V2.isSplit() && getComputedStyle(document.getElementById('pB')).display === 'none'"));
+    await ctx.eval("V2.nav('B', { kind: 'recent' }); true"); await ctx.sleep(400);
+    check("narrow: a view sent to B lands in A", await ctx.eval("V2.kindOf('A') === 'recent' && !V2.isSplit()"));
   },
   // Details of the classic shell that v2 was missing or weaker on, one check each.
   async parity(ctx, check, o) {
