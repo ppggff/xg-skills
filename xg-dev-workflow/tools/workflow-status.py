@@ -328,6 +328,7 @@ def iter_cards(root, want=None):
             row = rows.get(nnn, {})
             state = row.get("state", "?")
             steps, g, nxt = card_status(c)
+            dfm = frontmatter(os.path.join(c, "design.md"))
             yield {
                 "project": proj, "nnn": nnn, "dir": os.path.basename(c),
                 "phase": row.get("phase", "?"), "state": state, "deps": row.get("deps", "—"),
@@ -339,9 +340,9 @@ def iter_cards(root, want=None):
                 "state_noncanonical": state != "?" and state not in CANON_STATES,
                 # 003/R6: optional card→branch, deep-linked to that branch in the gitweb companion
                 "branch": frontmatter(os.path.join(c, "progress.md")).get("branch", "")
-                          or fm_value(frontmatter(os.path.join(c, "design.md")), "branch"),   # 043: a lite card names it in design.md
+                          or fm_value(dfm, "branch"),   # 043: a lite card names it in design.md
                 # 043: the gitweb repo label of the card's code when it is not the project's own
-                "repo": fm_value(frontmatter(os.path.join(c, "design.md")), "repo"),
+                "repo": fm_value(dfm, "repo"),
                 # 010: active ledger rows for the drawer ([] = no ledger); rides /api/board as-is
                 "decisions": card_decisions(c),
                 # 017 D1: governance mode (two-level cascade); board tile + drawer render it
