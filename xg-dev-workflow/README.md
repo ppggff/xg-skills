@@ -91,8 +91,8 @@ deepening scan whose picks graduate via the roadmap; `learn <card>…` distills 
 cards. `resume <slug>` / `park <slug>` continue or hand off a card; `check` runs the lite checks; `status`
 renders the card view (`python3 tools/viewer.py` serves the same data as a browsable localhost HTML
 viewer — board, doc/KB browsing, wikilink nav, per-card diff, recent commits, plus an optional co-launched
-**gitweb companion**; needs `lighttpd`, disable with `--no-gitweb`; the refined frontend runs beside it at `/v2`, on the
-same data, with its own remembered settings); `retro` improves the workflow. The
+**gitweb companion**; needs `lighttpd`, disable with `--no-gitweb`; `/` is the main frontend (`/v2` is an alias), and the frozen classic one stays at
+`/v1` on the same data, with its own remembered settings); `retro` improves the workflow. The
 legacy phase verbs (`requirement` / `design` / `detail` / `plan` / `test` / `change`) exist only for 存量
 cards and are defined in `references/legacy/SKILL.md`.
 

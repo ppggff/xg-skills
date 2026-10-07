@@ -1,7 +1,7 @@
-// shots-v2.mjs — the refined frontend's (/v2) half of the screenshot harness: how to drive each view,
-// what to measure, and its behavioural scenarios. Loaded by shots.mjs when --url ends in /v2; the page
+// shots-v2.mjs — the main frontend's (/, alias /v2) half of the screenshot harness: how to drive each view,
+// what to measure, and its behavioural scenarios. Loaded by shots.mjs unless --url ends in /v1; the page
 // exposes its namespace as window.V2, so views are driven through V2.nav, the same call a click makes.
-//   node tools/viewer/shots.mjs --url http://127.0.0.1:18790/v2 --scenario skeleton,storage,board
+//   node tools/viewer/shots.mjs --url http://127.0.0.1:18790/ --scenario skeleton,storage,board
 const J = JSON.stringify;
 const nav = (k, loc) => `V2.nav(${J(k)}, ${J(loc)})`;
 const docLoc = (o) => { const [tree, ...rest] = o.doc.split("/"); return { kind: "doc", tree, rel: rest.join("/") }; };

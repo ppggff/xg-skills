@@ -42,8 +42,8 @@ from pathlib import Path
 
 TOOLS_DIR = Path(__file__).resolve().parent
 VIEWER_DIR = TOOLS_DIR / "viewer"
-SHELL_HTML = VIEWER_DIR / "shell.html"
-SHELL_V2_HTML = VIEWER_DIR / "shell-v2.html"     # the refined frontend at /v2, beside the classic one at /
+SHELL_HTML = VIEWER_DIR / "shell.html"            # the classic frontend, frozen, at /v1
+SHELL_V2_HTML = VIEWER_DIR / "shell-v2.html"     # the frontend at /; /v2 stays as an alias for old bookmarks
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
           "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
           "sv.js": "text/javascript",
@@ -146,10 +146,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         parsed = urllib.parse.urlparse(self.path)
         path, qs = parsed.path, urllib.parse.parse_qs(parsed.query)
-        if path == "/":
-            self._serve_shell(SHELL_HTML)
-        elif path == "/v2":
+        if path in ("/", "/v2"):
             self._serve_shell(SHELL_V2_HTML)
+        elif path == "/v1":
+            self._serve_shell(SHELL_HTML)
         elif path.startswith("/assets/"):
             self._serve_asset(path[len("/assets/"):])
         elif path.startswith("/raw/"):

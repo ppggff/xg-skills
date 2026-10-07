@@ -58,8 +58,15 @@ class T0Skeleton(unittest.TestCase):
     def tearDown(self):
         self.httpd.shutdown(); self.httpd.server_close()
 
+    def test_root_serves_v2_and_v1_keeps_the_classic(self):
+        root, alias, v1 = get(self.base, "/"), get(self.base, "/v2"), get(self.base, "/v1")
+        self.assertEqual((root[0], alias[0], v1[0]), (200, 200, 200))
+        self.assertEqual(root[1], alias[1])
+        self.assertIn('src="/assets/v2-core.js"', root[1])
+        self.assertIn("window.GITWEB_URL", v1[1])
+
     def test_shell_served_and_references_assets(self):
-        code, body = get(self.base, "/")
+        code, body = get(self.base, "/v1")
         self.assertEqual(code, 200)
         self.assertIn("status viewer", body)
         self.assertIn('src="/assets/marked.min.js"', body)     # marked loaded eagerly
@@ -82,7 +89,7 @@ class T0Skeleton(unittest.TestCase):
             m = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', body)
             self.assertTrue(m, "page must carry its own CSP meta")
             return {d.split()[0]: set(d.split()[1:]) for d in m.group(1).split(";") if d.strip()}
-        old, new = csp(get(self.base, "/")[1]), csp(get(self.base, "/v2")[1])
+        old, new = csp(get(self.base, "/v1")[1]), csp(get(self.base, "/")[1])
         self.assertEqual(new.pop("style-src"), old.pop("style-src") | {"'self'"})
         self.assertEqual(new.pop("script-src"), old.pop("script-src") - {"'unsafe-inline'"})
         self.assertEqual(new, old)
@@ -376,10 +383,11 @@ class TLan(unittest.TestCase):
 
     def test_gitweb_url_is_same_origin(self):
         viewer.ALLOWED_HOSTS.add("192.168.1.185"); viewer.Handler.gitweb_port = 8791
-        self.assertIn('window.GITWEB_URL = "/gitweb/"', get(self.base, "/", host="192.168.1.185:8790")[1])   # one port: the viewer forwards
-        self.assertIn('window.GITWEB_URL = "/gitweb/"', get(self.base, "/", host="127.0.0.1:8790")[1])
+        self.assertIn('<meta name="gitweb-url" content="/gitweb/">', get(self.base, "/", host="192.168.1.185:8790")[1])   # one port: the viewer forwards
+        self.assertIn('<meta name="gitweb-url" content="/gitweb/">', get(self.base, "/", host="127.0.0.1:8790")[1])
+        self.assertIn('window.GITWEB_URL = "/gitweb/"', get(self.base, "/v1", host="127.0.0.1:8790")[1])
         viewer.Handler.gitweb_port = 0
-        self.assertIn('window.GITWEB_URL = ""', get(self.base, "/")[1])
+        self.assertIn('<meta name="gitweb-url" content="">', get(self.base, "/")[1])
 
     def test_parse_args_lan_and_hosts(self):
         a = viewer.parse_args(["--lan", "--host", "mac.local", "--host", "10.0.0.5", "--no-browser"])

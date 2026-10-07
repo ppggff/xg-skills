@@ -10,7 +10,7 @@
 // Run (viewer already up, or it is started on the url's port and stopped on exit):
 //   node tools/viewer/shots.mjs --out /tmp/shots/before
 //   node tools/viewer/shots.mjs --compare /tmp/shots/before /tmp/shots/after
-//   node tools/viewer/shots.mjs --scenario crossing,overlay     (behavioural checks, no files)
+//   node tools/viewer/shots.mjs --url http://127.0.0.1:8790/v1 --scenario crossing,overlay     (classic behavioural checks, no files)
 //   node tools/viewer/shots.mjs --viewports 390x844 --views doc --eval "<js>"   (print an expression per viewport/view)
 // Options: --url http://127.0.0.1:8790/  --viewports 390x844,768x1024,1024x768,1920x1080
 //   --views board,doc,search,diff,recent  --doc dev/<rel> (default: the newest card's design.md)
@@ -19,8 +19,9 @@
 //   --mask-head (hide the pane header before each shot: the one region allowed to differ across a change)
 //   --no-freeze (by default Date.now is pinned per run so relative times render the same in a re-run)
 //   --touch <file> (the refresh scenario bumps this file's mtime to trigger the live refresh)
-// A --url ending in /v2 drives the refined frontend instead: its views, measurements and scenarios
-// live in shots-v2.mjs; everything else (Chrome, CDP, the viewer lifecycle, --compare) is shared.
+// A --url ending in /v1 drives the classic frontend with the views, measurements and scenarios below; any other
+// --url (/, /v2) drives the main frontend, whose views, measurements and scenarios live in shots-v2.mjs. Chrome,
+// CDP, the viewer lifecycle and --compare are shared.
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, utimesSync, readdirSync, rmSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
@@ -571,6 +572,8 @@ const SCENARIO = {
   async classic041(ctx, check) {
     const docAt = async (tree, rel, ready = "!!document.querySelector('#left .docbody, #left .notice')") => { await ctx.eval(navAnchor({ nav: "doc", tree, rel })); await ctx.wait(ready); await sleep(300); };
     await ctx.viewport(1440, 900); await ctx.load();
+    await ctx.eval("localStorage.setItem('sv-board-hide', JSON.stringify({ dropped: true })); location.reload(); true"); await sleep(600);   // the card under test (040) is done now
+    await ctx.wait("!!document.querySelector('#tree .file')");
     // Req-1 bugs
     await docAt("dev", "xg-skills/no-such-file.md");
     check("404: a gentle notice, not the raw fetch error", await ctx.eval("/不存在或已被移动/.test(document.querySelector('#left .notice').textContent) && !/→ 404 \\(/.test(document.querySelector('#left').textContent)"));
@@ -660,7 +663,8 @@ const SCENARIO = {
     check("(the link preview is open)", await ctx.eval("!!document.getElementById('lp') && getComputedStyle(document.getElementById('lp')).display !== 'none'"));
     await ctx.key("Escape"); await sleep(150);
     check("Esc closes the link preview", await ctx.eval("getComputedStyle(document.getElementById('lp')).display === 'none'"));
-    await ctx.go("board"); await ctx.click('#left .card[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail')");
+    await boardIn("grid"); await ctx.click('#left .card[data-key="xg-skills/040"]'); await ctx.wait("!!document.querySelector('#left .card-detail')");
+    await ctx.mouseAt(5, 5); await sleep(400);   // the drawer opens under the pointer; a link there would raise a preview that Esc closes first
     await ctx.key("Escape"); await sleep(200);
     check("Esc closes the board detail", await ctx.eval("!document.querySelector('#left .card-detail')"));
     // Req-4-c citation hover cards; a plain click stays in the pane (J-5), ⇧ opens the definition beside with a connector
@@ -766,8 +770,8 @@ const SCENARIO = {
     check("…newest card first", (() => { const c = kids.filter(k => /^\d{3}-/.test(k)); return c.every((k, i) => !i || c[i - 1] > k); })());
     check("closed (n) is the project's last entry", kids[kids.length - 1] === "closed" && await ctx.eval(`/^closed \\(\\d+\\)/.test(document.querySelector('${proj} > details[data-name="closed"] > summary').textContent)`));
     check("…holding the done and dropped cards", await ctx.eval(`!!document.querySelector('${proj} > details[data-name="closed"] details[data-name^="039-"]') && !document.querySelector('${proj} > details[data-name^="039-"]')`));
-    await ctx.eval(`(() => { const d = document.querySelector('${proj} > details[data-name^="040-"]'); d.open = true; return true; })()`); await sleep(150);
-    check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name^="040-"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].classList.contains('file') && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.classList.contains('file')); })()`));
+    await ctx.eval(`(() => { const d = document.querySelector('${proj} > details[data-name="${kids[0]}"]'); d.open = true; return true; })()`); await sleep(150);
+    check("inside a card: design.md first, files before folders", await ctx.eval(`(() => { const k = [...document.querySelector('${proj} > details[data-name="${kids[0]}"]').children].filter(e => e.tagName !== 'SUMMARY'); return k[0].classList.contains('file') && k[0].dataset.rel.endsWith('/design.md') && k.findIndex(e => e.tagName === 'DETAILS') > k.findIndex(e => e.classList.contains('file')); })()`));
     await docAt("dev", "xg-skills/039-viewer-small-screen-touch/design.md");
     check("opening a doc of a closed card reveals it inside closed (n)", await ctx.eval(`document.querySelector('${proj} > details[data-name="closed"]').open && !!document.querySelector('#tree .file.active[data-rel="xg-skills/039-viewer-small-screen-touch/design.md"]')`));
     // Req-7-b the theme button opens a choice (J-11): five themes and a brightness slider; the button still shows the current one
@@ -867,7 +871,7 @@ function compare([a, b]) {
 }
 
 const o = parseArgs(process.argv.slice(2));
-UI = /\/v2\/?$/.test(new URL(o.url).pathname) ? (await import("./shots-v2.mjs")).default
+UI = !/\/v1\/?$/.test(new URL(o.url).pathname) ? (await import("./shots-v2.mjs")).default
   : { VIEW, MEASURE, SCENARIO, ready: "!!document.querySelector('#tree .file')", mask: ".doc-head, .findbar" };
 if (UI.views && o.views === DEF.views) o.views = UI.views;
 if (o.compare) process.exit(compare(o.compare));

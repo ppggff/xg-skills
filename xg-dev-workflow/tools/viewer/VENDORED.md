@@ -29,7 +29,7 @@ never a user-supplied path — the R6 read boundary still holds.
 
 ## martian-mono.woff2
 
-- **Library**: [Martian Mono](https://github.com/evilmartians/mono) — the refined frontend's (`/v2`) UI face;
+- **Library**: [Martian Mono](https://github.com/evilmartians/mono) — the main frontend's (`/`) UI face;
   Chinese text falls back to system fonts, nothing CJK is bundled.
 - **Version**: pinned **@fontsource-variable/martian-mono 5.3.0**, the `latin` subset of the variable `wght` axis
   (`files/martian-mono-latin-wght-normal.woff2`, sha256 `d0be3a78a854bcea53a9dc26b6620ba322eaa515ccbd92bb4b6ec20a3c91b291`).

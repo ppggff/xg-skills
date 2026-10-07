@@ -26,7 +26,7 @@ The workflow and the KB are siblings: the workflow *orchestrates* code work and 
                      #   forks of the shared files legacy/SKILL.md cites — SKILL.md and legacy/SKILL.md each list what they load
   tools/             # Python helpers (no deps beyond stdlib; PyYAML used if present, else a fallback parser)
                      #   xg-dev-workflow/tools/ also holds viewer.py + viewer/ (the status HTML
-                     #   viewer: shell.html at /, the refined shell-v2.html + v2.css + v2-*.js at /v2,
+                     #   viewer: shell-v2.html + v2.css + v2-*.js at / (alias /v2), the frozen classic shell.html at /v1,
                      #   the pure helpers both load from sv.js, vendored marked/mermaid/Martian Mono
                      #   + LICENSEs, and the tests: test-shell*.mjs, test_viewer.py, shots.mjs +
                      #   shots-v2.mjs) — the repo's only browser assets; vendored files are pinned,
