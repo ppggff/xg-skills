@@ -31,14 +31,14 @@
   // an item's text: wikilinks and links open their doc, @tags and #tags are chips — tags only in the plain text between
   // links, and every piece escaped once, so nothing lands inside an attribute
   const LINK = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)\s]+)\)/g;
-  const link = (key, label, miss) => (key ? `<button class="tdl" data-open="${esc(key)}" data-tip="${esc(key)}">${esc(label)}</button>`
+  const link = (key, label, miss, line) => (key ? `<button class="tdl" data-open="${esc(key)}"${line ? ` data-oline="${line}"` : ""} data-tip="${esc(key)}">${esc(label)}</button>`
     : `<span class="tdl broken" data-tip="找不到：${esc(miss)}">${esc(label)}</span>`);
   const plain = t => esc(t).replace(/(^|\s)([@#])([\w.-]+)/g, '$1<span class="ttag">$2$3</span>');
   V.todoItemHTML = (text, file) => {
     let h = "", last = 0;
     text.replace(LINK, (all, wiki, label, href, at) => {
       h += plain(text.slice(last, at)); last = at + all.length;
-      h += wiki ? link(SV.resolveWikiAny("[[" + wiki + "]]", V.D.sets), wiki.split("|").pop().split("/").pop(), wiki)
+      h += wiki ? link(SV.resolveWikiAny("[[" + wiki + "]]", V.D.sets), wiki.split("|").pop().split("#")[0].split("/").pop(), wiki, (/#L(\d+)$/.exec(wiki) || [])[1])
         : link(SV.resolveLink(href, "dev", DIR + file, V.D.sets), label, href);
       return all;
     });
@@ -140,6 +140,37 @@
     const all = V.recent.list("opened").concat(["dev", "kb", "ext"].flatMap(t => (V.D.tree[t] || []).map(x => t + ":" + x.path)));
     return [...new Set(all.map(wiki))];
   };
+  /* ---- capture: t anywhere, or 记为 todo on a selection — a line into inbox.md with the context filled in ---- */
+  const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
+  V.todoAppend = (name, body) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.text().then(t => [t, +r.headers.get("X-Mtime") || 0]))
+    .catch(e => (e.status === 404 ? ["", 0] : Promise.reject(e)))
+    .then(([t, mtime]) => V.todoWrite("write", name, { text: SV.addTodo(t, body), mtime }));
+  V.capture = (opt = {}) => {
+    const k = opt.k || V.navPane(), loc = V.P[k].loc, card = loc && loc.kind === "doc" ? V.cardOfPath(loc.tree, loc.rel) : loc && loc.kind === "board" && V.selCard ? V.card(V.selCard()) : null;
+    const proj = card ? card.p : loc && loc.kind === "doc" && loc.tree === "dev" && loc.rel.includes("/") && V.D.board[loc.rel.split("/")[0]] ? loc.rel.split("/")[0] : store.get("todo-proj", "");
+    let line = null; if (opt.at) { const el = opt.at.nodeType === 1 ? opt.at : opt.at.parentElement; line = el && V.lineOf(k, el); }
+    const doc = loc && loc.kind === "doc" ? wikiOf(loc.tree, loc.rel) + (line != null ? "#L" + (line + 1) : "") : card && V.mainDoc(card) ? wikiOf("dev", V.mainDoc(card)) : "";
+    const projs = Object.keys(V.D.board || {}).sort(), box = $("#cap .capbox");
+    box.innerHTML = `<div class="capt">随手记<span>写进 todo/inbox.md · 回车保存 · Esc 关闭</span></div><input class="capin" value="${esc(opt.text || "")}" placeholder="要记的事" aria-label="要记的事">`
+      + `<div class="caprow"><select class="capproj" aria-label="项目"><option value="">不标项目</option>${projs.map(p => `<option ${p === proj ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>`
+      + (doc ? `<label><input type="checkbox" class="capdoc" checked> 链接 <code>${esc(doc)}</code></label>` : "") + `<button>记下</button></div>`;
+    box.dataset.doc = doc; $("#cap").hidden = false;
+    const inp = $(".capin", box); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  };
+  const capClose = () => { $("#cap").hidden = true; };
+  V.layer(70, () => !$("#cap").hidden, capClose);
+  V.hotkey("t", () => V.capture());
+  V.click("#cap", (el, e) => { if (e.target.id === "cap") capClose(); });
+  document.addEventListener("submit", e => {
+    const box = e.target.closest("#cap .capbox"); if (!box) return;
+    e.preventDefault();
+    const text = $(".capin", box).value.trim(), proj = $(".capproj", box).value, link = $(".capdoc", box) && $(".capdoc", box).checked ? box.dataset.doc : "";
+    if (!text) return $(".capin", box).focus();
+    if (proj) store.set("todo-proj", proj);
+    const body = text + (proj && !text.includes("@" + proj) ? " @" + proj : "") + (link ? " [[" + link + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
+    capClose();
+    V.todoAppend("inbox.md", body).then(res => { if (res.ok) V.toast("记下了：todo/inbox.md"); });
+  });
   V.todoOpen = () => Object.values(F).reduce((n, f) => n + SV.parseTodo(f.text).filter(i => !i.done).length, 0);
   const find = id => { const i = id.lastIndexOf("|"), file = id.slice(0, i), line = +id.slice(i + 1); return F[file] && SV.parseTodo(F[file].shown).find(x => x.line === line) && { file, line }; };
 

@@ -689,6 +689,13 @@ a.tr { text-decoration: none; }
 /* ---- quick open ---- */
 .qo { position: fixed; inset: 0; z-index: 46; background: rgba(10,12,16,.25); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; animation: fadein .15s; }
 .qbox { width: min(600px,100%); background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); border: 1px solid var(--ln); overflow: hidden; animation: drop .2s var(--ease); }
+.capbox { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.capt { font: 500 var(--t-md) var(--cjk); color: var(--ink); } .capt span { margin-left: 10px; font-weight: 400; color: var(--faint); font-size: var(--t-sm); }
+.capin { height: 36px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--ink); padding: 0 10px; font: 400 calc(15px * var(--fz)) var(--cjk); }
+.caprow { display: flex; align-items: center; gap: 10px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
+.caprow select { height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); }
+.caprow label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .caprow code { font: 400 var(--t-xs) var(--mono); }
+.caprow button { padding: 4px 14px; border-radius: var(--r-sm); background: var(--sigs); color: var(--sig); }
 @keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
 .qbox input { width: 100%; height: 50px; border: 0; border-bottom: 1px solid var(--ln); background: none; outline: 0; padding: 0 16px; font-size: calc(15px * var(--fz)); color: var(--ink); }
 .ql { max-height: 52vh; overflow: auto; padding: 5px; }

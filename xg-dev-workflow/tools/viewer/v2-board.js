@@ -239,6 +239,7 @@
     $$("#board [data-card].sel").forEach(e => e.classList.remove("sel")); paintDetail();
   }
   V.on("detail-close", closeDetail);
+  V.selCard = () => sel;   // the capture box links the selected card's main doc
   V.revealCard = c => {
     unfold.add(groupBy === "s" ? "s:" + c.st : groupBy === "g" ? "g:" + c.gov : "p:" + c.p);
     hidden.delete(c.st); store.set("hide", [...hidden]); render(); V.pickCard(c.id);

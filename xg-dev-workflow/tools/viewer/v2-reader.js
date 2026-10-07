@@ -119,6 +119,7 @@
     if (key) {
       const i = key.indexOf(":");
       a.dataset.tree = key.slice(0, i); a.dataset.rel = key.slice(i + 1); a.removeAttribute("href"); a.tabIndex = 0; a.setAttribute("role", "link");
+      const ln = /#L(\d+)\]\]$/.exec(raw); if (ln) a.dataset.line = ln[1];   // [[doc#L12]] opens at that line
     } else if (/^https?:\/\//i.test(raw)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
     else if (raw.charAt(0) === "#") { a.dataset.hash = raw.slice(1); a.removeAttribute("href"); }
     else { a.classList.add("broken"); a.removeAttribute("href"); a.dataset.tip = "找不到这个链接的目标：" + raw; }
@@ -559,7 +560,7 @@
   V.click(".cite[data-ref]", (el, e) => follow(el, e));
   V.click(".md a[data-rel]", (el, e) => {
     hideTip(); const k = V.paneOf(el);
-    V.nav(e.shiftKey ? (k === "A" ? "B" : "A") : k, { kind: "doc", tree: el.dataset.tree, rel: el.dataset.rel });
+    V.nav(e.shiftKey ? (k === "A" ? "B" : "A") : k, { kind: "doc", tree: el.dataset.tree, rel: el.dataset.rel, line: +el.dataset.line || 0 });
   });
   V.click(".md a[data-hash]", el => {
     const k = V.paneOf(el), h = $$("h1,h2,h3,h4", P[k].body).find(x => x.id === el.dataset.hash || slug(x.textContent) === el.dataset.hash);
