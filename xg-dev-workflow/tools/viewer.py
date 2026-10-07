@@ -436,11 +436,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not _gitd(gd, "rev-parse", "--verify", "-q", head).strip():
             self._json({"commits": [], "base": "", "found": False})
             return
-        base = next((b for b in ("refs/remotes/origin/HEAD", "refs/heads/main", "refs/heads/master")
+        # the remote main line first: for a card working on main itself that leaves its unpushed commits
+        base = next((b for b in ("refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/remotes/origin/master",
+                                 "refs/heads/main", "refs/heads/master")
                      if b != head and _gitd(gd, "rev-parse", "--verify", "-q", b).strip()), "")
         out = _gitd(gd, "log", "--format=%H%x1f%s%x1f%cs", "-n", "30", base + ".." + head if base else head)
         commits = [dict(zip(("sha", "subject", "date"), l.split("\x1f"))) for l in out.splitlines() if l.count("\x1f") == 2]
-        self._json({"commits": commits, "base": base.rsplit("/", 1)[-1], "found": True})
+        self._json({"commits": commits, "base": re.sub(r"^refs/(heads|remotes)/", "", base), "found": True})
 
     def _serve_shas(self, shas, prefer):
         # 043: which gitweb repo holds each sha (7-40 hex), trying the preferred labels first; unknown → absent.
