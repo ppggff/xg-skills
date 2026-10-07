@@ -35,6 +35,12 @@ in place and kept as one file (decided per J-1).
 - A theme popover with 骨白, 深空 and a brightness slider.
 - Where a port overrode an earlier classic rule, the test that held it was rewritten and the card's plan.md names
   the decision behind each rewrite.
+- Later fixes from daily use:
+  - narrow: a bottom button names the section on screen and opens the TOC; it matches the back-to-top button;
+  - narrow: the doc still scrolls while the sidebar or TOC drawer is open;
+  - tree file rows are buttons, so a quick tap on a phone opens the file instead of folding the folder above;
+  - board cards share one height (one-line top row, room for Now and Next), and the state stripe has flat ends;
+  - the TOC's section marker no longer bleeds onto the row's top and bottom edges on a phone.
 
 ## 2026-10-06 — status viewer: /v2 panes hold any view; recent commits, help, brightness (card xg-skills/040)
 
