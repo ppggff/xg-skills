@@ -13,6 +13,8 @@ Each entry says *what changed* and *why*, not the raw diff.
 - The narrow side rail has one button, which hides the rail as the nav rail's does; the TOC then opens from the pane
   head, and the drawer's button brings the rail back.
 - The collapsed nav keeps its dot at the open head's height and starts its buttons below the head line.
+- The board table fits every width: name and next cut with an ellipsis, governance drops below 900px, and a phone
+  keeps number, name, state and progress.
 
 ## 2026-10-07 — status viewer: the classic shell (/) gets its bugs fixed and v2's best parts (card xg-skills/041)
 
