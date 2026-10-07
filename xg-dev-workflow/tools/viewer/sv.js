@@ -641,6 +641,34 @@ var SV = (function () {
       return { sha: /^commit ([0-9a-f]+)/.exec(b)[1], date: date ? date[1].trim() : "", subject: subj ? subj[1].trim() : "", diff: at < 0 ? "" : b.slice(at + 1) };
     });
   }
+  // 043: todo.md is a markdown checklist; only "- [ ] " / "- [x] " lines are items, every other line is kept as is.
+  // An item's #words are its tags; edits address an item by its line and rewrite that line alone.
+  var TODO_RE = /^(\s*)[-*] \[( |x|X)\] (.*)$/;
+  function parseTodo(text) {
+    var out = [];
+    String(text || "").split("\n").forEach(function (l, i) {
+      var m = TODO_RE.exec(l), tags = [];
+      if (!m) return;
+      m[3].replace(/(^|\s)#([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
+      out.push({ line: i, done: m[2] !== " ", text: m[3], tags: tags });
+    });
+    return out;
+  }
+  function editTodo(text, line, change) {   // change: { done } | { text } | { remove: true }
+    var ls = String(text || "").split("\n"), m = TODO_RE.exec(ls[line] || "");
+    if (!m) return String(text || "");
+    if (change.remove) ls.splice(line, 1);
+    else ls[line] = m[1] + "- [" + ((change.done !== undefined ? change.done : m[2] !== " ") ? "x" : " ") + "] "
+      + (change.text !== undefined ? change.text : m[3]);
+    return ls.join("\n");
+  }
+  function addTodo(text, body) {
+    var t = String(text || "");
+    if (!t.trim()) t = "# todo\n\n";
+    else if (t.charAt(t.length - 1) !== "\n") t += "\n";
+    return t + "- [ ] " + body + "\n";
+  }
+
   return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
            cardView: cardView, factBlocks: factBlocks, factGist: factGist, reqHeads: reqHeads, tocLabel: tocLabel, diffFiles: diffFiles, splitCommits: splitCommits, slug: slug,
            parseFrontmatter: parseFrontmatter, resolveLink: resolveLink, normalizePath: normalizePath, sectionForLine: sectionForLine, diffSegments: diffSegments,
@@ -654,7 +682,8 @@ var SV = (function () {
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
-           xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace };
+           xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
+           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;

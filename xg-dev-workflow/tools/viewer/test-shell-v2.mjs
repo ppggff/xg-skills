@@ -9,7 +9,7 @@ import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), "utf8");
-const AREAS = ["core", "tree", "board", "reader", "search", "find"];
+const AREAS = ["core", "tree", "board", "reader", "search", "find", "todo"];
 const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css");
 const js = Object.fromEntries(AREAS.map((a) => [a, read(`v2-${a}.js`)]));
 const allJs = Object.values(js).join("\n");

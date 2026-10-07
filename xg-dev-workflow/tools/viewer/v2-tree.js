@@ -97,7 +97,9 @@
     let h = `<button class="tr top ${V.view === "board" ? "cur" : ""}" style="--d:0" data-goboard="1">`
       + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`
       + `<button class="tr top ${V.view === "recent" ? "cur" : ""}" style="--d:0" data-recent="1" data-tip="dev_root 最近 25 次提交">`
-      + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`;
+      + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`
+      + `<button class="tr top ${V.view === "todo" ? "cur" : ""}" style="--d:0" data-todo="1" data-tip="dev_root/todo.md：笔记与待办">`
+      + `<span class="cv">${V.I.doc}</span><span class="nm">todo</span><em>${V.todoOpen ? V.todoOpen() || "" : ""}</em></button>`;
     if (V.GITWEB) h += `<a class="tr top" style="--d:0" href="${esc(V.GITWEB)}" target="_blank" rel="noopener" data-tip="浏览代码：gitweb，在新标签页打开">`
       + `<span class="cv">${V.I.code}</span><span class="nm">浏览代码</span></a>`;
     // dev: projects → open cards → closed (n) → the project's other files
@@ -156,6 +158,7 @@
 
   V.click("[data-fold-k]", el => toggleFold(el.dataset.foldK));
   V.click("[data-recent]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "recent" }); });
+  V.click("[data-todo]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "todo" }); });
   V.click("[data-tsort]", el => {   // a time sort starts newest first, a name sort A→Z
     const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });
@@ -168,6 +171,6 @@
   });
   V.click("#starBtn", el => (V.isPop("starPop") ? V.closePops() : starPop(el)));
   V.click("#trailBtn", el => (V.isPop("trailPop") ? V.closePops() : trailPop(el)));
-  ["data", "tree-show", "stars", "focus", "split"].forEach(ev => V.on(ev, () => render(ev === "tree-show")));
+  ["data", "tree-show", "stars", "focus", "split", "todo-count"].forEach(ev => V.on(ev, () => render(ev === "tree-show")));
   V.on("nav", (k, loc) => { if (loc.kind === "doc") V.revealDoc(loc.tree, loc.rel); render(true); });
 })(V2);

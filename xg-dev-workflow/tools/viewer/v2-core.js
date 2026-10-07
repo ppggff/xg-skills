@@ -276,7 +276,7 @@ var V2 = (function () {
 
   /* ---- panes: A and B each show one thing — a doc, or one of the views (board, search, diff, recent) ---- */
   const P = V.P = { A: { k: "A", hist: [], fwd: [], loc: null }, B: { k: "B", hist: [], fwd: [], loc: null } };
-  const SECTIONS = { board: "#board", search: "#search", diff: "#diffv", recent: "#recent" };
+  const SECTIONS = { board: "#board", search: "#search", diff: "#diffv", recent: "#recent", todo: "#todo" };
   V.view = "board";   // what the focused pane shows: the keys and the status bar follow it
   V.focus = "A";
   V.views = {};   // kind → render(k, loc, opt), registered by the area files
@@ -348,7 +348,7 @@ var V2 = (function () {
   V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); if (p.loc) p.hist.push(V.here(p)); V.nav(p.k, to, { push: false, user: false }); };
   V.rerender = k => { const p = P[k]; if (p.loc) V.views[p.loc.kind](k, p.loc, { entering: false }); };
   V.locLabel = l => (!l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」"
-    : l.kind === "diff" ? l.card + " 的改动" : l.kind === "recent" ? "最近提交" : "看板");
+    : l.kind === "diff" ? l.card + " 的改动" : l.kind === "recent" ? "最近提交" : l.kind === "todo" ? "todo" : "看板");
   V.paintHist = () => {
     const p = P[V.navPane()], b = $("#back"), f = $("#fwd");
     b.disabled = !p.hist.length; f.disabled = !p.fwd.length;

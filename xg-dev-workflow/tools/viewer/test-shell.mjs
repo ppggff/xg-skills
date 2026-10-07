@@ -996,6 +996,19 @@ t("diffFiles: one entry per file, lines classed add/del/hunk, headers left plain
   assert.deepEqual(SV.diffFiles(""), []);
 });
 
+t("043 todo: items are the checklist lines; tags from #words; edits touch one line; add starts a file", () => {
+  const md = "# todo\n\nnote line\n- [ ] fix the tree #xg-skills [d](xg-skills/a/design.md)\n  - [x] nested #hashdata #xg-skills\n";
+  const it = SV.parseTodo(md);
+  assert.deepEqual(it.map(x => [x.line, x.done, x.tags]), [[3, false, ["xg-skills"]], [4, true, ["hashdata", "xg-skills"]]]);
+  assert.equal(SV.editTodo(md, 3, { done: true }).split("\n")[3], "- [x] fix the tree #xg-skills [d](xg-skills/a/design.md)");
+  assert.equal(SV.editTodo(md, 4, { text: "renamed" }).split("\n")[4], "  - [x] renamed");
+  assert.equal(SV.editTodo(md, 3, { remove: true }).split("\n").length, md.split("\n").length - 1);
+  assert.equal(SV.editTodo(md, 2, { done: true }), md);   // not an item: unchanged
+  assert.equal(SV.addTodo("", "a"), "# todo\n\n- [ ] a\n");
+  assert.equal(SV.addTodo("x", "b"), "x\n- [ ] b\n");
+  assert.deepEqual(SV.parseTodo("a #b#c and #d-e.f"), []);
+  assert.deepEqual(SV.parseTodo("- [ ] a #b#c and #d-e.f")[0].tags, ["b", "d-e.f"]);
+});
 t("splitCommits: one entry per commit with sha, date, subject and only the diff part", () => {
   const log = "commit abc1234def\nAuthor: x <x@y>\nDate:   Tue Oct 6 15:16:56 2026 +0800\n\n    first subject\n\n    body line\n\ndiff --git a/a.md b/a.md\n+x\n"
     + "commit 0123456789\nAuthor: x <x@y>\nDate:   Mon Oct 5 10:00:00 2026 +0800\n\n    second\n";

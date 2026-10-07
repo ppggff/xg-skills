@@ -24,7 +24,8 @@
   }
   const docItem = (tree, rel, mtime) => ({ k: "doc", tree, rel, mtime, label: (tree === "dev" ? "" : tree + "/") + rel });
   const docs = () => ["dev", "kb", "ext"].reduce((a, tree) => a.concat(V.D.tree[tree].map(x => docItem(tree, x.path, x.mtime))), []);
-  const navRows = () => [{ k: "go", label: "看板", sub: "所有卡片", words: "board" }, { k: "recent", label: "最近提交", sub: "dev_root 的提交", words: "recent commits log" }]
+  const navRows = () => [{ k: "go", label: "看板", sub: "所有卡片", words: "board" }, { k: "recent", label: "最近提交", sub: "dev_root 的提交", words: "recent commits log" },
+    { k: "todo", label: "todo", sub: "dev_root/todo.md 的笔记与待办", words: "todo note 待办 笔记" }]
     .concat(V.GITWEB ? [{ k: "ext", label: "浏览代码", sub: "gitweb，新标签页", words: "gitweb code" }] : []);
 
   /* ---- quick open ---- */
@@ -94,6 +95,7 @@
     const it = r.it, side = V.target(e);
     if (it.k === "go") return V.goBoard(e);
     if (it.k === "recent") return V.nav(side, { kind: "recent" });
+    if (it.k === "todo") return V.nav(side, { kind: "todo" });
     if (it.k === "ext") return window.open(V.GITWEB, "_blank", "noopener");
     if (it.k === "search") return fullSearch(it.q, e);
     if (it.k === "card") {

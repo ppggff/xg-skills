@@ -314,7 +314,7 @@ a.tr { text-decoration: none; }
 @media (max-width: 900px) { .bdg { grid-template-columns: 1fr; } }
 
 /* card diff view (a board-level view, like the doc reader) */
-#diffv, #recent { display: flex; flex-direction: column; }
+#diffv, #recent, #todo { display: flex; flex-direction: column; }
 #recent .commit { margin: 0 0 26px; }
 .sfl .sfr { display: flex; align-items: center; gap: 4px; padding-left: 8px; }
 .sfl .sfr input { margin: 0; accent-color: var(--sig); flex: none; }
@@ -323,6 +323,32 @@ a.tr { text-decoration: none; }
 #recent .commit h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 8px; font: 500 var(--t-lg) var(--cjk); color: var(--ink); }
 #recent .commit h2 em { margin-left: auto; font: 400 var(--t-meta) var(--mono); font-style: normal; color: var(--faint); white-space: nowrap; }
 #diffv .dbody, #recent .dbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
+/* todo (043): an add row, tag chips, then the open items; done ones behind a fold */
+#todo .tbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; max-width: 920px; }
+.tadd { display: flex; gap: 6px; margin: 0 0 12px; }
+.tadd input, .tadd select { height: 28px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: 400 var(--t-md) var(--cjk); padding: 0 8px; min-width: 0; }
+.tadd .tin { flex: 3; } .tadd .tdoc { flex: 2; } .tadd .tproj { flex: none; }
+.tadd .tgo { flex: none; padding: 0 12px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); font: 400 var(--t-md) var(--cjk); }
+.tadd .tgo:hover { color: var(--sig); }
+.tchips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; }
+.tchips .chip { width: auto; }
+.tchips .chip em { padding-left: 8px; }
+.tchips .chip.on { color: var(--sig); background: var(--sigs); }
+.titem { display: flex; align-items: baseline; gap: 10px; padding: 5px 4px; border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); font: 400 var(--t-lg)/1.6 var(--cjk); color: var(--tx); }
+.titem .tck { flex: none; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 12px; color: var(--done); align-self: center; }
+.titem.done .ttx { color: var(--faint); text-decoration: line-through; }
+.titem .ttx { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.titem .tdel { flex: none; color: var(--faint); opacity: 0; }
+.titem:hover .tdel, .titem .tdel:focus-visible { opacity: 1; }
+.titem .tdel:hover { color: var(--blocked); }
+.titem .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
+.titem .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; }
+.titem .tdl.broken { color: var(--blocked); }
+.titem.ed .tedit { flex: 1; height: 28px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
+.tfold { margin: 12px 0 6px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
+.tfold:hover { color: var(--tx); }
+.app.phone .tadd { flex-wrap: wrap; } .app.phone .tadd .tin { flex-basis: 100%; }
+
 .dfile { margin: 0 0 18px; }
 .dfile h3 { margin: 0 0 6px; font: 400 var(--t-sm) var(--mono); color: var(--ink); }
 .dfile h3 button:hover { color: var(--sig); }

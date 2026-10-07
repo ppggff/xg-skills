@@ -93,7 +93,8 @@ renders the card view (`python3 tools/viewer.py` serves the same data as a brows
 viewer — board, doc/KB browsing, wikilink nav, per-card diff, recent commits, plus an optional co-launched
 **gitweb companion**; needs `lighttpd`, disable with `--no-gitweb`; `/` is the main frontend (`/v2` is an alias), and the frozen classic one stays at
 `/v1` on the same data, with its own remembered settings; an optional `extra_roots:` list in the shared config adds
-read-only directories to the main frontend's tree); `retro` improves the workflow. The
+read-only directories to the main frontend's tree; its todo view keeps notes in `<dev_root>/todo.md`, the one file
+the viewer writes); `retro` improves the workflow. The
 legacy phase verbs (`requirement` / `design` / `detail` / `plan` / `test` / `change`) exist only for 存量
 cards and are defined in `references/legacy/SKILL.md`.
 

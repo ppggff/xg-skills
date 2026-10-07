@@ -51,7 +51,7 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "martian-mono.woff2": "font/woff2",
           "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css",
           "gitweb-theme.css": "text/css", "gitweb-theme.js": "text/javascript",
-          **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find")}}
+          **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find", "todo")}}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
@@ -62,6 +62,8 @@ SNAPSHOT_GREP = "auto: data snapshot"
 GITWEB_THEME = (b'<link rel="stylesheet" href="/assets/v2-themes.css"><link rel="stylesheet" href="/assets/gitweb-theme.css">'
                 b'<script src="/assets/gitweb-theme.js"></script>')
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
+TODO_FILE = "todo.md"                            # the one file the viewer writes, at the dev_root top (043)
+TODO_MAX = 256 * 1024
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
 
@@ -160,6 +162,53 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _json(self, obj, code=200):
         self._send(code, json.dumps(obj, ensure_ascii=False), "application/json; charset=utf-8")
+
+    todo_lock = threading.Lock()
+
+    def do_POST(self):
+        # 043: the only write. The path is fixed (not taken from the request); a cross-site page cannot send
+        # it: JSON plus a custom header needs a CORS preflight the viewer never answers, and Origin must match.
+        if not self._host_ok():
+            self._send(403, "forbidden: non-localhost Host\n")
+            return
+        if urllib.parse.urlparse(self.path).path != "/api/todo":
+            self._send(404, "not found\n")
+            return
+        origin = self.headers.get("Origin")
+        if (origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host", "")) or \
+                self.headers.get("X-SV-Write") != "1" or not self.headers.get("Content-Type", "").startswith("application/json"):
+            self._send(403, "forbidden\n")
+            return
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = -1
+        if not 0 < n <= TODO_MAX:
+            self._send(413, "too large\n")
+            return
+        try:
+            body = json.loads(self.rfile.read(n).decode("utf-8"))
+            text, base = body["text"], int(body["mtime"])
+        except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+            self._send(400, "bad request\n")
+            return
+        if not isinstance(text, str):
+            self._send(400, "bad request\n")
+            return
+        self._write_todo(text, base)
+
+    def _write_todo(self, text, base):
+        """Replace todo.md only when it is still the version the page read (mtime in ms, 0 = absent)."""
+        real = self.dev_root / TODO_FILE
+        with self.todo_lock:
+            cur = int(real.stat().st_mtime * 1000) if real.is_file() else 0
+            if cur != base:
+                self._json({"error": "changed", "mtime": cur}, 409)
+                return
+            tmp = self.dev_root / ".todo.md.tmp"
+            tmp.write_text(text, encoding="utf-8")
+            os.replace(tmp, real)
+            self._json({"mtime": int(real.stat().st_mtime * 1000)})
 
     def do_GET(self):
         if not self._host_ok():

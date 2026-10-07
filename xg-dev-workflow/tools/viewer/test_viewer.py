@@ -148,6 +148,54 @@ def _git(cwd, *a):
     return subprocess.run(["git", "-C", str(cwd), *a], capture_output=True, text=True, env=env).stdout
 
 
+class TTodo(unittest.TestCase):
+    """043 Req-2 / Inv-1: the one write — todo.md at the dev_root top, guarded and version-checked."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.dev, kb = self.tmp / "dev", self.tmp / "kb"
+        self.dev.mkdir(); kb.mkdir()
+        self.httpd, self.base = start(self.dev, kb)
+
+    def tearDown(self):
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def post(self, body, path="/api/todo", headers=None, raw=None):
+        h = {"Content-Type": "application/json", "X-SV-Write": "1"}
+        h.update(headers or {})
+        data = raw if raw is not None else json.dumps(body).encode()
+        req = urllib.request.Request(self.base + path, data=data, method="POST", headers={k: v for k, v in h.items() if v is not None})
+        try:
+            r = urllib.request.urlopen(req, timeout=3)
+            return r.status, json.loads(r.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode("utf-8", "replace")
+
+    def test_writes_then_refuses_a_stale_version(self):
+        code, d = self.post({"text": "- [ ] a\n", "mtime": 0})
+        self.assertEqual(code, 200)
+        self.assertEqual((self.dev / "todo.md").read_text(encoding="utf-8"), "- [ ] a\n")
+        self.assertEqual(get(self.base, "/raw/dev/todo.md")[1], "- [ ] a\n")
+        code, d2 = self.post({"text": "- [x] a\n", "mtime": d["mtime"]})
+        self.assertEqual(code, 200)
+        code, _ = self.post({"text": "clobber", "mtime": d["mtime"]})   # the version it read is gone
+        self.assertEqual(code, 409)
+        self.assertEqual((self.dev / "todo.md").read_text(encoding="utf-8"), "- [x] a\n")
+        self.assertEqual(self.post({"text": "x", "mtime": 0})[0], 409)       # it exists now
+
+    def test_refuses_anything_but_a_same_origin_json_write(self):
+        ok = {"text": "t", "mtime": 0}
+        for headers in ({"X-SV-Write": None}, {"Content-Type": "text/plain"}, {"Origin": "http://evil.com"},
+                        {"Host": "evil.com"}):
+            self.assertEqual(self.post(ok, headers=headers)[0], 403, headers)
+        self.assertEqual(self.post(ok, path="/api/other")[0], 404)
+        self.assertEqual(self.post(None, raw=b"{not json")[0], 400)
+        self.assertEqual(self.post({"text": 3, "mtime": 0})[0], 400)
+        self.assertEqual(self.post({"text": "x" * (300 * 1024), "mtime": 0})[0], 413)
+        self.assertFalse((self.dev / "todo.md").exists())
+        host = urllib.parse.urlsplit(self.base).netloc
+        self.assertEqual(self.post(ok, headers={"Origin": "http://" + host})[0], 200)
+
+
 class TShas(unittest.TestCase):
     """043 Req-3-a: /api/shas names the gitweb repo holding each commit, preferred repos first."""
     def setUp(self):
