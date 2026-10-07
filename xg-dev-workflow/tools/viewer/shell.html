@@ -142,7 +142,6 @@
   html.narrow .board-filters::-webkit-scrollbar { display: none; }
   html.narrow .fchip { flex: none; }
   html.narrow .tree { font-size: 13px; }
-  html.narrow .tree { touch-action: manipulation; }   /* a quick tap on a file right after opening its folder read as a double-tap on iOS and folded the folder */
   html.narrow .tree summary, html.narrow .tree .file { min-height: 30px; padding: 2px 6px; }
   html.narrow .tree summary, html.narrow .tree .file { overflow-x: auto; scrollbar-width: none; }   /* a long name drags sideways on its own row */
   html.narrow .tree summary::-webkit-scrollbar, html.narrow .tree .file::-webkit-scrollbar { display: none; }
@@ -334,7 +333,6 @@
     white-space: nowrap; overflow: hidden; }
   .tree summary { cursor: pointer; list-style: none; color: var(--fg); font-weight: 500; }
   .tree .file { color: var(--body); text-overflow: ellipsis; }
-  .tree .file { cursor: pointer; }   /* iOS counts a pointer-cursor row as tappable; without it a quick tap went to the folder row above */
   .tree .arrow { flex: none; width: 1.1em; text-align: center; color: var(--line2); font-size: .85em; }  /* R6: dimmer arrows */
   .tree summary .arrow::before { content: "▸"; }
   .tree details[open] > summary .arrow::before { content: "▾"; }
@@ -2869,27 +2867,6 @@ if (typeof window !== "undefined" && window.marked) (function () {
     e.preventDefault(); ft.a.click();
   }, { passive: false });
   treeEl.addEventListener("touchcancel", function () { fileTouch = null; });
-  if (/[?&]tapdebug\b/.test(location.search)) (function () {   // temporary: on-device log of where taps land in the tree
-    var box = document.createElement("pre"), lines = [], t0 = performance.now();
-    box.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;margin:0;padding:4px 6px;max-height:40vh;overflow:hidden;" +
-      "font:10px/1.35 ui-monospace,monospace;background:rgba(0,0,0,.82);color:#9f9;pointer-events:none;white-space:pre-wrap";
-    document.body.appendChild(box);
-    function who(el) {
-      if (!el || !el.closest) return String(el);
-      var f = el.closest("a.file"), d = el.closest("details");
-      return f ? "FILE " + f.dataset.rel.split("/").slice(-2).join("/") : el.closest("summary") ? "SUMMARY " + (d && d.dataset.name) :
-        el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + (typeof el.className === "string" && el.className ? "." + el.className.split(" ")[0] : "");
-    }
-    function log(s) { lines.push(((performance.now() - t0) / 1000).toFixed(2) + " " + s); lines = lines.slice(-18); box.textContent = lines.join("\n"); box.scrollTop = box.scrollHeight; }
-    ["touchstart", "touchend", "touchcancel", "mousedown", "click"].forEach(function (k) {
-      document.addEventListener(k, function (e) {
-        var p = e.changedTouches ? e.changedTouches[0] : e;
-        log(k + " → " + who(e.target) + " @" + Math.round(p.clientX) + "," + Math.round(p.clientY) + (e.defaultPrevented ? " (prevented)" : ""));
-      }, true);
-    });
-    treeEl.addEventListener("toggle", function (e) { log("toggle " + (e.target.open ? "OPEN " : "CLOSE ") + e.target.dataset.name); }, true);
-    new MutationObserver(function () { log("tree rebuilt"); }).observe(treeEl, { childList: true });
-  })();
   treeEl.addEventListener("keydown", function (e) { if (e.key !== "Enter" && e.key !== " ") return; var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
   // R2: F collapses this section's folders; if already fully collapsed, restores the pre-collapse set.
   // Decision keys off live DOM state (any folder open?), NOT a flag — <details> toggle events are async,
