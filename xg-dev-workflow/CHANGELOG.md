@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: todo, gitweb links, extra roots; lite cards may name a branch (card xg-skills/043)
+
+- design.md frontmatter may carry `branch:` and `repo:` (template and constraints Lay-2). The board reads them for lite
+  cards; the viewer links the branch in gitweb and lists its commits not on the remote main line.
+- Main frontend:
+  - a todo view kept in `<dev_root>/todo.md` (a markdown checklist; #project tags, doc links). It is the viewer's one
+    write: a fixed path, same-origin JSON only, and refused when the file changed since the page read it;
+  - commits named in docs (inline hashes, frontmatter `go`/`skill`) open in gitweb; a doc head button opens the doc
+    there; gitweb pages follow the viewer's theme and brightness;
+  - an optional `extra_roots:` config list adds read-only directories as a third tree;
+  - the change history lists uncommitted changes first;
+  - a jump within a doc can be undone with back; history entries keep the scroll position;
+  - text sizes scale with one factor (`--fz`), the common sizes are tokens, and behaviour numbers sit in one block.
+
 ## 2026-10-07 — status viewer: v2 is the main frontend (card xg-skills/042)
 
 - `/` now serves v2; `/v2` stays as an alias, and the classic frontend is frozen at `/v1` with no further updates.
