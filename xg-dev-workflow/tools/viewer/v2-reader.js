@@ -27,7 +27,7 @@
       + V.paneHead(k) + '<div class="ppath"></div>'
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
       + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）")
-      + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + V.paneEnd(k)
+      + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`

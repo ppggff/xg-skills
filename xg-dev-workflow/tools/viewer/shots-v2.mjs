@@ -464,6 +464,7 @@ const SCENARIO = {
     const jumped = await ctx.eval(top);
     check(`a TOC jump moves the reader (${before} → ${jumped})`, Math.abs(jumped - before) > 50);
     await ctx.eval("document.querySelector('#pA .md').dataset.probe = '1'; V2.back('A'); true"); await ctx.sleep(400);
+    check("044: the edit button shows only on a todo file", await ctx.eval("getComputedStyle(document.querySelector('#pA .phd [data-t=tedit]')).display === 'none'"));
     check(`back returns to where the jump started (${await ctx.eval(top)}), same article, no re-render`, Math.abs(await ctx.eval(top) - before) <= 2 && await ctx.eval("document.querySelector('#pA .md').dataset.probe === '1'"));
     await ctx.eval("V2.fwd('A'); true"); await ctx.sleep(400);
     check(`forward goes back to the jump target (${await ctx.eval(top)})`, Math.abs(await ctx.eval(top) - jumped) <= 2);
