@@ -79,14 +79,19 @@ def _gitweb_share():
 
 
 def parse_gitweb_repos(text):
-    """Config `gitweb_repos:` — a flat list of browse-only repo paths (not workflow projects).
+    """Config `gitweb_repos:` — a flat list of browse-only repo paths (not workflow projects)."""
+    return parse_path_list(text, "gitweb_repos")
+
+
+def parse_path_list(text, key):
+    """A top-level config key holding a flat list of paths (`gitweb_repos:`, the viewer's `extra_roots:`).
 
     Reuses resolve-project.py's PyYAML-or-none decision so both tools agree on when the text
-    fallback applies; the fallback below reads one top-level list, the only shape this key has.
+    fallback applies; the fallback below reads one top-level list, the only shape these keys have.
     """
     data = _rp._load(text or "")
     if data is not None:
-        items = data.get("gitweb_repos") or []
+        items = data.get(key) or []
         if isinstance(items, str):
             items = [items]
         return [os.path.expanduser(str(x)) for x in items]
@@ -96,7 +101,7 @@ def parse_gitweb_repos(text):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if len(line) - len(line.lstrip()) == 0:
-            inside = line.strip().startswith("gitweb_repos:")
+            inside = line.strip().startswith(key + ":")
             continue
         if inside and line.lstrip().startswith("-"):
             item = line.lstrip()[1:].strip().strip("\"'")

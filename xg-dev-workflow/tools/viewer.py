@@ -85,6 +85,19 @@ def resolve_roots(dev_arg=None, kb_arg=None):
             Path(os.path.expanduser(kb)).resolve(strict=False))
 
 
+def extra_roots():
+    """Config `extra_roots:` → {label: Path}: directories whose docs the viewer also shows, read-only.
+    A label is the directory name, suffixed when two collide; a missing directory is skipped."""
+    cp = _rp.config_path()
+    text = cp.read_text(encoding="utf-8") if cp.exists() else ""
+    out, seen = {}, set()
+    for p in _gw.parse_path_list(text, "extra_roots"):
+        root = Path(p).resolve(strict=False)
+        if root.is_dir():
+            out[_gw._uniq(root.name, seen)] = root
+    return out
+
+
 def safe_join(root: Path, relpath: str):
     """Map a URL relpath to a file under root, or None if it escapes (traversal/symlink).
 
@@ -111,6 +124,7 @@ def safe_join(root: Path, relpath: str):
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    ext_roots = {}                                   # label -> Path, from config `extra_roots:`; read-only like dev and kb
     dev_root: Path = None
     kb_root: Path = None
     gitweb_port: int = 0              # 003: companion port; its URL is built per request from the Host used (0 = disabled)
@@ -237,15 +251,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError:
             self._send(404, "not found\n")
 
+    def _root_of(self, which, relpath):
+        """(root, path under it) for a tree name — dev, kb, or ext whose first segment names an extra root."""
+        if which == "dev":
+            return self.dev_root, relpath
+        if which == "kb":
+            return self.kb_root, relpath
+        label, _, rest = relpath.partition("/")
+        root = self.ext_roots.get(label)
+        return (root, rest) if which == "ext" and root and rest else (None, None)
+
     def _serve_raw(self, path):
-        # /raw/{dev|kb}/<relpath> → file bytes, confined to the requested root.
-        m = re.match(r"^/raw/(dev|kb)/(.*)$", path)
+        # /raw/{dev|kb|ext}/<relpath> → file bytes, confined to the requested root.
+        m = re.match(r"^/raw/(dev|kb|ext)/(.*)$", path)
         if not m:
             self._send(404, "not found\n")
             return
-        which, relpath = m.group(1), m.group(2)
-        root = self.dev_root if which == "dev" else self.kb_root
-        if not relpath.endswith(".md"):        # viewer serves markdown only
+        root, relpath = self._root_of(m.group(1), m.group(2))
+        if root is None or not relpath.endswith(".md"):        # viewer serves markdown only
             self._send(404, "not found\n")
             return
         real = safe_join(root, relpath)         # None = traversal / out-of-root symlink
@@ -267,8 +290,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Two-root *.md manifest (root-relative posix); the boundary applies here too:
         # followlinks=False + realpath confinement, so an out-of-root symlink target never
         # leaks a filename into the listing.
+        ext = [dict(it, path=label + "/" + it["path"]) for label, root in self.ext_roots.items()
+               for it in scan_tree(root, with_mtime=True)]
         self._json({"dev": scan_tree(self.dev_root, with_mtime=True),
-                    "kb": scan_tree(self.kb_root, with_mtime=True)})
+                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext})
 
     def _serve_board(self):
         # schema = iter_cards' pinned fields (incl. 017 `governance`, 020 `carriers` —
@@ -338,12 +363,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _serve_filelog(self, p):
         # R5: per-file commit history (excludes auto data-snapshots) → JSON for the viewer's change list.
-        m = re.match(r"^(dev|kb)/(.*)$", p or "")
+        m = re.match(r"^(dev|kb|ext)/(.*)$", p or "")
         if not m or not m.group(2).endswith(".md"):
             self._json({"commits": []})
             return
-        root = self.dev_root if m.group(1) == "dev" else self.kb_root
-        real = safe_join(root, m.group(2))             # validate AND use the confined path (as _serve_raw does)
+        root, relpath = self._root_of(m.group(1), m.group(2))
+        real = safe_join(root, relpath) if root else None             # validate AND use the confined path (as _serve_raw does)
         if real is None:                               # traversal / out-of-root → empty, don't leak
             self._json({"commits": []})
             return
@@ -363,13 +388,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _serve_filediff(self, p, sha):
         # R5: one commit's change to one file → the after-version + parsed add/del line info (JSON).
-        m = re.match(r"^(dev|kb)/(.*)$", p or "")
+        m = re.match(r"^(dev|kb|ext)/(.*)$", p or "")
         empty = {"after": "", "adds": [], "dels": []}
         if not m or not m.group(2).endswith(".md") or not (sha == WORKTREE or re.fullmatch(r"[0-9a-fA-F]{4,64}", sha or "")):
             self._json(empty)
             return
-        root = self.dev_root if m.group(1) == "dev" else self.kb_root
-        real = safe_join(root, m.group(2))             # validate AND use the confined path (as _serve_raw does)
+        root, relpath = self._root_of(m.group(1), m.group(2))
+        real = safe_join(root, relpath) if root else None             # validate AND use the confined path (as _serve_raw does)
         if real is None:                               # traversal / out-of-root
             self._json(empty)
             return
@@ -604,6 +629,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           lan=False, hosts=()):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
+    Handler.ext_roots = extra_roots()
     bind = "0.0.0.0" if lan else "127.0.0.1"
     ip = lan_ip() if lan else None
     if lan:

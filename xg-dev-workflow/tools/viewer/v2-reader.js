@@ -158,8 +158,8 @@
       + `<div class="fmt" hidden>${keys.map(x => `<b>${esc(x)}</b><span>${esc(f[x])}</span>`).join("")}</div>`;
   }
   function crumb(k, loc) {
-    const s = loc.rel.split("/"), pre = loc.tree === "kb" ? "知识库 / " : "", at = P[k].chg ? " @ " + esc(P[k].chg.slice(0, 7)) : "";
-    $(".ppath", P[k].el).dataset.tip = (loc.tree === "kb" ? "知识库/" : "dev_root/") + loc.rel;
+    const s = loc.rel.split("/"), pre = loc.tree !== "dev" ? V.ROOT_NAME[loc.tree] + " / " : "", at = P[k].chg ? " @ " + esc(shaLabel(P[k].chg)) : "";
+    $(".ppath", P[k].el).dataset.tip = V.ROOT_NAME[loc.tree] + "/" + loc.rel;
     $(".ppath", P[k].el).innerHTML = `<bdi>${esc(pre + s.slice(0, -1).join(" / "))} / <b>${esc(s[s.length - 1])}</b>${at}</bdi>`;
   }
   function lineTarget(k, loc) {   // the block holding a source line, else (no line table) the section holding it
@@ -443,7 +443,7 @@
   function showPreview(a) {
     const tree = a.dataset.tree, rel = a.dataset.rel, key = tree + ":" + rel, mt = V.D.mtime[tree][rel];
     tipFor = a;
-    const where = tree === "kb" ? "知识库" : rel.split("/").slice(0, 2).join("/");
+    const where = tree === "dev" ? rel.split("/").slice(0, 2).join("/") : tree === "ext" ? "外部目录 / " + rel.split("/")[0] : V.ROOT_NAME[tree];
     const draw = html => { if (tipFor === a) showTipAt(a, tipHead(rel.split("/").pop(), where) + `<div class="md">${html}</div>`, true); };
     if (lpCache[key] && lpCache[key].mt === mt) return draw(lpCache[key].html);
     V.api("/raw/" + tree + "/" + rel).then(r => r.text())

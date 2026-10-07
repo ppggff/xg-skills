@@ -10,7 +10,7 @@
   const DEF_OPEN = ["dev", "kb"];
   const openF = new Set(V.store.get("tree-open", DEF_OPEN));
   const reveal = new Set();
-  let snap = { dev: null, kb: null };   // what one-click collapse closed, so a second click can restore it
+  let snap = { dev: null, kb: null, ext: null };   // what one-click collapse closed, so a second click can restore it
   const isOpen = k => openF.has(k) || reveal.has(k);
   function toggleFold(k) {
     const was = isOpen(k);
@@ -19,7 +19,7 @@
     snap[k.split(":")[0]] = null;
     render();
   }
-  const sorts = Object.assign({ dev: { key: "name", dir: 1 }, kb: { key: "name", dir: 1 } }, V.store.get("tree-sort", {}));
+  const sorts = Object.assign({ dev: { key: "name", dir: 1 }, kb: { key: "name", dir: 1 }, ext: { key: "name", dir: 1 } }, V.store.get("tree-sort", {}));
 
   /* ---- stars ---- */
   let stars = V.store.get("stars", []);
@@ -42,7 +42,7 @@
   const docName = key => {   // "<name><card tag>" for a tree:rel key, as the star and trail lists show it
     const i = key.indexOf(":"), tree = key.slice(0, i), rel = key.slice(i + 1), c = V.cardOfPath(tree, rel);
     const nm = c ? rel.slice(c.dir.length + 1) : rel;
-    return `${esc(nm)}<i class="trc">${c ? esc(c.p + " " + c.n) : tree === "kb" ? "知识库" : ""}</i>`;
+    return `${esc(nm)}<i class="trc">${c ? esc(c.p + " " + c.n) : tree !== "dev" ? V.ROOT_NAME[tree] : ""}</i>`;
   };
   function starPop(btn) {
     const row = x => `<button class="sta" data-open="${esc(x.key)}"><span class="s">★</span><span>${docName(x.key)}</span><em>${V.relT(x.t)}</em>`
@@ -131,6 +131,10 @@
     h += `<div class="tsec"><button class="nm" data-fold-k="kb">知识库</button>${ctl("kb")}</div>`;
     if (isOpen("kb")) {
       h += nodeRows("kb", SV.buildTree(D.tree.kb), "", 0, SV.sortCmp(sorts.kb.key, sorts.kb.dir), cur, false);
+    }
+    if (D.tree.ext.length) {   // the config's extra_roots, read-only
+      h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button>${ctl("ext")}</div>`;
+      if (isOpen("ext")) h += nodeRows("ext", SV.buildTree(D.tree.ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
     }
     tree.innerHTML = h; tree.scrollTop = top;
     const cr = $("#tree .tr.cur:not([data-goboard])");

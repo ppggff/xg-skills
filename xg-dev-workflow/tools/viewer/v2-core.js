@@ -10,6 +10,7 @@ var V2 = (function () {
   Object.assign(V, { $, $$, esc, cssEsc: s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&")) });
   V.RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
   V.GITWEB = ($('meta[name="gitweb-url"]') || {}).content || "";
+  V.ROOT_NAME = { dev: "dev_root", kb: "知识库", ext: "外部目录" };   // ext docs carry their extra root's label as the first path segment
   // behaviour numbers, in one place: refresh period, how long a toast stays, and the list sizes
   V.CFG = { pollMs: 2500, toastMs: 1900, trail: 12, qoRecent: 8, qoDocs: 40, qoCards: 8 };
 
@@ -94,7 +95,8 @@ var V2 = (function () {
     const D = V.D; D.board = b; D.tree = t; D.at = Date.now();
     D.cards = Object.keys(b).reduce((a, p) => a.concat(b[p].map(SV.cardView)), []);
     D.byId = {}; D.cards.forEach(c => { D.byId[c.id] = c; });
-    ["dev", "kb"].forEach(k => {
+    t.ext = t.ext || [];
+    ["dev", "kb", "ext"].forEach(k => {
       D.sets[k] = new Map(t[k].map(it => [it.path.toLowerCase(), it.path]));
       D.mtime[k] = {}; t[k].forEach(it => { D.mtime[k][it.path] = it.mtime; });
     });

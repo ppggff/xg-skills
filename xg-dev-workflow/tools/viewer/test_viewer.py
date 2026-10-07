@@ -148,6 +148,47 @@ def _git(cwd, *a):
     return subprocess.run(["git", "-C", str(cwd), *a], capture_output=True, text=True, env=env).stdout
 
 
+class TExtraRoots(unittest.TestCase):
+    """043 Req-5: config `extra_roots:` → a third, read-only tree confined like dev and kb."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        dev, kb, self.ext, out = (self.tmp / n for n in ("dev", "kb", "notes", "secret"))
+        for d in (dev, kb, self.ext, out):
+            d.mkdir()
+        (self.ext / "e.md").write_text("# E", encoding="utf-8")
+        (self.ext / "deep").mkdir(); (self.ext / "deep" / "x.md").write_text("x", encoding="utf-8")
+        (out / "s.md").write_text("SECRET", encoding="utf-8")
+        (self.ext / "leak.md").symlink_to(out / "s.md")
+        viewer.Handler.ext_roots = {"notes": self.ext.resolve()}
+        self.httpd, self.base = start(dev, kb)
+
+    def tearDown(self):
+        viewer.Handler.ext_roots = {}
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def test_tree_lists_ext_under_its_label(self):
+        ext = [x["path"] for x in json.loads(get(self.base, "/api/tree")[1])["ext"]]
+        self.assertEqual(sorted(ext), ["notes/deep/x.md", "notes/e.md"])   # the escaping symlink is not listed
+
+    def test_raw_serves_and_confines(self):
+        self.assertEqual(get(self.base, "/raw/ext/notes/e.md"), (200, "# E"))
+        for bad in ("/raw/ext/notes/leak.md", "/raw/ext/notes/../secret/s.md", "/raw/ext/nope/e.md", "/raw/ext/notes", "/raw/ext/e.md"):
+            self.assertEqual(get(self.base, bad)[0], 404, bad)
+
+    def test_history_of_a_non_git_root_is_empty(self):
+        self.assertEqual(json.loads(get(self.base, "/api/filelog?path=ext/notes/e.md")[1])["commits"], [])
+
+    def test_config_list_parses_with_and_without_pyyaml(self):
+        text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir\ngitweb_repos:\n  - /x\n" % self.ext
+        for load in (viewer._gw._rp._load, lambda t: None):
+            saved = viewer._gw._rp._load; viewer._gw._rp._load = load
+            try:
+                self.assertEqual(viewer._gw.parse_path_list(text, "extra_roots"), [str(self.ext), "/no/such/dir"])
+                self.assertEqual(viewer._gw.parse_gitweb_repos(text), ["/x"])
+            finally:
+                viewer._gw._rp._load = saved
+
+
 class T345Endpoints(unittest.TestCase):
     """T3 /api/tree, T4 /api/board, T5 /api/diff+log against a throwaway git dev_root."""
     def setUp(self):
