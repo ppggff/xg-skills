@@ -2856,6 +2856,19 @@ if (typeof window !== "undefined" && window.marked) (function () {
     var re = treeEl.querySelector('.secctl[data-tree="' + tree + '"] .sx[data-act="' + act + '"]'); if (re) re.focus();   // keep keyboard focus on the rebuilt control
   }
   treeEl.addEventListener("click", function (e) { var c = e.target.closest(".sx"); if (c) sxActivate(c, e); });
+  // iOS hands a quick tap on a file row to the folder row just above it (folding it instead of opening the
+  // file), though the touch itself lands on the file: open on touchend and drop the browser's own click.
+  var fileTouch = null;
+  treeEl.addEventListener("touchstart", function (e) {
+    var t = e.touches[0], a = e.touches.length === 1 && e.target.closest && e.target.closest("a.file");
+    fileTouch = a ? { a: a, x: t.clientX, y: t.clientY } : null;
+  }, { passive: true });
+  treeEl.addEventListener("touchend", function (e) {
+    var ft = fileTouch, t = e.changedTouches[0]; fileTouch = null;
+    if (!ft || !ft.a.isConnected || Math.abs(t.clientX - ft.x) > 10 || Math.abs(t.clientY - ft.y) > 10) return;
+    e.preventDefault(); ft.a.click();
+  }, { passive: false });
+  treeEl.addEventListener("touchcancel", function () { fileTouch = null; });
   if (/[?&]tapdebug\b/.test(location.search)) (function () {   // temporary: on-device log of where taps land in the tree
     var box = document.createElement("pre"), lines = [], t0 = performance.now();
     box.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;margin:0;padding:4px 6px;max-height:40vh;overflow:hidden;" +
@@ -2867,8 +2880,8 @@ if (typeof window !== "undefined" && window.marked) (function () {
       return f ? "FILE " + f.dataset.rel.split("/").slice(-2).join("/") : el.closest("summary") ? "SUMMARY " + (d && d.dataset.name) :
         el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + (typeof el.className === "string" && el.className ? "." + el.className.split(" ")[0] : "");
     }
-    function log(s) { lines.push(((performance.now() - t0) / 1000).toFixed(2) + " " + s); lines = lines.slice(-18); box.textContent = lines.join("\n"); }
-    ["touchstart", "touchend", "mousedown", "click"].forEach(function (k) {
+    function log(s) { lines.push(((performance.now() - t0) / 1000).toFixed(2) + " " + s); lines = lines.slice(-18); box.textContent = lines.join("\n"); box.scrollTop = box.scrollHeight; }
+    ["touchstart", "touchend", "touchcancel", "mousedown", "click"].forEach(function (k) {
       document.addEventListener(k, function (e) {
         var p = e.changedTouches ? e.changedTouches[0] : e;
         log(k + " → " + who(e.target) + " @" + Math.round(p.clientX) + "," + Math.round(p.clientY) + (e.defaultPrevented ? " (prevented)" : ""));
