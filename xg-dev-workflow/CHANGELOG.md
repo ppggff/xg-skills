@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: todo files, a todo editor, extra roots from the page (card xg-skills/044)
+
+- Todos are markdown files in `<dev_root>/todo/` (the 043 `todo.md` moves in as `inbox.md` once). The todo view lists
+  the files and gathers their items by project; `@project` tags them (`#project` still counts) and `[[wikilinks]]`
+  name any doc by path. In the reader a todo file's boxes can be ticked, and 编辑 opens a source editor with
+  highlighting, `@` and `[[` completion, drafts kept across navigation, and a choice on a save conflict.
+- Extra roots can be added and removed from the page (kept in `viewer-roots.json` beside the shared config, which is
+  never rewritten). LAN clients may change them too; only existing directories under home, outside hidden directories
+  and `~/Library`, are accepted, and an extra root lists at most 5000 docs.
+
 ## 2026-10-07 — status viewer: todo, gitweb links, extra roots; lite cards may name a branch (card xg-skills/043)
 
 - design.md frontmatter may carry `branch:` and `repo:` (template and constraints Lay-2). The board reads them for lite
