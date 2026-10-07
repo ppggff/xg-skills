@@ -1017,6 +1017,16 @@ t("043 todo: items are the checklist lines; tags from #words; edits touch one li
   assert.equal(SV.editTodo("+ [ ] a", 0, { text: "z" }), "+ [ ] z");
   assert.deepEqual(SV.parseTodo("- [ ] see [[a @x]] and [t @y](u) @real")[0].tags, ["real"]);
 });
+t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1, a task restarts; an empty item ends", () => {
+  const c = SV.continueLine;
+  assert.deepEqual(c("  - [x] done ➕ 2026-10-07 14:30"), { next: "  - [ ] ", empty: false, todo: true });
+  assert.deepEqual(c("- [ ]  ➕ 2026-10-07 14:30"), { next: "- [ ] ", empty: true, todo: true });
+  assert.deepEqual(c("9. nine"), { next: "10. ", empty: false, todo: false });
+  assert.deepEqual(c("> * q"), { next: "> * ", empty: false, todo: false });
+  assert.deepEqual(c("> "), { next: "> ", empty: true, todo: false });
+  assert.equal(c("plain"), null);
+  assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
+});
 t("044 resolveWikiAny: a wikilink names any doc by path, .md optional, kb and ext by prefix", () => {
   const sets = { dev: new Map([["p/a.md", "p/A.md"]]), kb: new Map([["wiki/x/y.md", "wiki/x/y.md"]]), ext: new Map([["n/e.md", "n/e.md"]]) };
   assert.equal(SV.resolveWikiAny("[[p/a]]", sets), "dev:p/A.md");

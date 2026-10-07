@@ -55,6 +55,10 @@
   /* ---- reading place: per (pane, doc), a content anchor first and pixels as the fallback ---- */
   const NOT_BLOCK = /^(lnum|curline|lastmark|mrule|fml|fmt)$/;
   const blocks = k => $$(".md > *", P[k].body).filter(el => ![...el.classList].some(c => NOT_BLOCK.test(c)));
+  V.lineOf = (k, el) => {   // 0-based source line (frontmatter included) of the top-level block holding el, when blocks map 1:1
+    const p = P[k], i = p.spans ? blocks(k).findIndex(b => b.contains(el)) : -1;
+    return i >= 0 ? p.spans[i].start + p.doc.fmLines : null;
+  };
   const blockText = el => (el.textContent || "").replace(/\s+/g, " ").trim();
   function topBlock(k) {
     const els = blocks(k), edge = P[k].body.getBoundingClientRect().top + HEAD_PAD;

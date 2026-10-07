@@ -18,6 +18,7 @@ var V2 = (function () {
   V.store = {
     get(k, d) { try { const v = localStorage.getItem("svd2-" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem("svd2-" + k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem("svd2-" + k); } catch (e) {} },
   };
   V.recent = {   // bounded recall lists: opened docs, searches, find terms
     list: kind => V.store.get("recent-" + kind, []),

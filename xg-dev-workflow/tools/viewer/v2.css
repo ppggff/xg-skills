@@ -354,6 +354,15 @@ a.tr { text-decoration: none; }
 .tedbar { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
 .tedbar b { font-weight: 500; color: var(--ink); } .tedbar span { flex: 1; min-width: 0; }
 .tedbar button { padding: 2px 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); } .tedbar button:hover { color: var(--sig); }
+.ttool { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
+.ttool button { min-width: 28px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--mu); }
+.ttool button:hover { background: var(--hover); color: var(--ink); }
+.ttool [data-tact="todo"] { color: var(--sig); font-family: var(--cjk); margin-left: auto; }
+.app.narrow .ttool { position: fixed; left: 0; right: 0; bottom: var(--kb, 0px); z-index: 45; flex-wrap: nowrap; overflow-x: auto; margin: 0;
+  padding: 4px 6px; background: var(--chrome); border-top: 1px solid var(--ln); scrollbar-width: none; }
+.app.narrow .ttool button { flex: none; height: 34px; min-width: 36px; }
+.app.narrow .tedw { padding-bottom: 52px; }
+.tac button em { font-style: normal; color: var(--faint); margin-left: 10px; font: 400 var(--t-xs) var(--mono); }
 .ted { position: relative; flex: 1; min-height: 0; border: 1px solid var(--ln2); border-radius: var(--r-md); background: var(--paper); }
 .ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 14px; font: 400 var(--t-lg)/1.7 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
 .ted .thl { color: var(--tx); pointer-events: none; }

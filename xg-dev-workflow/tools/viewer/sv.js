@@ -681,6 +681,19 @@ var SV = (function () {
     var t = /\.md$/i.test(x) ? x : x + ".md", canon = treeSets[tree] && treeSets[tree].get(t.toLowerCase());
     return canon ? tree + ":" + canon : null;
   }
+  // 045: how a list line continues on Enter — the next line's prefix (same indent, quote and bullet; an ordered number
+  // +1; a task restarts unticked), and whether this item is empty (only its prefix and date marks), which ends the list
+  var LIST_RE = /^(\s*(?:>\s?)*)(?:([-*+])|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?(.*)$/;
+  function continueLine(line) {
+    var m = LIST_RE.exec(line || "");
+    if (!m) { var q = /^(\s*(?:>\s?)+)(.*)$/.exec(line || ""); return q ? { next: q[1], empty: !q[2].trim(), todo: false } : null; }
+    var bullet = m[2] || (+m[3] + 1) + m[4], rest = m[7].replace(/[➕📅✅]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|[⏫🔼🔽]/g, "").trim();
+    return { next: m[1] + bullet + m[5] + (m[6] ? "[ ] " : ""), empty: !rest, todo: !!m[6] };
+  }
+  function todoStamp(d) {   // "YYYY-MM-DD HH:MM", local time — the Obsidian Tasks date with the minute
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
   function addTodo(text, body) {
     var t = String(text || "");
     if (!t.trim()) t = "# todo\n\n";
@@ -702,7 +715,8 @@ var SV = (function () {
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
-           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny };
+           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny,
+           continueLine: continueLine, todoStamp: todoStamp };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
