@@ -4,6 +4,11 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-07 — status viewer: v2 is the main frontend (card xg-skills/042)
+
+- `/` now serves v2; `/v2` stays as an alias, and the classic frontend is frozen at `/v1` with no further updates.
+- The screenshot harness picks the classic scenarios only for a `--url` ending in `/v1`.
+
 ## 2026-10-07 — status viewer: /v2 fifth round from daily use (card xg-skills/040)
 
 - The project scope is gone from the nav; the tree, board and search always show every project.
