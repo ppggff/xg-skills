@@ -395,6 +395,10 @@ a.tr { text-decoration: none; }
 .titem .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; }
 .titem .tdl.broken { color: var(--blocked); }
 .titem.ed .tedit { flex: 1; height: 28px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
+.tdl.tcard { display: inline-flex; align-items: baseline; gap: 4px; text-decoration: none; }
+.tdl.tcard .cdot { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--mu)); align-self: center; }
+.btodo .bth { font: 400 var(--t-meta) var(--cjk); color: var(--faint); margin: 0 0 4px; } .btodo .bth em { font-style: normal; margin-left: 6px; }
+.btodo .titem { font-size: var(--t-md); }
 /* 045: an item's labels — priority, due (late in red, today in the signal colour), done, created — and its subtask count */
 .tmeta, .tdue, .tpri, .tprog { flex: none; margin-left: 6px; font: 400 var(--t-xs) var(--mono); color: var(--faint); white-space: nowrap; }
 .tdue { color: var(--mu); } .tdue.now { color: var(--sig); } .tdue.late { color: var(--blocked); }

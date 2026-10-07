@@ -38,7 +38,9 @@
     let h = "", last = 0;
     text.replace(LINK, (all, wiki, label, href, at) => {
       h += plain(text.slice(last, at)); last = at + all.length;
-      h += wiki ? link(SV.resolveWikiAny("[[" + wiki + "]]", V.D.sets), wiki.split("|").pop().split("#")[0].split("/").pop(), wiki, (/#L(\d+)$/.exec(wiki) || [])[1])
+      const c = wiki && V.cardOf(wiki);
+      h += c ? `<button class="tdl tcard" data-open="dev:${esc(V.mainDoc(c) || c.dir)}" data-tip="${esc(c.id + " " + c.slug + " · " + c.st)}"><i class="cdot" data-st="${esc(c.st)}"></i>${esc(c.n + " " + c.slug)}</button>`
+        : wiki ? link(SV.resolveWikiAny("[[" + wiki + "]]", V.D.sets), wiki.split("|").pop().split("#")[0].split("/").pop(), wiki, (/#L(\d+)$/.exec(wiki) || [])[1])
         : link(SV.resolveLink(href, "dev", DIR + file, V.D.sets), label, href);
       return all;
     });
@@ -138,8 +140,14 @@
   V.docChoices = () => {
     const wiki = key => { const i = key.indexOf(":"), t = key.slice(0, i), r = key.slice(i + 1).replace(/\.md$/, ""); return t === "dev" ? r : t === "kb" && /^(wiki|raw)\//.test(r) ? r : t + "/" + r; };
     const all = V.recent.list("opened").concat(["dev", "kb", "ext"].flatMap(t => (V.D.tree[t] || []).map(x => t + ":" + x.path)));
-    return [...new Set(all.map(wiki))];
+    return [...new Set(all.map(wiki).concat(V.D.cards.map(c => c.id)))];   // cards last, as project/NNN
   };
+  // 045: [[project/NNN]] names a card; the reader, the todo view and the board's detail all read it this way
+  V.cardOf = x => { const m = /^([\w.-]+\/\d{3})$/.exec(String(x).split("|")[0].trim()); return m ? V.card(m[1]) : null; };
+  V.cardWiki = raw => { const m = /^\[\[(.+?)\]\]$/.exec(String(raw).trim()), c = m && V.cardOf(m[1]), d = c && V.mainDoc(c); return d ? "dev:" + d : null; };
+  V.todoItems = () => itemsAll();
+  V.todoRowHTML = it => rowHTML(it);
+  V.todosOfCard = c => itemsAll().filter(t => !t.done && (t.text.includes("[[" + c.id + "]]") || t.text.includes("[[" + c.dir + "/") || t.text.includes("[[" + c.id + "|")));
   /* ---- capture: t anywhere, or 记为 todo on a selection — a line into inbox.md with the context filled in ---- */
   const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
   V.todoAppend = (name, body) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.text().then(t => [t, +r.headers.get("X-Mtime") || 0]))

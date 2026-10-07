@@ -37,6 +37,7 @@
     const main = it.k === "doc" ? two(hl(L, idx, cut, L.length), hl(L, idx, 0, Math.max(0, cut - 1)))
       : it.k === "fact" ? two(hl(L, idx, 0, sp), hl(L, idx, sp + 1, L.length), " qf2")
       : it.k === "card" ? two(hl(L, idx, sp + 1, L.length), hl(L, idx, 0, sp) + "　" + esc(it.c.st))
+      : it.k === "titem" ? two(hl(L, idx, 0, it.cut), esc(it.file.replace(/\.md$/, "")))
       : two(esc(L), esc(it.sub || ""));
     const em = it.k === "doc" ? V.ago(it.mtime) : it.k === "fact" ? it.sub : it.k === "search" ? "⌘↵" : "";
     return `<button class="qr ${i === sel ? "sel" : ""} ${it.k === "search" ? "qfull" : ""}" data-q="${i}">${main}<em>${esc(em)}</em></button>`;
@@ -64,6 +65,7 @@
     return [["", score(q, navRows(), it => it.label + " " + it.words)], ["文档", score(q, docs(), label, it => it.label.lastIndexOf("/") + 1).slice(0, V.CFG.qoDocs)],
       ["卡片", score(exact, cards, label, 0, it => (it.c.n === ql || it.c.id === ql ? 100 : 0)).slice(0, V.CFG.qoCards)],
       ["Fact", score(exact, facts.list, label, 0, it => (it.id.toLowerCase() === ql ? 100 : 0)).slice(0, 6)],
+      ["待办", score(q, V.todoItems ? V.todoItems().filter(t => !t.done).map(t => { const x = t.meta.text.replace(/\[\[([^\]|#]+)[^\]]*\]\]/g, (all, w) => w.split("/").pop()); return { k: "titem", label: x + " " + t.file, cut: x.length, file: t.file, line: t.line }; }) : [], label).slice(0, 8)],
       ["", [{ it: { k: "search", label: "全文搜索「" + q + "」", q } }]]];
   }
   function render() {
@@ -96,6 +98,7 @@
     if (it.k === "go") return V.goBoard(e);
     if (it.k === "recent") return V.nav(side, { kind: "recent" });
     if (it.k === "todo") return V.nav(side, { kind: "todo" });
+    if (it.k === "titem") return V.openDoc("dev", "todo/" + it.file, e, { line: it.line + 1 });
     if (it.k === "ext") return window.open(V.GITWEB, "_blank", "noopener");
     if (it.k === "search") return fullSearch(it.q, e);
     if (it.k === "card") {

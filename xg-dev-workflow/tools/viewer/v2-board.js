@@ -217,6 +217,7 @@
       + (c.block && c.block !== "—" ? row(`<div class="bv blk"><span><b>block</b>${esc(c.block)}</span></div>`) : "")
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
+      + (V.todosOfCard && V.todosOfCard(c).length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${V.todosOfCard(c).length}</em></div>${V.todosOfCard(c).map(V.todoRowHTML).join("")}</div>`) : "")
       + row(`<div>${reqsHTML(c)}</div>`) + "</div>";
   }
   const onShow = () => !$("#board").hidden;
@@ -240,6 +241,7 @@
   }
   V.on("detail-close", closeDetail);
   V.selCard = () => sel;   // the capture box links the selected card's main doc
+  V.on("todo-count", () => { if (onShow() && sel) paintDetail(); });   // the detail's related todos follow the todo files
   V.revealCard = c => {
     unfold.add(groupBy === "s" ? "s:" + c.st : groupBy === "g" ? "g:" + c.gov : "p:" + c.p);
     hidden.delete(c.st); store.set("hide", [...hidden]); render(); V.pickCard(c.id);
