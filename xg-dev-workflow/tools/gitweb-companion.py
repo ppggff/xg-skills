@@ -101,7 +101,7 @@ def parse_path_list(text, key):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if inside and line.lstrip().startswith("-"):   # YAML lets a list sit at the key's own indent
-            item = line.lstrip()[1:].strip().strip("\"'")
+            item = re.split(r"\s#", line.lstrip()[1:], maxsplit=1)[0].strip().strip("\"'")
             if item:
                 out.append(os.path.expanduser(item))
             continue

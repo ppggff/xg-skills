@@ -35,6 +35,7 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.parse
 import urllib.request
@@ -189,7 +190,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(n).decode("utf-8"))
             text, base = body["text"], int(body["mtime"])
-        except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+        except (ValueError, KeyError, TypeError, UnicodeDecodeError, OverflowError):
             self._send(400, "bad request\n")
             return
         if not isinstance(text, str):
@@ -200,14 +201,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _write_todo(self, text, base):
         """Replace todo.md only when it is still the version the page read (mtime in ms, 0 = absent)."""
         real = self.dev_root / TODO_FILE
+        if real.is_symlink():                          # writing through a link could land outside dev_root
+            self._send(403, "forbidden: todo.md is a link\n")
+            return
         with self.todo_lock:
             cur = int(real.stat().st_mtime * 1000) if real.is_file() else 0
             if cur != base:
                 self._json({"error": "changed", "mtime": cur}, 409)
                 return
-            tmp = self.dev_root / ".todo.md.tmp"
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, real)
+            fd, tmp = tempfile.mkstemp(dir=self.dev_root, prefix=".todo.", suffix=".tmp")   # O_EXCL: never an existing path or link
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(text)
+                os.replace(tmp, real)
+            except OSError as e:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+                self._json({"error": str(e)}, 500)
+                return
             self._json({"mtime": int(real.stat().st_mtime * 1000)})
 
     def do_GET(self):
@@ -320,7 +333,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if which == "kb":
             return self.kb_root, relpath
         label, _, rest = relpath.partition("/")
-        root = self.ext_roots.get(label)
+        root = self.ext_roots.get(urllib.parse.unquote(label))
         return (root, rest) if which == "ext" and root and rest else (None, None)
 
     def _serve_raw(self, path):
@@ -410,11 +423,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # R63: change signal for live refresh. ?path=<tree>/<rel> → that file's mtime (ms);
         # no path → a cheap 'did anything change?' token per tree (see _rev_token).
         if not p:
-            self._json({"dev": _rev_token(self.dev_root), "kb": _rev_token(self.kb_root)})
+            self._json({"dev": _rev_token(self.dev_root), "kb": _rev_token(self.kb_root),
+                        "ext": ",".join(_rev_token(r) for r in self.ext_roots.values())})
             return
-        m = re.match(r"^(dev|kb)/(.*)$", p)
-        root = self.dev_root if (m and m.group(1) == "dev") else self.kb_root
-        real = safe_join(root, m.group(2)) if m else None
+        m = re.match(r"^(dev|kb|ext)/(.*)$", p)
+        root, relpath = self._root_of(m.group(1), m.group(2)) if m else (None, None)
+        real = safe_join(root, relpath) if root else None
         mt = 0
         if real is not None and real.is_file():
             try:
@@ -496,16 +510,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _serve_shas(self, shas, prefer):
         # 043: which gitweb repo holds each sha (7-40 hex), trying the preferred labels first; unknown → absent.
         shas = [h.lower() for h in shas if re.fullmatch(r"[0-9a-fA-F]{7,40}", h)][:60]
-        todo = [h for h in dict.fromkeys(shas) if h not in self.sha_home]
         order = [l for l in prefer if l in self.repos] + [l for l in self.repos if l not in prefer]
+        ck = lambda h: h + "|" + order[0] if order else h   # a short sha may live in two repos: the answer depends on who asks first
+        todo = [h for h in dict.fromkeys(shas) if ck(h) not in self.sha_home]
         for label in order:
             if not todo:
                 break
             found = _sha_lookup(self.repos[label], todo)
             for h in found:
-                self.sha_home[h] = label
+                self.sha_home[ck(h)] = label
             todo = [h for h in todo if h not in found]
-        self._json({h: self.sha_home[h] for h in shas if self.sha_home.get(h)})
+        self._json({h: self.sha_home[ck(h)] for h in shas if self.sha_home.get(ck(h))})
 
 def _gitd(git_dir, *args):
     """git against a bare git dir (the companion's repos are known by git dir, not work tree)."""
@@ -768,7 +783,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           (url, dev_root, kb_root), file=sys.stderr)
     if lan:
         print("--lan: also on http://%s:%d/ (Host allowlist: %s) — anyone on this network can read dev_root, the KB "
-              "and every repo (gitweb at /gitweb/)" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
+              "and every repo (gitweb at /gitweb/), and rewrite <dev_root>/todo.md" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
     # serve_forever runs in a worker thread so the main thread can shut it down from a signal
     # handler (shutdown() must be called from a different thread). Installing the handlers
     # explicitly also overrides an inherited SIG_IGN (e.g. when launched backgrounded).

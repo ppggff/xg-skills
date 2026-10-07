@@ -182,6 +182,16 @@ class TTodo(unittest.TestCase):
         self.assertEqual((self.dev / "todo.md").read_text(encoding="utf-8"), "- [x] a\n")
         self.assertEqual(self.post({"text": "x", "mtime": 0})[0], 409)       # it exists now
 
+    def test_never_writes_through_a_link(self):      # review M1: a planted link must not carry the write outside
+        out = self.tmp / "victim.txt"; out.write_text("safe", encoding="utf-8")
+        (self.dev / ".todo.md.tmp").symlink_to(out)
+        self.assertEqual(self.post({"text": "x", "mtime": 0})[0], 200)
+        self.assertEqual(out.read_text(encoding="utf-8"), "safe")
+        self.assertFalse((self.dev / "todo.md").is_symlink())
+        (self.dev / "todo.md").unlink(); (self.dev / "todo.md").symlink_to(out)
+        self.assertEqual(self.post({"text": "y", "mtime": int(out.stat().st_mtime * 1000)})[0], 403)
+        self.assertEqual(out.read_text(encoding="utf-8"), "safe")
+
     def test_refuses_anything_but_a_same_origin_json_write(self):
         ok = {"text": "t", "mtime": 0}
         for headers in ({"X-SV-Write": None}, {"Content-Type": "text/plain"}, {"Origin": "http://evil.com"},
@@ -190,6 +200,7 @@ class TTodo(unittest.TestCase):
         self.assertEqual(self.post(ok, path="/api/other")[0], 404)
         self.assertEqual(self.post(None, raw=b"{not json")[0], 400)
         self.assertEqual(self.post({"text": 3, "mtime": 0})[0], 400)
+        self.assertEqual(self.post(None, raw=b'{"text": "x", "mtime": 1e999}')[0], 400)
         self.assertEqual(self.post({"text": "x" * (300 * 1024), "mtime": 0})[0], 413)
         self.assertFalse((self.dev / "todo.md").exists())
         host = urllib.parse.urlsplit(self.base).netloc
@@ -265,11 +276,22 @@ class TExtraRoots(unittest.TestCase):
         for bad in ("/raw/ext/notes/leak.md", "/raw/ext/notes/../secret/s.md", "/raw/ext/nope/e.md", "/raw/ext/notes", "/raw/ext/e.md"):
             self.assertEqual(get(self.base, bad)[0], 404, bad)
 
+    def test_a_label_with_spaces_and_cjk_is_served(self):   # review L1: the label arrives url-encoded
+        (self.tmp / "笔记 x").mkdir(); (self.tmp / "笔记 x" / "a.md").write_text("cjk", encoding="utf-8")
+        viewer.Handler.ext_roots = {"笔记 x": (self.tmp / "笔记 x").resolve()}
+        self.assertEqual(get(self.base, "/raw/ext/" + urllib.parse.quote("笔记 x") + "/a.md"), (200, "cjk"))
+
+    def test_rev_covers_ext(self):                   # review L2: ext changes reach the live refresh
+        before = json.loads(get(self.base, "/api/rev")[1])["ext"]
+        (self.ext / "new.md").write_text("n", encoding="utf-8")
+        self.assertNotEqual(json.loads(get(self.base, "/api/rev")[1])["ext"], before)
+        self.assertGreater(json.loads(get(self.base, "/api/rev?path=ext/notes/e.md")[1])["mtime"], 0)
+
     def test_history_of_a_non_git_root_is_empty(self):
         self.assertEqual(json.loads(get(self.base, "/api/filelog?path=ext/notes/e.md")[1])["commits"], [])
 
     def test_config_list_parses_with_and_without_pyyaml(self):
-        text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir\ngitweb_repos:\n- /x\n" % self.ext   # a list at the key's own indent too
+        text = "root: ~/k\nextra_roots:\n  - %s\n  - /no/such/dir  # gone\ngitweb_repos:\n- /x\n" % self.ext   # own-indent list, a comment
         for load in (viewer._gw._rp._load, lambda t: None):
             saved = viewer._gw._rp._load; viewer._gw._rp._load = load
             try:

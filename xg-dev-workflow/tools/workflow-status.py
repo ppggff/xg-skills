@@ -50,8 +50,10 @@ def dev_root():
 
 
 def fm_value(fields, key):
-    """A frontmatter value without its trailing `# comment` ("" when only a comment is there)."""
-    return fields.get(key, "").split("#")[0].strip()
+    """A frontmatter value without its trailing ` # comment` or quotes ("" when only a comment is there);
+    a `#` inside the value (`fix#12`) stays."""
+    v = fields.get(key, "")
+    return re.split(r"(?:^|\s)#", v, maxsplit=1)[0].strip().strip("\"'")
 
 
 def frontmatter(path):

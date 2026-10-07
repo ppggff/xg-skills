@@ -365,7 +365,7 @@ var V2 = (function () {
   V.poll = () => {
     if (polling || document.hidden) return; polling = true;
     V.json("/api/rev").then(d => {
-      const changed = rev && (d.dev !== rev.dev || d.kb !== rev.kb); rev = d;
+      const changed = rev && (d.dev !== rev.dev || d.kb !== rev.kb || d.ext !== rev.ext); rev = d;
       return changed ? V.load().then(() => V.emit("data")) : null;
     }).catch(() => {}).then(() => { polling = false; V.emit("tick"); });
   };

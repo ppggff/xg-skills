@@ -153,10 +153,11 @@
     });
   }
   const SHA = /^[0-9a-f]{7,40}$/i;
+  const fmVal = v => (v || "").split(/(?:^|\s)#/)[0].trim().replace(/^["']|["']$/g, "");   // as workflow-status reads it: " # comment" and quotes off
   // 043: commits named in a doc (inline code, frontmatter go/skill) and its frontmatter branch open in gitweb
   function linkGit(k, md, loc) {
     if (!V.GITWEB) return;
-    const c = V.cardOfPath(loc.tree, loc.rel), fm = P[k].doc.fields, own = x => (fm[x] || "").split("#")[0].trim();
+    const c = V.cardOfPath(loc.tree, loc.rel), fm = P[k].doc.fields, own = x => fmVal(fm[x]);
     const repo = own("repo") || (c && (c.repo || c.p)) || "";
     const wrap = (el, href, tip) => { const a = document.createElement("a"); a.className = "gitl"; a.href = href; a.target = "_blank"; a.rel = "noopener"; a.dataset.tip = tip; el.replaceWith(a); a.appendChild(el); };
     if (repo) $$("[data-branch]", md).forEach(el => wrap(el, `${V.GITWEB}?p=${encodeURIComponent(repo)};a=shortlog;h=refs/heads/${encodeURIComponent(el.dataset.branch)}`, `在 gitweb 看分支 ${el.dataset.branch}（${repo}）`));
@@ -170,7 +171,7 @@
   }
   function fmLine(f) {
     const keys = Object.keys(f); if (!keys.length) return "";
-    const g = x => (f[x] || "").split("#")[0].trim(), bits = [g("status"), g("governance"), g("created")].map(esc);
+    const g = x => fmVal(f[x]), bits = [g("status"), g("governance"), g("created")].map(esc);
     if (g("branch")) bits.push(`<span data-branch="${esc(g("branch"))}">⎇ ${esc(g("branch"))}</span>`);
     if (SHA.test(g("go"))) bits.push(`go <span data-sha="${esc(g("go"))}">${esc(g("go"))}</span>`);
     const val = x => (SHA.test(g(x)) ? `<span data-sha="${esc(g(x))}">${esc(f[x])}</span>` : x === "branch" && g(x) ? `<span data-branch="${esc(g(x))}">${esc(f[x])}</span>` : esc(f[x]));

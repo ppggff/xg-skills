@@ -4,7 +4,9 @@
 "use strict";
 (function (V) {
   const { $, $$, esc } = V, store = V.store;
-  const T = V.todo = { text: "", mtime: 0, loaded: false };
+  // text/mtime follow the disk; shown/base are the version on screen — edits address its lines and are saved against
+  // its mtime, so a file that moved underneath is refused (409) instead of having the wrong line changed
+  const T = V.todo = { text: "", mtime: 0, loaded: false, shown: "", base: 0 };
   let tag = store.get("todo-tag", ""), showDone = false, editing = null;
 
   function load() {
@@ -13,10 +15,10 @@
       .then(t => { T.text = t; T.loaded = true; });
   }
   function save(text) {
-    return fetch("/api/todo", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" }, body: JSON.stringify({ text, mtime: T.mtime }) })
+    return fetch("/api/todo", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" }, body: JSON.stringify({ text, mtime: T.base }) })
       .then(r => r.json().catch(() => ({})).then(d => ({ ok: r.ok, status: r.status, d })))
       .then(({ ok, status, d }) => {
-        if (ok) { T.text = text; T.mtime = d.mtime; return paint(); }
+        if (ok) { T.text = text; T.mtime = d.mtime; editing = null; return paint(); }
         V.toast(status === 409 ? "todo.md 在别处改过了，已重新读取，请再改一次" : "保存失败（" + status + "）");
         return refresh();
       }).catch(() => V.toast("保存失败：连不上 viewer"));
@@ -39,7 +41,8 @@
   }
   function paint() {
     const el = $("#todo"), body = el && $(".tbody", el); if (!body) return;
-    const items = SV.parseTodo(T.text), tags = [...new Set(items.flatMap(i => i.tags))].sort();
+    T.shown = T.text; T.base = T.mtime;
+    const items = SV.parseTodo(T.shown), tags = [...new Set(items.flatMap(i => i.tags))].sort();
     if (tag && !tags.includes(tag)) tag = "";
     const shown = items.filter(i => !tag || i.tags.includes(tag)), open = shown.filter(i => !i.done), done = shown.filter(i => i.done);
     const projs = Object.keys(V.D.board || {}).sort(), cur = store.get("todo-proj", "");
@@ -75,17 +78,17 @@
     if (!text) return $(".tin", f).focus();
     store.set("todo-proj", proj);
     const link = doc ? ` [${doc.split("/").pop().replace(/\.md$/, "")}](${doc})` : "";
-    save(SV.addTodo(T.text, text + (proj && !text.includes("#" + proj) ? " #" + proj : "") + link));
+    save(SV.addTodo(T.shown, text + (proj && !text.includes("#" + proj) ? " #" + proj : "") + link));
   });
-  V.click("[data-tck]", el => { const it = SV.parseTodo(T.text).find(i => i.line === +el.dataset.tck); if (it) save(SV.editTodo(T.text, it.line, { done: !it.done })); });
-  V.click("[data-tdel]", el => save(SV.editTodo(T.text, +el.dataset.tdel, { remove: true })));
+  V.click("[data-tck]", el => { const it = SV.parseTodo(T.shown).find(i => i.line === +el.dataset.tck); if (it) save(SV.editTodo(T.shown, it.line, { done: !it.done })); });
+  V.click("[data-tdel]", el => save(SV.editTodo(T.shown, +el.dataset.tdel, { remove: true })));
   V.click("[data-ttag]", el => { tag = el.dataset.ttag; store.set("todo-tag", tag); paint(); });
   V.click("[data-tdone]", () => { showDone = !showDone; paint(); });
   document.addEventListener("dblclick", e => { const t = e.target.closest("#todo [data-ted]"); if (t && !e.target.closest("[data-open]")) { editing = +t.dataset.ted; paint(); } });
   document.addEventListener("keydown", e => {
     const inp = e.target.closest && e.target.closest("#todo .tedit"); if (!inp) return;
     if (e.key === "Escape") { e.stopPropagation(); editing = null; paint(); }
-    else if (e.key === "Enter") { e.preventDefault(); const v = inp.value.trim(), line = +inp.dataset.line; editing = null; if (v) save(SV.editTodo(T.text, line, { text: v })); else paint(); }
+    else if (e.key === "Enter") { e.preventDefault(); const v = inp.value.trim(), line = +inp.dataset.line; editing = null; if (v) save(SV.editTodo(T.shown, line, { text: v })); else paint(); }
   }, true);
   document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#todo .tedit") && editing !== null) { editing = null; paint(); } });
   V.on("data", () => { if (!$("#todo").hidden && editing === null && !$("#todo .tin:focus, #todo .tdoc:focus")) refresh(); else if (T.loaded) load().then(() => V.emit("todo-count")); });
