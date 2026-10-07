@@ -454,6 +454,25 @@ const SCENARIO = {
     check("phone: the board table keeps 编号 · 名称 · 状态 · 进度, the progress text uncut", await ctx.eval("(() => { const v = [...document.querySelectorAll('#bscroll .tbl thead th')].filter(th => th.offsetWidth > 0).map(th => th.textContent.replace(/[↑↓ ]/g, '')); return v.join() === '编号,名称,状态,进度' && [...document.querySelectorAll('#bscroll .tbl td.c-prog')].every(td => td.scrollWidth <= td.clientWidth + 1); })()"));
     await ctx.eval("V2.setForm('cards'); true");
   },
+  // Card 043: an in-doc jump can be undone with back and redone with forward; one factor scales every text size.
+  async round6(ctx, check) {
+    await ctx.viewport(1440, 900); await ctx.load(); await ctx.go("doc"); await ctx.sleep(400);
+    const top = "Math.round(V2.P.A.body.scrollTop)";
+    await ctx.eval("V2.P.A.body.scrollTop = 120; true"); await ctx.sleep(200);
+    const before = await ctx.eval(top);
+    await ctx.eval("document.querySelectorAll('[data-ti]')[4].click(); true"); await ctx.sleep(900);
+    const jumped = await ctx.eval(top);
+    check(`a TOC jump moves the reader (${before} → ${jumped})`, Math.abs(jumped - before) > 50);
+    await ctx.eval("document.querySelector('#pA .md').dataset.probe = '1'; V2.back('A'); true"); await ctx.sleep(400);
+    check(`back returns to where the jump started (${await ctx.eval(top)}), same article, no re-render`, Math.abs(await ctx.eval(top) - before) <= 2 && await ctx.eval("document.querySelector('#pA .md').dataset.probe === '1'"));
+    await ctx.eval("V2.fwd('A'); true"); await ctx.sleep(400);
+    check(`forward goes back to the jump target (${await ctx.eval(top)})`, Math.abs(await ctx.eval(top) - jumped) <= 2);
+    const fs = "parseFloat(getComputedStyle(document.querySelector('#pA .md p')).fontSize)";
+    const base = await ctx.eval(fs);
+    await ctx.eval("document.documentElement.style.setProperty('--fz', '1.2'); true"); await ctx.sleep(200);
+    check(`--fz scales the text (${base}px → ${await ctx.eval(fs)}px)`, Math.abs(await ctx.eval(fs) - base * 1.2) < 0.2);
+    await ctx.eval("document.documentElement.style.removeProperty('--fz'); true");
+  },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
   // the classic code fonts, the help panel, the search side list, mirror, and the brightness slider.
   async round3(ctx, check, o) {

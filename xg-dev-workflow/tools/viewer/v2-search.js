@@ -41,12 +41,12 @@
     return `<button class="qr ${i === sel ? "sel" : ""} ${it.k === "search" ? "qfull" : ""}" data-q="${i}">${main}<em>${esc(em)}</em></button>`;
   }
   function emptyGroups() {
-    const recent = V.recent.list("opened").slice(0, 8).map(key => {
+    const recent = V.recent.list("opened").slice(0, V.CFG.qoRecent).map(key => {
       const i = key.indexOf(":"), tree = key.slice(0, i), rel = key.slice(i + 1), mt = V.D.mtime[tree][rel];
       return mt != null ? { it: docItem(tree, rel, mt) } : null;
     }).filter(Boolean);
     const seen = new Set(recent.map(r => r.it.tree + ":" + r.it.rel));
-    const newest = docs().filter(d => !seen.has(d.tree + ":" + d.rel)).sort((a, b) => b.mtime - a.mtime).slice(0, 40).map(it => ({ it }));
+    const newest = docs().filter(d => !seen.has(d.tree + ":" + d.rel)).sort((a, b) => b.mtime - a.mtime).slice(0, V.CFG.qoDocs).map(it => ({ it }));
     const hist = V.recent.list("search").slice(0, 5).map(s => ({ it: { k: "search", label: "搜索「" + s + "」", q: s } }));
     return [["", navRows().map(it => ({ it }))], ["最近打开", recent], ["最近搜索", hist], ["最近修改", newest]];
   }
@@ -60,8 +60,8 @@
     const label = it => it.label;
     const cards = V.D.cards.map(c => ({ k: "card", c, label: `${c.id} ${c.slug}`, mtime: V.D.mtime.dev[c.dir + "/design.md"] || 0 }));
     if (!facts.list.length) loadFacts();
-    return [["", score(q, navRows(), it => it.label + " " + it.words)], ["文档", score(q, docs(), label, it => it.label.lastIndexOf("/") + 1).slice(0, 40)],
-      ["卡片", score(exact, cards, label, 0, it => (it.c.n === ql || it.c.id === ql ? 100 : 0)).slice(0, 8)],
+    return [["", score(q, navRows(), it => it.label + " " + it.words)], ["文档", score(q, docs(), label, it => it.label.lastIndexOf("/") + 1).slice(0, V.CFG.qoDocs)],
+      ["卡片", score(exact, cards, label, 0, it => (it.c.n === ql || it.c.id === ql ? 100 : 0)).slice(0, V.CFG.qoCards)],
       ["Fact", score(exact, facts.list, label, 0, it => (it.id.toLowerCase() === ql ? 100 : 0)).slice(0, 6)],
       ["", [{ it: { k: "search", label: "全文搜索「" + q + "」", q } }]]];
   }

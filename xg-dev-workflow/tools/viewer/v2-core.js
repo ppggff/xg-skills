@@ -10,6 +10,8 @@ var V2 = (function () {
   Object.assign(V, { $, $$, esc, cssEsc: s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&")) });
   V.RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
   V.GITWEB = ($('meta[name="gitweb-url"]') || {}).content || "";
+  // behaviour numbers, in one place: refresh period, how long a toast stays, and the list sizes
+  V.CFG = { pollMs: 2500, toastMs: 1900, trail: 12, qoRecent: 8, qoDocs: 40, qoCards: 8 };
 
   /* ---- storage: every key this page writes is svd2-*, never the classic shell's sv-* ---- */
   V.store = {
@@ -64,7 +66,7 @@ var V2 = (function () {
   V.ago = sec => (sec ? since(Date.now() / 1000 - sec, [[90, 0, "now"], [3600, 60, "m"], [86400, 3600, "h"], [Infinity, 86400, "d"]]) : "");
   V.relT = ms => since((Date.now() - ms) / 1000, [[45, 0, "刚才"], [3600, 60, " 分钟前"], [86400, 3600, " 小时前"], [Infinity, 86400, " 天前"]]);
   let toastT;
-  V.toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 1900); };
+  V.toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), V.CFG.toastMs); };
   V.copy = (text, ok) => {
     const no = () => V.toast("复制失败，浏览器没有允许");
     try { navigator.clipboard.writeText(text).then(() => V.toast(ok), no); } catch (e) { no(); }
@@ -313,20 +315,25 @@ var V2 = (function () {
     mount(); V.emit("split", on); V.relayout(); V.status();
   };
   const same = (a, b) => a && b && a.kind === b.kind && a.tree === b.tree && a.rel === b.rel && a.q === b.q && a.card === b.card;
+  // a doc goes into history with its scroll position, so back and forward land where the reader was
+  V.here = p => (p.loc && p.loc.kind === "doc" && p.body ? Object.assign({}, p.loc, { top: p.body.scrollTop, xid: null, line: 0, hash: null }) : p.loc);
   // the one way to change what a pane shows: leaving writes the reading place, history is per pane
   V.nav = (k, loc, opt = {}) => {
     if (V.isNarrow()) { app.classList.remove("navpop", "treepop", "tocpop"); V.applyW(); k = "A"; }
+    if (opt.push === false && loc.top != null && same(P[k].loc, loc) && P[k].doc && !P[k].doc.err && !P[k].chg) {   // back/forward within one doc: scroll, no re-render
+      P[k].loc = loc; P[k].body.scrollTop = loc.top; V.setFocus(k); V.paintHist(); V.emit("nav", k, loc); return;
+    }
     if (k === "B" && !P.A.loc && opt.push !== false) k = "A";   // a new pick fills a blank A first; back/forward stay in their pane
     const p = P[k], o = P[V.other(k)];
     if (p.loc) V.emit("leave", k, p.loc);
-    if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(p.loc); p.fwd.length = 0; }
+    if (opt.push !== false && p.loc && !same(p.loc, loc)) { p.hist.push(V.here(p)); p.fwd.length = 0; }
     p.loc = loc;
     if (loc.kind !== "doc" && o.loc && o.loc.kind === loc.kind) {   // one board, one search: the other pane gives it up, keeping it in its history
       V.emit("leave", o.k, o.loc); o.hist.push(o.loc); o.fwd.length = 0; o.loc = null; V.emit("blank", o.k);
     }
     if (k === "B" && !V.isSplit()) V.setSplit(true);
     mount(); V.setFocus(k);
-    if (loc.kind === "doc" && opt.user !== false) V.recent.push("opened", loc.tree + ":" + loc.rel, 12);
+    if (loc.kind === "doc" && opt.user !== false) V.recent.push("opened", loc.tree + ":" + loc.rel, V.CFG.trail);
     V.views[loc.kind](k, loc, Object.assign({ entering: true }, opt));
     V.paintHist(); V.emit("nav", k, loc);
   };
@@ -335,8 +342,8 @@ var V2 = (function () {
     if (at && !(e && e.shiftKey)) return V.setFocus(at);
     V.nav(V.target(e), { kind: "board" });
   };
-  V.back = k => { const p = P[k || V.navPane()]; if (!p.hist.length) return; const to = p.hist.pop(); if (p.loc) p.fwd.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
-  V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); if (p.loc) p.hist.push(p.loc); V.nav(p.k, to, { push: false, user: false }); };
+  V.back = k => { const p = P[k || V.navPane()]; if (!p.hist.length) return; const to = p.hist.pop(); if (p.loc) p.fwd.push(V.here(p)); V.nav(p.k, to, { push: false, user: false }); };
+  V.fwd = k => { const p = P[k || V.navPane()]; if (!p.fwd.length) return; const to = p.fwd.pop(); if (p.loc) p.hist.push(V.here(p)); V.nav(p.k, to, { push: false, user: false }); };
   V.rerender = k => { const p = P[k]; if (p.loc) V.views[p.loc.kind](k, p.loc, { entering: false }); };
   V.locLabel = l => (!l ? "" : l.kind === "doc" ? l.rel.split("/").pop() : l.kind === "search" ? "搜索「" + l.q + "」"
     : l.kind === "diff" ? l.card + " 的改动" : l.kind === "recent" ? "最近提交" : "看板");
@@ -414,7 +421,7 @@ var V2 = (function () {
     $("#tree").innerHTML = '<div class="hint">加载中…</div>';
     V.load().then(() => { V.emit("data"); V.nav("A", { kind: "board" }, { push: false }); })
       .catch(e => { $("#bscroll").innerHTML = `<div class="empty-b">读不到数据：${esc(e.message)}</div>`; });
-    setInterval(V.poll, 2500);
+    setInterval(V.poll, V.CFG.pollMs);
   });
   return V;
 })();

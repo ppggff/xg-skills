@@ -173,6 +173,7 @@
   function place(k, loc, opt, keepTop) {
     const p = P[k], b = p.body;
     if (!opt.entering) { b.scrollTop = keepTop; return; }
+    if (loc.top != null) { b.scrollTop = loc.top; return; }
     let el = null;
     if (loc.xid) el = $(`[data-xid="${V.cssEsc(loc.xid)}"]`, b);
     if (!el && loc.hash) el = $(`#${V.cssEsc(loc.hash)}`, b) || $$("h1,h2,h3,h4", b).find(h => slug(h.textContent) === loc.hash);
@@ -348,7 +349,8 @@
   });
   V.on("nav", (k, loc) => { if (loc.kind !== "doc") { $$(".secchip").forEach(c => c.classList.remove("on")); toc(); } });
   const jumpTo = (k, el, smooth) => {
-    const b = P[k].body;
+    const p = P[k], b = p.body;
+    if (p.loc && p.loc.kind === "doc") { p.hist.push(V.here(p)); p.fwd.length = 0; V.paintHist(); }   // an in-doc jump can be undone with back
     if (smooth) b.scrollTo({ top: el.offsetTop - HEAD_PAD, behavior: V.RM ? "auto" : "smooth" }); else b.scrollTop = el.offsetTop - HEAD_PAD;
     flash(el); curLine(k, el, null);
   };
@@ -471,13 +473,14 @@
   addEventListener("scroll", e => { if (!$("#tip").contains(e.target) && $("#tip").classList.contains("on")) hideTip(); }, true);
 
   /* ---- change history and the change view: a commit's after-version with its added/removed blocks ---- */
+  const shaLabel = sha => (sha === "worktree" ? "未提交" : sha.slice(0, 7));
   function histHTML(k, loc, cs) {
     const back = P[k].chg ? `<button class="hi first last" data-chg="" data-pane="${k}"><i class="dt"></i><span class="hmsg">回到当前版本</span><span class="hmeta"></span></button>` : "";
     const row = (c, i) => {
       const cls = [i === 0 && !P[k].chg ? "first" : "", i === cs.length - 1 ? "last" : "", P[k].chg === c.sha ? "cur" : ""].join(" ");
-      const tip = esc(c.sha.slice(0, 7) + " · " + c.date + " · " + c.subject);
+      const tip = esc(shaLabel(c.sha) + " · " + c.date + " · " + c.subject);
       return `<button class="hi ${cls}" data-chg="${esc(c.sha)}" data-pane="${k}" data-tip="${tip}"><i class="dt"></i>`
-        + `<span class="hmsg">${esc(c.subject)}</span><span class="hmeta">${esc(c.sha.slice(0, 7))}　${esc(String(c.date).slice(5, 16))}</span></button>`;
+        + `<span class="hmsg">${esc(c.subject)}</span><span class="hmeta">${esc(shaLabel(c.sha))}　${esc(String(c.date).slice(5, 16))}</span></button>`;
     };
     return `<div class="pt">${esc(loc.rel.split("/").pop())} 的变更历史</div>` + back + (cs.length ? cs.map(row).join("") : '<div class="qnone">没有记录到提交</div>');
   }
@@ -516,7 +519,8 @@
       const top = p.body.scrollTop, md = changeArticle(d, loc, k);
       p.body.innerHTML = ""; p.body.appendChild(md); renderMermaid(k, md); applyMeasure(k); lineNumbers(k); p.body.scrollTop = top;
       const bar = $(".chgbar", p.el); bar.hidden = false;
-      bar.innerHTML = `<span>变更 <code>${esc(sha.slice(0, 7))}</code>：这次提交后的版本，新增与删除已标出（只读）</span><button data-chg="" data-pane="${k}">退出变更视图</button>`;
+      const what = sha === "worktree" ? "未提交的改动：磁盘上的当前版本，相对最近一次提交的新增与删除已标出（只读）" : `变更 <code>${esc(sha.slice(0, 7))}</code>：这次提交后的版本，新增与删除已标出（只读）`;
+      bar.innerHTML = `<span>${what}</span><button data-chg="" data-pane="${k}">退出变更视图</button>`;
       crumb(k, loc); V.emit("rendered", k, false); if (k === tocK()) toc(); repaintHist(k);
     }).catch(() => { if (p.loc === loc) V.toast("这次提交的改动读不出来"); });
   }

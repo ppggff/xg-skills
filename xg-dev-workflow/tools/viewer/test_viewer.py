@@ -208,7 +208,8 @@ class T345Endpoints(unittest.TestCase):
         self.assertTrue(len(d["commits"]) >= 1)
         for k in ("sha", "subject", "date"):
             self.assertIn(k, d["commits"][0])
-        self.assertEqual(d["commits"][0]["subject"], "foo/001: gate")
+        self.assertEqual(d["commits"][0]["sha"], "worktree")   # design.md has an uncommitted edit
+        self.assertEqual(d["commits"][1]["subject"], "foo/001: gate")
         self.assertNotIn("auto: data snapshot", [c["subject"] for c in d["commits"]])
 
     def test_filelog_bad_path_empty(self):          # non-md / traversal / empty → [] (no leak)
@@ -219,13 +220,28 @@ class T345Endpoints(unittest.TestCase):
 
     def test_filediff_after_and_adds(self):         # R5 (009 T9): one commit's file diff → after + add/del
         _, body = get(self.base, "/api/filelog?path=dev/foo/001-x/design.md")
-        sha = json.loads(body)["commits"][0]["sha"]
+        sha = json.loads(body)["commits"][1]["sha"]
         code, body = get(self.base, "/api/filediff?path=dev/foo/001-x/design.md&sha=" + sha)
         self.assertEqual(code, 200)
         d = json.loads(body)
         self.assertIn("v1", d["after"])          # after-version content at that commit
         self.assertEqual(d["adds"], [1])         # the one added line (new file)
         self.assertEqual(d["dels"], [])
+
+    def test_filelog_worktree_only_when_dirty(self):  # 043 Req-4: uncommitted changes lead the list
+        clean = json.loads(get(self.base, "/api/filelog?path=dev/foo/001-x/requirement.md")[1])["commits"]
+        self.assertNotIn("worktree", [c["sha"] for c in clean])
+        (self.dev / "foo" / "001-x" / "new.md").write_text("a\nb", encoding="utf-8")
+        fresh = json.loads(get(self.base, "/api/filelog?path=dev/foo/001-x/new.md")[1])["commits"]
+        self.assertEqual([c["sha"] for c in fresh], ["worktree"])
+
+    def test_filediff_worktree(self):                # the file on disk against HEAD; untracked → all added
+        d = json.loads(get(self.base, "/api/filediff?path=dev/foo/001-x/design.md&sha=worktree")[1])
+        self.assertEqual(d["after"], "v1\nUNCOMMITTED")
+        self.assertIn(2, d["adds"])                  # "v1" had no final newline, so git also reports line 1 as replaced
+        (self.dev / "foo" / "001-x" / "new.md").write_text("a\nb", encoding="utf-8")
+        d = json.loads(get(self.base, "/api/filediff?path=dev/foo/001-x/new.md&sha=worktree")[1])
+        self.assertEqual((d["adds"], d["dels"]), ([1, 2], []))
 
     def test_filediff_bad_sha_empty(self):          # non-hex / empty sha → pinned empty shape
         for bad in ("nothex!", "", "zzzzzzzz"):

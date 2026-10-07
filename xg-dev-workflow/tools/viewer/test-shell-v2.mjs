@@ -127,4 +127,8 @@ t("round 5: iOS keeps the text size on turning to landscape", () => {
   assert.match(css, /html \{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; \}/);
 });
 
+t("043 Req-4: the history labels uncommitted changes, not a sha", () => {
+  assert.match(js.reader, /const shaLabel = sha => \(sha === "worktree" \? "未提交" : sha\.slice\(0, 7\)\);/);
+});
+
 console.log(`${pass} v2 shell tests passed`);

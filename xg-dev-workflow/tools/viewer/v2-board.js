@@ -183,7 +183,7 @@
       const i = s.indexOf(":"), done = SV.stepFill(s.slice(i + 1)) === "done";
       return `<div class="rq"><span class="ck">${done ? V.I.tick : ""}</span><b>${esc(s.slice(0, i))}</b><span>${esc(s.slice(i + 1))}</span></div>`;
     }).join("");
-    return `<div class="rhead"><span class="vt">${bars}</span><span class="bfr"><s style="font-size:11px;color:var(--mu)">${esc(V.phaseNow(c))}</s></span></div>` + steps;
+    return `<div class="rhead"><span class="vt">${bars}</span><span class="bfr"><s style="font-size:var(--t-sm);color:var(--mu)">${esc(V.phaseNow(c))}</s></span></div>` + steps;
   }
   function detailHTML() {
     const c = V.card(sel), head = `<button class="ib bx" data-col="det" data-tip="关闭详情，再点一张卡会重新打开" aria-label="关闭详情">${V.I.x}</button>`;

@@ -22,6 +22,7 @@ Usage:
   viewer.py [--port N] [--no-browser] [--no-gitweb] [--gitweb-port N] [--dev-root DIR] [--kb-root DIR]
             [--lan] [--host NAME]...
 """
+import datetime
 import errno
 import http.client
 import http.server
@@ -57,6 +58,7 @@ GITWEB_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsaf
               "connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'")
 DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
+WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
 LOG_MAX = 100
 SEARCH_MAX = 200                               # cap search hits (bounded response)
 
@@ -354,13 +356,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             parts = line.split("\x1f")
             if len(parts) == 3:
                 commits.append({"sha": parts[0], "subject": parts[1], "date": parts[2]})
+        if _git(root, "status", "--porcelain", "--", rel).strip():
+            day = datetime.date.fromtimestamp(real.stat().st_mtime).isoformat()
+            commits.insert(0, {"sha": WORKTREE, "subject": "未提交的改动", "date": day})
         self._json({"commits": commits})
 
     def _serve_filediff(self, p, sha):
         # R5: one commit's change to one file → the after-version + parsed add/del line info (JSON).
         m = re.match(r"^(dev|kb)/(.*)$", p or "")
         empty = {"after": "", "adds": [], "dels": []}
-        if not m or not m.group(2).endswith(".md") or not re.fullmatch(r"[0-9a-fA-F]{4,64}", sha or ""):
+        if not m or not m.group(2).endswith(".md") or not (sha == WORKTREE or re.fullmatch(r"[0-9a-fA-F]{4,64}", sha or "")):
             self._json(empty)
             return
         root = self.dev_root if m.group(1) == "dev" else self.kb_root
@@ -369,6 +374,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json(empty)
             return
         rel = real.relative_to(root).as_posix()
+        if sha == WORKTREE:                            # the file on disk against HEAD; an untracked file is all added
+            after = real.read_text(encoding="utf-8", errors="replace") if real.is_file() else ""
+            if _git(root, "ls-files", "--", rel).strip():
+                adds, dels = _parse_file_patch(_git(root, "-c", "core.quotepath=false", "diff", "--no-color", "HEAD", "--", rel))
+            else:
+                adds, dels = list(range(1, len(after.splitlines()) + 1)), []
+            self._json({"after": after, "adds": adds, "dels": dels})
+            return
         after = _git(root, "-c", "core.quotepath=false", "show", "%s:%s" % (sha, rel))
         patch = _git(root, "-c", "core.quotepath=false", "show", "--format=", "-p", "--no-color", sha, "--", rel)
         adds, dels = _parse_file_patch(patch)
