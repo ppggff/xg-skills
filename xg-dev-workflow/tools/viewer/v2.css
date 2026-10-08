@@ -454,8 +454,8 @@ a.tr { text-decoration: none; }
 @keyframes enter { from { opacity: 0; transform: translateY(5px); } }
 .md > :first-child { margin-top: 0; }
 .md h1, .md h2, .md h3, .md h4, .md h5 { color: var(--ink); font-weight: 600; line-height: 1.35; margin: 24px 0 10px; position: relative; scroll-margin-top: 16px; }
-.md h1 { font-size: calc(21px * var(--fz)); font-weight: 500; padding-bottom: .25em; border-bottom: 1px solid var(--ln); }
-.md h2 { font-size: calc(17px * var(--fz)); font-weight: 500; padding-bottom: .25em; border-bottom: 1px solid var(--ln); }
+.md h1 { font-size: calc(21px * var(--fz)); padding-bottom: .25em; border-bottom: 1px solid var(--ln); }
+.md h2 { font-size: calc(17px * var(--fz)); }
 .md h3 { font-size: calc(14.5px * var(--fz)); }
 .md h4 { font-size: 1em; }
 .md p { margin: 0 0 12px; }
