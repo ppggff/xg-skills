@@ -146,7 +146,7 @@
     const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text }, d = V.store.get(DK(loc.rel), null);
     const draft = d && typeof d === "object" ? d : d != null ? { text: d, mtime: 0 } : null;
     p.edit = ed;
-    p.body.innerHTML = `<div class="tedw"><div class="tedbar"><b>编辑 ${esc(fileOf(loc))}</b><span>/ 命令　@ 项目　[[ 文档　⌘S 保存　Esc 退出</span>`
+    p.body.innerHTML = `<div class="tedw"><div class="tedbar"><span>/ 命令　@ 项目　[[ 文档　⌘S 保存　Esc 退出</span>`
       + `<button data-tsave class="ok">保存</button><button data-tcancel>取消</button></div>`
       + `<div class="ttool">${TOOLS.map(([a, l, t]) => `<button data-tact="${a}" data-tip="${t}" aria-label="${t}">${l}</button>`).join("")}</div>`
       + `<div class="ted"><pre class="thl" aria-hidden="true"></pre><textarea class="tta" spellcheck="false" aria-label="编辑 ${esc(fileOf(loc))}"></textarea>`
@@ -168,7 +168,6 @@
       ta.setSelectionRange(lineEnd(ta.value, pos), lineEnd(ta.value, pos));
       ta.scrollTop = Math.max(0, line * parseFloat(getComputedStyle(ta).lineHeight) - ta.clientHeight / 3);
     }
-    keyboardBar(p);
     // a restored draft keeps the version it was written against, so a file changed since then is caught as a conflict
     if (!draft || draft.text === ed.orig) return dropDraft(loc.rel);
     V.ask("这个文件有没保存的草稿", [["restore", "恢复草稿"], ["drop", "丢掉草稿"]]).then(v => {
@@ -201,13 +200,6 @@
     clearTimeout(ed.dt); if (ta && ta.value !== ed.orig) V.store.set(DK(ed.loc.rel), { text: ta.value, mtime: ed.base });
     p.edit = null;
   });
-  // on a phone the toolbar rides just above the on-screen keyboard
-  function keyboardBar(p) {
-    const vv = window.visualViewport, bar = $(".ttool", p.body); if (!vv || !bar || !V.isNarrow()) return;
-    const place = () => { if (!bar.isConnected) { vv.removeEventListener("resize", place); vv.removeEventListener("scroll", place); return; }
-      bar.style.setProperty("--kb", Math.max(0, innerHeight - vv.height - vv.offsetTop) + "px"); };
-    vv.addEventListener("resize", place); vv.addEventListener("scroll", place); place();
-  }
 
   /* ---- completion: the token before the caret decides what is offered (@ project, [[ doc, / command) ---- */
   function tokenAt(ta) {

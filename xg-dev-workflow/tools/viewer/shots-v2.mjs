@@ -521,15 +521,14 @@ const SCENARIO = {
 
     await ctx.click("#themeBtn"); await ctx.sleep(100);
     await ctx.eval("(() => { const i = document.querySelector('[data-lum=lum]'); i.value = 120; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
-    check("brightness 120% brightens the page", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
+    check("interface text 120% brightens the nav's text, not the reading text", await ctx.eval(`(() => { const s = document.documentElement.style; return /oklch\\(from .* 1\\.2\\)/.test(s.getPropertyValue('--tx')) && !/1\\.2/.test(s.getPropertyValue('--tx-r')) && !s.getPropertyValue('--paper'); })()`));
     await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')");
-    check("…and is remembered", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
-    check("…while the reading text keeps its own brightness", await ctx.eval("getComputedStyle(document.documentElement).getPropertyValue('--tfilter').trim() === 'brightness(0.8333)'"));
+    check("…and is remembered", await ctx.eval("/1\\.2/.test(document.documentElement.style.getPropertyValue('--tx'))"));
     await ctx.click("#themeBtn"); await ctx.click('[data-lum0="lum"]');
     await ctx.viewport(390, 844); await ctx.eval(`V2.nav("A", { kind: "doc", tree: "dev", rel: ${J(o.doc.slice(4).split("/")[0] + "/index.md")} }); true`); await ctx.wait("!!document.querySelector('#pA .md table')"); await ctx.sleep(300);
     check("narrow: tables wrap into the pane, none scrolls sideways", await ctx.eval("[...document.querySelectorAll('#pA .md table')].every(t => t.scrollWidth <= t.clientWidth + 1)"));
     await ctx.viewport(1440, 900);
-    check("复位 brings back the page as designed", await ctx.eval("document.documentElement.style.filter === '' && document.querySelector('[data-lum=lum]').value === '100'"));
+    check("复位 brings back the page as designed", await ctx.eval("!document.documentElement.style.getPropertyValue('--tx') && document.querySelector('[data-lum=lum]').value === '100'"));
   },
   // The two panes sit above their content: either can hold the board, a search, a diff, the recent commits or a doc.
   async panes2(ctx, check, o) {

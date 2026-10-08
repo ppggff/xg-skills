@@ -192,24 +192,27 @@ var V2 = (function () {
   V.isDark = () => { const t = document.documentElement.getAttribute("data-theme"); return t ? /dark/.test(t) : matchMedia("(prefers-color-scheme: dark)").matches; };
   V.setTheme = (k, btn) => {
     const root = document.documentElement;
-    const apply = () => { if (k) root.setAttribute("data-theme", k); else root.removeAttribute("data-theme"); V.store.set("theme", k); V.emit("theme"); };
+    const apply = () => { if (k) root.setAttribute("data-theme", k); else root.removeAttribute("data-theme"); V.store.set("theme", k); V.applyLum(); V.emit("theme"); };
     if (!document.startViewTransition || V.RM || !btn) return apply();
     const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
     document.startViewTransition(apply).ready.then(() => root.animate({ clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`] },
       { duration: 540, easing: "cubic-bezier(.65,0,.25,1)", pseudoElement: "::view-transition-new(root)" })).catch(() => {});
   };
   { const t0 = V.store.get("theme", ""); if (t0) document.documentElement.setAttribute("data-theme", t0); }
-  // brightness over every theme, the interface (lum) and the reading text (tlum) apart: a filter on the root keeps each
-  // theme's hues; the text's own filter divides the root's back out, so moving one slider leaves the other's result alone
-  V.setLum = (k, v) => {
-    v = Math.max(70, Math.min(140, Math.round(+v) || 100)); V.store.set(k, v);
-    const root = document.documentElement, u = V.store.get("lum", 100), t = V.store.get("tlum", 100);
-    root.style.filter = u === 100 ? "" : `brightness(${u / 100})`;
-    root.style.setProperty("--tfilter", t === u ? "none" : `brightness(${(t / u).toFixed(4)})`);
-    return v;
+  // brightness in three parts over every theme — the interface's surfaces (blum), its text (lum), the reading text (tlum):
+  // each scales the lightness of its colour tokens, read fresh from the theme, so hues stay; the reader and the editor
+  // take the text tokens from their own -r copies
+  const SURF = ["--chrome", "--paper", "--card", "--card2", "--ln", "--ln2"], TEXT = ["--ink", "--tx", "--mu", "--faint"];
+  V.applyLum = () => {
+    const root = document.documentElement, f = k => V.store.get(k, 100) / 100;
+    SURF.concat(TEXT, TEXT.map(p => p + "-r")).forEach(p => root.style.removeProperty(p));
+    const cs = getComputedStyle(root), scale = (p, k) => { const c = cs.getPropertyValue(p).trim(); return k === 1 ? c : `oklch(from ${c} calc(l * ${k}) c h)`; };
+    SURF.forEach(p => { if (f("blum") !== 1) root.style.setProperty(p, scale(p, f("blum"))); });
+    TEXT.forEach(p => { root.style.setProperty(p + "-r", scale(p, f("tlum"))); if (f("lum") !== 1) root.style.setProperty(p, scale(p, f("lum"))); });
   };
-  V.setLum("lum", V.store.get("lum", 100));
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => V.emit("theme"));
+  V.setLum = (k, v) => { v = Math.max(60, Math.min(150, Math.round(+v) || 100)); V.store.set(k, v); V.applyLum(); return v; };
+  V.applyLum();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { V.applyLum(); V.emit("theme"); });
 
   /* ---- popovers: one open at a time, placed under (or above) their anchor ---- */
   V.closePops = () => $$(".pop.on").forEach(p => { if (p.id !== "tip") p.classList.remove("on"); });
@@ -227,9 +230,9 @@ var V2 = (function () {
     const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
       + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
     const lum = ([k, l]) => { const v = V.store.get(k, 100);
-      return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="70" max="140" step="2" value="${v}" aria-label="${l}亮度">`
+      return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="60" max="150" step="2" value="${v}" aria-label="${l}亮度">`
         + `<em>${v}%</em><button data-lum0="${k}" data-tip="回到 100%">复位</button></div>`; };
-    V.pop("themePop", V.THEMES.map(item).join("") + [["lum", "界面"], ["tlum", "文字"]].map(lum).join(""), btn);
+    V.pop("themePop", V.THEMES.map(item).join("") + [["blum", "底色"], ["lum", "界面字"], ["tlum", "正文"]].map(lum).join(""), btn);
   };
 
   /* ---- status bar: the current view's line, or what the hovered control does ---- */

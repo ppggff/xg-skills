@@ -210,7 +210,7 @@
   V.views.todo = (k, loc, opt) => {
     const el = $("#todo");
     el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
-      + '<div class="ppath"><bdi>dev_root / todo / <b>待办</b></bdi></div>'
+      + '<div class="ppath"><bdi>todo / <b>待办</b></bdi></div>'
       + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button>${V.paneEnd(k)}</div>`
       + '<div class="tmain scroll"><div class="hint">读取中…</div></div>';
     if (loaded && !opt.entering) paint(); else refresh();

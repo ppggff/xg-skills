@@ -109,6 +109,7 @@ a.tr { text-decoration: none; }
 .tr em { margin-left: auto; font: 400 var(--t-xs) var(--cjk); font-style: normal; color: var(--faint); padding-left: 6px; font-variant-numeric: tabular-nums; }
 .tr em.star { color: var(--hitc); font-size: calc(9px * var(--fz)); }
 .tr em + em { padding-left: 4px; margin-left: 0; }
+.tr .tfx[data-tren] { margin-left: auto; }
 .tr .tfx { flex: none; width: 16px; text-align: center; text-decoration: none; color: var(--faint); display: none; }
 .tr.tfr:hover .tfx { display: block; } .tr .tfx:hover { color: var(--sig); }
 .tr.tfr:hover em { display: none; }
@@ -366,7 +367,7 @@ a.tr { text-decoration: none; }
 .md input.tbox { cursor: pointer; } .md input.tbox:hover { border-color: var(--sig); }
 .tedw { position: relative; display: flex; flex-direction: column; height: 100%; padding: 10px clamp(12px,2vw,28px) 16px; }
 .tedbar { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
-.tedbar b { font-weight: 500; color: var(--ink); } .tedbar span { flex: 1; min-width: 0; }
+.tedbar span { flex: 1; min-width: 0; }
 .tedbar button { padding: 2px 10px; border-radius: var(--r-sm); color: var(--mu); } .tedbar button:hover { color: var(--ink); background: var(--hover); }
 .tedbar button.ok { background: var(--sigs); color: var(--sig); }
 .ttool { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
@@ -374,13 +375,10 @@ a.tr { text-decoration: none; }
 .ttool button:hover { background: var(--hover); color: var(--ink); }
 .ttool button svg { width: 15px; height: 15px; vertical-align: -3px; }
 .ttool [data-tact="todo"] { color: var(--sig); font-family: var(--cjk); margin-left: auto; }
-.app.narrow .ttool { position: fixed; left: 0; right: 0; bottom: var(--kb, 0px); z-index: 45; flex-wrap: nowrap; overflow-x: auto; margin: 0;
-  padding: 4px 6px; background: var(--chrome); border-top: 1px solid var(--ln); scrollbar-width: none; }
-.app.narrow .ttool button { flex: none; height: 34px; min-width: 36px; }
-.app.narrow .tedw { padding-bottom: 52px; }
+.app.narrow .ttool button { height: 34px; min-width: 34px; }
 .tac button em { font-style: normal; color: var(--faint); margin-left: 10px; font: 400 var(--t-xs) var(--mono); }
-.ted { position: relative; flex: 1; min-height: 0; border: 1px solid var(--ln2); border-radius: var(--r-md); background: var(--paper); }
-.ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 14px; font: 400 calc(12.5px * var(--fz))/1.7 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
+.ted { position: relative; flex: 1; min-height: 0; border-top: 1px solid var(--ln); }
+.ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 2px; font: 400 calc(12.5px * var(--fz))/1.7 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
 .ted .thl { color: var(--tx); pointer-events: none; }
 .ted .tta { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: var(--ink); }
 .ted .tta::selection { background: var(--sigs); color: transparent; }
@@ -453,7 +451,8 @@ a.tr { text-decoration: none; }
 .stale button { color: var(--sig); text-decoration: underline; text-underline-offset: 3px; }
 
 /* markdown */
-.md, .ted { filter: var(--tfilter, none); }
+:root { --ink-r: var(--ink); --tx-r: var(--tx); --mu-r: var(--mu); --faint-r: var(--faint); }   /* until the brightness script sets them */
+.md, .ted { --ink: var(--ink-r); --tx: var(--tx-r); --mu: var(--mu-r); --faint: var(--faint-r); }
 .md { position: relative; z-index: 1; margin: 0 0 0 var(--m-l,12px); width: var(--m-w, min(820px, calc(100% - 2 * var(--m-l,12px)))); padding: 22px 34px 90px; font: calc(14px * var(--fz))/1.7 var(--cjk); color: var(--tx); word-wrap: break-word; }
 .md.enter { animation: enter .3s var(--ease); }
 @keyframes enter { from { opacity: 0; transform: translateY(5px); } }
