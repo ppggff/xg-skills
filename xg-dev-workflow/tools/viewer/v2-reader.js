@@ -286,6 +286,17 @@
   });
 
   /* ---- current line, last-read mark, flash ---- */
+  const inkMemo = {};
+  function inkShift(el) {   // how far the ink's middle lies below the font box's middle, per font
+    const cs = getComputedStyle(el), font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    if (inkMemo[font] == null) {
+      const cv = document.createElement("canvas"); cv.lang = el.closest("[lang]") ? el.closest("[lang]").lang : "";
+      const c = cv.getContext("2d"); c.font = font; if ("lang" in c) c.lang = cv.lang;
+      const m = c.measureText("中文Hg"), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent;
+      inkMemo[font] = fa + fd ? (2 * fa - m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 2 - (fa + fd) / 2 : 0;
+    }
+    return inkMemo[font];
+  }
   function curLine(k, blk, clientY) {
     const b = P[k].body, md = $(".md", b); if (!blk || !md || !b.contains(blk)) return;
     let ov = $(".curline", md);
@@ -298,8 +309,9 @@
       rect = SV.pickLineRect([...rg.getClientRects()].filter(r => r.width > 1 && r.height > 1), clientY) || blk.getBoundingClientRect();
     }
     const padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
-    // a text rect is the glyphs' height; the band covers the whole line box, centred on it (a heading's line is much taller)
-    const lh = row ? 0 : parseFloat(getComputedStyle(blk).lineHeight) || 0, h = Math.max(rect.height, lh), top = rect.top - (h - rect.height) / 2;
+    // a text rect is the font box; the band covers the whole line box, centred on the glyphs' ink, which sits low in the box
+    const lh = row ? 0 : parseFloat(getComputedStyle(blk).lineHeight) || 0, h = Math.max(rect.height, lh);
+    const top = rect.top - (h - rect.height) / 2 + (row ? 0 : inkShift(blk));
     ov.style.top = (top - mr.top - 1) + "px"; ov.style.height = (h + 2) + "px";
     ov.style.left = (padL - 8) + "px"; ov.style.width = (mr.width - padL - padR + 16) + "px";
     P[k].cur = { blk, off: clientY == null ? null : clientY - blk.getBoundingClientRect().top };
