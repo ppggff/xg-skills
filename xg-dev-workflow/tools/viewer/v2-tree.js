@@ -7,8 +7,9 @@
   V.OPEN_ST = OPEN_ST;
 
   /* ---- fold state: user toggles persist (merged, so another tab's folds survive); reveals are session-only ---- */
-  const DEF_OPEN = ["dev", "kb"];
+  const DEF_OPEN = ["todo", "dev", "kb"];
   const openF = new Set(V.store.get("tree-open", DEF_OPEN));
+  if (!V.store.get("todo-sec", false)) { openF.add("todo"); V.store.set("todo-sec", true); V.store.set("tree-open", [...openF]); }   // the section is new: open once
   const reveal = new Set();
   let snap = { dev: null, kb: null, ext: null };   // what one-click collapse closed, so a second click can restore it
   const isOpen = k => openF.has(k) || reveal.has(k);
@@ -19,7 +20,7 @@
     snap[k.split(":")[0]] = null;
     render();
   }
-  const sorts = Object.assign({ dev: { key: "name", dir: 1 }, kb: { key: "name", dir: 1 }, ext: { key: "name", dir: 1 } }, V.store.get("tree-sort", {}));
+  const sorts = Object.assign({ todo: { key: "name", dir: 1 }, dev: { key: "name", dir: 1 }, kb: { key: "name", dir: 1 }, ext: { key: "name", dir: 1 } }, V.store.get("tree-sort", {}));
 
   /* ---- stars ---- */
   let stars = V.store.get("stars", []);
@@ -88,25 +89,38 @@
     const cmpD = (a, b) => sorts.dev.key === "name" ? (b.name === "design.md") - (a.name === "design.md") || cmp(a, b) : cmp(a, b);
     return h + nodeRows("dev", node, c.dir + "/", d + 1, cmpD, cur, true);
   }
-  const ctl = t => `<button class="tc" data-tsort="${t}" data-tip="排序：名称 / 修改时间">${sorts[t].key === "mtime" ? "T" : "A"}</button>`
+  const ctl = (t, flat) => `<button class="tc" data-tsort="${t}" data-tip="排序：名称 / 修改时间">${sorts[t].key === "mtime" ? "T" : "A"}</button>`
     + `<button class="tc" data-tdir="${t}" data-tip="排序方向">${sorts[t].dir > 0 ? "↑" : "↓"}</button>`
-    + `<button class="tc ${snap[t] ? "on" : ""}" data-tcol="${t}" data-tip="${snap[t] ? "恢复折叠前的展开" : "折叠这一区的全部文件夹"}">F</button>`;
+    + (flat ? "" : `<button class="tc ${snap[t] ? "on" : ""}" data-tcol="${t}" data-tip="${snap[t] ? "恢复折叠前的展开" : "折叠这一区的全部文件夹"}">F</button>`);
+  // todo: the two views of the todo page first, then the files of dev_root/todo/ with their open counts
+  function todoRows(cur) {
+    const mode = V.store.get("todo-mode", "list"), on = m => (V.view === "todo" && mode === m ? "cur" : "");
+    const view = (m, icon, name, extra) => `<button class="tr ${on(m)}" style="--d:0" data-todo="${m}"><span class="cv">${icon}</span><span class="nm">${name}</span>${extra}</button>`;
+    let h = view("list", V.I.box, "待办", `<em>${V.todoOpen ? V.todoOpen() || "" : ""}</em>`) + view("review", V.I.hist, "回顾", "");
+    const files = V.D.tree.dev.filter(it => /^todo\/[^/]+\.md$/.test(it.path)).map(it => ({ name: it.path.slice(5), path: it.path, mtime: it.mtime }));
+    files.sort(SV.sortCmp(sorts.todo.key, sorts.todo.dir)).forEach(f => {
+      const key = "dev:" + f.path, tf = V.todoFiles && V.todoFiles[f.name], open = tf && tf.text != null ? SV.parseTodo(tf.text).filter(i => !i.done).length : 0;
+      h += row(0, "tfr " + (cur.includes(key) ? "cur" : ""), 0, esc(f.name.replace(/\.md$/, "")), when("todo", f.mtime) + `<em>${open || ""}</em>`
+        + `<u class="tfx" data-tren="${esc(f.name)}" data-tip="改名">✎</u><u class="tfx" data-tdelf="${esc(f.name)}" data-tip="删除这个文件">×</u>`, `data-open="${esc(key)}"`);
+    });
+    return h;
+  }
   function render(reveal) {
     const tree = $("#tree"), top = tree.scrollTop, cur = curKeys(), D = V.D;
     const cards = D.cards;
     let h = `<button class="tr top ${V.view === "board" ? "cur" : ""}" style="--d:0" data-goboard="1">`
       + `<span class="cv">${V.I.grid}</span><span class="nm">看板</span><em>${cards.length}</em></button>`
       + `<button class="tr top ${V.view === "recent" ? "cur" : ""}" style="--d:0" data-recent="1" data-tip="dev_root 最近 25 次提交">`
-      + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`
-      + `<button class="tr top ${V.view === "todo" ? "cur" : ""}" style="--d:0" data-todo="1" data-tip="dev_root/todo.md：笔记与待办">`
-      + `<span class="cv">${V.I.doc}</span><span class="nm">todo</span><em>${V.todoOpen ? V.todoOpen() || "" : ""}</em></button>`;
+      + `<span class="cv">${V.I.hist}</span><span class="nm">最近提交</span></button>`;
     if (V.GITWEB) h += `<a class="tr top" style="--d:0" href="${esc(V.GITWEB)}" target="_blank" rel="noopener" data-tip="浏览代码：gitweb，在新标签页打开">`
       + `<span class="cv">${V.I.code}</span><span class="nm">浏览代码</span></a>`;
-    // dev: projects → open cards → closed (n) → the project's other files
+    h += `<div class="tsec"><button class="nm" data-fold-k="todo">todo</button><button class="tc" data-tnewf data-tip="新建 todo 文件">＋</button>${ctl("todo", true)}</div>`;
+    if (isOpen("todo")) h += todoRows(cur);
+    // dev: projects → open cards → closed (n) → the project's other files; todo/ has its own section above
     const dc = SV.sortCmp(sorts.dev.key, sorts.dev.dir), devOpen = isOpen("dev");
     h += `<div class="tsec"><button class="nm" data-fold-k="dev">dev_root</button>${ctl("dev")}</div>`;
     if (devOpen) {
-      const devItems = D.tree.dev;
+      const devItems = D.tree.dev.filter(it => !it.path.startsWith("todo/"));
       const root = SV.buildTree(devItems.filter(it => !V.cardOfPath("dev", it.path)));
       const projs = [...new Set(devItems.map(it => it.path.split("/")[0]).filter(p => devItems.some(it => it.path.startsWith(p + "/"))))]
         .map(p => ({ name: p, mtime: Math.max(0, ...devItems.filter(it => it.path.startsWith(p + "/")).map(it => it.mtime)) })).sort(dc);
@@ -144,6 +158,7 @@
   // opening a doc unfolds its ancestors for this session only — a programmatic expand is not a preference
   V.revealDoc = (tree, rel) => {
     const segs = rel.split("/"); reveal.add(tree);
+    if (tree === "dev" && segs[0] === "todo") reveal.add("todo");
     for (let i = 1; i < segs.length; i++) reveal.add(tree + ":" + segs.slice(0, i).join("/"));
     const c = V.cardOfPath(tree, rel); if (c && !OPEN_ST.includes(c.st)) reveal.add("dev:" + c.p + "/closed");
   };
@@ -157,7 +172,7 @@
 
   V.click("[data-fold-k]", el => toggleFold(el.dataset.foldK));
   V.click("[data-recent]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "recent" }); });
-  V.click("[data-todo]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "todo" }); });
+  V.click("[data-todo]", (el, e) => { V.app.classList.remove("treepop"); V.store.set("todo-mode", el.dataset.todo); V.nav(V.target(e), { kind: "todo" }); });
   V.click("[data-tsort]", el => {   // a time sort starts newest first, a name sort A→Z
     const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });
@@ -181,6 +196,7 @@
   document.addEventListener("submit", e => { const f = e.target.closest("#rootPop .radd"); if (!f) return; e.preventDefault(); const v = $("input", f).value.trim(); if (v) roots("add", v); });
   V.click("[data-unstar]", (el, e) => { e.stopPropagation(); V.toggleStar(el.dataset.unstar); starPop($("#starBtn")); });
   V.click("[data-open]", (el, e) => {
+    if (e.target.closest("[data-tren],[data-tdelf]")) return false;   // a todo file row's rename and delete
     V.closePops(); V.app.classList.remove("treepop");
     const key = el.dataset.open, i = key.indexOf(":");
     V.openDoc(key.slice(0, i), key.slice(i + 1), e, el.dataset.oline ? { line: +el.dataset.oline } : undefined);

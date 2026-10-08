@@ -25,7 +25,7 @@
   const docItem = (tree, rel, mtime) => ({ k: "doc", tree, rel, mtime, label: (tree === "dev" ? "" : tree + "/") + rel });
   const docs = () => ["dev", "kb", "ext"].reduce((a, tree) => a.concat(V.D.tree[tree].map(x => docItem(tree, x.path, x.mtime))), []);
   const navRows = () => [{ k: "go", label: "看板", sub: "所有卡片", words: "board" }, { k: "recent", label: "最近提交", sub: "dev_root 的提交", words: "recent commits log" },
-    { k: "todo", label: "todo", sub: "dev_root/todo.md 的笔记与待办", words: "todo note 待办 笔记" }]
+    { k: "todo", label: "todo", sub: "dev_root/todo/ 里的全部待办", words: "todo note 待办 笔记" }]
     .concat(V.GITWEB ? [{ k: "ext", label: "浏览代码", sub: "gitweb，新标签页", words: "gitweb code" }] : []);
 
   /* ---- quick open ---- */

@@ -474,8 +474,8 @@ const SCENARIO = {
     check(`--fz scales the text (${base}px → ${await ctx.eval(fs)}px)`, Math.abs(await ctx.eval(fs) - base * 1.2) < 0.2);
     await ctx.eval("document.documentElement.style.removeProperty('--fz'); true");
     // todo: read-only here (the harness serves the real dev_root, so nothing is written)
-    await ctx.click("[data-todo]"); await ctx.wait("!!document.querySelector('#todo .tadd')");
-    check("todo opens beside the board, with an add row", await ctx.eval("V2.kindOf('A') === 'todo' && !document.getElementById('todo').hidden"));
+    await ctx.click('[data-todo="list"]'); await ctx.wait("!!document.querySelector('#todo .ttbl, #todo .tmain .hint:not(:first-child)')");
+    check("todo opens from its nav section, read-only, as a table", await ctx.eval("V2.kindOf('A') === 'todo' && !document.getElementById('todo').hidden && !document.querySelector('#todo form, #todo .tfiles')"));
     check("…and ⌘K lists it", await ctx.eval("(() => { V2.chord.k(); const ok = [...document.querySelectorAll('#qList .qr')].some(r => /todo/.test(r.textContent)); V2.chord.k(); return ok; })()"));
   },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,
@@ -520,15 +520,16 @@ const SCENARIO = {
     await ctx.key("Escape");
 
     await ctx.click("#themeBtn"); await ctx.sleep(100);
-    await ctx.eval("(() => { const i = document.getElementById('lumIn'); i.value = 120; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+    await ctx.eval("(() => { const i = document.querySelector('[data-lum=lum]'); i.value = 120; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
     check("brightness 120% brightens the page", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
     await ctx.eval("location.reload(); true"); await ctx.sleep(400); await ctx.wait("!!document.querySelector('#tree .tr.top')");
     check("…and is remembered", await ctx.eval("document.documentElement.style.filter === 'brightness(1.2)'"));
-    await ctx.click("#themeBtn"); await ctx.click("[data-lum0]");
+    check("…while the reading text keeps its own brightness", await ctx.eval("getComputedStyle(document.documentElement).getPropertyValue('--tfilter').trim() === 'brightness(0.8333)'"));
+    await ctx.click("#themeBtn"); await ctx.click('[data-lum0="lum"]');
     await ctx.viewport(390, 844); await ctx.eval(`V2.nav("A", { kind: "doc", tree: "dev", rel: ${J(o.doc.slice(4).split("/")[0] + "/index.md")} }); true`); await ctx.wait("!!document.querySelector('#pA .md table')"); await ctx.sleep(300);
     check("narrow: tables wrap into the pane, none scrolls sideways", await ctx.eval("[...document.querySelectorAll('#pA .md table')].every(t => t.scrollWidth <= t.clientWidth + 1)"));
     await ctx.viewport(1440, 900);
-    check("复位 brings back the page as designed", await ctx.eval("document.documentElement.style.filter === '' && document.getElementById('lumIn').value === '100'"));
+    check("复位 brings back the page as designed", await ctx.eval("document.documentElement.style.filter === '' && document.querySelector('[data-lum=lum]').value === '100'"));
   },
   // The two panes sit above their content: either can hold the board, a search, a diff, the recent commits or a doc.
   async panes2(ctx, check, o) {

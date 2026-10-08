@@ -1,6 +1,7 @@
 /* status viewer v2 — todo: a directory of markdown files, <dev_root>/todo/*.md, as a view beside the board. Each file
    is read like any doc; its checklist lines are the todos, @words tag a project (older #words too), wikilinks point at
-   docs. This view lists the files and gathers every todo across them; the reader opens and edits a file.
+   docs. The nav lists the files under its todo section; this view shows every todo across them as a table (待办), or
+   what was made, done and due in a period (回顾); the reader opens and edits a file.
    Writes carry the version the page shows, so a file changed elsewhere in between is refused, never overwritten. */
 "use strict";
 (function (V) {
@@ -8,7 +9,8 @@
   // per file: text/mtime follow the disk; shown/base are the version on screen — edits address its lines and are
   // saved against its mtime, so a file that moved underneath is refused (409) instead of having the wrong line changed
   const F = V.todoFiles = {};
-  let tag = store.get("todo-tag", ""), showDone = false, editing = null, loaded = false;
+  let editing = null, loaded = false;
+  const unfold = new Set();   // projects whose done rows are shown
   const DIR = "todo/", names = () => (V.D.tree ? V.D.tree.dev.map(x => x.path).filter(p => /^todo\/[^/]+\.md$/.test(p)).map(p => p.slice(DIR.length)) : []);
 
   function load() {
@@ -80,7 +82,6 @@
 
   /* ---- time filters, sorting, and the review: chosen in the view, remembered ---- */
   const WHEN = [["", "全部"], ["today", "今天到期"], ["late", "已过期"], ["week", "本周"], ["none", "无截止日期"]];
-  const SORTS = [["file", "文件顺序"], ["due", "截止日期"], ["prio", "优先级"], ["created", "最近创建"]];
   const RANGES = [["week", "本周"], ["lastweek", "上周"], ["month", "本月"], ["lastmonth", "上月"], ["custom", "自定"]];
   const ymd = d => SV.todoStamp(d).slice(0, 10);
   function range(kind) {   // [from, to], inclusive YYYY-MM-DD
@@ -98,45 +99,60 @@
     if (w === "week") return within(m.due, range("week"));
     return !m.due;
   }
-  function sorted(list, by) {
-    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()) }[by];
-    return key ? list.slice().sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0)) : list;
+  function sorted(list, by, desc) {
+    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
+      done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") }[by];
+    return key ? list.slice().sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (desc ? -1 : 1)) : list;
   }
+  /* ---- the table: the board's table form, one group per project (or per review heading) ---- */
+  const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先级"], ["due", "截止"], ["done", "完成"], ["created", "创建"], ["file", "文件"], ["x", ""]];
+  const SORTABLE = ["prio", "due", "done", "created", "file"];
+  function trHTML(it) {
+    const id = esc(it.file) + "|" + it.line, m = it.meta, t = today(), when = m.created && SV.todoDate(m.created);
+    const text = editing === id ? `<input class="tedit" data-id="${id}" value="${esc(it.text)}" aria-label="改这一条">`
+      : `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`;
+    return `<tr class="${it.done ? "done" : ""}" style="--td:${Math.min(it.depth, 8)}">`
+      + `<td class="c-ck"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button></td>`
+      + `<td class="c-text">${text}</td>`
+      + `<td class="c-prio">${m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级：${PRIO[m.prio]}">${V.I["p" + m.prio]}</span>` : ""}</td>`
+      + `<td class="c-due">${m.due ? `<span class="tdue${!it.done && m.due < t ? " late" : !it.done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">${m.due.slice(5)}</span>` : ""}</td>`
+      + `<td class="c-done mu" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
+      + `<td class="c-created mu" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
+      + `<td class="c-file"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td>`
+      + `<td class="c-x"><button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></td></tr>`;
+  }
+  function tableHTML(groups) {
+    const by = store.get("todo-sort", ""), desc = store.get("todo-desc", false), n = COLS.length;
+    const th = COLS.map(([k, l]) => SORTABLE.includes(k) ? `<th class="c-${k}${by === k ? " on" + (desc ? " desc" : "") : ""}" data-tsortc="${k}">${l}</th>` : `<th class="c-${k} ns">${l}</th>`).join("");
+    return `<table class="tbl ttbl"><thead><tr>${th}</tr></thead><tbody>` + groups.map(g => {
+      const show = unfold.has(g.key), done = g.done || [];
+      return `<tr class="gh"><td colspan="${n}">${esc(g.name)}<em>${g.rows.length}</em></td></tr>` + sorted(g.rows, by, desc).map(trHTML).join("")
+        + (done.length ? `<tr class="tfold"><td colspan="${n}"><button class="fold tdone" data-tfoldg="${esc(g.key)}">${show ? "收起" : "展开"}已完成 ${done.length}</button></td></tr>`
+          + (show ? sorted(done, by, desc).map(trHTML).join("") : "") : "");
+    }).join("") + "</tbody></table>";
+  }
+  const projOf = i => i.tags[0] || "";
+  const byProj = (list, done) => [...new Set(list.map(projOf))].sort((a, b) => (a === "") - (b === "") || (a < b ? -1 : a > b ? 1 : 0))
+    .map(p => ({ key: p, name: p ? "@" + p : "未标项目", rows: list.filter(i => projOf(i) === p && (done ? true : !i.done)), done: done ? [] : list.filter(i => projOf(i) === p && i.done) }));
   function reviewHTML(items) {
     const kind = store.get("todo-range", "week"), r = range(kind);
     const groups = [["created", "新建", i => within(i.meta.created, r)], ["done", "完成", i => within(i.meta.done, r)],
       ["due", "到期未完成", i => !i.done && within(i.meta.due, r)]].map(([k, l, f]) => [k, l, items.filter(f)]);
-    const byProj = list => { const g = {}; list.forEach(i => { (g[i.tags[0] || ""] = g[i.tags[0] || ""] || []).push(i); }); return Object.keys(g).sort().map(p => `<div class="trp">${p ? "@" + esc(p) : "未标项目"}<em>${g[p].length}</em></div>` + g[p].map(rowHTML).join("")).join(""); };
     return `<div class="trange">${RANGES.map(([k, l]) => `<button class="chip ${k === kind ? "on" : ""}" data-trange="${k}">${l}</button>`).join("")}`
       + (kind === "custom" ? `<input type="date" class="tfrom" value="${r[0]}" aria-label="起"><span>到</span><input type="date" class="tto" value="${r[1]}" aria-label="止">` : `<span class="trr">${r[0]} 到 ${r[1]}</span>`) + "</div>"
-      + `<div class="tsum">${groups.map(([k, l, list]) => `<span><b>${list.length}</b> ${l}</span>`).join("")}</div>`
-      + groups.map(([k, l, list]) => `<h3 class="trh">${l}<em>${list.length}</em></h3>` + (list.length ? byProj(list) : '<div class="hint">这段时间里没有</div>')).join("")
+      + tableHTML(groups.map(([k, l, list]) => ({ key: "r:" + k, name: l, rows: list })))
       + '<div class="hint">只统计带日期标记的条目：➕ 创建、✅ 完成、📅 截止。</div>';
   }
   function paint() {
-    const el = $("#todo"), main = el && $(".tmain", el), side = el && $(".tfiles", el); if (!main) return;
-    const all = itemsAll(true), tags = [...new Set(all.flatMap(i => i.tags))].sort(), files = Object.keys(F).sort();
-    if (tag && !tags.includes(tag)) tag = "";
-    const mode = store.get("todo-mode", "list"), w = store.get("todo-when", ""), by = store.get("todo-sort", "file");
-    const items = all.filter(i => !tag || i.tags.includes(tag));
-    const shown = items.filter(i => whenOk(i, w)), open = sorted(shown.filter(i => !i.done), by), done = shown.filter(i => i.done);
-    const projs = Object.keys(V.D.board || {}).sort(), cur = store.get("todo-proj", ""), into = store.get("todo-into", "inbox.md");
-    side.innerHTML = `<div class="tfh">文件</div>` + files.map(n => `<div class="tf"><button data-open="dev:${DIR}${esc(n)}" data-tip="在阅读栏打开">${esc(n.replace(/\.md$/, ""))}</button>`
-      + `<em>${SV.parseTodo(F[n].text).filter(i => !i.done).length || ""}</em><button class="tfx" data-tren="${esc(n)}" data-tip="改名">✎</button>`
-      + `<button class="tfx" data-tdelf="${esc(n)}" data-tip="删除这个文件">×</button></div>`).join("")
-      + `<form class="tnew"><input placeholder="新建文件…" aria-label="新建 todo 文件"></form>`;
-    const chips = tags.length ? `<div class="tchips"><button class="chip ${tag ? "" : "on"}" data-ttag="">全部项目<em>${all.filter(i => !i.done).length}</em></button>`
-      + tags.map(t => `<button class="chip ${t === tag ? "on" : ""}" data-ttag="${esc(t)}">@${esc(t)}<em>${all.filter(i => !i.done && i.tags.includes(t)).length}</em></button>`).join("") + "</div>" : "";
-    const modes = `<div class="tmodes"><button class="chip ${mode === "list" ? "on" : ""}" data-tmode="list">待办</button><button class="chip ${mode === "review" ? "on" : ""}" data-tmode="review">回顾</button></div>`;
-    if (mode === "review") { main.innerHTML = modes + chips + reviewHTML(items); V.emit("todo-count"); V.status(); return; }
-    main.innerHTML = modes + `<form class="tadd"><input class="tin" placeholder="写一条 todo，回车添加（带创建时间）" aria-label="新的一条">`
-      + `<select class="tinto" aria-label="写进哪个文件">${(files.includes(into) ? files : [into].concat(files)).map(n => `<option ${n === into ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>`
-      + `<select class="tproj" aria-label="项目"><option value="">不标项目</option>${projs.map(p => `<option ${p === cur ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>`
-      + `<input class="tdoc" list="tdocs" placeholder="引用文档（可选）" aria-label="引用文档"><datalist id="tdocs">${V.docChoices().map(d => `<option value="${esc(d)}">`).join("")}</datalist><button class="tgo">添加</button></form>`
-      + chips + `<div class="twhen">${WHEN.map(([k, l]) => `<button class="chip ${k === w ? "on" : ""}" data-twhen="${k}">${l}<em>${items.filter(i => !i.done && whenOk(i, k)).length}</em></button>`).join("")}`
-      + `<select class="tsort" aria-label="排序">${SORTS.map(([k, l]) => `<option value="${k}" ${k === by ? "selected" : ""}>${l}</option>`).join("")}</select></div>`
-      + (open.length ? open.map(rowHTML).join("") : `<div class="hint">${all.length ? "这里没有未完成的" : "还没有 todo。写在上面，存在 dev_root/todo/ 里。"}</div>`)
-      + (done.length ? `<button class="tfold" data-tdone>${showDone ? "收起" : "展开"}已完成 ${done.length}</button>` + (showDone ? done.map(rowHTML).join("") : "") : "");
+    const el = $("#todo"), main = el && $(".tmain", el); if (!main) return;
+    const all = itemsAll(true), mode = store.get("todo-mode", "list");
+    $(".ppath b", el).textContent = mode === "review" ? "回顾" : "待办";
+    if (mode === "review") main.innerHTML = reviewHTML(all);
+    else {
+      const w = store.get("todo-when", ""), shown = all.filter(i => whenOk(i, w));
+      main.innerHTML = `<div class="twhen">${WHEN.map(([k, l]) => `<button class="chip ${k === w ? "on" : ""}" data-twhen="${k}">${l}<em>${all.filter(i => !i.done && whenOk(i, k)).length}</em></button>`).join("")}</div>`
+        + (shown.length ? tableHTML(byProj(shown)) : `<div class="hint">${all.length ? "这里没有" : "还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。"}</div>`);
+    }
     const ed = $(".tedit", main); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
     V.emit("todo-count"); V.status();
   }
@@ -194,38 +210,31 @@
   V.views.todo = (k, loc, opt) => {
     const el = $("#todo");
     el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
-      + '<div class="ppath"><bdi>dev_root / <b>todo</b></bdi></div>'
+      + '<div class="ppath"><bdi>dev_root / todo / <b>待办</b></bdi></div>'
       + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button>${V.paneEnd(k)}</div>`
-      + '<div class="tbody"><nav class="tfiles scroll"></nav><div class="tmain scroll"><div class="hint">读取中…</div></div></div>';
+      + '<div class="tmain scroll"><div class="hint">读取中…</div></div>';
     if (loaded && !opt.entering) paint(); else refresh();
     V.status();
   };
   V.statusFns.todo = () => `<span><b>todo</b>　dev_root/todo/，${Object.keys(F).length} 个文件，未完成 ${V.todoOpen()}</span><span class="sp"></span>${V.stamp()}`;
 
-  document.addEventListener("submit", e => {
-    const add = e.target.closest("#todo .tadd"), mk = e.target.closest("#todo .tnew"); if (!add && !mk) return;
-    e.preventDefault();
-    if (mk) {
-      const n = $("input", mk).value.trim().replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md"; if (n === ".md") return;
-      if (F[n]) return V.toast("已经有 " + n);
-      return V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 });
-    }
-    const text = $(".tin", add).value.trim(), proj = $(".tproj", add).value, into = $(".tinto", add).value, doc = $(".tdoc", add).value.trim();
-    if (!text) return $(".tin", add).focus();
-    store.set("todo-proj", proj); store.set("todo-into", into);
-    const body = text + (proj && !new RegExp("[@#]" + proj.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(text) ? " @" + proj : "") + (doc ? " [[" + doc + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
-    save(into, SV.addTodo(F[into] ? seen(into) : "", body));
-  });
+  V.click("[data-tnewf]", () => V.ask("新的 todo 文件", [["ok", "新建"], ["", "取消"]], "").then(t => {
+    const n = (t || "").trim().replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md"; if (n === ".md") return;
+    if (F[n]) return V.toast("已经有 " + n);
+    V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 }).then(res => { if (res.ok) V.openDoc("dev", DIR + n); });
+  }));
   V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })); });
   V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(seen(at.file), at.line, { remove: true })); });
-  V.click("[data-ttag]", el => { tag = el.dataset.ttag; store.set("todo-tag", tag); paint(); });
-  V.click("[data-tdone]", () => { showDone = !showDone; paint(); });
-  V.click("[data-tmode]", el => { store.set("todo-mode", el.dataset.tmode); paint(); });
+  V.click("[data-tfoldg]", el => { const g = el.dataset.tfoldg; unfold.has(g) ? unfold.delete(g) : unfold.add(g); paint(); });
+  V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
+    const k = el.dataset.tsortc, by = store.get("todo-sort", ""), desc = store.get("todo-desc", false);
+    if (by !== k) { store.set("todo-sort", k); store.set("todo-desc", false); } else if (!desc) store.set("todo-desc", true); else { store.set("todo-sort", ""); store.set("todo-desc", false); }
+    paint();
+  });
   V.click("[data-twhen]", el => { store.set("todo-when", el.dataset.twhen); paint(); });
   V.click("[data-trange]", el => { store.set("todo-range", el.dataset.trange); paint(); });
   document.addEventListener("change", e => {
     const t = e.target;
-    if (t.matches && t.matches("#todo .tsort")) { store.set("todo-sort", t.value); paint(); }
     if (t.matches && t.matches("#todo .tfrom, #todo .tto") && t.value) { store.set(t.matches(".tfrom") ? "todo-from" : "todo-to", t.value); paint(); }
   });
   V.click("[data-tren]", el => {
@@ -245,7 +254,7 @@
   }, true);
   document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#todo .tedit") && editing !== null) { editing = null; paint(); } });
   V.on("data", () => {
-    const busy = editing !== null || $("#todo .tin:focus, #todo .tdoc:focus, #todo .tnew input:focus");
+    const busy = editing !== null || $("#todo input:focus");
     if (!$("#todo").hidden && !busy) return refresh();
     load().then(() => {   // busy: data only, the screen keeps its version; hidden: no screen, so no snapshot either
       if ($("#todo").hidden) Object.values(F).forEach(f => { f.shown = null; });

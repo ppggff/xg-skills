@@ -39,6 +39,7 @@
 .app.nc.nx.navpop #navTog svg { transform: none; }
 /* touch: inputs at 16px so iOS does not zoom, bigger targets */
 .app.narrow input, .app.narrow select { font-size: 16px; }
+.app.narrow .ted .thl, .app.narrow .ted .tta { font-size: 16px; }   /* the overlay must match the textarea it lies on */
 .app.narrow .find input { font-size: 16px; }
 @media (max-width: 899px) { .qbox input:not([type=checkbox]) { font-size: 16px; } }
 .app.narrow .ib { width: 32px; height: 32px; }

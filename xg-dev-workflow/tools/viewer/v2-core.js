@@ -199,9 +199,16 @@ var V2 = (function () {
       { duration: 540, easing: "cubic-bezier(.65,0,.25,1)", pseudoElement: "::view-transition-new(root)" })).catch(() => {});
   };
   { const t0 = V.store.get("theme", ""); if (t0) document.documentElement.setAttribute("data-theme", t0); }
-  // brightness over every theme: a filter on the root keeps each theme's hues; 100 is the page as designed
-  V.setLum = v => { v = Math.max(90, Math.min(140, Math.round(+v) || 100)); document.documentElement.style.filter = v === 100 ? "" : `brightness(${v / 100})`; V.store.set("lum", v); return v; };
-  V.setLum(V.store.get("lum", 100));
+  // brightness over every theme, the interface (lum) and the reading text (tlum) apart: a filter on the root keeps each
+  // theme's hues; the text's own filter divides the root's back out, so moving one slider leaves the other's result alone
+  V.setLum = (k, v) => {
+    v = Math.max(70, Math.min(140, Math.round(+v) || 100)); V.store.set(k, v);
+    const root = document.documentElement, u = V.store.get("lum", 100), t = V.store.get("tlum", 100);
+    root.style.filter = u === 100 ? "" : `brightness(${u / 100})`;
+    root.style.setProperty("--tfilter", t === u ? "none" : `brightness(${(t / u).toFixed(4)})`);
+    return v;
+  };
+  V.setLum("lum", V.store.get("lum", 100));
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => V.emit("theme"));
 
   /* ---- popovers: one open at a time, placed under (or above) their anchor ---- */
@@ -219,9 +226,10 @@ var V2 = (function () {
     const cur = document.documentElement.getAttribute("data-theme") || "";
     const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
       + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
-    const lum = V.store.get("lum", 100);
-    V.pop("themePop", V.THEMES.map(item).join("") + `<div class="lum"><span>亮度</span><input id="lumIn" type="range" min="90" max="140" step="2" value="${lum}" aria-label="亮度">`
-      + `<em>${lum}%</em><button data-lum0 data-tip="回到 100%">复位</button></div>`, btn);
+    const lum = ([k, l]) => { const v = V.store.get(k, 100);
+      return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="70" max="140" step="2" value="${v}" aria-label="${l}亮度">`
+        + `<em>${v}%</em><button data-lum0="${k}" data-tip="回到 100%">复位</button></div>`; };
+    V.pop("themePop", V.THEMES.map(item).join("") + [["lum", "界面"], ["tlum", "文字"]].map(lum).join(""), btn);
   };
 
   /* ---- status bar: the current view's line, or what the hovered control does ---- */
@@ -398,8 +406,8 @@ var V2 = (function () {
     app.classList.toggle("treepop", on); $("#filesBtn").setAttribute("aria-expanded", on); if (on) V.emit("tree-show");
   });
 
-  document.addEventListener("input", e => { if (e.target.id === "lumIn") e.target.nextElementSibling.textContent = V.setLum(e.target.value) + "%"; });
-  V.click("[data-lum0]", () => { V.setLum(100); const i = $("#lumIn"); if (i) { i.value = 100; i.nextElementSibling.textContent = "100%"; } });
+  document.addEventListener("input", e => { const k = e.target.dataset && e.target.dataset.lum; if (k) e.target.nextElementSibling.textContent = V.setLum(k, e.target.value) + "%"; });
+  V.click("[data-lum0]", el => { const k = el.dataset.lum0; V.setLum(k, 100); const i = $(`[data-lum="${k}"]`); if (i) { i.value = 100; i.nextElementSibling.textContent = "100%"; } });
 
   /* ---- help: every key in one panel ---- */
   const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"], ["⌃⇧ + 键", "代替 ⌘ + 键（单按 ⌃ 留给文字编辑）"]]],
