@@ -60,12 +60,12 @@
   }
   /* ---- an item's marks as small labels: when it was made, when it is due (late in red), when it was done, how urgent ---- */
   const today = () => SV.todoStamp(new Date()).slice(0, 10);
-  const PRIO = ["", "⏫", "🔼", "🔽"];
+  const PRIO = ["", "高", "中", "低"];
   V.todoMetaHTML = (m, done) => {
     const t = today(), when = m.created && SV.todoDate(m.created);
-    return (m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级">${PRIO[m.prio]}</span>` : "")
-      + (m.due ? `<span class="tdue${!done && m.due < t ? " late" : !done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">📅 ${m.due.slice(5)}</span>` : "")
-      + (m.done ? `<span class="tmeta" data-tip="完成 ${m.done}">✅ ${m.done.slice(5)}</span>` : "")
+    return (m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级：${PRIO[m.prio]}">${V.I["p" + m.prio]}</span>` : "")
+      + (m.due ? `<span class="tdue${!done && m.due < t ? " late" : !done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">${V.I.cal}${m.due.slice(5)}</span>` : "")
+      + (m.done ? `<span class="tmeta" data-tip="完成 ${m.done}">${V.I.done}${m.done.slice(5)}</span>` : "")
       + (when ? `<span class="tmeta" data-tip="创建 ${m.created}">${V.relT(when.getTime())}</span>` : "");
   };
   function rowHTML(it) {
@@ -163,9 +163,10 @@
     let line = null; if (opt.at) { const el = opt.at.nodeType === 1 ? opt.at : opt.at.parentElement; line = el && V.lineOf(k, el); }
     const doc = loc && loc.kind === "doc" ? wikiOf(loc.tree, loc.rel) + (line != null ? "#L" + (line + 1) : "") : card && V.mainDoc(card) ? wikiOf("dev", V.mainDoc(card)) : "";
     const projs = Object.keys(V.D.board || {}).sort(), box = $("#cap .capbox");
-    box.innerHTML = `<div class="capt">随手记<span>写进 todo/inbox.md · 回车保存 · Esc 关闭</span></div><input class="capin" value="${esc(opt.text || "")}" placeholder="要记的事" aria-label="要记的事">`
+    box.innerHTML = `<input class="capin" value="${esc(opt.text || "")}" placeholder="随手记一件事，写进 todo/inbox.md" aria-label="要记的事">`
       + `<div class="caprow"><select class="capproj" aria-label="项目"><option value="">不标项目</option>${projs.map(p => `<option ${p === proj ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>`
-      + (doc ? `<label><input type="checkbox" class="capdoc" checked> 链接 <code>${esc(doc)}</code></label>` : "") + `<button>记下</button></div>`;
+      + (doc ? `<label><input type="checkbox" class="capdoc" checked> 链接 <code>${esc(doc)}</code></label>` : "") + "</div>"
+      + `<div class="qf askf"><span><kbd>↵</kbd>记下</span><span><kbd>esc</kbd>关闭</span><button class="ok">记下</button></div>`;
     box.dataset.doc = doc; $("#cap").hidden = false;
     const inp = $(".capin", box); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
   };

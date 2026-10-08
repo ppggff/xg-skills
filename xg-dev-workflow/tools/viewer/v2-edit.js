@@ -131,8 +131,8 @@
     hr: ta => ins(ta, "\n---\n"),
   };
   const TOOLS = [["b", "<b>B</b>", "加粗 ⌘B"], ["i", "<i>I</i>", "斜体 ⌘I"], ["code", "`", "行内代码"], ["h", "H", "标题（再点一级）"],
-    ["ul", "•", "列表"], ["ol", "1.", "有序列表"], ["task", "☐", "设为 todo"], ["quote", "❝", "引用"], ["link", "[[", "链接文档"],
-    ["time", "⏱", "插入现在时间"], ["due", "📅", "截止日期（明天，可改）"], ["p1", "⏫", "高优先级"], ["todo", "＋todo", "在下面新起一条 todo"]];
+    ["ul", "•", "列表"], ["ol", "1.", "有序列表"], ["task", V.I.box, "设为 todo"], ["quote", "❝", "引用"], ["link", "[[", "链接文档"],
+    ["time", V.I.clock, "插入现在时间"], ["due", V.I.cal, "截止日期（明天，可改）"], ["p1", V.I.p1, "高优先级"], ["todo", "＋todo", "在下面新起一条 todo"]];
   // the / menu: Notion / Obsidian style, filtered by any of the names as you type
   const CMDS = [["todo", "todo 待办", "task"], ["h1", "标题 1", "heading"], ["h2", "标题 2", "heading"], ["h3", "标题 3", "heading"],
     ["ul", "列表", "bullet list"], ["ol", "有序列表", "numbered list"], ["quote", "引用", "quote"], ["fence", "代码块", "code block"],
@@ -147,7 +147,7 @@
     const draft = d && typeof d === "object" ? d : d != null ? { text: d, mtime: 0 } : null;
     p.edit = ed;
     p.body.innerHTML = `<div class="tedw"><div class="tedbar"><b>编辑 ${esc(fileOf(loc))}</b><span>/ 命令　@ 项目　[[ 文档　⌘S 保存　Esc 退出</span>`
-      + `<button data-tsave>保存</button><button data-tcancel>取消</button></div>`
+      + `<button data-tsave class="ok">保存</button><button data-tcancel>取消</button></div>`
       + `<div class="ttool">${TOOLS.map(([a, l, t]) => `<button data-tact="${a}" data-tip="${t}" aria-label="${t}">${l}</button>`).join("")}</div>`
       + `<div class="ted"><pre class="thl" aria-hidden="true"></pre><textarea class="tta" spellcheck="false" aria-label="编辑 ${esc(fileOf(loc))}"></textarea>`
       + `<div class="tac" hidden></div></div></div>`;

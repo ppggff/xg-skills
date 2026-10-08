@@ -43,3 +43,59 @@ span.refs span.tag { background: color-mix(in srgb, var(--paused) 18%, transpare
 span.signoff { color: var(--mu); }
 span.match { color: var(--ink); background: var(--hit); }
 input, select, textarea { background: var(--paper); color: var(--tx); border: 1px solid var(--ln2); }
+
+/* ---- layout in the v2 manner: a 34px head bar, mono breadcrumbs, no underlines, small muted link groups ---- */
+:root { --gw: clamp(18px, 3vw, 40px); }
+a, a:visited, a:hover { text-decoration: none; }
+div.page_header { display: flex; align-items: center; gap: 6px; height: var(--hh); box-sizing: border-box; padding: 0 var(--gw);
+  font: 400 var(--t-lg) var(--mono); color: var(--ink); background: var(--chrome); }
+div.page_header a, div.page_header a:visited { color: var(--mu); text-decoration: none; }
+div.page_header a:hover { color: var(--sig); }
+div.page_header a[title="git homepage"], img.logo { display: none; }
+div.search { position: absolute; top: calc(var(--hh) + 8px); right: var(--gw); margin: 0; font: 400 var(--t-sm) var(--cjk); color: var(--faint); }
+div.search a { color: var(--faint); }
+div.page_nav { padding: 10px var(--gw) 12px; font: 400 var(--t-sm) var(--mono); color: var(--tx); border-bottom: 1px solid var(--ln); }
+div.page_nav a, div.page_nav a:visited { color: var(--mu); } div.page_nav a:hover { color: var(--sig); }
+div.page_path { padding: 6px var(--gw); font: 400 var(--t-sm) var(--mono); }
+div.title, a.title { display: block; padding: 18px var(--gw) 8px; font: 500 var(--t-sm) var(--mono); color: var(--tx); background: none; border: 0; }
+a.title:hover { background: none; color: var(--sig); }
+div.title_text, div.log_body, div.page_body { padding-left: var(--gw); padding-right: var(--gw); border: 0; }
+div.title_text { padding-top: 6px; padding-bottom: 6px; }
+div.header, div.header a.title { padding-top: 14px; font: 500 var(--t-md) var(--cjk); color: var(--ink); }
+table { border-collapse: collapse; }
+body > table, div.page_body > table, table.project_list, table.shortlog, table.heads, table.tags, table.projects_list, table.object_header, table.diff_tree, table.tree, table.history, table.blame {
+  margin-left: var(--gw); margin-right: var(--gw); }
+div.page_body table { margin-left: 0; margin-right: 0; }
+td, th { padding: 3px 12px 3px 0; }
+th { background: none; color: var(--faint); font: 400 var(--t-meta) var(--cjk); text-align: left; border-bottom: 1px solid var(--ln); }
+th a, th a:visited { color: var(--faint); } th a:hover { color: var(--sig); }
+td { font: 400 var(--t-md) var(--cjk); } td.sha1, td.mode, td.size, td.list a.list, a.list.name { font-family: var(--mono); }
+td.link, td.link a, td.link a:visited, span.cntrl { font: 400 var(--t-xs) var(--mono); color: var(--faint); }
+td.link a:hover { color: var(--sig); }
+span.age, td.age0, td.age1, td.age2, td.noage, td.author, i { font-style: normal; }
+div.page_footer { padding: 6px var(--gw); font: 400 var(--t-xs) var(--cjk); }
+div.page_footer_text { font-style: normal; color: var(--faint); }
+a.rss_logo, a.rss_logo:visited, a.rss_logo:hover { background: none; border: 0; color: var(--faint); font: 400 var(--t-xs) var(--mono); text-transform: lowercase; padding: 0 0 0 10px; }
+a.rss_logo:hover { color: var(--sig); }
+div.projsearch { padding: 14px var(--gw); text-align: left; }
+input, select { height: 24px; box-sizing: border-box; border-radius: var(--r-sm); padding: 0 6px; font: 400 var(--t-sm) var(--cjk); }
+input[type=checkbox] { height: auto; accent-color: var(--sig); vertical-align: -2px; }
+input[type=submit] { background: var(--card); color: var(--tx); cursor: pointer; } input[type=submit]:hover { color: var(--sig); }
+input:focus, select:focus { outline: none; border-color: var(--sig); }
+span.refs span { border-radius: var(--r-sm); font: 400 var(--t-xs) var(--mono); padding: 0 5px; }
+div.page_header, div.page_path, div.title, a.title, a.subject, a.name, a.list, div.diff.header, a.rss_logo, td.category,
+table.project_list td.age0, table.blame td.age0 { font-weight: 400; }
+div.page_footer_text, span.age, div.list_head, .author_date, .author, table.project_list td.noage, table.project_list td.age0,
+table.project_list td.age1, table.project_list td.age2, table.blame td.age2 { font-style: normal; }
+a.subject, a.list.subject { color: var(--ink); }
+div.header { padding: 16px var(--gw) 6px; background: none; border: 0; }
+div.header a.title { display: inline; padding: 0; font: 500 var(--t-md) var(--cjk); color: var(--ink); }
+div.header span.refs { margin-left: 6px; border: 0; background: none; }
+div.title_text table, div.page_body table.diff_tree { margin-left: 0; margin-right: 0; }
+div.list_head { border-color: var(--ln); border-width: 1px 0 0; color: var(--mu); padding: 8px var(--gw); }
+div.diff.header { background: var(--card); color: var(--mu); border-color: var(--ln); padding: 4px 8px; }
+div.diff.header a.path, div.diff.header a.path:visited { color: var(--ink); }
+div.diff.from_file a.path, div.diff.from_file { color: var(--blocked); } div.diff.to_file a.path, div.diff.to_file { color: var(--done); }
+div.patchset div.patch { border: 0; margin-top: 10px; }
+div.diff a, div.diff a:visited { text-decoration: none; }
+span.refs span:empty { display: none; }

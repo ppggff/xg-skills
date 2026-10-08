@@ -40,7 +40,7 @@
 /* touch: inputs at 16px so iOS does not zoom, bigger targets */
 .app.narrow input, .app.narrow select { font-size: 16px; }
 .app.narrow .find input { font-size: 16px; }
-@media (max-width: 899px) { .qbox input { font-size: 16px; } }
+@media (max-width: 899px) { .qbox input:not([type=checkbox]) { font-size: 16px; } }
 .app.narrow .ib { width: 32px; height: 32px; }
 .app.narrow.sc #side .srail { padding-top: 1px; }   /* (34px head − 32px button) / 2 */
 .app.narrow .tr { height: 28px; }

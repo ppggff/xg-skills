@@ -349,14 +349,20 @@ a.tr { text-decoration: none; }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
 .pane:not(.tododoc) .phd [data-t="tedit"] { display: none; }
 .md .ttag, .titem .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
-.md input.tbox { cursor: pointer; }
+.md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
+  display: inline-grid; place-content: center; vertical-align: -2px; background: none; }
+.md input[type=checkbox]:checked::before { content: "✓"; font: 400 var(--t-xs)/1 var(--cjk); color: var(--done); }
+.md input[type=checkbox]:disabled { opacity: .55; }
+.md input.tbox { cursor: pointer; } .md input.tbox:hover { border-color: var(--sig); }
 .tedw { position: relative; display: flex; flex-direction: column; height: 100%; padding: 10px clamp(12px,2vw,28px) 16px; }
 .tedbar { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
 .tedbar b { font-weight: 500; color: var(--ink); } .tedbar span { flex: 1; min-width: 0; }
-.tedbar button { padding: 2px 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); } .tedbar button:hover { color: var(--sig); }
+.tedbar button { padding: 2px 10px; border-radius: var(--r-sm); color: var(--mu); } .tedbar button:hover { color: var(--ink); background: var(--hover); }
+.tedbar button.ok { background: var(--sigs); color: var(--sig); }
 .ttool { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
 .ttool button { min-width: 28px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--mu); }
 .ttool button:hover { background: var(--hover); color: var(--ink); }
+.ttool button svg { width: 15px; height: 15px; vertical-align: -3px; }
 .ttool [data-tact="todo"] { color: var(--sig); font-family: var(--cjk); margin-left: auto; }
 .app.narrow .ttool { position: fixed; left: 0; right: 0; bottom: var(--kb, 0px); z-index: 45; flex-wrap: nowrap; overflow-x: auto; margin: 0;
   padding: 4px 6px; background: var(--chrome); border-top: 1px solid var(--ln); scrollbar-width: none; }
@@ -402,6 +408,9 @@ a.tr { text-decoration: none; }
 /* 045: an item's labels — priority, due (late in red, today in the signal colour), done, created — and its subtask count */
 .tmeta, .tdue, .tpri, .tprog { flex: none; margin-left: 6px; font: 400 var(--t-xs) var(--mono); color: var(--faint); white-space: nowrap; }
 .tdue { color: var(--mu); } .tdue.now { color: var(--sig); } .tdue.late { color: var(--blocked); }
+.tmeta svg, .tdue svg, .tpri svg { width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: 2px; }
+.tpri svg { margin: 0; } .tpri.p1 { color: var(--blocked); } .tpri.p2 { color: var(--paused); }
+.tmeta svg { color: var(--done); }
 .tprog { color: var(--done); }
 .titem { padding-left: calc(4px + var(--td, 0) * 7px); }
 .tmodes, .twhen, .trange { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 10px; }
@@ -693,19 +702,24 @@ a.tr { text-decoration: none; }
 /* ---- quick open ---- */
 .qo { position: fixed; inset: 0; z-index: 46; background: rgba(10,12,16,.25); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; animation: fadein .15s; }
 .qbox { width: min(600px,100%); background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); border: 1px solid var(--ln); overflow: hidden; animation: drop .2s var(--ease); }
-.capbox { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-.capt { font: 500 var(--t-md) var(--cjk); color: var(--ink); } .capt span { margin-left: 10px; font-weight: 400; color: var(--faint); font-size: var(--t-sm); }
-.capin { height: 36px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--ink); padding: 0 10px; font: 400 calc(15px * var(--fz)) var(--cjk); }
-.caprow { display: flex; align-items: center; gap: 10px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
-.caprow select { height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); }
-.caprow label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .caprow code { font: 400 var(--t-xs) var(--mono); }
-.caprow button { padding: 4px 14px; border-radius: var(--r-sm); background: var(--sigs); color: var(--sig); }
-#ask { z-index: 48; } .askbox { width: min(420px,100%); }
-.askrow { justify-content: flex-end; }
-.askrow button:not(:first-child) { background: none; color: var(--tx); border: 1px solid var(--ln2); }
-.askrow button:focus-visible { outline: 2px solid var(--sig); outline-offset: 1px; }
+/* the capture box and the ask dialog share the quick open's form: a borderless first row, a hint footer with the buttons */
+.capbox { display: flex; flex-direction: column; }
+.capin { font-family: var(--cjk); }
+.caprow { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
+.caprow select { height: 24px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; }
+.caprow label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }
+.caprow label code { font: 400 var(--t-xs) var(--mono); color: var(--tx); overflow: hidden; text-overflow: ellipsis; }
+.caprow input[type=checkbox] { margin: 0; accent-color: var(--sig); }
+#ask { z-index: 48; } .askbox { width: min(440px,100%); }
+.askm { padding: 16px 16px 14px; font: 400 var(--t-lg) var(--cjk); color: var(--ink); }
+.askm + .capin { border-top: 1px solid var(--ln); }
+.askf { align-items: center; }
+.askf button { padding: 2px 10px; border-radius: var(--r-sm); color: var(--mu); font: 400 var(--t-sm) var(--cjk); }
+.askf button:hover { color: var(--ink); background: var(--hover); }
+.askf button.ok { margin-left: auto; background: var(--sigs); color: var(--sig); }
+.askf button:focus-visible { outline: 1px solid var(--sig); outline-offset: 1px; }
 @keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
-.qbox input { width: 100%; height: 50px; border: 0; border-bottom: 1px solid var(--ln); background: none; outline: 0; padding: 0 16px; font-size: calc(15px * var(--fz)); color: var(--ink); }
+.qbox input:not([type=checkbox]) { width: 100%; height: 50px; border: 0; border-bottom: 1px solid var(--ln); background: none; outline: 0; padding: 0 16px; font-size: calc(15px * var(--fz)); color: var(--ink); }
 .ql { max-height: 52vh; overflow: auto; padding: 5px; }
 .qg { font: 400 var(--t-meta) var(--cjk); color: var(--mu); padding: 10px 11px 4px; display: flex; }
 .qr {
