@@ -13,7 +13,7 @@
   --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --code: "Sarasa Fixed SC", "Sarasa Mono SC", var(--mono);   /* code text prefers a CJK fixed-width face, like the classic shell */
   --cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
-  --read: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, var(--cjk);   /* the reading text: the system face, as the classic shell */
+  --read: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;   /* the classic shell's stack: no named CJK face, so the system picks one */
   --ease: cubic-bezier(.2,.8,.2,1);
   --fz: 1;   /* one factor scales every text size; the tokens below are the common steps */
   --t-xs: calc(10px * var(--fz)); --t-sm: calc(11px * var(--fz)); --t-md: calc(12px * var(--fz)); --t-lg: calc(13px * var(--fz));

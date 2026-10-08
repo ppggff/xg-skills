@@ -216,7 +216,7 @@
     p.doc = { text, body: fm.body, fields: fm.fields, mtime, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
     p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
     const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
-    p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}">${inner}</article>`;
+    p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
     const md = $(".md", p.body);
     if (!src) { markDoc(k, md, loc); renderMermaid(k, md); linkGit(k, md, loc); }
     applyMeasure(k); crumb(k, loc); lineNumbers(k);
