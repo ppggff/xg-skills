@@ -298,7 +298,9 @@
       rect = SV.pickLineRect([...rg.getClientRects()].filter(r => r.width > 1 && r.height > 1), clientY) || blk.getBoundingClientRect();
     }
     const padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
-    ov.style.top = (rect.top - mr.top - 1) + "px"; ov.style.height = (rect.height + 2) + "px";
+    // a text rect is the glyphs' height; the band covers the whole line box, centred on it (a heading's line is much taller)
+    const lh = row ? 0 : parseFloat(getComputedStyle(blk).lineHeight) || 0, h = Math.max(rect.height, lh), top = rect.top - (h - rect.height) / 2;
+    ov.style.top = (top - mr.top - 1) + "px"; ov.style.height = (h + 2) + "px";
     ov.style.left = (padL - 8) + "px"; ov.style.width = (mr.width - padL - padR + 16) + "px";
     P[k].cur = { blk, off: clientY == null ? null : clientY - blk.getBoundingClientRect().top };
   }

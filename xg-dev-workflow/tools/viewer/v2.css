@@ -462,7 +462,7 @@ a.tr { text-decoration: none; }
 .md p { margin: 0 0 14px; }
 .md ul, .md ol { margin: 0 0 14px; padding-left: 40px; }
 .md li > ul, .md li > ol { margin: 0; }
-.md strong { color: var(--ink); font-weight: 600; }
+.md strong { font-weight: 700; }
 .md a { color: var(--sig); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--sig) 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .md a:hover { text-decoration-color: var(--sig); }
 .md a.broken { color: var(--blocked); text-decoration-style: dashed; cursor: help; }
