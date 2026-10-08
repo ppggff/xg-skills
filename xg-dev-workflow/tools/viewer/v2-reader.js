@@ -286,16 +286,13 @@
   });
 
   /* ---- current line, last-read mark, flash ---- */
-  const inkMemo = {};
-  function inkShift(el) {   // how far the ink's middle lies below the font box's middle, per font
-    const cs = getComputedStyle(el), font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-    if (inkMemo[font] == null) {
-      const cv = document.createElement("canvas"); cv.lang = el.closest("[lang]") ? el.closest("[lang]").lang : "";
-      const c = cv.getContext("2d"); c.font = font; if ("lang" in c) c.lang = cv.lang;
-      const m = c.measureText("中文Hg"), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent;
-      inkMemo[font] = fa + fd ? (2 * fa - m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 2 - (fa + fd) / 2 : 0;
-    }
-    return inkMemo[font];
+  function inkShift(el) {   // how far the ink's middle lies below the font box's middle, measured on the block's own text
+    const cs = getComputedStyle(el), cv = document.createElement("canvas"), c = cv.getContext("2d");
+    const lang = el.closest("[lang]") ? el.closest("[lang]").lang : ""; cv.lang = lang; if ("lang" in c) c.lang = lang;
+    c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const anc = $(":scope > .anc", el), text = (el.textContent || "").slice(anc ? anc.textContent.length : 0).trim();
+    const m = c.measureText(text.slice(0, 80) || "Hg"), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent;
+    return fa + fd ? (2 * fa - m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 2 - (fa + fd) / 2 : 0;
   }
   function curLine(k, blk, clientY) {
     const b = P[k].body, md = $(".md", b); if (!blk || !md || !b.contains(blk)) return;
@@ -306,7 +303,9 @@
     if (row) rect = row.getBoundingClientRect();
     else {
       const rg = document.createRange(); rg.selectNodeContents(blk);
-      rect = SV.pickLineRect([...rg.getClientRects()].filter(r => r.width > 1 && r.height > 1), clientY) || blk.getBoundingClientRect();
+      const anc = $(":scope > .anc", blk), ar = anc && anc.getBoundingClientRect();   // a heading's # sits in the gutter, in its own face
+      const own = r => r.width > 1 && r.height > 1 && !(ar && r.left < ar.right && r.right > ar.left && r.top < ar.bottom && r.bottom > ar.top);
+      rect = SV.pickLineRect([...rg.getClientRects()].filter(own), clientY) || blk.getBoundingClientRect();
     }
     const padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
     // a text rect is the font box; the band covers the whole line box, centred on the glyphs' ink, which sits low in the box
