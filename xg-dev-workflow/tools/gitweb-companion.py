@@ -172,10 +172,31 @@ def build_forest(runtime, repos):
     return root
 
 
+TAB = 4   # gitweb expands tabs to 8 columns, hardcoded in untabify() and in its highlight call
+HL_EXT = ("go", "rs", "ts", "tsx", "jsx", "json", "yaml", "yml", "toml", "md", "lua", "swift", "kt", "scala", "cs", "vue")
+
+
+def _view_configs(runtime):
+    """gitweb settings for reading code: tabs of TAB columns, and syntax highlighting when the
+    `highlight` program is installed (gitweb passes --replace-tabs=8 to it, so a wrapper rewrites that)."""
+    perl = ("{ no warnings 'redefine'; *main::untabify = sub { my $l = shift; "
+            "while ((my $p = index($l, \"\\t\")) != -1) { my $s = ' ' x (%d - $p %% %d); $l =~ s/\\t/$s/; } return $l; }; }\n" % (TAB, TAB))
+    hl = shutil.which("highlight")
+    if hl:
+        wrap = runtime / "highlight"
+        wrap.write_text('#!/bin/sh\nfor a do shift; case "$a" in --replace-tabs=*) a=--replace-tabs=%d;; esac; set -- "$@" "$a"; done\n'
+                        'exec "%s" "$@"\n' % (TAB, hl), encoding="utf-8")
+        wrap.chmod(0o755)
+        perl += "$feature{'highlight'}{'default'} = [1];\nour $highlight_bin = \"%s\";\n" % wrap
+        # gitweb maps only a few extensions to a syntax; highlight itself takes these extensions as syntax names
+        perl += "$highlight_ext{$_} = $_ for qw(%s);\n" % " ".join(HL_EXT)
+    return perl
+
+
 def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
     (runtime / "tmp").mkdir(parents=True, exist_ok=True)
     gwcfg = runtime / "gitweb_config.perl"
-    gwcfg.write_text(
+    gwcfg.write_text(_view_configs(runtime) + 
         'our $projectroot = "%s";\n'
         'our $projects_list = $projectroot;\n'
         'our $git_temp = "%s";\n'

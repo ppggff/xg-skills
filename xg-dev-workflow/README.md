@@ -91,7 +91,7 @@ deepening scan whose picks graduate via the roadmap; `learn <card>…` distills 
 cards. `resume <slug>` / `park <slug>` continue or hand off a card; `check` runs the lite checks; `status`
 renders the card view (`python3 tools/viewer.py` serves the same data as a browsable localhost HTML
 viewer — board, doc/KB browsing, wikilink nav, per-card diff, recent commits, plus an optional co-launched
-**gitweb companion**; needs `lighttpd`, disable with `--no-gitweb`; `/` is the main frontend (`/v2` is an alias), and the frozen classic one stays at
+**gitweb companion**; needs `lighttpd` (syntax highlighting in gitweb when `highlight` is installed; tabs show 4 wide), disable with `--no-gitweb`; `/` is the main frontend (`/v2` is an alias), and the frozen classic one stays at
 `/v1` on the same data, with its own remembered settings; read-only extra directories come from an optional `extra_roots:` list in the shared config or from the page
 (kept in `viewer-roots.json` beside it); its todo view keeps markdown files in `<dev_root>/todo/`, the only files the viewer
 writes besides that list); `retro` improves the workflow. The
