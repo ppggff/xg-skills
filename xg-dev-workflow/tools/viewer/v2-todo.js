@@ -112,10 +112,10 @@
   }
   function groupsOf(cs) {
     const g = store.get("todo-grp", "p"), of = (key, name, pick, extra) => Object.assign({ key, name, cs: cs.filter(pick) }, extra);
-    if (g === "w") return WHENS.map(([k, l, st]) => of("w:" + k, l, c => c.w === k, { st }));   // every group, empty ones too
+    if (g === "w") return WHENS.map(([k, l, st]) => of("w:" + k, l, c => c.w === k, { st }));   // fixed sets list every group, empty ones too
     if (g === "d") return [of("d:open", "未完成", c => !c.it.done), of("d:done", "已完成", c => c.it.done, { all: true })];
     if (g === "f") return Object.keys(F).sort().map(f => of("f:" + f, f.replace(/\.md$/, ""), c => c.it.file === f));
-    const ps = [...new Set(Object.keys(V.D.board || {}).concat(cs.map(c => projOf(c.it)).filter(Boolean)))].concat([""]);
+    const ps = [...new Set(cs.map(c => projOf(c.it)))];   // projects only where items are: the list of projects keeps growing
     return ps.map(p => of("p:" + p, p ? "@" + p : "未标项目", c => projOf(c.it) === p))
       .sort((a, b) => (a.key === "p:") - (b.key === "p:") || b.cs.length - a.cs.length || a.name.localeCompare(b.name));
   }
