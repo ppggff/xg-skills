@@ -119,11 +119,8 @@
     return ps.map(p => of("p:" + p, p ? "@" + p : "未标项目", c => projOf(c.it) === p))
       .sort((a, b) => (a.key === "p:") - (b.key === "p:") || b.cs.length - a.cs.length || a.name.localeCompare(b.name));
   }
-  function sorted(list, by, desc) {
-    const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
-      done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") }[by];
-    return key ? list.slice().sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (desc ? -1 : 1)) : list;
-  }
+  const SORTKEY = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
+    done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") };
   /* ---- the table form: one row per item, sortable columns, a group's done rows folded ---- */
   const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先级"], ["due", "截止"], ["done", "完成"], ["created", "创建"], ["file", "文件"], ["x", ""]];
   const SORTABLE = ["prio", "due", "done", "created", "file"];
@@ -141,15 +138,13 @@
       + `<td class="c-file"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td>`
       + `<td class="c-x"><button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></td></tr>`;
   }
-  function tableT(gs) {
-    const by = store.get("todo-sort", ""), desc = store.get("todo-desc", false), n = COLS.length, items = l => sorted(l.map(c => c.it), by, desc);
-    const th = COLS.map(([k, l]) => SORTABLE.includes(k) ? `<th class="c-${k}${by === k ? " on" + (desc ? " desc" : "") : ""}" data-tsortc="${k}">${l}</th>` : `<th class="c-${k} ns">${l}</th>`).join("");
-    return `<table class="tbl ttbl"><thead><tr>${th}</tr></thead><tbody>` + gs.map(g => {
-      const open = g.all ? g.cs : g.cs.filter(c => !c.it.done), closed = g.all ? [] : g.cs.filter(c => c.it.done), show = unfold.has(g.key);
-      return `<tr class="gh"><td colspan="${n}">${esc(g.name)}<em>${g.cs.length}</em></td></tr>` + items(open).map(trHTML).join("")
-        + (closed.length ? `<tr class="tfold"><td colspan="${n}"><button class="tdone" data-tfoldg="${esc(g.key)}">${show ? "收起" : "展开"}已完成 ${closed.length}</button></td></tr>`
-          + (show ? items(closed).map(trHTML).join("") : "") : "");
-    }).join("") + "</tbody></table>";
+  function tableT(gs) {   // the board's table, over todo items; done rows fold behind a text toggle
+    const its = l => l.map(c => c.it);
+    return V.tableHTML({ cls: "ttbl", cols: COLS.map(([k, l]) => [k, l, SORTABLE.includes(k)]), val: (it, k) => SORTKEY[k](it), row: trHTML,
+      sort: { k: store.get("todo-sort", ""), desc: store.get("todo-desc", false), attr: "data-tsortc" },
+      fold: (g, closed, show) => `<button class="tdone" data-tfoldg="${esc(g.key)}">${show ? "收起" : "展开"}已完成 ${closed.length}</button>`,
+      groups: gs.map(g => ({ key: g.key, name: g.name, n: g.cs.length, show: unfold.has(g.key),
+        open: its(g.all ? g.cs : g.cs.filter(c => !c.it.done)), closed: its(g.all ? [] : g.cs.filter(c => c.it.done)) })) });
   }
   function headT(k) {
     const g = store.get("todo-grp", "p");
