@@ -210,7 +210,7 @@ var V2 = (function () {
     SURF.forEach(p => { if (f("blum") !== 1) root.style.setProperty(p, scale(p, f("blum"))); });
     TEXT.forEach(p => { root.style.setProperty(p + "-r", scale(p, f("tlum"))); if (f("lum") !== 1) root.style.setProperty(p, scale(p, f("lum"))); });
   };
-  V.setLum = (k, v) => { v = Math.max(60, Math.min(150, Math.round(+v) || 100)); V.store.set(k, v); V.applyLum(); return v; };
+  V.setLum = (k, v) => { v = Math.max(60, Math.min(200, Math.round(+v) || 100)); V.store.set(k, v); V.applyLum(); return v; };
   V.applyLum();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { V.applyLum(); V.emit("theme"); });
 
@@ -230,7 +230,7 @@ var V2 = (function () {
     const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
       + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
     const lum = ([k, l]) => { const v = V.store.get(k, 100);
-      return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="60" max="150" step="2" value="${v}" aria-label="${l}亮度">`
+      return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="60" max="200" step="2" value="${v}" aria-label="${l}亮度">`
         + `<em>${v}%</em><button data-lum0="${k}" data-tip="回到 100%">复位</button></div>`; };
     V.pop("themePop", V.THEMES.map(item).join("") + [["blum", "底色"], ["lum", "界面字"], ["tlum", "正文"]].map(lum).join(""), btn);
   };
