@@ -67,46 +67,36 @@
     return `<button class="row ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span>`
       + `<span class="s">${name}</span>${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button>`;
   }
-  /* ---- layout (046): the card, column and signal forms over any grouped items — the board and the todo view each
-     supply a source: card(c), row(c), dot(c, i), lane(c) + laneOrder(cs) + laneSort for the signal form, unfold (a Set
-     of group keys), foldAttr and foldTip(closed, show). An item's st decides: the open states show, the rest fold. ---- */
-  const splitL = (L, g) => ({ open: g.closed ? [] : g.cs.filter(c => isOpenSt(c.st)), closed: g.closed ? g.cs : g.cs.filter(c => !isOpenSt(c.st)), show: L.unfold.has(g.key) });
-  const foldL = (L, g, closed, show) => `<button class="fold" ${L.foldAttr}="${esc(g.key)}" data-tip="${L.foldTip(closed, show)}"><span class="dots">${closed.map(c => `<i class="${c.st}"></i>`).join("")}</span></button>`;
-  function groupL(L, g, cls, gridCls) {
-    const { open, closed, show } = splitL(L, g);
+  // the card, column and table forms keep a group's done/dropped cards behind one fold until it is opened; the dots form shows every card
+  const split = g => ({ open: g.closed ? [] : g.cs.filter(c => isOpenSt(c.st)), closed: g.closed ? g.cs : g.cs.filter(c => !isOpenSt(c.st)), show: unfold.has(g.key) });
+  function foldHTML(g, closed, show) {
+    const done = closed.filter(c => c.st === "done").length, tip = `${show ? "收起" : "展开"}已结束的卡：done ${done} · dropped ${closed.length - done}`;
+    return `<button class="fold" data-fold="${esc(g.key)}" data-tip="${tip}"><span class="dots">${closed.map(c => `<i class="${c.st}"></i>`).join("")}</span></button>`;
+  }
+  function groupHTML(g, cls, gridCls) {
+    const { open, closed, show } = split(g);
     let h = `<section class="${cls}"><h2 ${g.st ? `data-st="${g.st}"` : ""}>${esc(g.name)}<em>${g.cs.length}</em></h2>`;
-    if (open.length) h += `<div class="${gridCls}">${open.map(L.card).join("")}</div>`;
+    if (open.length) h += `<div class="${gridCls}">${open.map(cardHTML).join("")}</div>`;
     if (closed.length) {
-      h += foldL(L, g, closed, show);
-      if (show) h += `<div class="rows">${closed.map(L.row).join("")}</div>`;
+      h += foldHTML(g, closed, show);
+      if (show) h += `<div class="rows">${closed.map(rowHTML).join("")}</div>`;
     }
     return h + "</section>";
   }
-  function dotsL(L, gs) {   // the signal form shows every item, closed ones included, on its group's line
+  function dotsHTML(gs) {
+    const mt = cardMt(), FILM = ["done", "active", "paused", "blocked", "todo", "backlog", "unknown", "dropped"];
     let n = 0;
+    const dot = c => `<button class="dot ${c.st} ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}" style="--i:${n++}" aria-label="${esc(c.id + " " + c.slug)}">`
+      + `<span class="dtag"><span>${c.n}</span><span>·</span><span>${V.ago(mt[c.dir]) || ""}</span></span></button>`;
     return gs.map(g => {
-      const subs = L.laneOrder(g.cs).map(k => ({ k, cs: g.cs.filter(c => L.lane(c) === k).sort(L.laneSort) }));
-      const lanes = subs.map(sb => `<div class="dgrp"><div class="dd">${sb.cs.map(c => L.dot(c, n++)).join("")}</div>`
+      const cs = g.cs, subOf = groupBy === "s" ? c => c.p : c => c.st;
+      const order = groupBy === "s" ? [...new Set(cs.map(c => c.p))] : FILM.filter(st => cs.some(c => c.st === st));
+      const subs = order.map(k => ({ k, cs: cs.filter(c => subOf(c) === k).sort((a, b) => a.n.localeCompare(b.n) || a.id.localeCompare(b.id)) }));
+      const lanes = subs.map(sb => `<div class="dgrp"><div class="dd">${sb.cs.map(dot).join("")}</div>`
         + `<div class="dl"><span>${esc(sb.k)}</span><em>${sb.cs.length}</em></div></div>`).join("");
       return `<section class="dproj"><div class="dnum">${g.cs.length}<span class="dname">${esc(g.name)}</span></div><div class="drow">${lanes}</div></section>`;
     }).join("");
   }
-  V.layout = {
-    FORMS, split: splitL, fold: foldL,
-    body: (L, f, gs, table) => (f === "dots" ? dotsL(L, gs) : f === "table" ? table(gs)
-      : f === "cols" ? `<div class="kcols">${gs.map(g => groupL(L, g, "proj kcol", "kstack")).join("")}</div>` : gs.map(g => groupL(L, g, "proj", "grid")).join("")),
-  };
-  const FILM = ["done", "active", "paused", "blocked", "todo", "backlog", "unknown", "dropped"];
-  let mtNow = {};
-  const BL = {
-    card: cardHTML, row: rowHTML, unfold, foldAttr: "data-fold",
-    foldTip: (closed, show) => { const done = closed.filter(c => c.st === "done").length; return `${show ? "收起" : "展开"}已结束的卡：done ${done} · dropped ${closed.length - done}`; },
-    dot: (c, i) => `<button class="dot ${c.st} ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}" style="--i:${i}" aria-label="${esc(c.id + " " + c.slug)}">`
-      + `<span class="dtag"><span>${c.n}</span><span>·</span><span>${V.ago(mtNow[c.dir]) || ""}</span></span></button>`,
-    lane: c => (groupBy === "s" ? c.p : c.st),
-    laneOrder: cs => (groupBy === "s" ? [...new Set(cs.map(c => c.p))] : FILM.filter(st => cs.some(c => c.st === st))),
-    laneSort: (a, b) => a.n.localeCompare(b.n) || a.id.localeCompare(b.id),
-  };
   function tableHTML(gs) {
     const mt = cardMt();
     const cols = [["n", "编号"], ["slug", "名称"]].concat(groupBy !== "p" ? [["p", "项目"]] : [], groupBy !== "s" ? [["st", "状态"]] : [],
@@ -123,9 +113,9 @@
     const th = cols.map(([k, l]) => `<th data-sort="${k}" class="c-${k}${sortK === k ? " on" + (sortDesc ? " desc" : "") : ""}">${l}</th>`).join("");
     let h = `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>`;
     gs.forEach(g => {
-      const { open, closed, show } = splitL(BL, g), sorted = list => (sortK ? [...list].sort(cmp) : list);
+      const { open, closed, show } = split(g), sorted = list => (sortK ? [...list].sort(cmp) : list);
       h += `<tr class="gh"><td colspan="${cols.length}">${esc(g.name)}<em>${g.cs.length}</em></td></tr>` + sorted(open).map(row).join("")
-        + (closed.length ? `<tr class="tfold"><td colspan="${cols.length}">${foldL(BL, g, closed, show)}</td></tr>` + (show ? sorted(closed).map(row).join("") : "") : "");
+        + (closed.length ? `<tr class="tfold"><td colspan="${cols.length}">${foldHTML(g, closed, show)}</td></tr>` + (show ? sorted(closed).map(row).join("") : "") : "");
     });
     return h + "</tbody></table>";
   }
@@ -135,8 +125,10 @@
       if (V.D.cards.length) return '<div class="empty-b">过滤后没有卡片。<br><button data-fltall>全部显示</button></div>';
       return '<div class="empty-b">没有卡片。</div>';
     }
-    mtNow = cardMt();
-    return V.layout.body(BL, f, gs, tableHTML);
+    if (f === "dots") return dotsHTML(gs);
+    if (f === "table") return tableHTML(gs);
+    if (f === "cols") return `<div class="kcols">${gs.map(g => groupHTML(g, "proj kcol", "kstack")).join("")}</div>`;
+    return gs.map(g => groupHTML(g, "proj", "grid")).join("");
   }
   let tkObs = null;
   function render() {

@@ -331,18 +331,13 @@ a.tr { text-decoration: none; }
 .tflt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 18px; }
 .tflt .chip { width: auto; } .tflt .chip.on { color: var(--sig); background: var(--sigs); }
 .tflt .sep { width: 1px; height: 14px; background: var(--ln2); margin: 0 8px; }
-#tscroll:not(.tbl-form) .tflt { margin-top: calc(14px - var(--bS)); }
-#tscroll.tbl-form .tflt { margin-bottom: 8px; }
-.card.tcard .c1 { gap: 8px; } .card.tcard .tck { flex: none; }
-.card.tcard .r { display: flex; align-items: center; gap: 6px; } .card.tcard .r .tpri, .card.tcard .r .tdue { margin: 0; }
-.card.tcard[data-st="done"] .sl { color: var(--faint); text-decoration: line-through; }
-.row .n .tck { display: inline-block; }
+#tscroll .tflt { margin-bottom: 8px; }
+.ttbl .tdone { font: 400 var(--t-sm) var(--cjk); color: var(--mu); padding: 2px 0; } .ttbl .tdone:hover { color: var(--tx); }
 .tck { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 1; color: var(--done); cursor: pointer; }
 .tck:hover { border-color: var(--sig); }
-.ttbl .c-ck { width: 22px; padding-right: 0; } .ttbl .c-prio { width: 52px; } .ttbl .c-due, .ttbl .c-done { width: 58px; }
+.ttbl .c-ck { width: 52px; } .ttbl .c-prio { width: 52px; } .ttbl .c-due, .ttbl .c-done { width: 58px; }
 .ttbl .c-created { width: 76px; } .ttbl .c-file { width: 84px; } .ttbl .c-x { width: 24px; padding: 0; }
 .ttbl th.ns { cursor: default; }
-.ttbl td { font: 400 var(--t-md) var(--cjk); }
 .ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); }
 .ttbl .tck { vertical-align: middle; }
 .ttbl tr.done .ttx { color: var(--faint); text-decoration: line-through; }

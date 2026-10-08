@@ -80,7 +80,7 @@
       + `<button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></div>`;
   }
 
-  /* ---- the todo board (046): the board's layout over todo items. Four dimensions — 项目 (the first @tag), 时间 (the due
+  /* ---- the todo board (046): the board's table form over todo items. Four dimensions — 项目 (the first @tag), 时间 (the due
      date's bucket), 完成, 文件 — group them; two filters pick them: 完成 and a time range that any of an item's dates
      (made, done, due) falls in. 待办 and 回顾 are two presets of these options. ---- */
   const ymd = d => SV.todoStamp(d).slice(0, 10);
@@ -112,33 +112,13 @@
   }
   function groupsOf(cs) {
     const g = store.get("todo-grp", "p"), of = (key, name, pick, extra) => Object.assign({ key, name, cs: cs.filter(pick) }, extra);
-    const uniq = f => [...new Set(cs.map(f))];
-    if (g === "w") return WHENS.map(([k, l, st]) => of("w:" + k, l, c => c.w === k, { st })).filter(x => x.cs.length);
-    if (g === "d") return [of("d:open", "未完成", c => !c.it.done), of("d:done", "已完成", c => c.it.done, { st: "done", closed: true })].filter(x => x.cs.length);
-    if (g === "f") return uniq(c => c.it.file).sort().map(f => of("f:" + f, f.replace(/\.md$/, ""), c => c.it.file === f));
-    return uniq(c => projOf(c.it)).map(p => of("p:" + p, p ? "@" + p : "未标项目", c => projOf(c.it) === p))
+    if (g === "w") return WHENS.map(([k, l, st]) => of("w:" + k, l, c => c.w === k, { st }));   // every group, empty ones too
+    if (g === "d") return [of("d:open", "未完成", c => !c.it.done), of("d:done", "已完成", c => c.it.done, { all: true })];
+    if (g === "f") return Object.keys(F).sort().map(f => of("f:" + f, f.replace(/\.md$/, ""), c => c.it.file === f));
+    const ps = [...new Set(Object.keys(V.D.board || {}).concat(cs.map(c => projOf(c.it)).filter(Boolean)))].concat([""]);
+    return ps.map(p => of("p:" + p, p ? "@" + p : "未标项目", c => projOf(c.it) === p))
       .sort((a, b) => (a.key === "p:") - (b.key === "p:") || b.cs.length - a.cs.length || a.name.localeCompare(b.name));
   }
-  const textOf = it => it.meta.text.replace(/\[\[([^\]|#]+)[^\]]*\]\]/g, (all, w) => w.split("/").pop()).replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
-  const tickHTML = c => `<span class="tck" data-tck="${esc(c.id)}" role="checkbox" aria-checked="${c.it.done}" aria-label="${c.it.done ? "标为未完成" : "标为完成"}">${c.it.done ? "✓" : ""}</span>`;
-  function cardT(c) {
-    const it = c.it, m = it.meta, g = store.get("todo-grp", "p"), when = it.done || g === "w" || c.w === "none" ? "" : label(WHENS, c.w);
-    const right = (m.prio ? `<span class="tpri p${m.prio}">${V.I["p" + m.prio]}</span>` : "") + (m.due ? `<span class="tdue">${m.due.slice(5)}</span>` : "");
-    const nx = [g !== "p" && projOf(it) ? "@" + projOf(it) : "", m.done ? "完成 " + m.done.slice(5) : m.created ? "创建 " + V.relT(SV.todoDate(m.created).getTime()) : ""].filter(Boolean).join(" · ");
-    return `<button class="card tcard" data-titem="${esc(c.id)}" data-st="${c.st}">`
-      + `<div class="c1">${tickHTML(c)}<span class="no">${esc(it.file.replace(/\.md$/, ""))}</span><span class="w">${when}</span><span class="r">${right}</span></div>`
-      + `<div class="sl" title="${esc(textOf(it))}">${esc(textOf(it))}</div><div class="nx">${esc(nx)}</div>`
-      + (it.prog ? `<div class="tk">${Array.from({ length: it.prog[1] }, (_, i) => `<i class="${i < it.prog[0] ? "on" : ""}"></i>`).join("")}</div>` : "") + "</button>";
-  }
-  const TL = {
-    card: cardT, unfold, foldAttr: "data-tfoldg",
-    row: c => `<button class="row" data-titem="${esc(c.id)}" data-st="${c.st}"><span class="n">${tickHTML(c)}</span><span class="s">${esc(textOf(c.it))}</span></button>`,
-    foldTip: (closed, show) => `${show ? "收起" : "展开"}已完成的 ${closed.length} 条`,
-    dot: (c, i) => `<button class="dot ${c.st}" data-titem="${esc(c.id)}" data-st="${c.st}" style="--i:${i}" data-tip="${esc(textOf(c.it))}" aria-label="${esc(textOf(c.it))}"></button>`,
-    lane: c => (store.get("todo-grp", "p") === "w" ? (projOf(c.it) ? "@" + projOf(c.it) : "未标项目") : c.it.done ? "已完成" : label(WHENS, c.w)),
-    laneOrder: cs => (store.get("todo-grp", "p") === "w" ? [...new Set(cs.map(TL.lane))] : ["已完成"].concat(WHENS.map(x => x[1])).filter(k => cs.some(c => TL.lane(c) === k))),
-    laneSort: (a, b) => (a.it.file > b.it.file ? 1 : a.it.file < b.it.file ? -1 : a.it.line - b.it.line),
-  };
   function sorted(list, by, desc) {
     const key = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
       done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") }[by];
@@ -165,29 +145,27 @@
     const by = store.get("todo-sort", ""), desc = store.get("todo-desc", false), n = COLS.length, items = l => sorted(l.map(c => c.it), by, desc);
     const th = COLS.map(([k, l]) => SORTABLE.includes(k) ? `<th class="c-${k}${by === k ? " on" + (desc ? " desc" : "") : ""}" data-tsortc="${k}">${l}</th>` : `<th class="c-${k} ns">${l}</th>`).join("");
     return `<table class="tbl ttbl"><thead><tr>${th}</tr></thead><tbody>` + gs.map(g => {
-      const { open, closed, show } = V.layout.split(TL, g);
+      const open = g.all ? g.cs : g.cs.filter(c => !c.it.done), closed = g.all ? [] : g.cs.filter(c => c.it.done), show = unfold.has(g.key);
       return `<tr class="gh"><td colspan="${n}">${esc(g.name)}<em>${g.cs.length}</em></td></tr>` + items(open).map(trHTML).join("")
-        + (closed.length ? `<tr class="tfold"><td colspan="${n}">${V.layout.fold(TL, g, closed, show)}</td></tr>` + (show ? items(closed).map(trHTML).join("") : "") : "");
+        + (closed.length ? `<tr class="tfold"><td colspan="${n}"><button class="tdone" data-tfoldg="${esc(g.key)}">${show ? "收起" : "展开"}已完成 ${closed.length}</button></td></tr>`
+          + (show ? items(closed).map(trHTML).join("") : "") : "");
     }).join("") + "</tbody></table>";
   }
-  const tform = () => store.get("todo-form", null) || (V.isNarrow() ? "table" : "cards");
   function headT(k) {
-    const g = store.get("todo-grp", "p"), f = tform(), fm = V.layout.FORMS.find(x => x[0] === f) || V.layout.FORMS[0];
+    const g = store.get("todo-grp", "p");
     return `<button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
       + `<div class="ppath"><bdi>todo / <b>${store.get("todo-mode", "list") === "review" ? "回顾" : "待办"}</b></bdi></div>`
-      + `<div class="seg" style="margin-left:auto"><button data-tgrpc data-tip="分组：按${label(GRPS, g)}（点击换下一个：${GRPS.map(x => x[1]).join(" → ")}）">${label(GRPS, g)}</button>`
-      + `<button data-tformc data-tip="形态：${fm[1]}（点击换下一个：${V.layout.FORMS.map(x => x[1]).join(" → ")}）">${V.I[fm[2]]}</button></div>`
-      + `<button class="ib" data-goboard="1" data-tip="回看板" aria-label="回看板">${V.I.grid}</button>${V.paneEnd(k)}`;
+      + `<div class="seg" style="margin-left:auto"><button data-tgrpc data-tip="分组：按${label(GRPS, g)}（点击换下一个：${GRPS.map(x => x[1]).join(" → ")}）">${label(GRPS, g)}</button></div>`
+      + V.paneEnd(k);
   }
   function paint() {
     const el = $("#todo"), sc = el && $("#tscroll", el); if (!sc) return;
-    const all = itemsAll(true), f = tform(), dn = store.get("todo-done", "open"), rg = store.get("todo-range", "");
+    const all = itemsAll(true), dn = store.get("todo-done", "open"), rg = store.get("todo-range", "");
     $(".phd", el).innerHTML = headT(V.hostOf("todo"));
     const top = sc.scrollTop, cs = cardsOf(all), gs = groupsOf(cs);
     const chips = (list, cur, attr) => list.map(([k, l]) => `<button class="chip ${k === cur ? "on" : ""}" ${attr}="${k}">${l}</button>`).join("");
-    sc.classList.toggle("tbl-form", f === "table");
     sc.innerHTML = `<div class="tflt">${chips(DONES, dn, "data-tdonef")}<span class="sep"></span>${chips(RANGES, rg, "data-trangef")}</div>`
-      + (gs.length ? V.layout.body(TL, f, gs, tableT) : `<div class="hint">${all.length ? "这些选项下没有条目" : "还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。"}</div>`);
+      + (all.length ? tableT(gs) : `<div class="hint">还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。</div>`);
     sc.scrollTop = top;
     const ed = $(".tedit", sc); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
     V.emit("todo-count"); V.status();
@@ -246,7 +224,7 @@
   V.views.todo = (k, loc, opt) => {
     const el = $("#todo");
     el.innerHTML = `<div class="phd"><button class="ib navb" data-navb aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
-      + `</div><div id="tscroll" class="scroll"><div class="hint">读取中…</div></div>`;
+      + `</div><div id="tscroll" class="scroll tbl-form"><div class="hint">读取中…</div></div>`;
     if (loaded && !opt.entering) paint(); else refresh();
     V.status();
   };
@@ -269,8 +247,6 @@
   V.click("[data-tdonef]", el => { store.set("todo-done", el.dataset.tdonef); paint(); });
   V.click("[data-trangef]", el => { store.set("todo-range", el.dataset.trangef); paint(); });
   V.click("[data-tgrpc]", () => { store.set("todo-grp", next(GRPS, store.get("todo-grp", "p"))); paint(); V.untip(); });
-  V.click("[data-tformc]", () => { store.set("todo-form", next(V.layout.FORMS, tform())); paint(); V.untip(); });
-  V.click("[data-titem]", (el, e) => { const id = el.dataset.titem, i = id.lastIndexOf("|"); V.openDoc("dev", DIR + id.slice(0, i), e, { line: +id.slice(i + 1) + 1 }); });
   V.click("[data-tren]", el => {
     const n = el.dataset.tren;
     V.ask("新文件名", [["ok", "改名"], ["", "取消"]], n.replace(/\.md$/, "")).then(t => {
