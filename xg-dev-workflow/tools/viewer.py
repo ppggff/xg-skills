@@ -51,7 +51,6 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "sv.js": "text/javascript",
           "martian-mono.woff2": "font/woff2",
           "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css",
-          "gitweb-theme.css": "text/css", "gitweb-theme.js": "text/javascript",
           **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find", "todo", "edit")}}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
@@ -60,8 +59,6 @@ GITWEB_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsaf
               "connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'")
 DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) — an ssh -L rule outlives restarts
 SNAPSHOT_GREP = "auto: data snapshot"
-GITWEB_THEME = (b'<link rel="stylesheet" href="/assets/v2-themes.css"><link rel="stylesheet" href="/assets/gitweb-theme.css">'
-                b'<script src="/assets/gitweb-theme.js"></script>')
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
 TODO_DIR = "todo"                                # the viewer writes only <dev_root>/todo/<name>.md (043, 044)
 TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")   # one path segment, not hidden, no control characters
@@ -424,9 +421,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 loc = "/gitweb" + (u.path or "/") + ("?" + u.query if u.query else "")
             extra["Location"] = loc
         ctype = r.getheader("Content-Type", "application/octet-stream")
-        if ctype.startswith("text/html") and b"</head>" in body:   # gitweb pages take the viewer's theme (043)
-            body = re.sub(rb"<!DOCTYPE html \[.*?\]>", b"<!DOCTYPE html>", body, count=1, flags=re.S)   # an XML subset prints "]>" in HTML
-            body = body.replace(b"</head>", GITWEB_THEME + b"</head>", 1)
+        if ctype.startswith("text/html"):   # an XML subset in gitweb's doctype prints "]>" in HTML
+            body = re.sub(rb"<!DOCTYPE html \[.*?\]>", b"<!DOCTYPE html>", body, count=1, flags=re.S)
         self._send(r.status, body, ctype, extra)
 
     def _serve_asset(self, name):
