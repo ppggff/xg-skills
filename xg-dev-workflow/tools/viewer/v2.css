@@ -449,17 +449,17 @@ a.tr { text-decoration: none; }
 /* markdown */
 :root { --ink-r: var(--ink); --tx-r: var(--tx); --mu-r: var(--mu); --faint-r: var(--faint); }   /* until the brightness script sets them */
 .md, .ted { --ink: var(--ink-r); --tx: var(--tx-r); --mu: var(--mu-r); --faint: var(--faint-r); }
-.md { position: relative; z-index: 1; margin: 0 0 0 var(--m-l,12px); width: var(--m-w, min(820px, calc(100% - 2 * var(--m-l,12px)))); padding: 22px 34px 90px; font: calc(14px * var(--fz))/1.6 var(--cjk); color: var(--tx); word-wrap: break-word; }
+.md { position: relative; z-index: 1; margin: 0 0 0 var(--m-l,12px); width: var(--m-w, min(796px, calc(100% - 2 * var(--m-l,12px)))); padding: 22px 34px 90px; font: calc(14px * var(--fz))/1.6 var(--read); color: var(--tx); word-wrap: break-word; }
 .md.enter { animation: enter .3s var(--ease); }
 @keyframes enter { from { opacity: 0; transform: translateY(5px); } }
 .md > :first-child { margin-top: 0; }
 .md h1, .md h2, .md h3, .md h4, .md h5 { color: var(--ink); font-weight: 600; line-height: 1.35; margin: 24px 0 10px; position: relative; scroll-margin-top: 16px; }
 .md h1 { font-size: calc(21px * var(--fz)); padding-bottom: .25em; border-bottom: 1px solid var(--ln); }
-.md h2 { font-size: calc(17px * var(--fz)); }
+.md h2 { font-size: calc(17px * var(--fz)); padding-bottom: .25em; border-bottom: 1px solid var(--ln); }
 .md h3 { font-size: calc(14.5px * var(--fz)); }
 .md h4 { font-size: 1em; }
-.md p { margin: 0 0 12px; }
-.md ul, .md ol { margin: 0 0 12px; padding-left: 2em; }
+.md p { margin: 0 0 14px; }
+.md ul, .md ol { margin: 0 0 14px; padding-left: 40px; }
 .md li + li { margin-top: .2em; }
 .md li > ul, .md li > ol { margin: .2em 0 0; }
 .md strong { color: var(--ink); font-weight: 600; }
