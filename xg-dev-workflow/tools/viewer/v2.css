@@ -136,12 +136,12 @@ a.tr { text-decoration: none; }
 
 /* board rhythm: G is the visible gap from the head and the side edges to the trays, I the gap between trays, T the tray
    padding. Content sits at the same place with or without trays: a tray grows outward into the gap by T + 1px border. */
-#bscroll { flex: 1; min-height: 0; overflow: auto; max-width: 100%;
+:is(#bscroll, #tscroll) { flex: 1; min-height: 0; overflow: auto; max-width: 100%;
   --bT: 14px; --bG: clamp(18px,3vw,40px); --bI: 16px; --bS: calc(var(--bG) + var(--bT) + 1px);
   padding: var(--bS) var(--bS) 40px; }
-#bscroll.tbl-form { padding-top: 14px; }
+:is(#bscroll, #tscroll).tbl-form { padding-top: 14px; }
 .proj, .dproj { margin: 0 0 calc(var(--bI) + 2 * var(--bT) + 2px); }
-.app:not(.notray) #bscroll .proj:not(.kcol), .app:not(.notray) #bscroll .dproj {
+.app:not(.notray) :is(#bscroll, #tscroll) .proj:not(.kcol), .app:not(.notray) :is(#bscroll, #tscroll) .dproj {
   margin: calc(-1 * var(--bT) - 1px) calc(-1 * var(--bT) - 1px) calc(var(--bI) + var(--bT) + 1px);
   padding: var(--bT); border: 1px solid color-mix(in srgb, var(--ln) 55%, transparent); background: var(--tray); border-radius: var(--r-tray); }
 .proj h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 500 var(--t-sm) var(--mono); color: var(--tx); }
@@ -155,10 +155,10 @@ a.tr { text-decoration: none; }
   display: flex; flex-direction: column; justify-content: space-between; gap: 6px; height: 98px; padding: 11px 12px 10px; border-radius: var(--r-md);
   background: var(--card); border: 1px solid transparent; transition: border-color .15s, transform .2s var(--ease); min-width: 0;
 }
-#bscroll .proj .card { background: var(--tile); }
-.app.notray #bscroll .proj .card { background: var(--card); }
+:is(#bscroll, #tscroll) .proj .card { background: var(--tile); }
+.app.notray :is(#bscroll, #tscroll) .proj .card { background: var(--card); }
 .card:hover { border-color: var(--mu); }
-.card.sel, .card.sel:hover, #bscroll .proj .card.sel { background: var(--card2); border-color: color-mix(in srgb, var(--sig) 50%, transparent); }
+.card.sel, .card.sel:hover, :is(#bscroll, #tscroll) .proj .card.sel { background: var(--card2); border-color: color-mix(in srgb, var(--sig) 50%, transparent); }
 .card.sel .no { color: var(--sig); }
 .c1 { display: flex; align-items: center; gap: 7px; }
 .c1 .no { font: 300 var(--t-sm) var(--mono); color: var(--mu); }
@@ -202,7 +202,7 @@ a.tr { text-decoration: none; }
 .kcols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(236px,1fr); align-items: start; overflow-x: auto;
   gap: calc(var(--bI) + 2 * var(--bT) + 2px); margin: calc(-1 * var(--bT) - 1px) calc(-1 * var(--bT) - 1px) 0; padding: calc(var(--bT) + 1px) calc(var(--bT) + 1px) 10px; }
 .kcol { margin: 0; min-width: 0; }
-.app:not(.notray) #bscroll .kcol {
+.app:not(.notray) :is(#bscroll, #tscroll) .kcol {
   margin: calc(-1 * var(--bT) - 1px) calc(-1 * var(--bT) - 1px) 0; padding: var(--bT); border: 1px solid color-mix(in srgb, var(--ln) 55%, transparent);
   background: var(--tray); border-radius: var(--r-tray);
 }
@@ -328,14 +328,23 @@ a.tr { text-decoration: none; }
 #recent .commit h2 em { margin-left: auto; font: 400 var(--t-meta) var(--mono); font-style: normal; color: var(--faint); white-space: nowrap; }
 #diffv .dbody, #recent .dbody { flex: 1; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
 /* todo (043–046): read-only overview as the board's table form, one group per project; the files live in the nav */
-#todo .tmain { flex: 1; min-height: 0; overflow: auto; padding: 14px clamp(18px,3vw,40px) 60px; }
+.tflt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 18px; }
+.tflt .chip { width: auto; } .tflt .chip.on { color: var(--sig); background: var(--sigs); }
+.tflt .sep { width: 1px; height: 14px; background: var(--ln2); margin: 0 8px; }
+#tscroll:not(.tbl-form) .tflt { margin-top: calc(14px - var(--bS)); }
+#tscroll.tbl-form .tflt { margin-bottom: 8px; }
+.card.tcard .c1 { gap: 8px; } .card.tcard .tck { flex: none; }
+.card.tcard .r { display: flex; align-items: center; gap: 6px; } .card.tcard .r .tpri, .card.tcard .r .tdue { margin: 0; }
+.card.tcard[data-st="done"] .sl { color: var(--faint); text-decoration: line-through; }
+.row .n .tck { display: inline-block; }
+.tck { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 1; color: var(--done); cursor: pointer; }
+.tck:hover { border-color: var(--sig); }
 .ttbl .c-ck { width: 22px; padding-right: 0; } .ttbl .c-prio { width: 52px; } .ttbl .c-due, .ttbl .c-done { width: 58px; }
 .ttbl .c-created { width: 76px; } .ttbl .c-file { width: 84px; } .ttbl .c-x { width: 24px; padding: 0; }
 .ttbl th.ns { cursor: default; }
 .ttbl td { font: 400 var(--t-md) var(--cjk); }
 .ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); }
-.ttbl .tck { width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 12px; text-align: center; color: var(--done); vertical-align: middle; }
-.ttbl .tck:hover { border-color: var(--sig); }
+.ttbl .tck { vertical-align: middle; }
 .ttbl tr.done .ttx { color: var(--faint); text-decoration: line-through; }
 .ttbl .tdue, .ttbl .tpri, .ttbl .tprog { margin-left: 0; } .ttbl .tprog { margin-left: 6px; }
 .ttbl .c-done, .ttbl .c-created { font: 400 var(--t-xs) var(--mono); }
@@ -344,7 +353,6 @@ a.tr { text-decoration: none; }
 .ttbl tbody tr:not(.gh):not(.tfold):hover td { background: var(--hover); }
 .ttbl .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; } .ttbl .tdl.broken { color: var(--blocked); }
 .ttbl .tedit { width: 100%; height: 24px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
-.ttbl .fold.tdone { font: 400 var(--t-sm) var(--cjk); color: var(--mu); margin: 0; }
 .titem .tfile { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
 .titem .tfile:hover { color: var(--sig); }
 /* extra roots popover (044) */
@@ -359,7 +367,7 @@ a.tr { text-decoration: none; }
 #rootPop .rnote { margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
 .pane:not(.tododoc) .phd [data-t="tedit"] { display: none; }
-.md .ttag, .titem .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
+.md .ttag, .titem .ttag, .ttbl .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
 .md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
   display: inline-grid; place-content: center; vertical-align: -2px; background: none; }
 .md input[type=checkbox]:checked::before { content: "✓"; font: 400 var(--t-xs)/1 var(--cjk); color: var(--done); }
@@ -389,7 +397,7 @@ a.tr { text-decoration: none; }
 .tac button { text-align: left; padding: 3px 8px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tac button.on, .tac button:hover { background: var(--sigs); color: var(--sig); }
 .app.phone .ttbl :is(.c-done, .c-created, .c-file) { width: 0; padding: 0; border: 0; font-size: 0; }
-.app.phone .ttbl .c-prio { width: 28px; } .app.phone .ttbl .c-x { width: 0; padding: 0; }
+.app.phone .ttbl .c-prio { width: 30px; padding: 4px; text-overflow: clip; } .app.phone .ttbl .c-x { width: 0; padding: 0; }
 .titem { display: flex; align-items: baseline; gap: 10px; padding: 5px 4px; border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); font: 400 var(--t-lg)/1.6 var(--cjk); color: var(--tx); }
 .titem .tck { flex: none; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 12px; color: var(--done); align-self: center; }
 .titem.done .ttx { color: var(--faint); text-decoration: line-through; }
@@ -412,14 +420,7 @@ a.tr { text-decoration: none; }
 .tmeta svg { color: var(--done); }
 .tprog { color: var(--done); }
 .titem { padding-left: calc(4px + var(--td, 0) * 7px); }
-.twhen, .trange { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 10px; }
-.twhen .chip, .trange .chip { width: auto; }
-.twhen .chip em { padding-left: 6px; }
-.twhen .tsort, .trange input { margin-left: auto; height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: 400 var(--t-sm) var(--cjk); padding: 0 6px; }
-.trange input { margin-left: 0; } .trange .trr, .trange span { font: 400 var(--t-sm) var(--mono); color: var(--mu); margin-left: 6px; }
 .md .tmeta, .md .tdue, .md .tpri, .md .tprog { font-size: var(--t-xs); }
-.tfold { margin: 12px 0 6px; font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
-.tfold:hover { color: var(--tx); }
 
 .dfile { margin: 0 0 18px; }
 .dfile h3 { margin: 0 0 6px; font: 400 var(--t-sm) var(--mono); color: var(--ink); }
@@ -802,8 +803,8 @@ a.tr { text-decoration: none; }
 :root[data-theme^="amber"] .chip { border: 1px solid transparent; color: var(--ink); }
 :root[data-theme^="amber"] .chip:hover { border-color: var(--sig); background: none; }
 :root[data-theme^="amber"] .card { background: var(--chrome); border-color: var(--ln2); }
-:root[data-theme^="amber"] .app.notray #bscroll .proj .card { background: var(--chrome); }
-:root[data-theme^="amber"] .card.sel, :root[data-theme^="amber"] #bscroll .proj .card.sel { background: var(--chrome); border-color: var(--ln2); outline: 2px solid var(--sig); outline-offset: -1px; }
+:root[data-theme^="amber"] .app.notray :is(#bscroll, #tscroll) .proj .card { background: var(--chrome); }
+:root[data-theme^="amber"] .card.sel, :root[data-theme^="amber"] :is(#bscroll, #tscroll) .proj .card.sel { background: var(--chrome); border-color: var(--ln2); outline: 2px solid var(--sig); outline-offset: -1px; }
 :root[data-theme^="amber"] .row { border: 1px solid var(--ln2); background: var(--chrome); margin-bottom: 4px; }
 :root[data-theme^="amber"] .row.sel { border-color: var(--sig); background: var(--sigs); color: var(--sig); }
 :root[data-theme^="amber"] .tbl tr.sel td { background: var(--sigs); color: var(--sig); }
@@ -814,4 +815,4 @@ a.tr { text-decoration: none; }
 :root[data-theme^="amber"] .ti.cur { background: var(--sigs); }
 :root[data-theme^="amber"] .qr.sel, :root[data-theme^="amber"] .qr.sel .qn, :root[data-theme^="amber"] .qr.sel em { color: var(--sig); }
 :root[data-theme^="amber"] .pop, :root[data-theme^="amber"] .qbox { border-color: var(--ln2); }
-:root[data-theme^="amber"] .app:not(.notray) #bscroll .proj, :root[data-theme^="amber"] .app:not(.notray) #bscroll .dproj { border-color: var(--ln); }
+:root[data-theme^="amber"] .app:not(.notray) :is(#bscroll, #tscroll) .proj, :root[data-theme^="amber"] .app:not(.notray) :is(#bscroll, #tscroll) .dproj { border-color: var(--ln); }

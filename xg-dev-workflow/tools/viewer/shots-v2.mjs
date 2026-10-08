@@ -474,8 +474,8 @@ const SCENARIO = {
     check(`--fz scales the text (${base}px → ${await ctx.eval(fs)}px)`, Math.abs(await ctx.eval(fs) - base * 1.2) < 0.2);
     await ctx.eval("document.documentElement.style.removeProperty('--fz'); true");
     // todo: read-only here (the harness serves the real dev_root, so nothing is written)
-    await ctx.click('[data-todo="list"]'); await ctx.wait("!!document.querySelector('#todo .ttbl, #todo .tmain .hint:not(:first-child)')");
-    check("todo opens from its nav section, read-only, as a table", await ctx.eval("V2.kindOf('A') === 'todo' && !document.getElementById('todo').hidden && !document.querySelector('#todo form, #todo .tfiles')"));
+    await ctx.click('[data-todo="list"]'); await ctx.wait("!!document.querySelector('#tscroll .tflt')");
+    check("todo opens from its nav section, read-only, in the board's layout", await ctx.eval("V2.kindOf('A') === 'todo' && !document.getElementById('todo').hidden && !document.querySelector('#todo form') && !!document.querySelector('#tscroll .proj, #tscroll .ttbl, #tscroll .dproj, #tscroll .hint')"));
     check("…and ⌘K lists it", await ctx.eval("(() => { V2.chord.k(); const ok = [...document.querySelectorAll('#qList .qr')].some(r => /todo/.test(r.textContent)); V2.chord.k(); return ok; })()"));
   },
   // The human's third round: the change history stays open, find works on search results, quick open's old sizes,

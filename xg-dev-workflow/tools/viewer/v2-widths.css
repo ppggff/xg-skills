@@ -61,7 +61,7 @@
 .app.phone .find input { flex: 1; width: auto; }
 .app.phone #bhd .ppath { display: none; }
 .app.phone #bhd .seg:first-of-type { margin-left: 0; }
-.app.phone #bscroll { --bT: 10px; --bG: 12px; --bI: 12px; }
+.app.phone :is(#bscroll, #tscroll) { --bT: 10px; --bG: 12px; --bI: 12px; }
 .app.phone .grid { grid-template-columns: 1fr; }
 .app.phone .kcols { grid-auto-columns: 82%; scroll-snap-type: x mandatory; }
 .app.phone .kcol { scroll-snap-align: start; }

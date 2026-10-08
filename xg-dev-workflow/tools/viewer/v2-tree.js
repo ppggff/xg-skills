@@ -172,7 +172,7 @@
 
   V.click("[data-fold-k]", el => toggleFold(el.dataset.foldK));
   V.click("[data-recent]", (el, e) => { V.app.classList.remove("treepop"); V.nav(V.target(e), { kind: "recent" }); });
-  V.click("[data-todo]", (el, e) => { V.app.classList.remove("treepop"); V.store.set("todo-mode", el.dataset.todo); V.nav(V.target(e), { kind: "todo" }); });
+  V.click("[data-todo]", (el, e) => { V.app.classList.remove("treepop"); V.todoPreset(el.dataset.todo); V.nav(V.target(e), { kind: "todo" }); });
   V.click("[data-tsort]", el => {   // a time sort starts newest first, a name sort A→Z
     const s = sorts[el.dataset.tsort]; s.key = s.key === "name" ? "mtime" : "name"; s.dir = s.key === "name" ? 1 : -1; V.store.set("tree-sort", sorts); render(); });
   V.click("[data-tdir]", el => { const s = sorts[el.dataset.tdir]; s.dir = -s.dir; V.store.set("tree-sort", sorts); render(); });
