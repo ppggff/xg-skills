@@ -700,7 +700,7 @@ const SCENARIO = {
     await ctx.click("#bscroll [data-fold]");
     check("…and the fold opens them", await ctx.eval(has("#bscroll tr[data-st=done], #bscroll tr[data-st=dropped]")));
     await ctx.eval("V2.setForm('dots'); true");
-    check("dots: closed cards fold too", await ctx.eval("!!document.querySelector('#bscroll [data-fold]') && document.querySelectorAll('#bscroll .dot.done').length < " + "document.querySelectorAll('#bscroll .dot').length"));
+    check("dots: every card sits on the line, done and dropped included, no fold", await ctx.eval("!document.querySelector('#bscroll [data-fold]') && document.querySelectorAll('#bscroll .dot').length === [...document.querySelectorAll('#bscroll .dnum')].reduce((n, e) => n + parseInt(e.textContent), 0) && !!document.querySelector('#bscroll .dot.done')"));
   },
 };
 

@@ -117,7 +117,7 @@
       else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); paintSel(); }
       else if (e.key === "Enter" && mod) { e.preventDefault(); const q = $("#qIn").value.trim(); if (q) { close(); fullSearch(q, e); } }   // ⇧ puts it in the other pane
       else if (e.key === "Enter") { e.preventDefault(); choose(sel, e); }
-      else if (e.key === "Escape" || (mod && e.key.toLowerCase() === "k")) { e.preventDefault(); close(); }
+      else if (e.key === "Escape" || (V.isChord(e) && e.key.toLowerCase() === "k")) { e.preventDefault(); close(); }
     });
     $("#qList").addEventListener("mousemove", e => { const b = e.target.closest("[data-q]"); if (b && +b.dataset.q !== sel) { sel = +b.dataset.q; paintSel(); } });
     $("#qo").addEventListener("click", e => { if (e.target.id === "qo") close(); });

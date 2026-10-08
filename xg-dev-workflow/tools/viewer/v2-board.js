@@ -67,7 +67,7 @@
     return `<button class="row ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span>`
       + `<span class="s">${name}</span>${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button>`;
   }
-  // every form keeps a group's done/dropped cards behind one fold until it is opened
+  // the card, column and table forms keep a group's done/dropped cards behind one fold until it is opened; the dots form shows every card
   const split = g => ({ open: g.closed ? [] : g.cs.filter(c => isOpenSt(c.st)), closed: g.closed ? g.cs : g.cs.filter(c => !isOpenSt(c.st)), show: unfold.has(g.key) });
   function foldHTML(g, closed, show) {
     const done = closed.filter(c => c.st === "done").length, tip = `${show ? "收起" : "展开"}已结束的卡：done ${done} · dropped ${closed.length - done}`;
@@ -89,14 +89,12 @@
     const dot = c => `<button class="dot ${c.st} ${selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}" style="--i:${n++}" aria-label="${esc(c.id + " " + c.slug)}">`
       + `<span class="dtag"><span>${c.n}</span><span>·</span><span>${V.ago(mt[c.dir]) || ""}</span></span></button>`;
     return gs.map(g => {
-      const { open, closed, show } = split(g), cs = show ? g.cs : open;
-      const subOf = groupBy === "s" ? c => c.p : c => c.st;
+      const cs = g.cs, subOf = groupBy === "s" ? c => c.p : c => c.st;
       const order = groupBy === "s" ? [...new Set(cs.map(c => c.p))] : FILM.filter(st => cs.some(c => c.st === st));
       const subs = order.map(k => ({ k, cs: cs.filter(c => subOf(c) === k).sort((a, b) => a.n.localeCompare(b.n) || a.id.localeCompare(b.id)) }));
       const lanes = subs.map(sb => `<div class="dgrp"><div class="dd">${sb.cs.map(dot).join("")}</div>`
         + `<div class="dl"><span>${esc(sb.k)}</span><em>${sb.cs.length}</em></div></div>`).join("");
-      return `<section class="dproj"><div class="dnum">${g.cs.length}<span class="dname">${esc(g.name)}</span></div><div class="drow">${lanes}</div>`
-        + (closed.length ? foldHTML(g, closed, show) : "") + "</section>";
+      return `<section class="dproj"><div class="dnum">${g.cs.length}<span class="dname">${esc(g.name)}</span></div><div class="drow">${lanes}</div></section>`;
     }).join("");
   }
   function tableHTML(gs) {

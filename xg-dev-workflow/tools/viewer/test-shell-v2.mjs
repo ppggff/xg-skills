@@ -76,6 +76,16 @@ t("Inv-6-c: the key dispatcher lets modified keys and typing through", () => {
   assert.doesNotMatch(allJs.replace(kd, ""), /addEventListener\("keydown", e => \{\s*if \(e\.key === "[a-z]"/, "no second single-key listener outside the dispatcher");
 });
 
+t("046 Req-2: a letter chord is ⌘ or ctrl+shift; plain ctrl stays with the text field", () => {
+  assert.match(js.core, /V\.isChord = e => e\.metaKey \|\| \(e\.ctrlKey && e\.shiftKey\);/);
+  assert.doesNotMatch(allJs, /\(e\.metaKey \|\| e\.ctrlKey\) && (!e\.altKey && )?V\.chord/, "every chord check goes through V.isChord");
+  assert.match(js.edit, /const cmd = V\.isChord\(e\)/);
+});
+t("046 Req-3: no native dialog — confirm, prompt and alert go through V.ask", () => {
+  assert.doesNotMatch(allJs, /(^|[^.\w])(confirm|prompt|alert)\(/m);
+  assert.match(page, /<div class="qo" id="ask" hidden>/);
+});
+
 // --- Inv-6: the event and render rules the classic shell learned (KB viewer-architecture) ---
 t("Inv-6-a: one Esc closes one layer, the topmost open one", () => {
   const kd = js.core.match(/document\.addEventListener\("keydown"[\s\S]*?\n {2}\}\);/)[0];
@@ -83,7 +93,7 @@ t("Inv-6-a: one Esc closes one layer, the topmost open one", () => {
   assert.match(js.core, /layers\.sort\(\(a, b\) => b\.pri - a\.pri\)/, "layers are kept highest priority first");
 });
 t("Inv-6-a: input-level Esc consumers stop the event before the layer chain sees it", () => {
-  assert.match(js.find, /inp\.addEventListener\("keydown", e => \{\s*if \(\(e\.metaKey \|\| e\.ctrlKey\) && V\.chord\[e\.key\.toLowerCase\(\)\]\) return;[^\n]*\n\s*e\.stopPropagation\(\);/, "find box: only the ⌘ chords pass, Esc is stopped");
+  assert.match(js.find, /inp\.addEventListener\("keydown", e => \{\s*if \(V\.isChord\(e\) && V\.chord\[e\.key\.toLowerCase\(\)\]\) return;[^\n]*\n\s*e\.stopPropagation\(\);/, "find box: only the ⌘ chords pass, Esc is stopped");
   assert.match(js.search, /\$\("#qIn"\)\.addEventListener\("keydown", e => \{\s*e\.stopPropagation\(\);/, "quick open box");
   assert.match(js.search, /else if \(e\.key === "Escape"\) \{ e\.stopPropagation\(\); e\.target\.blur\(\); \}/, "search box");
 });

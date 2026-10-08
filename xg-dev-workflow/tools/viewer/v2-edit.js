@@ -152,9 +152,7 @@
       + `<div class="ted"><pre class="thl" aria-hidden="true"></pre><textarea class="tta" spellcheck="false" aria-label="编辑 ${esc(fileOf(loc))}"></textarea>`
       + `<div class="tac" hidden></div></div></div>`;
     const ta = $(".tta", p.body), hl = $(".thl", p.body);
-    // a restored draft keeps the version it was written against, so a file changed since then is caught as a conflict
-    if (draft && draft.text !== ed.orig && confirm("这个文件有没保存的草稿，恢复它吗？")) { ta.value = draft.text; ed.base = draft.mtime; }
-    else { ta.value = ed.orig; dropDraft(loc.rel); }
+    ta.value = ed.orig;
     hl.innerHTML = highlight(ta.value);
     ta.addEventListener("input", () => {
       hl.innerHTML = highlight(ta.value); complete(ed, ta);
@@ -171,11 +169,21 @@
       ta.scrollTop = Math.max(0, line * parseFloat(getComputedStyle(ta).lineHeight) - ta.clientHeight / 3);
     }
     keyboardBar(p);
+    // a restored draft keeps the version it was written against, so a file changed since then is caught as a conflict
+    if (!draft || draft.text === ed.orig) return dropDraft(loc.rel);
+    V.ask("这个文件有没保存的草稿", [["restore", "恢复草稿"], ["drop", "丢掉草稿"]]).then(v => {
+      if (p.edit !== ed) return;
+      if (v === "restore") { ta.value = draft.text; ed.base = draft.mtime; hl.innerHTML = highlight(ta.value); } else dropDraft(loc.rel);
+    });
   }
   function close(k, saved) {
-    const p = P[k], ta = p.edit && $(".tta", p.body); if (!p.edit) return;
-    if (!saved && ta && ta.value !== p.edit.orig && !confirm("放弃没保存的修改？")) return;
-    clearTimeout(p.edit.dt); dropDraft(p.edit.loc.rel); p.edit = null; V.rerender(k);
+    const p = P[k], ed = p.edit, ta = ed && $(".tta", p.body); if (!ed) return;
+    const done = () => { clearTimeout(ed.dt); dropDraft(ed.loc.rel); p.edit = null; V.rerender(k); };
+    if (saved || !ta || ta.value === ed.orig) return done();
+    V.ask("有没保存的修改", [["save", "保存"], ["drop", "放弃修改"], ["stay", "继续编辑"]]).then(v => {
+      if (p.edit !== ed) return;
+      if (v === "save") save(k); else if (v === "drop") done();
+    });
   }
   // a save refused because the file changed elsewhere keeps the text and asks: overwrite with mine, or take theirs
   function save(k, force) {
@@ -255,7 +263,7 @@
     const a = lineStart(v, at), b = lineEnd(v, at), c = SV.continueLine(v.slice(a, b));
     if (!c || !/^\s*(?:(?:➕|📅|✅|⏫|🔼|🔽).*)?$/.test(v.slice(at, b))) return;
     e.preventDefault();
-    if (c.empty) return ins(ta, /^\s*/.exec(v.slice(a, b))[0], a, b);
+    if (c.empty) return ins(ta, "\n", a, b);   // a blank line ends the list in markdown; the caret starts the line below it
     const head = "\n" + c.next;
     ins(ta, head + (c.todo ? " ➕ " + stamp() : ""), b, b);
     ta.setSelectionRange(b + head.length, b + head.length);
@@ -263,14 +271,14 @@
   const indent = (ta, out) => lines(ta, l => (out ? l.replace(/^ {1,2}/, "") : "  " + l));
   function keys(ed, ta, e) {
     if (e.isComposing || e.keyCode === 229) return;   // an IME is choosing: its Enter and arrows are not ours
-    const cmd = e.metaKey || e.ctrlKey, k = e.key;
+    const cmd = V.isChord(e), k = e.key;
     if (cmd && k.toLowerCase() === "s") { e.preventDefault(); e.stopPropagation(); return save(ed.k); }
     const ac = ed.ac;
     if (ac && (k === "ArrowDown" || k === "ArrowUp")) { e.preventDefault(); ac.sel = (ac.sel + (k === "ArrowDown" ? 1 : ac.list.length - 1)) % ac.list.length; return paintAc(ed, $(".tac", P[ed.k].body)); }
     if (ac && (k === "Enter" || k === "Tab")) { e.preventDefault(); return accept(ed, ta, ac.sel); }
     if (k === "Escape") { e.preventDefault(); e.stopPropagation(); if (ac) { ed.ac = null; $(".tac", P[ed.k].body).hidden = true; } else close(ed.k); return; }
     if (cmd && (k.toLowerCase() === "b" || k.toLowerCase() === "i")) { e.preventDefault(); e.stopPropagation(); return wrap(ta, k.toLowerCase() === "b" ? "**" : "*"); }
-    if (cmd || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (k === "Enter" && !e.shiftKey) return enter(ta, e);
     if (k === "Tab") { e.preventDefault(); return indent(ta, e.shiftKey); }
     const v = ta.value, at = ta.selectionStart, sel = ta.selectionEnd > at;

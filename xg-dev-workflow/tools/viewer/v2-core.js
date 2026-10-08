@@ -259,9 +259,11 @@ var V2 = (function () {
   const layers = [], keys = {};
   V.layer = (pri, isOpen, close) => { layers.push({ pri, isOpen, close }); layers.sort((a, b) => b.pri - a.pri); };
   V.hotkey = (k, fn) => { keys[k] = fn; };
-  V.chord = {};   // ⌘/ctrl + key, registered by area files
+  V.chord = {};   // ⌘ + key, or ctrl+shift + key, registered by area files
+  // plain ctrl + a letter is left to the text field: on macOS ctrl+K deletes to the line's end, ctrl+B moves back
+  V.isChord = e => e.metaKey || (e.ctrlKey && e.shiftKey);
   document.addEventListener("keydown", e => {
-    if ((e.metaKey || e.ctrlKey) && !e.altKey && V.chord[e.key.toLowerCase()]) { if (V.chord[e.key.toLowerCase()](e) !== false) e.preventDefault(); return; }
+    if (V.isChord(e) && !e.altKey && V.chord[e.key.toLowerCase()]) { if (V.chord[e.key.toLowerCase()](e) !== false) e.preventDefault(); return; }
     if (e.key === "Escape") { const l = layers.find(x => x.isOpen()); if (l) { e.preventDefault(); l.close(); } return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
@@ -396,7 +398,7 @@ var V2 = (function () {
   V.click("[data-lum0]", () => { V.setLum(100); const i = $("#lumIn"); if (i) { i.value = 100; i.nextElementSibling.textContent = "100%"; } });
 
   /* ---- help: every key in one panel ---- */
-  const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"]]],
+  const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"], ["⌃⇧ + 键", "代替 ⌘ + 键（单按 ⌃ 留给文字编辑）"]]],
     ["文档", [["f", "在本文查找"], ["h", "钉住选中的词"], ["⇧H", "清空钉住词"], ["s", "加或取消星标"], ["⇧ 点击", "在另一栏打开"], ["↵", "跟随聚焦的引用或链接"]]],
     ["看板", [["方向键", "移动选中的卡"], ["↵ / 双击", "打开 design.md"], ["⇧ 点击", "在另一栏打开"]]],
     ["查找框", [["↵ ⇧↵", "下一个、上一个"], ["⌘↵", "钉住这个词"], ["↑ ↓", "查找历史"]]],
@@ -411,6 +413,32 @@ var V2 = (function () {
   V.click("#helpBtn", () => V.toggleHelp());
   document.addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
   V.layer(70, () => !$("#help").hidden, () => { $("#help").hidden = true; });
+
+  /* ---- ask: the page's own confirm and prompt, in the theme. Resolves to the chosen button's value (with a text field:
+     the text, for the first button), or null on Esc or a click outside; the focus goes back where it was ---- */
+  let askDone = null;
+  V.ask = (msg, btns, text) => new Promise(res => {
+    if (askDone) askDone(null);
+    const box = $("#ask .askbox"), back = document.activeElement;
+    box.innerHTML = `<div class="capt">${esc(msg)}</div>` + (text != null ? `<input class="capin" value="${esc(text)}" aria-label="${esc(msg)}">` : "")
+      + `<div class="caprow askrow">${btns.map(([, l], i) => `<button type="button" data-ask="${i}">${esc(l)}</button>`).join("")}</div>`;
+    $("#ask").hidden = false;
+    askDone = i => {
+      askDone = null; $("#ask").hidden = true; if (back && back.focus) back.focus();
+      res(i == null ? null : text != null ? (i === 0 ? $(".capin", box).value : null) : btns[i][0]);
+    };
+    const f = $(".capin", box) || $("button", box); f.focus(); if (f.select) f.select();
+  });
+  V.layer(95, () => !$("#ask").hidden, () => askDone && askDone(null));
+  V.click("#ask [data-ask]", el => askDone && askDone(+el.dataset.ask));
+  V.click("#ask", (el, e) => { if (e.target.id === "ask" && askDone) askDone(null); });
+  document.addEventListener("submit", e => { if (e.target.closest("#ask") && askDone) { e.preventDefault(); askDone(0); } });
+  // keys stay inside: a held Esc (the one that opened it, repeating) must not close it, and letters are not hotkeys here
+  document.addEventListener("keydown", e => {
+    if (!e.target.closest || !e.target.closest("#ask")) return;
+    e.stopPropagation();
+    if (e.key === "Escape") { e.preventDefault(); if (!e.repeat && askDone) askDone(null); }
+  }, true);
 
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {

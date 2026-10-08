@@ -228,11 +228,14 @@
     if (t.matches && t.matches("#todo .tfrom, #todo .tto") && t.value) { store.set(t.matches(".tfrom") ? "todo-from" : "todo-to", t.value); paint(); }
   });
   V.click("[data-tren]", el => {
-    const n = el.dataset.tren, raw = (prompt("新文件名", n.replace(/\.md$/, "")) || "").trim(); if (!raw) return;
-    const to = raw.replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md";
-    if (to !== n) V.todoWrite("rename", n, { to, mtime: F[n].mtime });
+    const n = el.dataset.tren;
+    V.ask("新文件名", [["ok", "改名"], ["", "取消"]], n.replace(/\.md$/, "")).then(t => {
+      const raw = (t || "").trim(); if (!raw) return;
+      const to = raw.replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md";
+      if (to !== n) V.todoWrite("rename", n, { to, mtime: F[n].mtime });
+    });
   });
-  V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; if (confirm(`删除 ${n}？里面的 todo 会一起删掉。`)) V.todoWrite("delete", n, { mtime: F[n].mtime }); });
+  V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; V.ask(`删除 ${n}？里面的 todo 会一起删掉。`, [["del", "删除"], ["", "取消"]]).then(v => { if (v === "del") V.todoWrite("delete", n, { mtime: F[n].mtime }); }); });
   document.addEventListener("dblclick", e => { const t = e.target.closest("#todo [data-ted]"); if (t && !e.target.closest("[data-open]")) { editing = t.dataset.ted; paint(); } });
   document.addEventListener("keydown", e => {
     const inp = e.target.closest && e.target.closest("#todo .tedit"); if (!inp) return;

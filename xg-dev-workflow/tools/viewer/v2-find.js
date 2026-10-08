@@ -121,7 +121,7 @@
     const inp = $("input", f); inp.value = h.q;
     inp.addEventListener("input", () => { h.histAt = -1; clearTimeout(h.t); h.t = setTimeout(() => find(k, inp.value), DEBOUNCE); });
     inp.addEventListener("keydown", e => {
-      if ((e.metaKey || e.ctrlKey) && V.chord[e.key.toLowerCase()]) return;   // ⌘K and the other chords still reach the page
+      if (V.isChord(e) && V.chord[e.key.toLowerCase()]) return;   // ⌘K and the other chords still reach the page
       e.stopPropagation();
       if (e.key === "Enter") {
         e.preventDefault(); clearTimeout(h.t);   // act on what is in the box, not on the term the debounce has not applied yet
