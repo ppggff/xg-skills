@@ -100,25 +100,27 @@
   function tableHTML(gs) {
     const mt = cardMt();
     const cols = [["n", "编号"], ["slug", "名称"]].concat(groupBy !== "p" ? [["p", "项目"]] : [], groupBy !== "s" ? [["st", "状态"]] : [],
-      groupBy !== "g" ? [["gov", "治理"]] : [], [["prog", "进度"], ["nx", "下一步"], ["mt", "更新"]]);
+      groupBy !== "g" ? [["gov", "治理", true, "n"]] : [], [["prog", "进度"], ["nx", "下一步", true, "p"], ["mt", "更新", true, "p"]]);
     const val = (c, k) => k === "prog" ? (c.lite ? (c.req ? c.ok / c.req : 0) : c.ph.filter(v => v === 2).length / 6) : k === "mt" ? mt[c.dir] || 0 : k === "nx" ? V.nextOf(c) : c[k];
     const prog = c => c.lite && c.req
       ? `<span class="mt"><i style="width:${(c.ok / c.req * 100).toFixed(1)}%"></i></span>${V.frac(c.ok, c.req)}`
       : `<span class="mu">${esc(V.phaseNow(c))}</span>`;
     const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n c-n">${c.n}</td><td class="nm c-slug" data-tip="${esc(c.id + " " + c.slug)}">${esc(c.slug)}</td>`
       + (groupBy !== "p" ? `<td class="mu c-p">${esc(c.p)}</td>` : "") + (groupBy !== "s" ? `<td class="c-st" style="color:var(--c)">${c.st}</td>` : "")
-      + (groupBy !== "g" ? `<td class="mu c-gov">${esc(c.gov)}</td>` : "") + `<td class="c-prog">${prog(c)}</td><td class="mu c-nx" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
-      + `<td class="mu c-mt">${V.ago(mt[c.dir])}</td></tr>`;
+      + (groupBy !== "g" ? `<td class="mu c-gov hn">${esc(c.gov)}</td>` : "") + `<td class="c-prog">${prog(c)}</td><td class="mu c-nx hp" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
+      + `<td class="mu c-mt hp">${V.ago(mt[c.dir])}</td></tr>`;
     return V.tableHTML({ cols, val, row, sort: { k: sortK, desc: sortDesc, attr: "data-sort" }, fold: foldHTML,
       groups: gs.map(g => Object.assign({ key: g.key, name: g.name, n: g.cs.length }, split(g))) });
   }
-  /* ---- the table form, shared with the todo view (046). T: cols [[key, label, sortable = true]], sort {k, desc, attr},
+  /* ---- the table form, shared with the todo view (046). T: cols [[key, label, sortable = true, hide]], hide "n" or "p"
+     drops the column on narrow or phone widths (rows put V.hideCls(hide) on their cell too); sort {k, desc, attr},
      val(item, key) to sort by, row(item), fold(group, closed, show), groups [{key, name, n, open, closed, show}], cls ---- */
+  V.hideCls = h => (h ? " h" + h : "");
   V.tableHTML = T => {
     const { k: sk, desc, attr } = T.sort, n = T.cols.length;
     const cmp = (a, b) => { const x = T.val(a, sk), y = T.val(b, sk); return (x > y ? 1 : x < y ? -1 : 0) * (desc ? -1 : 1); };
     const sorted = list => (sk ? [...list].sort(cmp) : list);
-    const th = T.cols.map(([k, l, s = true]) => (s ? `<th ${attr}="${k}" class="c-${k}${sk === k ? " on" + (desc ? " desc" : "") : ""}">${l}</th>` : `<th class="c-${k} ns">${l}</th>`)).join("");
+    const th = T.cols.map(([k, l, s = true, hide]) => (s ? `<th ${attr}="${k}" class="c-${k}${V.hideCls(hide)}${sk === k ? " on" + (desc ? " desc" : "") : ""}">${l}</th>` : `<th class="c-${k}${V.hideCls(hide)} ns">${l}</th>`)).join("");
     return `<table class="tbl${T.cls ? " " + T.cls : ""}"><thead><tr>${th}</tr></thead><tbody>` + T.groups.map(g =>
       `<tr class="gh"><td colspan="${n}">${esc(g.name)}<em>${g.n}</em></td></tr>` + sorted(g.open).map(T.row).join("")
       + (g.closed.length ? `<tr class="tfold"><td colspan="${n}">${T.fold(g, g.closed, g.show)}</td></tr>` + (g.show ? sorted(g.closed).map(T.row).join("") : "") : "")).join("")

@@ -10,7 +10,6 @@
   // saved against its mtime, so a file that moved underneath is refused (409) instead of having the wrong line changed
   const F = V.todoFiles = {};
   let editing = null, loaded = false;
-  const unfold = new Set();   // groups whose done items are shown
   const DIR = "todo/", names = () => (V.D.tree ? V.D.tree.dev.map(x => x.path).filter(p => /^todo\/[^/]+\.md$/.test(p)).map(p => p.slice(DIR.length)) : []);
 
   function load() {
@@ -98,7 +97,7 @@
   // a due bucket wears a board status, so the cards, dots and folds colour and fold like the board's
   const WHENS = [["late", "已过期", "blocked"], ["today", "今天", "active"], ["week", "本周", "paused"], ["later", "以后", "todo"], ["none", "无日期", "backlog"]];
   const PRESETS = { list: { "todo-done": "open", "todo-range": "", "todo-grp": "p" }, review: { "todo-done": "all", "todo-range": "week", "todo-grp": "d" } };
-  V.todoPreset = mode => { store.set("todo-mode", mode); Object.entries(PRESETS[mode]).forEach(([k, v]) => store.set(k, v)); if (mode === "review") unfold.add("d:done"); };
+  V.todoPreset = mode => { store.set("todo-mode", mode); Object.entries(PRESETS[mode]).forEach(([k, v]) => store.set(k, v)); };
   function whenOf(it) {
     const d = it.meta.due, t = today(); if (!d) return "none";
     return d < t ? "late" : d === t ? "today" : within(d, range("week")) ? "week" : "later";
@@ -113,7 +112,7 @@
   function groupsOf(cs) {
     const g = store.get("todo-grp", "p"), of = (key, name, pick, extra) => Object.assign({ key, name, cs: cs.filter(pick) }, extra);
     if (g === "w") return WHENS.map(([k, l, st]) => of("w:" + k, l, c => c.w === k, { st }));   // fixed sets list every group, empty ones too
-    if (g === "d") return [of("d:open", "未完成", c => !c.it.done), of("d:done", "已完成", c => c.it.done, { all: true })];
+    if (g === "d") return [of("d:open", "未完成", c => !c.it.done), of("d:done", "已完成", c => c.it.done)];
     if (g === "f") return Object.keys(F).sort().map(f => of("f:" + f, f.replace(/\.md$/, ""), c => c.it.file === f));
     const ps = [...new Set(cs.map(c => projOf(c.it)))];   // projects only where items are: the list of projects keeps growing
     return ps.map(p => of("p:" + p, p ? "@" + p : "未标项目", c => projOf(c.it) === p))
@@ -122,7 +121,7 @@
   const SORTKEY = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
     done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") };
   /* ---- the table form: one row per item, sortable columns, a group's done rows folded ---- */
-  const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先级"], ["due", "截止"], ["done", "完成"], ["created", "创建"], ["file", "文件"], ["x", ""]];
+  const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先"], ["due", "截止"], ["done", "完成", "p"], ["created", "创建", "p"], ["file", "文件", "p"], ["x", "", "p"]];
   const SORTABLE = ["prio", "due", "done", "created", "file"];
   function trHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = it.meta, t = today(), when = m.created && SV.todoDate(m.created);
@@ -133,18 +132,15 @@
       + `<td class="c-text">${text}</td>`
       + `<td class="c-prio">${m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级：${PRIO[m.prio]}">${V.I["p" + m.prio]}</span>` : ""}</td>`
       + `<td class="c-due">${m.due ? `<span class="tdue${!it.done && m.due < t ? " late" : !it.done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">${m.due.slice(5)}</span>` : ""}</td>`
-      + `<td class="c-done mu" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
-      + `<td class="c-created mu" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
-      + `<td class="c-file"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td>`
-      + `<td class="c-x"><button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></td></tr>`;
+      + `<td class="c-done mu hp" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
+      + `<td class="c-created mu hp" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
+      + `<td class="c-file hp"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td>`
+      + `<td class="c-x hp"><button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></td></tr>`;
   }
-  function tableT(gs) {   // the board's table, over todo items; done rows fold behind a text toggle
-    const its = l => l.map(c => c.it);
-    return V.tableHTML({ cls: "ttbl", cols: COLS.map(([k, l]) => [k, l, SORTABLE.includes(k)]), val: (it, k) => SORTKEY[k](it), row: trHTML,
-      sort: { k: store.get("todo-sort", ""), desc: store.get("todo-desc", false), attr: "data-tsortc" },
-      fold: (g, closed, show) => `<button class="tdone" data-tfoldg="${esc(g.key)}">${show ? "收起" : "展开"}已完成 ${closed.length}</button>`,
-      groups: gs.map(g => ({ key: g.key, name: g.name, n: g.cs.length, show: unfold.has(g.key),
-        open: its(g.all ? g.cs : g.cs.filter(c => !c.it.done)), closed: its(g.all ? [] : g.cs.filter(c => c.it.done)) })) });
+  function tableT(gs) {   // the board's table, over todo items; done ones show in place — the 完成 filter picks them
+    return V.tableHTML({ cls: "ttbl", cols: COLS.map(([k, l, hide]) => [k, l, SORTABLE.includes(k), hide]), val: (it, k) => SORTKEY[k](it), row: trHTML,
+      sort: { k: store.get("todo-sort", ""), desc: store.get("todo-desc", false), attr: "data-tsortc" }, fold: () => "",
+      groups: gs.map(g => ({ key: g.key, name: g.name, n: g.cs.length, show: false, open: g.cs.map(c => c.it), closed: [] })) });
   }
   function headT(k) {
     const g = store.get("todo-grp", "p");
@@ -153,13 +149,16 @@
       + `<div class="seg" style="margin-left:auto"><button data-tgrpc data-tip="分组：按${label(GRPS, g)}（点击换下一个：${GRPS.map(x => x[1]).join(" → ")}）">${label(GRPS, g)}</button></div>`
       + V.paneEnd(k);
   }
+  const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
   function paint() {
     const el = $("#todo"), sc = el && $("#tscroll", el); if (!sc) return;
     const all = itemsAll(true), dn = store.get("todo-done", "open"), rg = store.get("todo-range", "");
     $(".phd", el).innerHTML = headT(V.hostOf("todo"));
     const top = sc.scrollTop, cs = cardsOf(all), gs = groupsOf(cs);
     const chips = (list, cur, attr) => list.map(([k, l]) => `<button class="chip ${k === cur ? "on" : ""}" ${attr}="${k}">${l}</button>`).join("");
-    sc.innerHTML = `<div class="tflt">${chips(DONES, dn, "data-tdonef")}<span class="sep"></span>${chips(RANGES, rg, "data-trangef")}</div>`
+    const cyc = (list, cur, attr, tip) => `<button class="chip on cyc" ${attr}="${next(list, cur)}" data-tip="${tip}：点一下换下一个">${label(list, cur)}</button>`;
+    sc.innerHTML = `<div class="tflt">${chips(DONES, dn, "data-tdonef")}<span class="sep"></span>${chips(RANGES, rg, "data-trangef")}`
+      + cyc(DONES, dn, "data-tdonef", "完成") + cyc(RANGES, rg, "data-trangef", "时间") + "</div>"
       + (all.length ? tableT(gs) : `<div class="hint">还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。</div>`);
     sc.scrollTop = top;
     const ed = $(".tedit", sc); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
@@ -232,13 +231,11 @@
   }));
   V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })); });
   V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(seen(at.file), at.line, { remove: true })); });
-  V.click("[data-tfoldg]", el => { const g = el.dataset.tfoldg; unfold.has(g) ? unfold.delete(g) : unfold.add(g); paint(); });
   V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
     const k = el.dataset.tsortc, by = store.get("todo-sort", ""), desc = store.get("todo-desc", false);
     if (by !== k) { store.set("todo-sort", k); store.set("todo-desc", false); } else if (!desc) store.set("todo-desc", true); else { store.set("todo-sort", ""); store.set("todo-desc", false); }
     paint();
   });
-  const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
   V.click("[data-tdonef]", el => { store.set("todo-done", el.dataset.tdonef); paint(); });
   V.click("[data-trangef]", el => { store.set("todo-range", el.dataset.trangef); paint(); });
   V.click("[data-tgrpc]", () => { store.set("todo-grp", next(GRPS, store.get("todo-grp", "p"))); paint(); V.untip(); });

@@ -110,13 +110,13 @@ a.tr { text-decoration: none; }
 .tr em.star { color: var(--hitc); font-size: calc(9px * var(--fz)); }
 .tr em + em { padding-left: 4px; margin-left: 0; }
 .tr .tfx[data-tren] { margin-left: auto; }
-.tr .tfx { flex: none; width: 16px; text-align: center; text-decoration: none; color: var(--faint); display: none; }
+.tr .tfx { flex: none; padding-left: 8px; text-decoration: none; color: var(--faint); display: none; }   /* the last one ends where the counts end */
 .tr.tfr:hover .tfx { display: block; } .tr .tfx:hover { color: var(--sig); }
 .tr.tfr:hover em { display: none; }
 .tr.cur, .tr.cur:hover { background: var(--sigs); color: var(--tx); }
 .tr.cur .nm, .tr.cur em, .tr.cur .cv { color: var(--ink); }
 .tr.cur::before { content: ""; position: absolute; left: 0; top: 50%; height: 12px; margin-top: -6px; width: 2px; border-radius: 1px; background: var(--sig); }
-.tsec { display: flex; align-items: center; gap: 2px; height: 24px; margin: 14px 0 2px; padding: 0 14px 0 8px; font: 400 var(--t-meta) var(--cjk); color: var(--faint); }
+.tsec { display: flex; align-items: center; gap: 2px; height: 24px; margin: 14px 0 2px; padding: 0 4px 0 8px; font: 400 var(--t-meta) var(--cjk); color: var(--faint); }
 .tsec:first-child { margin-top: 0; }
 .tsec .nm { margin-right: auto; }
 .tsec .tc { font: 400 var(--t-xs) var(--mono); color: var(--faint); padding: 1px 4px; border-radius: var(--r-sm); }
@@ -332,13 +332,13 @@ a.tr { text-decoration: none; }
 .tflt .chip { width: auto; } .tflt .chip.on { color: var(--sig); background: var(--sigs); }
 .tflt .sep { width: 1px; height: 14px; background: var(--ln2); margin: 0 8px; }
 #tscroll .tflt { margin-bottom: 8px; }
-.ttbl .tdone { font: 400 var(--t-sm) var(--cjk); color: var(--mu); padding: 2px 0; } .ttbl .tdone:hover { color: var(--tx); }
+.tflt .cyc { display: none; } .app.narrow .tflt .chip:not(.cyc), .app.narrow .tflt .sep { display: none; } .app.narrow .tflt .cyc { display: inline-flex; }
 .tck { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 1; color: var(--done); cursor: pointer; }
 .tck:hover { border-color: var(--sig); }
 .ttbl .c-ck { width: 52px; } .ttbl .c-prio { width: 52px; } .ttbl .c-due, .ttbl .c-done { width: 58px; }
 .ttbl .c-created { width: 76px; } .ttbl .c-file { width: 84px; } .ttbl .c-x { width: 24px; padding: 0; }
 .ttbl th.ns { cursor: default; }
-.ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); }
+.ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); white-space: normal; overflow-wrap: anywhere; }   /* a todo is read whole, not cut */
 .ttbl .tck { vertical-align: middle; }
 .ttbl tr.done .ttx { color: var(--faint); text-decoration: line-through; }
 .ttbl .tdue, .ttbl .tpri, .ttbl .tprog { margin-left: 0; } .ttbl .tprog { margin-left: 6px; }
@@ -374,11 +374,13 @@ a.tr { text-decoration: none; }
 .tedbar button { padding: 2px 10px; border-radius: var(--r-sm); color: var(--mu); } .tedbar button:hover { color: var(--ink); background: var(--hover); }
 .tedbar button.ok { background: var(--sigs); color: var(--sig); }
 .ttool { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
-.ttool button { min-width: 28px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--mu); }
+.ttool button { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--mu); }
 .ttool button:hover { background: var(--hover); color: var(--ink); }
 .ttool button svg { width: 15px; height: 15px; vertical-align: -3px; }
-.ttool [data-tact="todo"] { color: var(--sig); font-family: var(--cjk); margin-left: auto; }
-.app.narrow .ttool button { height: 34px; min-width: 34px; }
+.ttool [data-tact="redo"] { margin-right: 8px; }
+.app.narrow .ttool { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }   /* one row that slides sideways */
+.app.narrow .ttool::-webkit-scrollbar { display: none; }
+.app.narrow .ttool button { flex: none; height: 34px; min-width: 34px; }
 .tac button em { font-style: normal; color: var(--faint); margin-left: 10px; font: 400 var(--t-xs) var(--mono); }
 .ted { position: relative; flex: 1; min-height: 0; border-top: 1px solid var(--ln); }
 .ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 2px; font: 400 calc(12.5px * var(--fz))/1.7 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
@@ -391,8 +393,7 @@ a.tr { text-decoration: none; }
   background: var(--paper); border: 1px solid var(--ln2); border-radius: var(--r-md); box-shadow: var(--shadow); }
 .tac button { text-align: left; padding: 3px 8px; border-radius: var(--r-sm); font: 400 var(--t-md) var(--code); color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tac button.on, .tac button:hover { background: var(--sigs); color: var(--sig); }
-.app.phone .ttbl :is(.c-done, .c-created, .c-file) { width: 0; padding: 0; border: 0; font-size: 0; }
-.app.phone .ttbl .c-prio { width: 30px; padding: 4px; text-overflow: clip; } .app.phone .ttbl .c-x { width: 0; padding: 0; }
+.app.phone .ttbl .c-prio { width: 36px; padding-left: 6px; padding-right: 4px; text-overflow: clip; }
 .titem { display: flex; align-items: baseline; gap: 10px; padding: 5px 4px; border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); font: 400 var(--t-lg)/1.6 var(--cjk); color: var(--tx); }
 .titem .tck { flex: none; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 12px; color: var(--done); align-self: center; }
 .titem.done .ttx { color: var(--faint); text-decoration: line-through; }

@@ -118,6 +118,7 @@
     ins(ta, nl, a, b);
   }
   const ACT = {
+    undo: ta => { ta.focus(); document.execCommand("undo"); }, redo: ta => { ta.focus(); document.execCommand("redo"); },
     b: ta => wrap(ta, "**"), i: ta => wrap(ta, "*"), code: ta => wrap(ta, "`"),
     h: ta => setPrefix(ta, old => { const n = (/^#+/.exec(old.trim()) || [""])[0].length; return n >= 3 ? "" : "#".repeat(n + 1) + " "; }),
     h1: ta => setPrefix(ta, () => "# "), h2: ta => setPrefix(ta, () => "## "), h3: ta => setPrefix(ta, () => "### "),
@@ -130,9 +131,9 @@
     fence: ta => { const a = ta.selectionStart; ins(ta, "```\n\n```"); ta.setSelectionRange(a + 4, a + 4); },
     hr: ta => ins(ta, "\n---\n"),
   };
-  const TOOLS = [["b", "<b>B</b>", "加粗 ⌘B"], ["i", "<i>I</i>", "斜体 ⌘I"], ["code", "`", "行内代码"], ["h", "H", "标题（再点一级）"],
+  const TOOLS = [["undo", V.I.undo, "撤销 ⌘Z"], ["redo", V.I.redo, "重做 ⇧⌘Z"], ["b", "<b>B</b>", "加粗 ⌘B"], ["i", "<i>I</i>", "斜体 ⌘I"], ["code", "`", "行内代码"], ["h", "H", "标题（再点一级）"],
     ["ul", "•", "列表"], ["ol", "1.", "有序列表"], ["task", V.I.box, "设为 todo"], ["quote", "❝", "引用"], ["link", "[[", "链接文档"],
-    ["time", V.I.clock, "插入现在时间"], ["due", V.I.cal, "截止日期（明天，可改）"], ["p1", V.I.p1, "高优先级"], ["todo", "＋todo", "在下面新起一条 todo"]];
+    ["time", V.I.clock, "插入现在时间"], ["due", V.I.cal, "截止日期（明天，可改）"], ["p1", V.I.p1, "高优先级"]];
   // the / menu: Notion / Obsidian style, filtered by any of the names as you type
   const CMDS = [["todo", "todo 待办", "task"], ["h1", "标题 1", "heading"], ["h2", "标题 2", "heading"], ["h3", "标题 3", "heading"],
     ["ul", "列表", "bullet list"], ["ol", "有序列表", "numbered list"], ["quote", "引用", "quote"], ["fence", "代码块", "code block"],

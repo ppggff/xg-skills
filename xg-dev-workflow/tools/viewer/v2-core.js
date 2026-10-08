@@ -64,6 +64,8 @@ var V2 = (function () {
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>', 1.8),
     done: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.2),
     box: svg('<rect x="5" y="5" width="14" height="14" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', 1.8),
+    undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', 1.8),
+    redo: svg('<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>', 1.8),
     p1: svg('<path d="M6 13l6-6 6 6M6 19l6-6 6 6"/>', 2.2), p2: svg('<path d="M6 15.5l6-6 6 6"/>', 2.2), p3: svg('<path d="M6 9.5l6 6 6-6"/>', 2.2),
     tick: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.3l2.3 2.2 4.7-5"/></svg>',
   };
