@@ -17,7 +17,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 input { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 1.5px solid var(--sig); outline-offset: 1px; border-radius: 2px; }
-::selection { background: var(--sigs); }
+::selection { background: var(--hit); }   /* the classic shell's --sel: a hue apart from the current-line band */
 .scroll { scrollbar-width: thin; scrollbar-color: var(--ln2) transparent; }
 .fr { font: 400 calc(11.5px * var(--fz)) var(--cjk); color: var(--tx); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .fr i { font-style: normal; color: var(--faint); margin: 0 1px; font-weight: 200; }
