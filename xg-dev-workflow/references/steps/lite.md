@@ -116,9 +116,10 @@ stops at `status: closing`; `done` only once the human has ruled.
 ### Park / resume
 
 Park = `progress.md` to the resume floor — blockers, whose **first line is the authorization state** (`go: 已给
-<commit>` or `未给（人原话 + 时间）`) · now · next · build / verify entry — + commit; resume = **first check `go:`
-against the last line of `notes/human-messages.md`**, then progress → design.md 摘要 → 承诺 → 当前方案 → evidence
-and code as needed — the summary is the entry, not the contract; reading scope is unrestricted.
+<commit>` or `未给（人原话 + 时间）`) · now · next · build / verify entry — + commit, then `tools/active-card.py clear`;
+resume = `tools/active-card.py set <project>/<NNN>` (also whenever the session switches to another card), then
+**first check `go:` against the last line of `notes/human-messages.md`**, then progress → design.md 摘要 → 承诺 →
+当前方案 → evidence and code as needed — the summary is the entry, not the contract; reading scope is unrestricted.
 
 ## Verification and close-out
 
@@ -137,7 +138,7 @@ recorded; (2) **review** — the `review` verb's standard tier by default; a lig
 commitment and Inv block against the code · each test against its claim, written into the doc) or the deep tier is
 a written call with its reason — **skipping any step is written down with its reason**; (3) per commitment: met /
 scope of the result / unverified / residual risk — a task that promised only a plan closes on that, never claiming
-a run; a promised run that cannot happen is a blocker or a negotiated cut; (4) `status: done`, board `done`, KB
+a run; a promised run that cannot happen is a blocker or a negotiated cut; (4) `status: done`, board `done`, `tools/active-card.py clear`, KB
 triage, usage log `--action lite`, and the **observation note** (`notes/observations.md`): places synced per change ·
 interruptions — including the model's own stops to ask 「继续？」— each with its reason · test mode per slice · questions
 per ask · doc time and lines read at go · missed commitments · unauthorized changes, each 变更 line checked against

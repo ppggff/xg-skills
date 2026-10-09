@@ -48,6 +48,8 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   each names its `constraints.md` row in `--manifest`);
   the board and the viewer render a lite card as one cell from design.md `status` (`status · Req n / 已验证 k`);
   `--trace` and `--digest` print one 不适用 line for a lite card (they render five-phase scaffolding).
+  `tools/active-card.py set|clear|get` records the card this Claude Code session works on (one pointer file per
+  `CLAUDE_CODE_SESSION_ID` under `~/.config/xg-knowledge-wiki/active-card/`; readers such as a status mod only read it).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
   `resolve-project.py`.
 
@@ -57,8 +59,8 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
 - `new <slug>` — open a lite card by hand (next `NNN` · dir · `design.md` copied from
   `templates/design-lite.md` with id / title / project / created filled · board row (a new project first gets its dir +
   `templates/index.md`) ·
-  `notes/human-messages.md` at the first human message, or imported from an evolving dir — discuss.md §2):
-  lite.md「Card files」, then「Drafting」.
+  `notes/human-messages.md` at the first human message, or imported from an evolving dir — discuss.md §2 ·
+  `tools/active-card.py set <project>/<NNN>`): lite.md「Card files」, then「Drafting」.
 - `resume [<slug>]` · `park [<slug>]` — lite.md「Park / resume」(存量 cards: legacy/SKILL.md).
 - `check [<slug>]` — the lite check subset above (存量 cards: legacy's M3).
 - `investigate <topic>` — the front door for any code-behavior question; KB-first and recorded unless
