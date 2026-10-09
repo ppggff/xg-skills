@@ -76,6 +76,9 @@ each row script- or reader-checkable.
   verbatim words, a 变更 line without its 确认, a stale human-messages file, a `skill:` field behind the skill HEAD;
   findings on cards from 2026-09-16, hints on older lite cards — each naming its `constraints.md` row in `--manifest`); the board and the viewer show a lite card as one cell derived from
   `design.md`'s `status`; `--trace` / `--digest` print 不适用 for it.
+- **The session's card is recorded, not guessed.** `new` and `resume` run `tools/active-card.py set <project>/<NNN>`;
+  `park` and close-out run `clear`. The pointer is one line per Claude Code session (keyed by `CLAUDE_CODE_SESSION_ID`,
+  under `~/.config/xg-knowledge-wiki/active-card/`), so a status line or mod can show which card this session works on.
 - **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
   `CHANGELOG.md` with the 体量行 by dimension (`constraints.md` Cap-1) plus the lite-face and whole-skill totals.
 

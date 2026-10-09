@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-09 — the session's active card is recorded explicitly (card xg-skills/047)
+
+- New `tools/active-card.py set|clear|get`: one pointer file per Claude Code session (`CLAUDE_CODE_SESSION_ID`) under
+  `~/.config/xg-knowledge-wiki/active-card/`, holding `<project>/<NNN-slug>`. `new` and `resume` set it (again on a switch
+  to another card), `park` and close-out clear it. Without a session id the tool is a no-op that exits 0; `set` prunes
+  other sessions' pointers older than 30 days.
+- Why: a status mod had to guess the session's card from tool-call paths, skill arguments and the transcript — it could
+  tell which cards were touched, not which one is being worked on, and never knew when to let go. The workflow knows
+  when it enters and leaves a card, so it now says so.
+
 ## 2026-10-07 — status viewer: a fuller todo editor, dated todos, capture, review (card xg-skills/045)
 
 - The todo editor opens on `e` or a double-click, has a toolbar and a Notion/Obsidian-style `/` menu, continues lists
