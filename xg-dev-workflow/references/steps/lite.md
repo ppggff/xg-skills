@@ -117,7 +117,7 @@ stops at `status: closing`; `done` only once the human has ruled.
 
 Park = `progress.md` to the resume floor — blockers, whose **first line is the authorization state** (`go: 已给
 <commit>` or `未给（人原话 + 时间）`) · now · next · build / verify entry — + commit, then `tools/active-card.py clear`;
-resume = `tools/active-card.py set <project>/<NNN>` (also whenever the session switches to another card), then
+resume = `tools/active-card.py set <project>/<NNN>` (also on a switch to another card or a re-open), then
 **first check `go:` against the last line of `notes/human-messages.md`**, then progress → design.md 摘要 → 承诺 →
 当前方案 → evidence and code as needed — the summary is the entry, not the contract; reading scope is unrestricted.
 

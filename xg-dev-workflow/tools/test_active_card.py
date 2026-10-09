@@ -115,6 +115,45 @@ class ActiveCardTests(unittest.TestCase):
         self.run_tool("set", "xg-skills/047")
         self.assertEqual(sorted(os.listdir(self.state)), ["fresh", "s1"])
 
+    def test_set_rejects_project_dot_segments(self):
+        os.makedirs(os.path.join(self.tmp.name, "047-outside"))
+        os.makedirs(os.path.join(self.dev_root, "047-self"))
+        for target in ("../047", "./047"):
+            code, _, err = self.run_tool("set", target)
+            self.assertNotEqual(code, 0, target)
+            self.assertTrue(err, target)
+        self.assertIsNone(self.pointer())
+
+    def test_set_rejects_names_readers_cannot_parse(self):
+        os.makedirs(os.path.join(self.dev_root, "xg-skills", "048-中文"))
+        code, _, err = self.run_tool("set", "xg-skills/048")
+        self.assertNotEqual(code, 0)
+        self.assertTrue(err)
+        self.assertIsNone(self.pointer())
+
+    def test_io_failures_never_block(self):
+        blocker = os.path.join(self.tmp.name, "blocker")
+        with open(blocker, "w") as f:
+            f.write("x")
+        argv = ["--dev-root", self.dev_root, "--state-dir", os.path.join(blocker, "state"), "--session", "s1"]
+        for args in (["set", "xg-skills/047"], ["clear"], ["get"]):
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                code = active_card.main(argv + args)
+            self.assertEqual(code, 0, args)
+            if args[0] == "set":
+                self.assertIn("active-card:", err.getvalue())
+
+    def test_prune_failure_does_not_undo_a_written_pointer(self):
+        original = active_card.prune
+        active_card.prune = lambda *_: (_ for _ in ()).throw(FileNotFoundError("raced"))
+        try:
+            code, _, _ = self.run_tool("set", "xg-skills/047")
+        finally:
+            active_card.prune = original
+        self.assertEqual(code, 0)
+        self.assertEqual(self.pointer(), "xg-skills/047-session-active-card\n")
+
     def test_session_id_cannot_escape_the_state_dir(self):
         code, _, err = self.run_tool("set", "xg-skills/047", session="../x")
         self.assertNotEqual(code, 0)

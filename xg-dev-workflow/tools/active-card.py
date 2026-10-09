@@ -27,6 +27,8 @@ from pathlib import Path
 STALE_DAYS = 30
 SESSION_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 CARD_RE = re.compile(r"^\d{3}-")
+# The one-line form readers accept; a card whose dir name falls outside it is refused rather than recorded unreadable.
+POINTER_RE = re.compile(r"^(?!\.\.?/)[A-Za-z0-9_.-]+/\d{3}-[A-Za-z0-9_.-]+$")
 
 
 def default_dev_root() -> str:
@@ -47,11 +49,12 @@ def resolve_card(dev_root: str, target: str) -> str | None:
     """`<project>/<NNN>` or `<project>/<NNN-slug>` -> `<project>/<NNN-slug>` when that card dir exists."""
     project, _, card = target.partition("/")
     base = Path(dev_root) / project
-    if not project or not card or "/" in card or not base.is_dir():
+    if project in ("", ".", "..") or not card or "/" in card or not base.is_dir():
         return None
     for entry in sorted(base.iterdir()):
         if entry.is_dir() and CARD_RE.match(entry.name) and (entry.name == card or entry.name[:3] == card.zfill(3)):
-            return f"{project}/{entry.name}"
+            found = f"{project}/{entry.name}"
+            return found if POINTER_RE.match(found) else None
     return None
 
 
@@ -64,12 +67,25 @@ def prune(state_dir: Path, keep: str) -> None:
 
 def write_atomic(path: Path, text: str) -> None:
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(text)
-    os.replace(tmp, path)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except OSError:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 def main(argv=None) -> int:
+    try:
+        return run(argv)
+    except (OSError, UnicodeError) as err:
+        # Recording the active card must never block the workflow: an IO failure is reported, not raised.
+        print(f"active-card: {err}; nothing changed", file=sys.stderr)
+        return 0
+
+
+def run(argv) -> int:
     ap = argparse.ArgumentParser(description="Record the card the current session works on.")
     ap.add_argument("--session")
     ap.add_argument("--dev-root")
@@ -104,7 +120,10 @@ def main(argv=None) -> int:
         return 2
     state_dir.mkdir(parents=True, exist_ok=True)
     write_atomic(pointer, card + "\n")
-    prune(state_dir, session)
+    try:
+        prune(state_dir, session)
+    except OSError:
+        pass
     print(card)
     return 0
 
