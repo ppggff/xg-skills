@@ -82,7 +82,10 @@ each row script- or reader-checkable.
 - **Todos have a script interface.** `tools/todo.py add|list|done` reads and writes the viewer's todo files
   (`<dev_root>/todo/*.md`) in the viewer's own format: `add` appends to `inbox.md` with an `@project` tag and a `➕`
   stamp (multi-line text as indented continuation lines), `list` returns every item as JSON, `done` ticks one found by
-  file, created stamp and first line. The xg-hud mod's todo band uses it; any script can.
+  file, created stamp and first line. The xg-hud mod's todo band uses it; any script can. It is also the only
+  writer: the viewer server performs every todo write through it, under one lock, at the version the page read.
+  `tools/todo-format.md` states the format, and `tools/todo-cases.json` holds both readers (todo.py and the viewer's
+  `sv.js`) to it.
 - **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
   `CHANGELOG.md` with the 体量行 by dimension (`constraints.md` Cap-1) plus the lite-face and whole-skill totals.
 

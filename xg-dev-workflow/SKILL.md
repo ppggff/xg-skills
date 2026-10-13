@@ -51,7 +51,8 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   `tools/active-card.py set|clear|get` records the card this Claude Code session works on (one pointer file per
   `CLAUDE_CODE_SESSION_ID` under `~/.config/xg-knowledge-wiki/active-card/`; readers such as a status mod only read it).
   `tools/todo.py add|list|done` reads and writes the viewer's todo files (`<dev_root>/todo/*.md`) for scripts and mods
-  (JSON on stdout; `add` appends to `inbox.md` with `@project` and a `➕` stamp, `done` ticks an item by file · stamp · first line).
+  (JSON on stdout; `add` appends to `inbox.md` with `@project` and a `➕` stamp, `done` ticks an item by file · stamp · first line);
+  it is the only writer — the viewer server writes through it, under its lock — and `tools/todo-format.md` is the format, pinned by `todo-cases.json`.
   `tools/remap-shas.py map|apply` carries the SHAs a card cites across a history rewrite (constraints.md Git-3).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
   `resolve-project.py`.

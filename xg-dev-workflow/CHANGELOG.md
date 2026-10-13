@@ -26,6 +26,19 @@ Each entry says *what changed* and *why*, not the raw diff.
   and the map stay as they are.
 - Why: a rebase of hashdata/013 onto its base branch left 209 SHAs in 14 card files pointing at the old commits.
 
+## 2026-10-13 — the todo format is one contract; todo.py is the only writer (card xg-skills/052)
+
+- `tools/todo-format.md` states the todo file format and `tools/todo-cases.json` pins it: `todo.py` and the viewer's
+  `sv.js` run the same parse cases, `todo.py` runs the write cases. Both read the format the same way now: ASCII rules,
+  several spaces or a tab after the list marker, no tasks inside block quotes, CRLF and a leading BOM folded.
+- Every todo write goes through `todo.py` under one lock: the viewer server loads it for write, rename, delete and the
+  startup move. Why: the server's own lock was invisible to `todo.py`, and a stress test lost writes on both sides.
+  The version a write names is inode · mtime in ns · size (the `X-Version` header), since a millisecond mtime could not
+  tell apart two writes in one millisecond.
+- The viewer ticks and captures by intent (file · line · line text, or file · text · project · link) with the page's
+  local time; `todo.py` edits the line or composes the item. `list` also reports tags, due, done date, priority and
+  sub-item progress, which the xg-hud band now uses instead of counting itself.
+
 ## 2026-10-13 — a script interface to the viewer's todos; the todo view drops per-item delete (card xg-skills/048)
 
 - New `tools/todo.py add|list|done` (JSON on stdout, one stderr line and exit 1 on failure). `add` appends an item to
