@@ -180,8 +180,26 @@ async function setSessionRefs($: $, fn: (refs: string[]) => string[]): Promise<v
   await $.store.set(await sessionRefsKey($), refs)
 }
 
-function isTagged(item: HudTodo, project: string): boolean {
-  return new RegExp(`(^|\\s)[@#]${project.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(item.key)
+// A todo's project is its first tag, as the viewer groups it; sub-items count toward their parent's done / total.
+function topLevelOpen(all: HudTodo[]): HudTodo[] {
+  const out: HudTodo[] = []
+  all.forEach((item, i) => {
+    if ((item.depth ?? 0) > 0 || item.done) return
+    let done = 0
+    let total = 0
+    for (let j = i + 1; j < all.length && all[j]!.file === item.file && (all[j]!.depth ?? 0) > (item.depth ?? 0); j++) {
+      total += 1
+      if (all[j]!.done) done += 1
+    }
+    out.push(total ? { ...item, progress: [done, total] } : item)
+  })
+  return out
+}
+
+export function shownText(item: HudTodo): string {
+  if (!item.progress) return item.text
+  const [first, ...rest] = item.text.split('\n')
+  return [`${first} ${item.progress[0]}/${item.progress[1]}`, ...rest].join('\n')
 }
 
 // Identity is file + created stamp + first-line key, compared whole; the hash only names drawn elements.
@@ -282,14 +300,14 @@ async function syncTodos($: $): Promise<void> {
   const before = new Set((await read($, todos)).map(todoRef))
   let open: HudTodo[]
   try {
-    open = (await runTodo($, ['list', '--open'])) as HudTodo[]
+    open = topLevelOpen((await runTodo($, ['list'])) as HudTodo[])
   } catch {
     return
   }
   const c = await context($)
   const project = c ? projectOf(c.cwd, c.config) : null
   const own = new Set(await read($, todoSessionRefs))
-  const synced = open.filter(item => own.has(todoRef(item)) || (project !== null && isTagged(item, project)))
+  const synced = open.filter(item => own.has(todoRef(item)) || (project !== null && item.project === project))
   const seen = new Set(synced.map(todoRef))
   await changeTodos($, list => [...synced, ...list.filter(one => !before.has(todoRef(one)) && !seen.has(todoRef(one)))])
 }
@@ -553,7 +571,7 @@ export const register: Register = on => {
     let todoUsed = 0
     const listed = todoOpen ? queue.slice(at) : []
     for (const item of listed) {
-      const lines = todoLines(item.text, todoTextWidth)
+      const lines = todoLines(shownText(item), todoTextWidth)
       if (todoItems.length > 0 && todoUsed + lines.length > todoAvail) break
       todoItems.push({ item, lines })
       todoUsed += lines.length

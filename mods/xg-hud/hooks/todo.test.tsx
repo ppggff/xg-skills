@@ -7,7 +7,7 @@ import { todoLines } from './register'
 
 const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 12, bodyColumns: 100 } as never } as const
 
-type Row = HudTodo & { done: boolean }
+type Row = HudTodo & { done: boolean; depth?: number }
 type Fake = { draft: string; rows: Row[]; fail: string | null; listFail: boolean; slowList: boolean; clock: MockClock }
 
 const CONFIG = 'projects:\n  xg-skills:\n    paths:\n      - /work\n'
@@ -49,7 +49,7 @@ function world(on: On, draft = '', store: Record<string, unknown> = {}, opts: { 
     }
     if (argv[0] === 'list') {
       if (fake.listFail) return err('cannot read')
-      const snapshot = out(fake.rows.filter(r => !r.done).map(strip))
+      const snapshot = out(argv.includes('--open') ? fake.rows.filter(r => !r.done).map(strip) : fake.rows.map(row => ({ ...strip(row), done: row.done })))
       if (fake.slowList) await fake.clock.sleep(1000)
       return snapshot
     }
@@ -210,6 +210,25 @@ async function startSession($: Engine, fake: Fake): Promise<void> {
 const tagged = (key: string, project: string | null = 'xg-skills'): Row => ({ file: 'work.md', created: '', key: project ? `${key} @${project}` : key, text: key, project, done: false })
 
 describe('todo sync', () => {
+  test('a todo belongs to the project its first tag names, as the viewer groups it', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    fake.rows.push({ ...tagged('ask about locks'), key: 'ask @alice about locks @xg-skills', project: 'alice' }, tagged('ours'))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find({ type: 'Text', text: 'ours' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /ask about locks/ })).toBeUndefined()
+  })
+
+  test('sub-items stay out of the list; their parent shows done / total', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    fake.rows.push(tagged('parent'), { ...tagged('child one', null), depth: 2, done: true }, { ...tagged('child two', null), depth: 2 }, tagged('next'))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find({ type: 'Text', text: 'parent 1/2' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /child/ })).toBeUndefined()
+    expect(await ui.find(count(2))).toBeDefined()
+  })
+
   test('lists every open todo of the current project plus this session\'s own, nothing else', async ($, on) => {
     const fake = world(on, '', {}, { project: true })
     fake.rows.push(tagged('from viewer'), tagged('other project', 'cbdb'), tagged('loose', null))

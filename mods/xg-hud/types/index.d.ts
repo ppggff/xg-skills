@@ -28,7 +28,16 @@ export type HudKbStart = { at: number; names: string[] }
 export type HudTimes = { message: number | null; reply: number | null }
 
 // One todo the band shows: where it lives in the viewer's todo files and its text.
-export type HudTodo = { file: string; created: string; key: string; text: string; project: string | null }
+export type HudTodo = {
+  file: string
+  created: string
+  key: string
+  text: string
+  project: string | null
+  depth?: number
+  done?: boolean
+  progress?: [number, number]
+}
 
 declare module 'claude-code' {
   interface PluginState {
