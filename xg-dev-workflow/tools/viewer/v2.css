@@ -336,7 +336,7 @@ a.tr { text-decoration: none; }
 .tck { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 1; color: var(--done); cursor: pointer; }
 .tck:hover { border-color: var(--sig); }
 .ttbl .c-ck { width: 52px; } .ttbl .c-prio { width: 52px; } .ttbl .c-due, .ttbl .c-done { width: 58px; }
-.ttbl .c-created { width: 76px; } .ttbl .c-file { width: 84px; } .ttbl .c-x { width: 24px; padding: 0; }
+.ttbl .c-created { width: 76px; } .ttbl .c-file { width: 84px; }
 .ttbl th.ns { cursor: default; }
 .ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); white-space: normal; overflow-wrap: anywhere; }   /* a todo is read whole, not cut */
 .ttbl .tck { vertical-align: middle; }
@@ -344,7 +344,6 @@ a.tr { text-decoration: none; }
 .ttbl .tdue, .ttbl .tpri, .ttbl .tprog { margin-left: 0; } .ttbl .tprog { margin-left: 6px; }
 .ttbl .c-done, .ttbl .c-created { font: 400 var(--t-xs) var(--mono); }
 .ttbl .tfile { font: 400 var(--t-xs) var(--mono); color: var(--faint); } .ttbl .tfile:hover { color: var(--sig); }
-.ttbl .tdel { color: var(--faint); opacity: 0; } .ttbl tr:hover .tdel, .ttbl .tdel:focus-visible { opacity: 1; } .ttbl .tdel:hover { color: var(--blocked); }
 .ttbl tbody tr:not(.gh):not(.tfold):hover td { background: var(--hover); }
 .ttbl .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; } .ttbl .tdl.broken { color: var(--blocked); }
 .ttbl .tedit { width: 100%; height: 24px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
@@ -398,9 +397,6 @@ a.tr { text-decoration: none; }
 .titem .tck { flex: none; width: 14px; height: 14px; border: 1px solid var(--ln2); border-radius: 3px; font-size: var(--t-xs); line-height: 12px; color: var(--done); align-self: center; }
 .titem.done .ttx { color: var(--faint); text-decoration: line-through; }
 .titem .ttx { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.titem .tdel { flex: none; color: var(--faint); opacity: 0; }
-.titem:hover .tdel, .titem .tdel:focus-visible { opacity: 1; }
-.titem .tdel:hover { color: var(--blocked); }
 .titem .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; }
 .titem .tdl.broken { color: var(--blocked); }
 .titem.ed .tedit { flex: 1; height: 28px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }

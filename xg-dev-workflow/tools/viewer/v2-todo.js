@@ -75,8 +75,7 @@
     return `<div class="titem${it.done ? " done" : ""}" style="--td:${Math.min(it.depth, 8)}"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
       + `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`
       + V.todoMetaHTML(m, it.done)
-      + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button>`
-      + `<button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></div>`;
+      + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></div>`;
   }
 
   /* ---- the todo board (046): the board's table form over todo items. Four dimensions — 项目 (the first @tag), 时间 (the due
@@ -121,7 +120,7 @@
   const SORTKEY = { due: i => i.meta.due || "9999", prio: i => i.meta.prio || 9, created: i => -((SV.todoDate(i.meta.created) || 0) && SV.todoDate(i.meta.created).getTime()),
     done: i => i.meta.done || "0000", file: i => i.file + "\0" + String(i.line).padStart(6, "0") };
   /* ---- the table form: one row per item, sortable columns, a group's done rows folded ---- */
-  const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先"], ["due", "截止"], ["done", "完成", "p"], ["created", "创建", "p"], ["file", "文件", "p"], ["x", "", "p"]];
+  const COLS = [["ck", ""], ["text", "内容"], ["prio", "优先"], ["due", "截止"], ["done", "完成", "p"], ["created", "创建", "p"], ["file", "文件", "p"]];
   const SORTABLE = ["prio", "due", "done", "created", "file"];
   function trHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = it.meta, t = today(), when = m.created && SV.todoDate(m.created);
@@ -134,8 +133,7 @@
       + `<td class="c-due">${m.due ? `<span class="tdue${!it.done && m.due < t ? " late" : !it.done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">${m.due.slice(5)}</span>` : ""}</td>`
       + `<td class="c-done mu hp" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
       + `<td class="c-created mu hp" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
-      + `<td class="c-file hp"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td>`
-      + `<td class="c-x hp"><button class="tdel" data-tdel="${id}" data-tip="删除这一条" aria-label="删除">×</button></td></tr>`;
+      + `<td class="c-file hp"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td></tr>`;
   }
   function tableT(gs) {   // the board's table, over todo items; done ones show in place — the 完成 filter picks them
     return V.tableHTML({ cls: "ttbl", cols: COLS.map(([k, l, hide]) => [k, l, SORTABLE.includes(k), hide]), val: (it, k) => SORTKEY[k](it), row: trHTML,
@@ -230,7 +228,7 @@
     V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 }).then(res => { if (res.ok) V.openDoc("dev", DIR + n); });
   }));
   V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })); });
-  V.click("[data-tdel]", el => { const at = find(el.dataset.tdel); if (at) save(at.file, SV.editTodo(seen(at.file), at.line, { remove: true })); });
+  // No per-item delete: an item's continuation lines are invisible here, so deleting is left to the source editor.
   V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
     const k = el.dataset.tsortc, by = store.get("todo-sort", ""), desc = store.get("todo-desc", false);
     if (by !== k) { store.set("todo-sort", k); store.set("todo-desc", false); } else if (!desc) store.set("todo-desc", true); else { store.set("todo-sort", ""); store.set("todo-desc", false); }
