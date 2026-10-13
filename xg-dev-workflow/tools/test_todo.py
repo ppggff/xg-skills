@@ -34,16 +34,16 @@ class TodoTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_tool(self, *args, stdin="", projects=("xg-skills", "cbdb")):
-        argv = ["--dev-root", self.dev_root, "--now", NOW] + list(args)
+    def run_tool(self, *args, stdin="", projects=("xg-skills", "cbdb"), now=NOW):
+        argv = ["--dev-root", self.dev_root] + (["--now", now] if now else []) + list(args)
         out, err = io.StringIO(), io.StringIO()
         with mock.patch.object(todo, "known_projects", lambda: set(projects)), \
                 mock.patch("sys.stdin", io.StringIO(stdin)), redirect_stdout(out), redirect_stderr(err):
             code = todo.main(argv)
         return code, out.getvalue(), err.getvalue()
 
-    def ok(self, *args, stdin=""):
-        code, out, err = self.run_tool(*args, stdin=stdin)
+    def ok(self, *args, stdin="", now=NOW):
+        code, out, err = self.run_tool(*args, stdin=stdin, now=now)
         self.assertEqual(code, 0, err)
         return json.loads(out)
 
@@ -61,7 +61,7 @@ class TodoTests(unittest.TestCase):
         rec = self.ok("add", "--project", "xg-skills", stdin="run the viewer tests\n")
         self.assertEqual(self.read(), "# todo\n\n- [ ] run the viewer tests @xg-skills ➕ 2026-10-13 09:30\n")
         self.assertEqual(rec, {"file": "inbox.md", "created": NOW, "key": "run the viewer tests @xg-skills",
-                               "text": "run the viewer tests", "project": "xg-skills"})
+                               "text": "run the viewer tests", "listed": "run the viewer tests", "project": "xg-skills"})
 
     def test_add_without_project_has_no_tag(self):
         rec = self.ok("add", stdin="plain")
@@ -153,6 +153,24 @@ class TodoTests(unittest.TestCase):
     def test_the_lock_lives_under_the_shared_config_dir_not_tmp(self):
         path = todo.lock_path(self.tdir)
         self.assertTrue(path.startswith(os.path.join(self.tmp.name, "home", ".config", "xg-knowledge-wiki") + os.sep), path)
+
+    def test_stamps_carry_seconds_by_default_and_parse_with_or_without_them(self):
+        rec = self.ok("add", stdin="timed", now=None)
+        self.assertRegex(rec["created"], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
+        self.ok("add", stdin="exact", now="2026-10-13 09:30:15")
+        self.assertIn("- [ ] exact ➕ 2026-10-13 09:30:15\n", self.read())
+        got = {i["text"]: i for i in self.ok("list")}
+        self.assertEqual(got["exact"]["created"], "2026-10-13 09:30:15")
+        self.assertEqual(got["exact"]["key"], "exact")
+        res = self.ok("done", "--file", "inbox.md", "--created", "2026-10-13 09:30:15", "--key", "exact", now="2026-10-14 08:00:01")
+        self.assertTrue(res["ok"])
+        self.assertIn("- [x] exact ➕ 2026-10-13 09:30:15 ✅ 2026-10-14\n", self.read())
+
+    def test_add_returns_the_text_list_will_read_back(self):
+        rec = self.ok("add", "--project", "xg-skills", stdin="ship 📅 2026-10-20 ⏫ it\nsecond line")
+        self.assertEqual(rec["text"], "ship 📅 2026-10-20 ⏫ it\nsecond line")
+        self.assertEqual(rec["listed"], self.ok("list")[0]["text"])
+        self.assertEqual(rec["listed"], "ship it\nsecond line")
 
     # --- list ---
 

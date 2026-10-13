@@ -2,7 +2,7 @@
 """Read and write the viewer's todo files (<dev_root>/todo/*.md) from scripts and mods.
 
 An item is a markdown task line the viewer reads (sv.js parseTodo / todoMeta):
-  - [ ] <first line>[ @<project>] ➕ YYYY-MM-DD HH:MM
+  - [ ] <first line>[ @<project>] ➕ YYYY-MM-DD HH:MM:SS   (marks read with or without the seconds)
 followed by the text's further lines as continuation lines indented four spaces (four, so a ``` line
 is not a fence to the viewer). A continuation that starts with a backslash or looks like a task item
 gets one more leading backslash, so the viewer never reads it as an item; reading drops one.
@@ -13,7 +13,7 @@ not part of the key: the viewer edits only an item's first line.
 
 Usage (stdout is one JSON value; on failure exit 1 and one line on stderr):
   todo.py add [--project P | --cwd DIR] [--file inbox.md]   < text
-      -> {file, created, key, text, project}
+      -> {file, created, key, text, listed, project}   (listed: the text `list` will read back for it)
   todo.py list [--open] [--project P]
       -> [{file, line, depth, done, created, key, text, project}]   (depth: the indent before the list marker)
   todo.py done --file F --created C --key K
@@ -38,12 +38,12 @@ RETRIES = 3
 # Mirrors of sv.js: TODO_RE, FENCE_RE, TODO_MARKS, and viewer.py TODO_NAME.
 TODO_RE = re.compile(r"^(\s*(?:[-*+]|\d+[.)]) \[)( |x|X)(\] )(.*)$")
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
-TODO_MARKS = re.compile(r"(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|⏫|🔼|🔽")
+TODO_MARKS = re.compile(r"(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽")
 TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")
 TAG_RE = re.compile(r"(^|\s)[@#]([\w.-]+)")
 LINK_RE = re.compile(r"\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)")
-CREATED_RE = re.compile(r"➕\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)")
-DONE_MARK_RE = re.compile(r"\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?\s*$")
+CREATED_RE = re.compile(r"➕\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)")
+DONE_MARK_RE = re.compile(r"\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?\s*$")
 TRAIL_TAG_RE = re.compile(r"\s@([\w.-]+)$")
 # JS ends a line at \r, U+2028 and U+2029 too; the viewer would split an item there, so input is normalized.
 NEWLINES_RE = re.compile("\r\n?|[\u2028\u2029]")
@@ -158,7 +158,7 @@ def parse(text: str, file: str, projects: set) -> list:
             j += 1
         tags = tags_of(first)
         created = CREATED_RE.search(first)
-        shown = TODO_MARKS.sub("", first).rstrip()
+        shown = re.sub(r"\s{2,}", " ", TODO_MARKS.sub("", first)).strip()   # as the viewer's todoMeta shows it
         if trailing_project(first, projects):
             shown = shown[:TRAIL_TAG_RE.search(shown).start()]
         items.append({"file": file, "line": i, "depth": len(m.group(1)) - len(m.group(1).lstrip()), "done": m.group(2) != " ",
@@ -266,7 +266,7 @@ def cmd_add(args, tdir: str, stamp: str):
         return new, None
 
     edit(tdir, name, append)
-    return {"file": name, "created": item["created"], "key": item["key"], "text": text, "project": project}
+    return {"file": name, "created": item["created"], "key": item["key"], "text": text, "listed": item["text"], "project": project}
 
 
 def todo_files(tdir: str) -> list:
@@ -333,7 +333,7 @@ def main(argv=None) -> int:
     d.add_argument("--key", required=True)
     args = ap.parse_args(argv)
 
-    stamp = args.now or time.strftime("%Y-%m-%d %H:%M")
+    stamp = args.now or time.strftime("%Y-%m-%d %H:%M:%S")
     try:
         tdir = os.path.join(args.dev_root or default_dev_root(), TODO_DIR)
         if args.cmd == "add":
