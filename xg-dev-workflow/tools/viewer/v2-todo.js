@@ -154,7 +154,7 @@
     const top = sc.scrollTop, cs = cardsOf(all), gs = groupsOf(cs);
     const chips = (list, cur, attr) => list.map(([k, l]) => `<button class="chip ${k === cur ? "on" : ""}" ${attr}="${k}">${l}</button>`).join("");
     const cyc = (list, cur, attr, tip) => `<button class="chip on cyc" ${attr}="${next(list, cur)}" data-tip="${tip}：点一下换下一个">${label(list, cur)}</button>`;
-    sc.innerHTML = `<div class="tflt">${chips(DONES, dn, "data-tdonef")}<span class="sep"></span>${chips(RANGES, rg, "data-trangef")}`
+    sc.innerHTML = `<div class="tflt"><button class="chip tnew" data-tnew data-tip="在 inbox 里新建一条">新建</button><span class="sep"></span>${chips(DONES, dn, "data-tdonef")}<span class="sep"></span>${chips(RANGES, rg, "data-trangef")}`
       + cyc(DONES, dn, "data-tdonef", "完成") + cyc(RANGES, rg, "data-trangef", "时间") + "</div>"
       + (all.length ? tableT(gs) : `<div class="hint">还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。</div>`);
     sc.scrollTop = top;
@@ -250,7 +250,14 @@
     });
   });
   V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; V.ask(`删除 ${n}？里面的 todo 会一起删掉。`, [["del", "删除"], ["", "取消"]]).then(v => { if (v === "del") V.todoWrite("delete", n, { mtime: F[n].mtime }); }); });
-  // No in-place edit: it changed only an item's first line, which other tools use to find the item; edit the file instead.
+  // No in-place edit (it changed only an item's first line, which other tools use to find the item): a double-click
+  // on a row opens its file in the source editor at that line, and 新建 starts a new item at the end of inbox.md.
+  document.addEventListener("dblclick", e => {
+    const row = e.target.closest && e.target.closest("#todo .titem, #todo tbody tr"); if (!row || e.target.closest("a,button,input")) return;
+    const box = row.querySelector("[data-tck]"), at = box && find(box.dataset.tck); if (at) V.editTodoAt(at.file, at.line);
+  });
+  V.click("[data-tnew]", () => (F["inbox.md"] ? Promise.resolve({ ok: true }) : V.todoWrite("write", "inbox.md", { text: "# inbox\n\n", mtime: 0 }))
+    .then(res => { if (res.ok) V.editTodoAt("inbox.md", null, true); }));
   V.on("data", () => {
     const busy = $("#todo input:focus");
     if (!$("#todo").hidden && !busy) return refresh();

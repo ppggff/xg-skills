@@ -295,6 +295,17 @@
 
   /* ---- entry points: the head button, e, a double-click on the text; the toolbar and the menus ---- */
   V.click('.phd [data-t="tedit"]', el => open(V.paneOf(el)));
+  // Another view asks to edit a todo file at a line, or to start a new item in it: open the file, then the editor
+  // once its reader has painted.
+  let wanted = null;
+  V.editTodoAt = (file, line, fresh) => { wanted = { rel: "todo/" + file, line, fresh }; V.openDoc("dev", "todo/" + file); };
+  V.on("rendered", k => {
+    const w = wanted, p = P[k]; if (!w || !p.loc || p.loc.rel !== w.rel || !p.doc || p.doc.err) return;
+    wanted = null; open(k, w.fresh ? null : w.line);
+    if (!w.fresh || !p.edit) return;
+    const ta = $(".tta", p.body), v = ta.value;
+    ta.setSelectionRange(v.length, v.length); newTodo(ta, !(v === "" || v.endsWith("\n")));
+  });
   V.hotkey("e", () => { const k = V.navPane(); if (isTodo(P[k].loc)) open(k); });
   document.addEventListener("dblclick", e => {
     const md = e.target.closest && e.target.closest(".pbody .md"); if (!md || e.target.closest("a,button,input,.cite,.tdl,.ttag")) return;

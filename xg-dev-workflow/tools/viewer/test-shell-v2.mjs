@@ -28,9 +28,12 @@ t("the table's column-hiding classes name nothing else: no other CSS rule styles
   }
 });
 
-t("todo rows have no in-place edit; the source editor stays the way to change one", () => {
-  assert.doesNotMatch(js.todo, /data-ted=|class="tedit"|"dblclick"/);
+t("todo rows have no in-place edit; a double-click and the new button open the source editor", () => {
+  assert.doesNotMatch(js.todo, /data-ted=|class="tedit"/);
   assert.match(js.reader, /b\("tedit", "doc", "编辑这个 todo 文件"\)/);
+  assert.match(js.edit, /V\.editTodoAt = /);
+  assert.match(js.todo, /"dblclick"[\s\S]*V\.editTodoAt\(/);
+  assert.match(js.todo, /data-tnew[\s\S]*V\.editTodoAt\("inbox\.md"/);
 });
 
 t("a checked box keeps its place: the tick is out of flow; the editor's line height stays modest for WebKit's caret", () => {
