@@ -1027,6 +1027,16 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("046 toggleTask: the toolbar's todo button keeps the caret in the text, never past the created mark", () => {
+  const T = (line, off) => SV.toggleTask(line, off, "2026-10-13 14:05:33");
+  assert.deepEqual(T("", 0), { line: "- [ ]  ➕ 2026-10-13 14:05:33", caret: 6 });
+  assert.deepEqual(T("buy milk", 8), { line: "- [ ] buy milk ➕ 2026-10-13 14:05:33", caret: 14 });
+  assert.deepEqual(T("buy milk", 3), { line: "- [ ] buy milk ➕ 2026-10-13 14:05:33", caret: 9 });
+  assert.deepEqual(T("  - note", 8), { line: "  - [ ] note ➕ 2026-10-13 14:05:33", caret: 12 });
+  assert.deepEqual(T("- [ ] buy milk ➕ 2026-10-01 09:00", 10), { line: "buy milk ➕ 2026-10-01 09:00", caret: 4 });
+  assert.deepEqual(T("x ➕ 2026-10-01 09:00", 1), { line: "- [ ] x ➕ 2026-10-01 09:00", caret: 7 });
+  assert.deepEqual(T("- [ ] a", 2), { line: "a", caret: 0 });
+});
 t("046 todo marks may carry seconds; the seconds never stay in the text", () => {
   const m = SV.todoMeta("ship it @p ➕ 2026-10-13 14:05:33 📅 2026-10-20");
   assert.deepEqual(m, { created: "2026-10-13 14:05:33", due: "2026-10-20", done: "", prio: 0, text: "ship it @p" });

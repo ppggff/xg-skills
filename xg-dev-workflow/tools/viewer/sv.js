@@ -716,6 +716,14 @@ var SV = (function () {
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
     return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + (withSeconds ? ":" + p(d.getSeconds()) : "");
   }
+  // 046: the editor's todo button on one line — a task prefix on, or off, and a created mark when it turns on; the
+  // caret keeps its place in the text (never inside the prefix, never past the end of the text before the mark)
+  var LINE_PREFIX = /^(\s*)(?:>\s?|#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
+  function toggleTask(line, off, stamp) {
+    var m = LINE_PREFIX.exec(line), lead = m[1], rest = line.slice(m[0].length), on = !/\[[ xX]\]/.test(m[0]);
+    var head = lead + (on ? "- [ ] " : ""), body = on && !/➕/.test(rest) ? rest + " ➕ " + stamp : rest;
+    return { line: head + body, caret: head.length + Math.max(0, Math.min(off - m[0].length, rest.length)) };
+  }
   function addTodo(text, body) {
     var t = String(text || "");
     if (!t.trim()) t = "# todo\n\n";
@@ -739,7 +747,7 @@ var SV = (function () {
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny,
            continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
-           todoDate: todoDate };
+           todoDate: todoDate, toggleTask: toggleTask };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;

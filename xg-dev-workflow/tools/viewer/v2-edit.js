@@ -34,7 +34,7 @@
       box.disabled = false; box.dataset.tline = ln; box.classList.add("tbox");
     });
     // @tags as chips; the date and priority marks of each task as the same small labels the todo view shows
-    const MARK = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|⏫|🔼|🔽/;   // spelled out: astral emoji in a class would split
+    const MARK = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽/;   // spelled out: astral emoji in a class would split
     const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !(/(^|\s)@[\w.-]/.test(n.data) || MARK.test(n.data)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     const texts = []; while (walk.nextNode()) texts.push(walk.currentNode);
     texts.forEach(n => {
@@ -90,6 +90,7 @@
   const lineStart = (v, i) => v.lastIndexOf("\n", i - 1) + 1;
   const lineEnd = (v, i) => { const j = v.indexOf("\n", i); return j < 0 ? v.length : j; };
   const stamp = () => SV.todoStamp(new Date()), day = n => SV.todoStamp(new Date(Date.now() + n * 864e5)).slice(0, 10);
+  const created = () => SV.todoStamp(new Date(), true);   // a todo's ➕ mark carries seconds, so two made in one minute stay apart
   const PREFIX = /^(\s*)(?:>\s?|#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
   function wrap(ta, mark, end = mark) {
     const a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b);
@@ -107,7 +108,7 @@
   function newTodo(ta, below) {   // a fresh unticked item with its creation time; the caret waits where the text goes
     const v = ta.value, at = below ? lineEnd(v, ta.selectionEnd) : ta.selectionStart, indent = below ? /^\s*/.exec(v.slice(lineStart(v, at), at))[0] : "";
     const head = (below && at > 0 ? "\n" : "") + indent + "- [ ] ";
-    ins(ta, head + " ➕ " + stamp(), at, at);
+    ins(ta, head + " ➕ " + created(), at, at);
     const c = at + head.length; ta.setSelectionRange(c, c);
   }
   function mark(ta, sym, date) {   // a date or priority mark at the end of the current line, replacing one of its kind
@@ -123,7 +124,12 @@
     h: ta => setPrefix(ta, old => { const n = (/^#+/.exec(old.trim()) || [""])[0].length; return n >= 3 ? "" : "#".repeat(n + 1) + " "; }),
     h1: ta => setPrefix(ta, () => "# "), h2: ta => setPrefix(ta, () => "## "), h3: ta => setPrefix(ta, () => "### "),
     ul: ta => setPrefix(ta, toggle("- ")), ol: ta => setPrefix(ta, toggle("1. ")), quote: ta => setPrefix(ta, toggle("> ")),
-    task: ta => setPrefix(ta, (old, rest) => (/\[[ xX]\]/.test(old) ? rest : "- [ ] " + rest + (/➕/.test(rest) ? "" : " ➕ " + stamp()))),
+    task: ta => {
+      if (ta.selectionStart !== ta.selectionEnd) return setPrefix(ta, (old, rest) => (/\[[ xX]\]/.test(old) ? rest : "- [ ] " + rest + (/➕/.test(rest) ? "" : " ➕ " + created())));
+      const v = ta.value, a = lineStart(v, ta.selectionStart), b = lineEnd(v, a), t = SV.toggleTask(v.slice(a, b), ta.selectionStart - a, created());
+      ins(ta, t.line, a, b);
+      ta.setSelectionRange(a + t.caret, a + t.caret);
+    },
     todo: ta => newTodo(ta, true),
     link: ta => ins(ta, "[["), time: ta => ins(ta, stamp()), today: ta => ins(ta, day(0)),
     due: ta => mark(ta, "📅", day(1)), due0: ta => mark(ta, "📅", day(0)), due7: ta => mark(ta, "📅", day(7)),
@@ -258,7 +264,7 @@
     e.preventDefault();
     if (c.empty) return ins(ta, "\n", a, b);   // a blank line ends the list in markdown; the caret starts the line below it
     const head = "\n" + c.next;
-    ins(ta, head + (c.todo ? " ➕ " + stamp() : ""), b, b);
+    ins(ta, head + (c.todo ? " ➕ " + created() : ""), b, b);
     ta.setSelectionRange(b + head.length, b + head.length);
   }
   const indent = (ta, out) => lines(ta, l => (out ? l.replace(/^ {1,2}/, "") : "  " + l));
