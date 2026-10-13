@@ -59,9 +59,13 @@ class TodoTests(unittest.TestCase):
 
     def test_add_creates_inbox_with_project_and_stamp(self):
         rec = self.ok("add", "--project", "xg-skills", stdin="run the viewer tests\n")
-        self.assertEqual(self.read(), "# todo\n\n- [ ] run the viewer tests @xg-skills ➕ 2026-10-13 09:30\n")
+        self.assertEqual(self.read(), "# inbox\n\n- [ ] run the viewer tests @xg-skills ➕ 2026-10-13 09:30\n")
         self.assertEqual(rec, {"file": "inbox.md", "created": NOW, "key": "run the viewer tests @xg-skills",
                                "text": "run the viewer tests", "listed": "run the viewer tests", "project": "xg-skills"})
+
+    def test_a_new_file_is_titled_after_its_name(self):
+        self.ok("add", "--file", "work log.md", stdin="x")
+        self.assertTrue(self.read("work log.md").startswith("# work log\n\n- [ ] x"))
 
     def test_add_without_project_has_no_tag(self):
         rec = self.ok("add", stdin="plain")

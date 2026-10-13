@@ -176,7 +176,7 @@
   const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
   V.todoAppend = (name, body) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.text().then(t => [t, +r.headers.get("X-Mtime") || 0]))
     .catch(e => (e.status === 404 ? ["", 0] : Promise.reject(e)))
-    .then(([t, mtime]) => V.todoWrite("write", name, { text: SV.addTodo(t, body), mtime }));
+    .then(([t, mtime]) => V.todoWrite("write", name, { text: SV.addTodo(t, body, name), mtime }));
   V.capture = (opt = {}) => {
     const k = opt.k || V.navPane(), loc = V.P[k].loc, card = loc && loc.kind === "doc" ? V.cardOfPath(loc.tree, loc.rel) : loc && loc.kind === "board" && V.selCard ? V.card(V.selCard()) : null;
     const proj = card ? card.p : loc && loc.kind === "doc" && loc.tree === "dev" && loc.rel.includes("/") && V.D.board[loc.rel.split("/")[0]] ? loc.rel.split("/")[0] : store.get("todo-proj", "");

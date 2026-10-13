@@ -724,9 +724,9 @@ var SV = (function () {
     var head = lead + (on ? "- [ ] " : ""), body = on && !/➕/.test(rest) ? rest + " ➕ " + stamp : rest;
     return { line: head + body, caret: head.length + Math.max(0, Math.min(off - m[0].length, rest.length)) };
   }
-  function addTodo(text, body) {
+  function addTodo(text, body, name) {   // a new file is titled after its name (inbox.md → # inbox)
     var t = String(text || "");
-    if (!t.trim()) t = "# todo\n\n";
+    if (!t.trim()) t = "# " + String(name || "todo.md").replace(/\.md$/i, "") + "\n\n";
     else if (t.charAt(t.length - 1) !== "\n") t += "\n";
     return t + "- [ ] " + body + "\n";
   }

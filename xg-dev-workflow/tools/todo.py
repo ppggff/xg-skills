@@ -257,7 +257,7 @@ def cmd_add(args, tdir: str, stamp: str):
     item = parse("\n".join(lines), name, projects)[0]
 
     def append(old):
-        base = old if old.strip() else "# todo\n\n"
+        base = old if old.strip() else f"# {name[:-3]}\n\n"   # a new file is titled after its name, as the viewer names one
         if not base.endswith("\n"):
             base += "\n"
         new = base + "\n".join(lines) + "\n"

@@ -1004,7 +1004,7 @@ t("043 todo: items are the checklist lines; tags from #words; edits touch one li
   assert.equal(SV.editTodo(md, 4, { text: "renamed" }).split("\n")[4], "  - [x] renamed");
   assert.equal(SV.editTodo(md, 3, { remove: true }).split("\n").length, md.split("\n").length - 1);
   assert.equal(SV.editTodo(md, 2, { done: true }), md);   // not an item: unchanged
-  assert.equal(SV.addTodo("", "a"), "# todo\n\n- [ ] a\n");
+  assert.equal(SV.addTodo("", "a", "inbox.md"), "# inbox\n\n- [ ] a\n");
   assert.equal(SV.addTodo("x", "b"), "x\n- [ ] b\n");
   assert.deepEqual(SV.parseTodo("a #b#c and #d-e.f"), []);
   assert.deepEqual(SV.parseTodo("- [ ] a #b#c and #d-e.f")[0].tags, ["b", "d-e.f"]);
