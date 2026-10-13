@@ -8,17 +8,19 @@ import { todoLines } from './register'
 const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 12, bodyColumns: 100 } as never } as const
 
 type Row = HudTodo & { done: boolean }
-type Fake = { draft: string; rows: Row[]; fail: string | null; listFail: boolean; clock: MockClock }
+type Fake = { draft: string; rows: Row[]; fail: string | null; listFail: boolean; slowList: boolean; clock: MockClock }
+
+const CONFIG = 'projects:\n  xg-skills:\n    paths:\n      - /work\n'
 
 // A stand-in for todo.py: the same argv and the same one-JSON-value-or-stderr-line contract, over an in-memory file.
-function world(on: On, draft = '', store: Record<string, unknown> = {}): Fake {
-  const fake: Fake = { draft, rows: [], fail: null, listFail: false, clock: mock.clock(on) }
+function world(on: On, draft = '', store: Record<string, unknown> = {}, opts: { project?: boolean } = {}): Fake {
+  const fake: Fake = { draft, rows: [], fail: null, listFail: false, slowList: false, clock: mock.clock(on) }
   let minute = 0
   mock.store(on, store)
   mock.env(on, { HOME: '/home/t' })
   on('session.id', () => ({ value: 's1' }))
   on('session.cwd', () => ({ value: '/work' }))
-  on('fs.read', () => ({ deny: 'absent' }) as never)
+  on('fs.read', (_$, e) => (opts.project && String((e as unknown as { path: string }).path).endsWith('config.yaml') ? { value: CONFIG } : { deny: 'absent' }) as never)
   on('ui.render', ($, e) => {
     const { Box } = $.ui.resolve(e)
     return <Box />
@@ -28,7 +30,7 @@ function world(on: On, draft = '', store: Record<string, unknown> = {}): Fake {
     fake.draft = e.mode === 'append' ? fake.draft + e.text : e.text
     return { isFilled: true, text: fake.draft, cursor: fake.draft.length }
   })
-  on('process.run', (_$, e) => {
+  on('process.run', async (_$, e) => {
     const call = e as unknown as { argv: string[]; init?: { stdin?: string } }
     const argv = call.argv.slice(2)
     const stdin = call.init?.stdin ?? ''
@@ -39,11 +41,18 @@ function world(on: On, draft = '', store: Record<string, unknown> = {}): Fake {
     const strip = ({ done: _, ...item }: Row): HudTodo => item
     if (argv[0] === 'add') {
       minute += 1
-      const row: Row = { file: 'inbox.md', created: `2026-10-13 09:${String(minute).padStart(2, '0')}`, key: stdin.split('\n')[0]!, text: stdin, project: null, done: false }
+      const project = argv.includes('--project') ? arg('--project') : null
+      const key = stdin.split('\n')[0]! + (project ? ` @${project}` : '')
+      const row: Row = { file: 'inbox.md', created: `2026-10-13 09:${String(minute).padStart(2, '0')}`, key, text: stdin, project, done: false }
       fake.rows.push(row)
       return out(strip(row))
     }
-    if (argv[0] === 'list') return fake.listFail ? err('cannot read') : out(fake.rows.filter(r => !r.done).map(strip))
+    if (argv[0] === 'list') {
+      if (fake.listFail) return err('cannot read')
+      const snapshot = out(fake.rows.filter(r => !r.done).map(strip))
+      if (fake.slowList) await fake.clock.sleep(1000)
+      return snapshot
+    }
     if (argv[0] === 'done') {
       const row = fake.rows.find(r => !r.done && r.file === arg('--file') && r.created === arg('--created') && r.key === arg('--key'))
       if (!row) return out({ ok: false, reason: 'not-found' })
@@ -118,13 +127,13 @@ describe('todo segment', () => {
       expect(fake.rows.length).toBe(1)
     })
 
-    test(`del marks done; overflow shows a more row (${surface})`, async ($, on) => {
+    test(`done marks it done in the file; overflow shows a more row (${surface})`, async ($, on) => {
       const fake = world(on)
       const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND, props: { hasSurvey: false, isWorking: false, maxRows: 5, bodyColumns: 100 } as never })
       await ui.press({ key: 'todo' })
       for (const text of ['a', 'b', 'c', 'd']) await ui.input({ key: 'todo-new', text })
       expect(await ui.find({ type: 'Text', text: /more/ })).toBeDefined()
-      const del = await ui.find({ type: 'Button', text: 'del' })
+      const del = await ui.find({ type: 'Button', text: 'done' })
       await ui.press({ key: del!.key! })
       expect(fake.rows.filter(r => r.done).length).toBe(1)
       expect(await ui.find(count(3))).toBeDefined()
@@ -149,11 +158,11 @@ describe('todo failures', () => {
     await ui.press({ key: 'todo' })
     await ui.input({ key: 'todo-new', text: 'x' })
     fake.fail = 'locked'
-    await ui.press({ key: (await ui.find({ type: 'Button', text: 'del' }))!.key! })
+    await ui.press({ key: (await ui.find({ type: 'Button', text: 'done' }))!.key! })
     expect(await ui.find(count(1))).toBeDefined()
     fake.fail = null
     fake.rows[0]!.done = true
-    await ui.press({ key: (await ui.find({ type: 'Button', text: 'del' }))!.key! })
+    await ui.press({ key: (await ui.find({ type: 'Button', text: 'done' }))!.key! })
     expect(await ui.find(count(0))).toBeDefined()
   })
 
@@ -186,24 +195,6 @@ describe('todo refresh', () => {
   })
 })
 
-describe('todo load', () => {
-  test('load lists other open todos, add brings one in, load again returns', async ($, on) => {
-    const fake = world(on)
-    fake.rows.push({ file: 'work.md', created: '', key: 'from viewer', text: 'from viewer', project: null, done: false })
-    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
-    await ui.press({ key: 'todo' })
-    await ui.input({ key: 'todo-new', text: 'mine' })
-    await ui.press({ key: 'todo-load' })
-    const adds = await ui.findAll({ type: 'Button', text: 'add' })
-    expect(adds.length).toBe(1)
-    await ui.press({ key: adds[0]!.key! })
-    expect(await ui.find({ type: 'Text', text: 'no other open todos' })).toBeDefined()
-    await ui.press({ key: 'todo-load' })
-    expect(await ui.find(count(2))).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: 'from viewer' })).toBeDefined()
-  })
-})
-
 function sessionHooks(on: On): void {
   on('command.register', (_$, e) => ({ value: { command: (e as unknown as { name: string }).name } }) as never)
   on('fs.list', () => ({ value: [] }) as never)
@@ -215,6 +206,84 @@ async function startSession($: Engine, fake: Fake): Promise<void> {
   await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true } as never)
   await fake.clock.settle()
 }
+
+const tagged = (key: string, project: string | null = 'xg-skills'): Row => ({ file: 'work.md', created: '', key: project ? `${key} @${project}` : key, text: key, project, done: false })
+
+describe('todo sync', () => {
+  test('lists every open todo of the current project plus this session\'s own, nothing else', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    fake.rows.push(tagged('from viewer'), tagged('other project', 'cbdb'), tagged('loose', null))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find({ type: 'Text', text: 'from viewer' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'other project' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: 'loose' })).toBeUndefined()
+    expect(await ui.find({ key: 'todo-load' })).toBeUndefined()
+    await ui.input({ key: 'todo-new', text: 'mine' })
+    expect(await ui.find(count(2))).toBeDefined()
+  })
+
+  test('without a project only this session\'s own show', async ($, on) => {
+    const fake = world(on)
+    fake.rows.push(tagged('from viewer'))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    await ui.input({ key: 'todo-new', text: 'mine' })
+    expect(await ui.find(count(1))).toBeDefined()
+  })
+
+  test('a todo added in the viewer shows within a minute; one ticked there leaves', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    sessionHooks(on)
+    await startSession($, fake)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    expect(await ui.find(count(0))).toBeDefined()
+    fake.rows.push(tagged('new in viewer'))
+    await fake.clock.advance(60_000)
+    expect(await ui.find(count(1))).toBeDefined()
+    fake.rows[0]!.done = true
+    await fake.clock.advance(60_000)
+    expect(await ui.find(count(0))).toBeDefined()
+  })
+
+  test('a failed sync leaves the list as it was', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    fake.rows.push(tagged('a'), tagged('b'))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find(count(2))).toBeDefined()
+    fake.rows[0]!.done = true
+    fake.listFail = true
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find(count(2))).toBeDefined()
+  })
+
+  test('a todo added while a sync runs is kept', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    fake.slowList = true
+    await ui.press({ key: 'todo' })
+    fake.slowList = false
+    await ui.input({ key: 'todo-new', text: 'during' })
+    await fake.clock.advance(1000)
+    expect(await ui.find(count(1))).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'during' })).toBeDefined()
+  })
+
+  test('next pages through a long list and first comes back', async ($, on) => {
+    const fake = world(on, '', {}, { project: true })
+    for (const k of ['a', 'b', 'c', 'd', 'e']) fake.rows.push(tagged(k))
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND, props: { hasSurvey: false, isWorking: false, maxRows: 5, bodyColumns: 100 } as never })
+    await ui.press({ key: 'todo' })
+    expect(await ui.find({ type: 'Text', text: 'a' })).toBeDefined()
+    await ui.press({ key: 'todo-next' })
+    expect(await ui.find({ type: 'Text', text: 'a' })).toBeUndefined()
+    while (await ui.find({ type: 'Text', text: /more/ })) await ui.press({ key: 'todo-next' })
+    await ui.press({ key: 'todo-next' })
+    expect(await ui.find({ type: 'Text', text: 'a' })).toBeDefined()
+  })
+})
 
 describe('todo restore and migration', () => {
   test('items kept before the inbox are written once at session start', async ($, on) => {
@@ -251,7 +320,7 @@ describe('todo restore and migration', () => {
 })
 
 describe('todo identity', () => {
-  test('of two identical items, del ticks and removes one', async ($, on) => {
+  test('of two identical items, done ticks and removes one', async ($, on) => {
     const twin = { file: 'inbox.md', created: '2026-10-13 08:00', key: 'same', text: 'same', project: null }
     const fake = world(on, '', { 'todos:s1': [twin, twin] })
     sessionHooks(on)
@@ -259,7 +328,7 @@ describe('todo identity', () => {
     await startSession($, fake)
     const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
     await ui.press({ key: 'todo' })
-    await ui.press({ key: (await ui.find({ type: 'Button', text: 'del' }))!.key! })
+    await ui.press({ key: (await ui.find({ type: 'Button', text: 'done' }))!.key! })
     expect(fake.rows.filter(r => r.done).length).toBe(1)
     expect(await ui.find(count(1))).toBeDefined()
   })

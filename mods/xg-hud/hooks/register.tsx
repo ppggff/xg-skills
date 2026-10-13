@@ -17,9 +17,8 @@ const cardPage = atom({ plugin: 'xg-hud', key: 'cardPage' } as const, 0)
 const kbPage = atom({ plugin: 'xg-hud', key: 'kbPage' } as const, 0)
 const todos = atom({ plugin: 'xg-hud', key: 'todos' } as const, [])
 const isTodoOpen = atom({ plugin: 'xg-hud', key: 'isTodoOpen' } as const, false)
-const isTodoLoading = atom({ plugin: 'xg-hud', key: 'isTodoLoading' } as const, false)
-const todoCandidates = atom({ plugin: 'xg-hud', key: 'todoCandidates' } as const, [])
-const todoLoadAt = atom({ plugin: 'xg-hud', key: 'todoLoadAt' } as const, 0)
+const todoSessionRefs = atom({ plugin: 'xg-hud', key: 'todoSessionRefs' } as const, [])
+const todoAt = atom({ plugin: 'xg-hud', key: 'todoAt' } as const, 0)
 
 type Ctx = { home: string; cwd: string; config: Config }
 type $ = EngineInterface
@@ -161,9 +160,25 @@ function refreshAll($: $): void {
 }
 
 // Todo: text queued to send to this session later, kept in the viewer's todo files through the workflow's todo.py.
-// The working set (what this session added or loaded) lives in $.state (hot reloads) and $.store (a resume).
+// The band lists the current project's open todos plus the ones this session added, synced from the files; the
+// list and this session's refs live in $.state (hot reloads) and $.store (a resume).
+const SYNC_MS = 60_000
+
 async function todoKey($: $): Promise<string> {
   return `todos:${await $.session.id()}`
+}
+
+async function sessionRefsKey($: $): Promise<string> {
+  return `todo-session:${await $.session.id()}`
+}
+
+async function setSessionRefs($: $, fn: (refs: string[]) => string[]): Promise<void> {
+  const refs = await update($, todoSessionRefs, fn)
+  await $.store.set(await sessionRefsKey($), refs)
+}
+
+function isTagged(item: HudTodo, project: string): boolean {
+  return new RegExp(`(^|\\s)[@#]${project.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(item.key)
 }
 
 // Identity is file + created stamp + first-line key, compared whole; the hash only names drawn elements.
@@ -209,6 +224,7 @@ async function addTodo($: $, text: string): Promise<number> {
   const c = await context($)
   const project = c ? projectOf(c.cwd, c.config) : null
   const item = (await runTodo($, ['add', ...(project ? ['--project', project] : [])], text)) as HudTodo
+  await setSessionRefs($, refs => [...refs, todoRef(item)])
   return (await changeTodos($, list => [...list, item])).length
 }
 
@@ -261,46 +277,21 @@ async function takeTodo($: $, item: HudTodo): Promise<void> {
   await finishTodo($, item)
 }
 
-// Drops the items the files no longer hold as open; ones added while the list ran are left alone, and a failed list drops nothing.
-async function refreshTodos($: $): Promise<void> {
+// Replaces the list with what the files hold now. Items added while the list ran are kept, and a failed list changes nothing.
+async function syncTodos($: $): Promise<void> {
   const before = new Set((await read($, todos)).map(todoRef))
-  if (before.size === 0) return
   let open: HudTodo[]
   try {
     open = (await runTodo($, ['list', '--open'])) as HudTodo[]
   } catch {
     return
   }
-  const found = new Set(open.map(todoRef))
-  await changeTodos($, list => list.filter(one => !before.has(todoRef(one)) || found.has(todoRef(one))))
-}
-
-async function startLoading($: $): Promise<void> {
-  let open: HudTodo[]
-  try {
-    open = (await runTodo($, ['list', '--open'])) as HudTodo[]
-  } catch (err) {
-    $.ui.toast(`Could not list todos: ${reason(err)}`)
-    return
-  }
   const c = await context($)
   const project = c ? projectOf(c.cwd, c.config) : null
-  const held = new Set((await read($, todos)).map(todoRef))
-  const tagged = (item: HudTodo) => project !== null && new RegExp(`(^|\\s)[@#]${project.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(item.key)
-  const fresh = open.filter(item => !held.has(todoRef(item)))
-  await update($, todoCandidates, () => [...fresh.filter(tagged), ...fresh.filter(item => !tagged(item))])
-  await update($, todoLoadAt, () => 0)
-  await update($, isTodoLoading, () => true)
-}
-
-async function toggleLoading($: $): Promise<void> {
-  if (await read($, isTodoLoading)) await update($, isTodoLoading, () => false)
-  else await startLoading($)
-}
-
-async function loadTodo($: $, item: HudTodo): Promise<void> {
-  await changeTodos($, list => (list.some(one => todoRef(one) === todoRef(item)) ? list : [...list, item]))
-  await update($, todoCandidates, list => withoutFirst(list, item))
+  const own = new Set(await read($, todoSessionRefs))
+  const synced = open.filter(item => own.has(todoRef(item)) || (project !== null && isTagged(item, project)))
+  const seen = new Set(synced.map(todoRef))
+  await changeTodos($, list => [...synced, ...list.filter(one => !before.has(todoRef(one)) && !seen.has(todoRef(one)))])
 }
 
 // At session start: a resumed session's working set comes back from the store, and items kept before the todo files
@@ -314,7 +305,10 @@ async function restoreTodos($: $): Promise<void> {
   const all = [...(Array.isArray(stored) ? stored : []), ...(Array.isArray(waiting) ? waiting : [])]
   const isOld = (one: unknown) => typeof one === 'object' && one !== null && !('file' in one) && typeof (one as { text?: unknown }).text === 'string'
   const left = all.filter(isOld) as { text: string }[]
-  await update($, todos, () => all.filter(one => !isOld(one)) as HudTodo[])
+  const kept = all.filter(one => !isOld(one)) as HudTodo[]
+  await update($, todos, () => kept)
+  const refs = (await $.store.get(await sessionRefsKey($))) as string[] | undefined
+  await update($, todoSessionRefs, () => (Array.isArray(refs) ? refs : kept.map(todoRef)))
   if (left.length === 0) return
   await $.store.set(unsavedKey, left)
   await changeTodos($, list => list)
@@ -363,7 +357,8 @@ export const register: Register = on => {
     const started = await next(e)
     $.ui.status(undefined)
     await $.command.register({ name: 'todo', description: 'Queue text as a todo for this session; no argument toggles the todo list', argumentHint: '[text]', immediate: true })
-    void restoreTodos($).then(() => refreshTodos($))
+    void restoreTodos($).then(() => syncTodos($))
+    $.clock.every(SYNC_MS, () => void syncTodos($))
     void snapshotKb($).then(() => refreshAll($))
     return started
   })
@@ -372,7 +367,7 @@ export const register: Register = on => {
     const done = await next(e)
     if (e.agentId === undefined) {
       refreshAll($)
-      void refreshTodos($)
+      void syncTodos($)
     }
     return done
   })
@@ -408,9 +403,7 @@ export const register: Register = on => {
     const slot = await read($, card)
     const queue = await read($, todos)
     const todoOpen = await read($, isTodoOpen)
-    const loading = todoOpen && (await read($, isTodoLoading))
-    const candidates = loading ? await read($, todoCandidates) : []
-    const loadAt = loading ? Math.min(await read($, todoLoadAt), Math.max(0, candidates.length - 1)) : 0
+    const at = todoOpen ? Math.min(await read($, todoAt), Math.max(0, queue.length - 1)) : 0
     const { Box, Button, Text } = $.ui.resolve(e)
     const isDesktop = e.surface === 'desktop'
     const kbOpen = await read($, isKbOpen)
@@ -448,8 +441,7 @@ export const register: Register = on => {
       all.push({ key: 'card', text: `${c.id}${title}${tail}`, onPress: () => update($, isCardOpen, v => !v), rank: 1 })
     }
     const toggleTodo = async () => {
-      if (await update($, isTodoOpen, v => !v)) void refreshTodos($)
-      else await update($, isTodoLoading, () => false)
+      if (await update($, isTodoOpen, v => !v)) void syncTodos($)
     }
     all.push({ key: 'todo', text: todoText, onPress: toggleTodo, rank: 2 })
 
@@ -490,23 +482,22 @@ export const register: Register = on => {
       return [...body.slice(current * size, (current + 1) * size), { mark: '…', text: `page ${current + 1}/${pages}, click for next`, onPress: onNext }]
     }
     const allRows = Math.max(0, (e.props.maxRows ?? 20) - (isDesktop ? 3 : 1))
-    // Todo rows are reserved first (wrapped items, a more row, the new/stash/load row); KB and card share the rest.
-    // In load mode the same rows list the other open todos, from loadAt on.
+    // Todo rows are reserved first (wrapped items from `at` on, a more row, the new/stash row); KB and card share the rest.
     const othersOpen = (kbOpen && kbLines.length > 0) || (cardOpen && c !== null)
     const todoWidth = Math.min(64, room)
     const todoTextWidth = Math.max(8, todoWidth - 14)
     const todoAvail = (othersOpen ? Math.max(3, Math.ceil(allRows / 2)) : allRows) - 2
     const todoItems: { item: HudTodo; lines: string[] }[] = []
     let todoUsed = 0
-    const listed = !todoOpen ? [] : loading ? candidates.slice(loadAt) : queue
+    const listed = todoOpen ? queue.slice(at) : []
     for (const item of listed) {
       const lines = todoLines(item.text, todoTextWidth)
       if (todoItems.length > 0 && todoUsed + lines.length > todoAvail) break
       todoItems.push({ item, lines })
       todoUsed += lines.length
     }
-    const todoHidden = loading ? candidates.length - todoItems.length : queue.length - todoItems.length
-    const todoRows = todoOpen ? Math.max(todoUsed, loading && candidates.length === 0 ? 1 : 0) + (todoHidden > 0 || (loading && loadAt > 0) ? 1 : 0) + 1 : 0
+    const todoHidden = queue.length - at - todoItems.length
+    const todoRows = todoOpen ? todoUsed + (todoHidden > 0 || at > 0 ? 1 : 0) + 1 : 0
     const rows = Math.max(0, allRows - todoRows)
     const cardWanted = cardOpen && c !== null
     const kbBudget = cardWanted ? Math.max(2, Math.ceil(rows / 2)) : rows
@@ -534,50 +525,40 @@ export const register: Register = on => {
     const pressable = (key: string, label: string, onPress: () => unknown) =>
       <Box key={`${key}-hover`}><Button key={key} plain dimColor hover={{ underline: true }} label={label} onPress={onPress} /></Box>
 
-    // Todo detail: a fixed-width, left-aligned list; each text wraps beside its take/del (add in load mode). The last
-    // row, indented to the text column (the number's two cells plus the gap), holds the new field, stash and load.
+    // Todo detail: a fixed-width, left-aligned list; each text wraps beside its take/done. The last row, indented to
+    // the text column (the number's two cells plus the gap), holds the new field and stash.
     const todoBlock: RenderChildren[] = []
     if (todoOpen) {
       // Connectors as KB and card draw them: ┤ on each entry's first row, │ on its wrapped rows, ┘ closing the block.
       const hasTicks = !isDesktop && !isNarrow
       const tick = (glyphs: string[]) => hasTicks ? <Box flexDirection="column">{glyphs.map(g => <Text dimColor>{g}</Text>)}</Box> : null
       todoItems.forEach(({ item, lines }, i) => {
-        const id = `${todoId(item)}-${loadAt + i}`
+        const id = `${todoId(item)}-${at + i}`
         todoBlock.push(
           <Box key={`todo-${id}`} flexDirection="row" gap={1} width={todoWidth}>
-            <Box width={2}><Text dimColor>{String(loadAt + i + 1)}</Text></Box>
+            <Box width={2}><Text dimColor>{String(at + i + 1)}</Text></Box>
             <Box width={todoTextWidth} flexDirection="column">{lines.map(line => <Text>{line}</Text>)}</Box>
-            {loading
-              ? pressable(`todo-add-${id}`, 'add', () => loadTodo($, item))
-              : [pressable(`todo-take-${id}`, 'take', () => takeTodo($, item)), pressable(`todo-del-${id}`, 'del', () => finishTodo($, item))]}
+            {pressable(`todo-take-${id}`, 'take', () => takeTodo($, item))}
+            {pressable(`todo-done-${id}`, 'done', () => finishTodo($, item))}
             <Box flexGrow={1} />
             {tick(['┤', ...lines.slice(1).map(() => '│')])}
           </Box>,
         )
       })
-      if (loading && candidates.length === 0) {
-        todoBlock.push(
-          <Box key="todo-none" flexDirection="row" width={todoWidth} paddingLeft={3}>
-            <Text dimColor>no other open todos</Text>
-            <Box flexGrow={1} />
-            {tick(['┤'])}
-          </Box>,
-        )
-      }
       if (todoHidden > 0) {
-        const nextAt = loadAt + todoItems.length
+        const nextAt = at + todoItems.length
         todoBlock.push(
           <Box key="todo-more" flexDirection="row" gap={1} width={todoWidth} paddingLeft={3}>
             <Text dimColor>{`… ${todoHidden} more`}</Text>
-            {loading ? pressable('todo-next', 'next', () => update($, todoLoadAt, () => (nextAt >= candidates.length ? 0 : nextAt))) : null}
+            {pressable('todo-next', 'next', () => update($, todoAt, () => (nextAt >= queue.length ? 0 : nextAt)))}
             <Box flexGrow={1} />
             {tick(['┤'])}
           </Box>,
         )
-      } else if (loading && loadAt > 0) {
+      } else if (at > 0) {
         todoBlock.push(
           <Box key="todo-more" flexDirection="row" gap={1} width={todoWidth} paddingLeft={3}>
-            {pressable('todo-next', 'first', () => update($, todoLoadAt, () => 0))}
+            {pressable('todo-next', 'first', () => update($, todoAt, () => 0))}
             <Box flexGrow={1} />
             {tick(['┤'])}
           </Box>,
@@ -596,7 +577,6 @@ export const register: Register = on => {
         <Box key="todo-actions" flexDirection="row" gap={1} width={todoWidth} paddingLeft={3}>
           {field}
           {pressable('todo-stash', 'stash', () => stashPrompt($))}
-          {pressable('todo-load', 'load', () => toggleLoading($))}
           <Box flexGrow={1} />
           {tick(['┘'])}
         </Box>,

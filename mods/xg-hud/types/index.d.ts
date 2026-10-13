@@ -24,7 +24,7 @@ export type HudKb = {
 
 export type HudKbStart = { at: number; names: string[] }
 
-// One item of this session's todo working set: where it lives in the viewer's todo files and its text.
+// One todo the band shows: where it lives in the viewer's todo files and its text.
 export type HudTodo = { file: string; created: string; key: string; text: string; project: string | null }
 
 declare module 'claude-code' {
@@ -42,9 +42,8 @@ declare module 'claude-code' {
       isCardOpen: boolean
       todos: HudTodo[]
       isTodoOpen: boolean
-      isTodoLoading: boolean
-      todoCandidates: HudTodo[]
-      todoLoadAt: number
+      todoSessionRefs: string[]
+      todoAt: number
     }
   }
 }
