@@ -24,6 +24,9 @@ export type HudKb = {
 
 export type HudKbStart = { at: number; names: string[] }
 
+// The last prompt typed in the composer and the last main-conversation reply, epoch ms.
+export type HudTimes = { message: number | null; reply: number | null }
+
 // One todo the band shows: where it lives in the viewer's todo files and its text.
 export type HudTodo = { file: string; created: string; key: string; text: string; project: string | null }
 
@@ -44,6 +47,9 @@ declare module 'claude-code' {
       isTodoOpen: boolean
       todoSessionRefs: string[]
       todoAt: number
+      times: HudTimes
+      isMsgOpen: boolean
+      msgNow: number
     }
   }
 }

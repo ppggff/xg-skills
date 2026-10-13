@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderChildren } from 'claude-code'
 
-import type { HudCard, HudCardSlot, HudKb, HudKbStart, HudReq, HudTodo } from '../types'
+import type { HudCard, HudCardSlot, HudKb, HudKbStart, HudReq, HudTimes, HudTodo } from '../types'
 import { frontmatter, kbPathsIn, parseBacklog, parseConfig, parseDesign, parsePointer, projectOf } from './parse'
 import type { Config } from './parse'
 
@@ -19,6 +19,9 @@ const todos = atom({ plugin: 'xg-hud', key: 'todos' } as const, [])
 const isTodoOpen = atom({ plugin: 'xg-hud', key: 'isTodoOpen' } as const, false)
 const todoSessionRefs = atom({ plugin: 'xg-hud', key: 'todoSessionRefs' } as const, [])
 const todoAt = atom({ plugin: 'xg-hud', key: 'todoAt' } as const, 0)
+const times = atom({ plugin: 'xg-hud', key: 'times' } as const, { message: null, reply: null } as HudTimes)
+const isMsgOpen = atom({ plugin: 'xg-hud', key: 'isMsgOpen' } as const, false)
+const msgNow = atom({ plugin: 'xg-hud', key: 'msgNow' } as const, 0)
 
 type Ctx = { home: string; cwd: string; config: Config }
 type $ = EngineInterface
@@ -352,6 +355,47 @@ export function todoLines(text: string, width: number, maxRows = 3): string[] {
   return kept
 }
 
+// Times: the last typed prompt and the last reply, mirrored to $.store so a resumed session keeps them; while the
+// segment is open a ticker moves msgNow so its "ago" text stays current.
+const TICK_MS = 30_000
+
+export function clockText(ms: number): string {
+  const d = new Date(ms)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+export function agoText(ms: number): string {
+  const minutes = Math.floor(ms / 60_000)
+  if (minutes < 1) return '<1m ago'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  return hours < 24 ? `${hours}h ${minutes % 60}m ago` : `${Math.floor(hours / 24)}d ago`
+}
+
+async function timesKey($: $): Promise<string> {
+  return `times:${await $.session.id()}`
+}
+
+async function markTime($: $, which: keyof HudTimes): Promise<void> {
+  const now = await $.clock.now()
+  const next = await update($, times, value => ({ ...value, [which]: now }))
+  await update($, msgNow, () => now)
+  await $.store.set(await timesKey($), next)
+}
+
+async function restoreTimes($: $): Promise<void> {
+  const saved = (await $.store.get(await timesKey($))) as Partial<HudTimes> | undefined
+  if (!saved || (await read($, times)).message !== null) return
+  await update($, times, () => ({ message: saved.message ?? null, reply: saved.reply ?? null }))
+}
+
+async function tickTimes($: $): Promise<void> {
+  if (await read($, isMsgOpen)) {
+    const now = await $.clock.now()
+    await update($, msgNow, () => now)
+  }
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
@@ -359,6 +403,8 @@ export const register: Register = on => {
     await $.command.register({ name: 'todo', description: 'Queue text as a todo for this session; no argument toggles the todo list', argumentHint: '[text]', immediate: true })
     void restoreTodos($).then(() => syncTodos($))
     $.clock.every(SYNC_MS, () => void syncTodos($))
+    await restoreTimes($)
+    $.clock.every(TICK_MS, () => void tickTimes($))
     void snapshotKb($).then(() => refreshAll($))
     return started
   })
@@ -368,8 +414,15 @@ export const register: Register = on => {
     if (e.agentId === undefined) {
       refreshAll($)
       void syncTodos($)
+      await markTime($, 'reply')
     }
     return done
+  })
+
+  on('prompt.submit', async ($, e, next) => {
+    const submitted = await next(e)
+    if (e.origin.kind === 'composer' && !submitted.drop) await markTime($, 'message')
+    return submitted
   })
 
   on('tool.call', async ($, e, next) => {
@@ -425,6 +478,10 @@ export const register: Register = on => {
     type Segment = { key: string; text: string; onPress?: () => unknown; rank: number }
     const all: Segment[] = []
     const todoText = `todo ${queue.length}${todoOpen ? ' ▾' : ''}`
+    const stamps = await read($, times)
+    const msgOpen = stamps.message !== null && (await read($, isMsgOpen))
+    const msgText = stamps.message === null ? null : `msg ${clockText(stamps.message)}${msgOpen ? ' ▾' : ''}`
+    const msgCost = msgText ? cells(msgText) + SEP_CELLS : 0
     if (view !== null) {
       const counts = [pending && `${pending}c`, view.reads.length && `${view.reads.length}r`, written && `${written}w`].filter(Boolean)
       const text = `KB ${counts.length ? counts.join(' ') : '✓'}${kbOpen ? ' ▾' : ''}`
@@ -436,7 +493,7 @@ export const register: Register = on => {
       const progress = c.reqs.length === 0 ? c.status : isAllDone ? '✓' : isNarrow ? `${verified}/${c.reqs.length}` : `${bar(verified, c.reqs.length, 8)} ${verified}/${c.reqs.length}`
       const tail = ` ${progress}${cardOpen ? ' ▾' : ''}`
       const kbCost = all.length ? cells(all[0]!.text) + SEP_CELLS : 0
-      const titleRoom = room - kbCost - cells(`${c.id} `) - cells(tail) - cells(todoText) - SEP_CELLS
+      const titleRoom = room - kbCost - cells(`${c.id} `) - cells(tail) - cells(todoText) - SEP_CELLS - msgCost
       const title = titleRoom >= 4 ? ` ${clip(c.title, titleRoom - 1)}` : ''
       all.push({ key: 'card', text: `${c.id}${title}${tail}`, onPress: () => update($, isCardOpen, v => !v), rank: 1 })
     }
@@ -444,6 +501,14 @@ export const register: Register = on => {
       if (await update($, isTodoOpen, v => !v)) void syncTodos($)
     }
     all.push({ key: 'todo', text: todoText, onPress: toggleTodo, rank: 2 })
+    if (msgText) {
+      const toggleMsg = async () => {
+        const now = await $.clock.now()
+        await update($, msgNow, () => now)
+        await update($, isMsgOpen, v => !v)
+      }
+      all.push({ key: 'msg', text: msgText, onPress: toggleMsg, rank: 3 })
+    }
 
     // Narrow screens drop whole segments by rank instead of letting the row wrap mid-segment.
     const kept = new Set<string>()
@@ -498,7 +563,12 @@ export const register: Register = on => {
     }
     const todoHidden = queue.length - at - todoItems.length
     const todoRows = todoOpen ? todoUsed + (todoHidden > 0 || at > 0 ? 1 : 0) + 1 : 0
-    const rows = Math.max(0, allRows - todoRows)
+    const now = Math.max(await read($, msgNow), stamps.reply ?? 0, stamps.message ?? 0)
+    const msgLines: Line[] = !msgOpen || stamps.message === null ? [] : [
+      { mark: '›', text: `msg ${clockText(stamps.message)} · ${agoText(now - stamps.message)}` },
+      { mark: '‹', text: stamps.reply === null ? 'reply —' : `reply ${clockText(stamps.reply)} · ${agoText(now - stamps.reply)}` },
+    ]
+    const rows = Math.max(0, allRows - todoRows - msgLines.length)
     const cardWanted = cardOpen && c !== null
     const kbBudget = cardWanted ? Math.max(2, Math.ceil(rows / 2)) : rows
     const kbFitted = paginate(kbLines, Math.min(kbBudget, rows), pageKb, () => update($, kbPage, n => n + 1))
@@ -599,7 +669,7 @@ export const register: Register = on => {
         }
         return seg.onPress ? pressable(seg.key, seg.text, seg.onPress) : <Text dimColor wrap="truncate-end">{seg.text}</Text>
       })
-      const groups = [kbFitted, cardLines].filter(lines => lines.length > 0)
+      const groups = [kbFitted, cardLines, msgLines].filter(lines => lines.length > 0)
       const below = await next(e)
       return (
         <Box flexDirection="column">
@@ -632,7 +702,7 @@ export const register: Register = on => {
 
     // Main line and details each align to the right edge; expanding never moves the main line.
     const flat = (line: Line) => line.mark !== undefined ? `${line.mark.padEnd(2)} ${line.text}` : line.text
-    const groups = [kbFitted, cardLines].map(lines => lines.map(line => ({ ...line, text: clip(flat(line), room - 2) })))
+    const groups = [kbFitted, cardLines, msgLines].map(lines => lines.map(line => ({ ...line, text: clip(flat(line), room - 2) })))
     const textWidth = Math.max(0, ...groups.flat().map(line => cells(line.text)))
     const details = groups.flatMap(lines => {
       const texts = branch(lines.map(line => line.text), isNarrow, textWidth)
