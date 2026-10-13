@@ -15,7 +15,7 @@ Usage (stdout is one JSON value; on failure exit 1 and one line on stderr):
   todo.py add [--project P | --cwd DIR] [--file inbox.md]   < text
       -> {file, created, key, text, project}
   todo.py list [--open] [--project P]
-      -> [{file, line, done, created, key, text, project}]
+      -> [{file, line, depth, done, created, key, text, project}]   (depth: the indent before the list marker)
   todo.py done --file F --created C --key K
       -> {ok: true, line} | {ok: false, reason: "not-found"}   (an invalid file name is a failure, exit 1)
 Options: --dev-root DIR (default: the shared config's dev_root) · --now "YYYY-MM-DD HH:MM" (tests)
@@ -161,7 +161,7 @@ def parse(text: str, file: str, projects: set) -> list:
         shown = TODO_MARKS.sub("", first).rstrip()
         if trailing_project(first, projects):
             shown = shown[:TRAIL_TAG_RE.search(shown).start()]
-        items.append({"file": file, "line": i, "done": m.group(2) != " ",
+        items.append({"file": file, "line": i, "depth": len(m.group(1)) - len(m.group(1).lstrip()), "done": m.group(2) != " ",
                       "created": created.group(1) if created else "", "key": key_of(first),
                       "text": "\n".join([shown] + more), "project": tags[0] if tags else None})
         i = j

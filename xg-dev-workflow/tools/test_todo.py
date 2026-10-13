@@ -170,6 +170,10 @@ class TodoTests(unittest.TestCase):
         self.assertEqual([i["text"] for i in self.ok("list", "--open")], ["one", "two", "sub"])
         self.assertEqual([i["text"] for i in self.ok("list", "--open", "--project", "cbdb")], ["one"])
 
+    def test_list_reports_each_item_depth(self):
+        self.write("work.md", "- [ ] top\n  - [ ] sub\n    - [x] subsub\n\t- [ ] tabbed\n")
+        self.assertEqual([(i["text"], i["depth"]) for i in self.ok("list")], [("top", 0), ("sub", 2), ("subsub", 4), ("tabbed", 1)])
+
     def test_list_keeps_a_trailing_tag_that_is_not_a_project(self):
         self.write("inbox.md", "- [ ] ping @alice ➕ 2026-10-12 10:00\n")
         self.assertEqual(self.ok("list")[0]["text"], "ping @alice")
