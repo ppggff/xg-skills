@@ -663,18 +663,8 @@ var SV = (function () {
     });
     return out;
   }
-  function editTodo(text, line, change) {   // change: { done } | { text } | { remove: true }
-    var ls = String(text || "").split("\n"), m = TODO_RE.exec(ls[line] || "");
-    if (!m) return String(text || "");
-    if (change.remove) { ls.splice(line, 1); return ls.join("\n"); }
-    var done = change.done !== undefined ? change.done : m[2] !== " ", body = change.text !== undefined ? change.text : m[4];
-    if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away (only the trailing mark)
-      body = body.replace(/[ \t]*✅[ \t]*[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[ \t]+[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?[ \t]*$/, "");
-      if (done) body = body.replace(/\s+$/, "") + " ✅ " + change.today;
-    }
-    ls[line] = m[1] + (done ? "x" : " ") + m[3] + body;
-    return ls.join("\n");
-  }
+  // 052: line n of a todo file as todo.py reads it (byte order mark dropped, CRLF folded) — what a tick names
+  function todoLine(text, n) { return String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n")[n] || ""; }
   // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time, maybe with seconds), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
   // … 3 low, 0 none) — and its text with the marks taken out
   function todoMeta(text) {
@@ -724,12 +714,7 @@ var SV = (function () {
     var head = lead + (on ? "- [ ] " : ""), body = on && !/➕/.test(rest) ? rest + " ➕ " + stamp : rest;
     return { line: head + body, caret: head.length + Math.max(0, Math.min(off - m[0].length, rest.length)) };
   }
-  function addTodo(text, body, name) {   // a new file is titled after its name (inbox.md → # inbox)
-    var t = String(text || "");
-    if (!t.trim()) t = "# " + String(name || "todo.md").replace(/\.md$/i, "") + "\n\n";
-    else if (t.charAt(t.length - 1) !== "\n") t += "\n";
-    return t + "- [ ] " + body + "\n";
-  }
+
 
   return { boardMode: boardMode, cardMtimes: cardMtimes, liteProgress: liteProgress, legacyPhase: legacyPhase,
            cardView: cardView, factBlocks: factBlocks, factGist: factGist, reqHeads: reqHeads, tocLabel: tocLabel, diffFiles: diffFiles, splitCommits: splitCommits, slug: slug,
@@ -745,7 +730,7 @@ var SV = (function () {
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
-           parseTodo: parseTodo, editTodo: editTodo, addTodo: addTodo, resolveWikiAny: resolveWikiAny,
+           parseTodo: parseTodo, todoLine: todoLine, resolveWikiAny: resolveWikiAny,
            continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
            todoDate: todoDate, toggleTask: toggleTask };
 })();

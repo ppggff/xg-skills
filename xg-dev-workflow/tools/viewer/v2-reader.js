@@ -209,11 +209,11 @@
     else if (!restorePlace(k)) b.scrollTop = 0;
   }
   const slug = t => t.replace(/^#/, "").trim().toLowerCase().replace(/[^\w一-鿿]+/g, "-").replace(/^-+|-+$/g, "");
-  function paint(k, loc, opt, text, mtime) {
+  function paint(k, loc, opt, text, mtime, version) {
     const p = P[k], keepTop = p.body.scrollTop, src = !/\.md$/i.test(loc.rel);
     p.spans = null;
     const fm = src ? { fields: {}, body: text } : SV.parseFrontmatter(text);
-    p.doc = { text, body: fm.body, fields: fm.fields, mtime, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
+    p.doc = { text, body: fm.body, fields: fm.fields, mtime, version, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
     p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
     const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
     p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
@@ -235,9 +235,9 @@
   V.views.doc = (k, loc, opt) => {
     const p = P[k]; p.chg = null; $(".chgbar", p.el).hidden = true;
     if (opt.entering) { p.cur = null; $$(".curline,.lastmark", p.body).forEach(x => x.remove()); }
-    let mt = 0;
-    V.api("/raw/" + loc.tree + "/" + loc.rel).then(r => { mt = +r.headers.get("X-Mtime") || 0; return r.text(); })
-      .then(t => { if (p.loc === loc && !p.chg) paint(k, loc, opt, t, mt); })
+    let mt = 0, ver = "";
+    V.api("/raw/" + loc.tree + "/" + loc.rel).then(r => { mt = +r.headers.get("X-Mtime") || 0; ver = r.headers.get("X-Version") || ""; return r.text(); })
+      .then(t => { if (p.loc === loc && !p.chg) paint(k, loc, opt, t, mt, ver); })
       .catch(e => { if (p.loc === loc) fail(k, loc, e); });
   };
 

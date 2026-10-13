@@ -6,8 +6,8 @@
 "use strict";
 (function (V) {
   const { $, esc } = V, store = V.store;
-  // per file: text/mtime follow the disk; shown/base are the version on screen — edits address its lines and are
-  // saved against its mtime, so a file that moved underneath is refused (409) instead of having the wrong line changed
+  // per file: text/version follow the disk; shown/base are the version on screen — edits address its lines and are
+  // sent with it, so a file that moved underneath is refused (409) instead of having the wrong line changed
   const F = V.todoFiles = {};
   let loaded = false;
   const DIR = "todo/", names = () => (V.D.tree ? V.D.tree.dev.map(x => x.path).filter(p => /^todo\/[^/]+\.md$/.test(p)).map(p => p.slice(DIR.length)) : []);
@@ -16,7 +16,7 @@
     const want = names();
     Object.keys(F).forEach(n => { if (!want.includes(n)) delete F[n]; });
     return Promise.all(want.map(n => V.api("/raw/dev/" + DIR + encodeURIComponent(n)).then(r => r.text().then(t => {
-      const f = F[n] || (F[n] = {}); f.text = t; f.mtime = +r.headers.get("X-Mtime") || 0;
+      const f = F[n] || (F[n] = {}); f.text = t; f.version = r.headers.get("X-Version") || "";
     })).catch(() => {}))).then(() => { loaded = true; });
   }
   V.todoWrite = (op, name, extra) => fetch("/api/todo", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" },
@@ -29,7 +29,6 @@
   // the version edits are addressed by: this view's snapshot once it has painted, else (rows shown elsewhere) the disk text
   const seen = n => (F[n].shown != null ? F[n].shown : F[n].text);
   const TICK_MS = 600;
-  const save = (name, text) => V.todoWrite("write", name, { text, mtime: F[name] ? (F[name].shown != null ? F[name].base : F[name].mtime) : 0 });
   const refresh = () => load().then(paint).catch(e => { const b = $("#tscroll"); if (b) b.innerHTML = `<div class="derr"><b>读不到 todo 目录</b><br>${esc(e.message)}</div>`; });
 
   // an item's text: wikilinks and links open their doc, @tags and #tags are chips — tags only in the plain text between
@@ -55,7 +54,7 @@
   // other readers (quick open, the board) parse the disk text and leave the snapshot alone
   function itemsAll(snap) {
     return Object.keys(F).sort().flatMap(n => {
-      if (snap) { F[n].shown = F[n].text; F[n].base = F[n].mtime; }
+      if (snap) { F[n].shown = F[n].text; F[n].base = F[n].version; }
       const its = SV.parseTodo(snap ? F[n].shown : F[n].text);
       return its.map((it, i) => Object.assign({ file: n, meta: SV.todoMeta(it.text), prog: SV.todoProgress(its, i) }, it));
     });
@@ -174,9 +173,10 @@
   V.todosOfCard = c => itemsAll(false).filter(t => !t.done && (t.text.includes("[[" + c.id + "]]") || t.text.includes("[[" + c.dir + "/") || t.text.includes("[[" + c.id + "|")));
   /* ---- capture: t anywhere, or 记为 todo on a selection — a line into inbox.md with the context filled in ---- */
   const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
-  V.todoAppend = (name, body) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.text().then(t => [t, +r.headers.get("X-Mtime") || 0]))
-    .catch(e => (e.status === 404 ? ["", 0] : Promise.reject(e)))
-    .then(([t, mtime]) => V.todoWrite("write", name, { text: SV.addTodo(t, body, name), mtime }));
+  // todo.py composes and appends the item on the server; the page names the file's version and its local time
+  V.todoAppend = (name, item) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.headers.get("X-Version") || "")
+    .catch(e => (e.status === 404 ? "" : Promise.reject(e)))
+    .then(version => V.todoWrite("append", name, Object.assign({ project: "", link: "", stamp: SV.todoStamp(new Date(), true), version }, item)));
   V.capture = (opt = {}) => {
     const k = opt.k || V.navPane(), loc = V.P[k].loc, card = loc && loc.kind === "doc" ? V.cardOfPath(loc.tree, loc.rel) : loc && loc.kind === "board" && V.selCard ? V.card(V.selCard()) : null;
     const proj = card ? card.p : loc && loc.kind === "doc" && loc.tree === "dev" && loc.rel.includes("/") && V.D.board[loc.rel.split("/")[0]] ? loc.rel.split("/")[0] : store.get("todo-proj", "");
@@ -200,10 +200,9 @@
     const text = $(".capin", box).value.trim(), proj = $(".capproj", box).value, link = $(".capdoc", box) && $(".capdoc", box).checked ? box.dataset.doc : "";
     if (!text) return $(".capin", box).focus();
     if (proj) store.set("todo-proj", proj);
-    const body = text + (proj && !text.includes("@" + proj) ? " @" + proj : "") + (link ? " [[" + link + "]]" : "") + " ➕ " + SV.todoStamp(new Date(), true);
     if (box.dataset.busy) return;
     box.dataset.busy = "1";   // the box stays open, text and all, until the line is really written
-    V.todoAppend("inbox.md", body).then(res => {
+    V.todoAppend("inbox.md", { text, project: proj, link }).then(res => {
       delete box.dataset.busy;
       if (res.ok) { capClose(); V.toast("记下了：todo/inbox.md"); }
     }, () => { delete box.dataset.busy; V.toast("没记下：读不到 inbox.md"); });
@@ -223,14 +222,15 @@
   V.click("[data-tnewf]", () => V.ask("新的 todo 文件", [["ok", "新建"], ["", "取消"]], "").then(t => {
     const n = (t || "").trim().replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md"; if (n === ".md") return;
     if (F[n]) return V.toast("已经有 " + n);
-    V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 }).then(res => { if (res.ok) V.openDoc("dev", DIR + n); });
+    V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", version: "" }).then(res => { if (res.ok) V.openDoc("dev", DIR + n); });
   }));
   // A tick shows on the row first and is written a moment later, so the row visibly changes before a filter drops it.
   V.click("[data-tck]", el => {
     const at = find(el.dataset.tck); if (!at || el.dataset.busy) return;
     const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line), row = el.closest("tr, .titem");
     el.dataset.busy = "1"; el.textContent = it.done ? "" : "✓"; if (row) row.classList.toggle("done", !it.done);
-    setTimeout(() => save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })), TICK_MS);
+    setTimeout(() => V.todoWrite("tick", at.file, { line: at.line, text: SV.todoLine(seen(at.file), at.line), done: !it.done, today: today(),
+      version: F[at.file].shown != null ? F[at.file].base : F[at.file].version }), TICK_MS);
   });
   // No per-item delete: an item's continuation lines are invisible here, so deleting is left to the source editor.
   V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
@@ -246,17 +246,17 @@
     V.ask("新文件名", [["ok", "改名"], ["", "取消"]], n.replace(/\.md$/, "")).then(t => {
       const raw = (t || "").trim(); if (!raw) return;
       const to = raw.replace(/[/\\\x00-\x1f]/g, "-").replace(/\.md$/i, "") + ".md";
-      if (to !== n) V.todoWrite("rename", n, { to, mtime: F[n].mtime });
+      if (to !== n) V.todoWrite("rename", n, { to, version: F[n].version });
     });
   });
-  V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; V.ask(`删除 ${n}？里面的 todo 会一起删掉。`, [["del", "删除"], ["", "取消"]]).then(v => { if (v === "del") V.todoWrite("delete", n, { mtime: F[n].mtime }); }); });
+  V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; V.ask(`删除 ${n}？里面的 todo 会一起删掉。`, [["del", "删除"], ["", "取消"]]).then(v => { if (v === "del") V.todoWrite("delete", n, { version: F[n].version }); }); });
   // No in-place edit (it changed only an item's first line, which other tools use to find the item): a double-click
   // on a row opens its file in the source editor at that line, and 新建 starts a new item at the end of inbox.md.
   document.addEventListener("dblclick", e => {
     const row = e.target.closest && e.target.closest("#todo .titem, #todo tbody tr"); if (!row || e.target.closest("a,button,input")) return;
     const box = row.querySelector("[data-tck]"), at = box && find(box.dataset.tck); if (at) V.editTodoAt(at.file, at.line);
   });
-  V.click("[data-tnew]", () => (F["inbox.md"] ? Promise.resolve({ ok: true }) : V.todoWrite("write", "inbox.md", { text: "# inbox\n\n", mtime: 0 }))
+  V.click("[data-tnew]", () => (F["inbox.md"] ? Promise.resolve({ ok: true }) : V.todoWrite("write", "inbox.md", { text: "# inbox\n\n", version: "" }))
     .then(res => { if (res.ok) V.editTodoAt("inbox.md", null, true); }));
   V.on("data", () => {
     const busy = $("#todo input:focus");

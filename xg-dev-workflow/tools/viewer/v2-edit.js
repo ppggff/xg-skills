@@ -10,7 +10,7 @@
   /* ---- reading: tickable checkboxes and @project tags ---- */
   // marked's own task items, in render order, located in the source by their raw text; a box is enabled only when
   // the line found is a task line in the same state, so an item we cannot place stays read-only rather than wrong
-  const TOG = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\])/;   // as todo-format.md: no task inside a block quote
+  const TOG = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t])/;   // an item as todo-format.md has it: no task inside a block quote
   function taskLines(body) {
     const at = [];
     const walk = (tokens, from) => { let pos = from; (tokens || []).forEach(t => {
@@ -53,10 +53,9 @@
   document.addEventListener("change", e => {
     const box = e.target.closest && e.target.closest(".pbody .md input.tbox"); if (!box) return;
     const k = V.paneOf(box), p = P[k], loc = p.loc; if (!isTodo(loc)) return;
-    const ln = +box.dataset.tline, day = SV.todoStamp(new Date()).slice(0, 10);
-    let text = SV.editTodo(p.doc.text, ln, { done: box.checked, today: day });   // a plain task line: the mark and ✅ today
-    if (text === p.doc.text) { const ls = text.split("\n"); ls[ln] = ls[ln].replace(TOG, (all, a, mark, b) => a + (box.checked ? "x" : " ") + b); text = ls.join("\n"); }
-    V.todoWrite("write", fileOf(loc), { text, mtime: p.doc.mtime }).then(() => { if (p.loc === loc) V.rerender(k); });
+    const ln = +box.dataset.tline, day = SV.todoStamp(new Date()).slice(0, 10);   // todo.py ticks the line on the server
+    V.todoWrite("tick", fileOf(loc), { line: ln, text: SV.todoLine(p.doc.text, ln), done: box.checked, today: day, version: p.doc.version })
+      .then(() => { if (p.loc === loc) V.rerender(k); });
   });
 
   /* ---- the editor ---- */
@@ -150,8 +149,9 @@
   /* ---- open, close, save ---- */
   function open(k, line) {
     const p = P[k], loc = p.loc; if (!isTodo(loc) || !p.doc || p.edit) return;
-    const ed = { k, loc, base: p.doc.mtime, orig: p.doc.text }, d = V.store.get(DK(loc.rel), null);
-    const draft = d && typeof d === "object" ? d : d != null ? { text: d, mtime: 0 } : null;
+    const ed = { k, loc, base: p.doc.version, orig: p.doc.text }, d = V.store.get(DK(loc.rel), null);
+    // a draft from before versions were strings carries no usable version: its save meets a conflict and asks
+    const draft = d && typeof d === "object" ? { text: d.text, version: typeof d.version === "string" ? d.version : "0" } : d != null ? { text: d, version: "0" } : null;
     p.edit = ed;
     p.body.innerHTML = `<div class="tedw"><div class="tedbar"><span>/ 命令　@ 项目　[[ 文档　⌘S 保存　Esc 退出</span>`
       + `<button data-tsave class="ok">保存</button><button data-tcancel>取消</button></div>`
@@ -163,7 +163,7 @@
     hl.innerHTML = highlight(ta.value);
     ta.addEventListener("input", () => {
       hl.innerHTML = highlight(ta.value); complete(ed, ta);
-      clearTimeout(ed.dt); ed.dt = setTimeout(() => { if (p.edit === ed) ta.value === ed.orig ? dropDraft(loc.rel) : V.store.set(DK(loc.rel), { text: ta.value, mtime: ed.base }); }, 400);
+      clearTimeout(ed.dt); ed.dt = setTimeout(() => { if (p.edit === ed) ta.value === ed.orig ? dropDraft(loc.rel) : V.store.set(DK(loc.rel), { text: ta.value, version: ed.base }); }, 400);
     });
     ta.addEventListener("scroll", () => { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; });
     ta.addEventListener("keydown", e => keys(ed, ta, e));
@@ -179,7 +179,7 @@
     if (!draft || draft.text === ed.orig) return dropDraft(loc.rel);
     V.ask("这个文件有没保存的草稿", [["restore", "恢复草稿"], ["drop", "丢掉草稿"]]).then(v => {
       if (p.edit !== ed) return;
-      if (v === "restore") { ta.value = draft.text; ed.base = draft.mtime; hl.innerHTML = highlight(ta.value); } else dropDraft(loc.rel);
+      if (v === "restore") { ta.value = draft.text; ed.base = draft.version; hl.innerHTML = highlight(ta.value); } else dropDraft(loc.rel);
     });
   }
   function close(k, saved) {
@@ -194,8 +194,8 @@
   // a save refused because the file changed elsewhere keeps the text and asks: overwrite with mine, or take theirs
   function save(k, force) {
     const p = P[k], ed = p.edit, ta = ed && $(".tta", p.body); if (!ta) return;
-    const send = mtime => V.todoWrite("write", fileOf(ed.loc), { text: ta.value, mtime });
-    const go = force ? V.api("/raw/dev/" + ed.loc.rel).then(r => +r.headers.get("X-Mtime") || 0).catch(() => 0).then(send) : send(ed.base);
+    const send = version => V.todoWrite("write", fileOf(ed.loc), { text: ta.value, version });
+    const go = force ? V.api("/raw/dev/" + ed.loc.rel).then(r => r.headers.get("X-Version") || "").catch(() => "").then(send) : send(ed.base);
     go.then(res => {
       if (p.edit !== ed) return;
       if (res.ok) return close(k, true);
@@ -204,7 +204,7 @@
   }
   V.on("nav", k => {   // the draft goes to local storage now, not 400ms later
     const p = P[k], ed = p.edit, ta = ed && $(".tta", p.body); if (!ed) return;
-    clearTimeout(ed.dt); if (ta && ta.value !== ed.orig) V.store.set(DK(ed.loc.rel), { text: ta.value, mtime: ed.base });
+    clearTimeout(ed.dt); if (ta && ta.value !== ed.orig) V.store.set(DK(ed.loc.rel), { text: ta.value, version: ed.base });
     p.edit = null;
   });
 

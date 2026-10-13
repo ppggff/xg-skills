@@ -996,16 +996,10 @@ t("diffFiles: one entry per file, lines classed add/del/hunk, headers left plain
   assert.deepEqual(SV.diffFiles(""), []);
 });
 
-t("043 todo: items are the checklist lines; tags from #words; edits touch one line; add starts a file", () => {
+t("043 todo: items are the checklist lines; tags from #words (writes are todo.py's, see todo-cases.json)", () => {
   const md = "# todo\n\nnote line\n- [ ] fix the tree #xg-skills [d](xg-skills/a/design.md)\n  - [x] nested #hashdata #xg-skills\n";
   const it = SV.parseTodo(md);
   assert.deepEqual(it.map(x => [x.line, x.done, x.tags]), [[3, false, ["xg-skills"]], [4, true, ["hashdata", "xg-skills"]]]);
-  assert.equal(SV.editTodo(md, 3, { done: true }).split("\n")[3], "- [x] fix the tree #xg-skills [d](xg-skills/a/design.md)");
-  assert.equal(SV.editTodo(md, 4, { text: "renamed" }).split("\n")[4], "  - [x] renamed");
-  assert.equal(SV.editTodo(md, 3, { remove: true }).split("\n").length, md.split("\n").length - 1);
-  assert.equal(SV.editTodo(md, 2, { done: true }), md);   // not an item: unchanged
-  assert.equal(SV.addTodo("", "a", "inbox.md"), "# inbox\n\n- [ ] a\n");
-  assert.equal(SV.addTodo("x", "b"), "x\n- [ ] b\n");
   assert.deepEqual(SV.parseTodo("a #b#c and #d-e.f"), []);
   assert.deepEqual(SV.parseTodo("- [ ] a #b#c and #d-e.f")[0].tags, ["b", "d-e.f"]);
   assert.deepEqual(SV.parseTodo("- [ ] ship @xg-skills and #old")[0].tags, ["xg-skills", "old"]);   // 044: @ is the new form
@@ -1013,8 +1007,6 @@ t("043 todo: items are the checklist lines; tags from #words; edits touch one li
   // 044 review: fences close only on a bare fence at least as long; other markers count and are kept on edit; no tags in links
   assert.deepEqual(SV.parseTodo("````\n```js\n- [ ] in\n```\n````\n- [ ] out").map(x => x.line), [5]);
   assert.deepEqual(SV.parseTodo("+ [ ] a\n1. [x] b\n* [ ] c").map(x => [x.line, x.done]), [[0, false], [1, true], [2, false]]);
-  assert.equal(SV.editTodo("1. [ ] b", 0, { done: true }), "1. [x] b");
-  assert.equal(SV.editTodo("+ [ ] a", 0, { text: "z" }), "+ [ ] z");
   assert.deepEqual(SV.parseTodo("- [ ] see [[a @x]] and [t @y](u) @real")[0].tags, ["real"]);
 });
 t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1, a task restarts; an empty item ends", () => {
@@ -1026,6 +1018,11 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.deepEqual(c("> "), { next: "> ", empty: true, todo: false });
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
+});
+t("052 todoLine: the line a tick names, read as todo.py reads it", () => {
+  assert.equal(SV.todoLine("\ufeffa\r\nb\rc", 0), "a");
+  assert.equal(SV.todoLine("\ufeffa\r\nb\rc", 2), "c");
+  assert.equal(SV.todoLine("a", 5), "");
 });
 t("052 shared todo cases: the viewer parses each one as todo.py does", () => {
   const cases = JSON.parse(readFileSync(new URL("../todo-cases.json", import.meta.url), "utf8")).parse;
@@ -1049,23 +1046,17 @@ t("046 toggleTask: the toolbar's todo button keeps the caret in the text, never 
 t("046 todo marks may carry seconds; the seconds never stay in the text", () => {
   const m = SV.todoMeta("ship it @p ➕ 2026-10-13 14:05:33 📅 2026-10-20");
   assert.deepEqual(m, { created: "2026-10-13 14:05:33", due: "2026-10-20", done: "", prio: 0, text: "ship it @p" });
-  assert.equal(SV.editTodo("- [x] a ✅ 2026-10-07 12:00:09", 0, { done: false, today: "x" }), "- [ ] a");
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7, 4), true), "2026-01-05 09:07:04");
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7, 4)), "2026-01-05 09:07");
   assert.equal(SV.todoDate("2026-10-13 14:05:33").getSeconds(), 33);
   assert.equal(SV.continueLine("- [ ] ➕ 2026-10-13 14:05:33").empty, true);
 });
 t("045 todo marks: done date on tick, meta parsing, subtask progress", () => {
-  assert.equal(SV.editTodo("- [ ] a ➕ 2026-10-01 09:00", 0, { done: true, today: "2026-10-07" }), "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-07");
-  assert.equal(SV.editTodo("- [x] a ✅ 2026-10-07", 0, { done: false, today: "2026-10-08" }), "- [ ] a");
-  assert.equal(SV.editTodo("- [ ] a", 0, { done: true }), "- [x] a");   // no today given: the mark alone
   const m = SV.todoMeta("fix it ⏫ @p ➕ 2026-10-01 09:30 📅 2026-10-09 ✅ 2026-10-08");
   assert.deepEqual(m, { created: "2026-10-01 09:30", due: "2026-10-09", done: "2026-10-08", prio: 1, text: "fix it @p" });
   assert.deepEqual(SV.todoMeta("plain 🔽"), { created: "", due: "", done: "", prio: 3, text: "plain" });
   // 045 review: astral emoji stay whole; unticking takes only the trailing ✅ (with its time); bare dates are local
   assert.equal(SV.todoMeta("fix bug 🔥 📝 ⏫").text, "fix bug 🔥 📝");
-  assert.equal(SV.editTodo("- [x] cost ✅2024-01-01 receipt ✅ 2026-10-07", 0, { done: false, today: "x" }), "- [ ] cost ✅2024-01-01 receipt");
-  assert.equal(SV.editTodo("- [ ] a ✅ 2026-10-01 12:00", 0, { done: true, today: "2026-10-07" }), "- [x] a ✅ 2026-10-07");
   assert.equal(SV.todoDate("2026-10-07").getHours(), 0);
   assert.equal(SV.continueLine("- [ ] 😀 ok").empty, false);
   const it = SV.parseTodo("- [ ] p\n  - [x] a\n  - [ ] b\n    - [x] c\n- [ ] q");

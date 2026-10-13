@@ -17,6 +17,7 @@ import tempfile
 import threading
 import time
 import unittest
+import unittest.mock
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -149,11 +150,13 @@ def _git(cwd, *a):
 
 
 class TTodo(unittest.TestCase):
-    """043/044 Req-1 / Inv-1: the one write — files in <dev_root>/todo/, guarded and version-checked."""
+    """043/044/052: writes to files in <dev_root>/todo/, guarded, version-checked and done by todo.py under its lock."""
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.dev, kb = self.tmp / "dev", self.tmp / "kb"
         self.dev.mkdir(); kb.mkdir()
+        home = unittest.mock.patch.dict(os.environ, {"HOME": str(self.tmp / "home")})   # todo.py's lock dir
+        home.start(); self.addCleanup(home.stop)
         self.httpd, self.base = start(self.dev, kb)
         self.t = self.dev / "todo"
 
@@ -166,68 +169,141 @@ class TTodo(unittest.TestCase):
         data = raw if raw is not None else json.dumps(body).encode()
         req = urllib.request.Request(self.base + path, data=data, method="POST", headers={k: v for k, v in h.items() if v is not None})
         try:
-            r = urllib.request.urlopen(req, timeout=3)
+            r = urllib.request.urlopen(req, timeout=10)
             return r.status, json.loads(r.read() or b"{}")
         except urllib.error.HTTPError as e:
             return e.code, e.read().decode("utf-8", "replace")
 
-    def w(self, name, text, mtime):
-        return self.post({"op": "write", "file": name, "text": text, "mtime": mtime})
+    def w(self, name, text, version):
+        return self.post({"op": "write", "file": name, "text": text, "version": version})
+
+    def version(self, name):
+        r = urllib.request.urlopen(self.base + "/raw/dev/todo/" + urllib.parse.quote(name), timeout=3)
+        return r.headers.get("X-Version")
 
     def test_writes_then_refuses_a_stale_version(self):
-        code, d = self.w("a.md", "- [ ] a\n", 0)
+        code, d = self.w("a.md", "- [ ] a\n", "")
         self.assertEqual(code, 200)
         self.assertEqual((self.t / "a.md").read_text(encoding="utf-8"), "- [ ] a\n")
         self.assertEqual(get(self.base, "/raw/dev/todo/a.md")[1], "- [ ] a\n")
-        code, d2 = self.w("a.md", "- [x] a\n", d["mtime"])
+        self.assertEqual(self.version("a.md"), d["version"])
+        code, d2 = self.w("a.md", "- [x] a\n", d["version"])
         self.assertEqual(code, 200)
-        self.assertEqual(self.w("a.md", "clobber", d["mtime"])[0], 409)     # the version it read is gone
+        self.assertNotEqual(d2["version"], d["version"])                       # back to back, still told apart
+        self.assertEqual(self.w("a.md", "clobber", d["version"])[0], 409)     # the version it read is gone
         self.assertEqual((self.t / "a.md").read_text(encoding="utf-8"), "- [x] a\n")
-        self.assertEqual(self.w("a.md", "x", 0)[0], 409)                    # it exists now
+        self.assertEqual(self.w("a.md", "x", "")[0], 409)                     # it exists now
 
     def test_rename_and_delete_are_version_checked(self):
-        _, d = self.w("a.md", "x", 0); self.w("b.md", "y", 0)
-        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "b.md", "mtime": d["mtime"]})[0], 409)   # no overwrite
-        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "c.md", "mtime": 1})[0], 409)
-        code, d = self.post({"op": "rename", "file": "a.md", "to": "收件箱.md", "mtime": d["mtime"]})
+        _, d = self.w("a.md", "x", ""); self.w("b.md", "y", "")
+        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "b.md", "version": d["version"]})[0], 409)   # no overwrite
+        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "c.md", "version": "1-2-3"})[0], 409)
+        code, d = self.post({"op": "rename", "file": "a.md", "to": "收件箱.md", "version": d["version"]})
         self.assertEqual(code, 200); self.assertTrue((self.t / "收件箱.md").is_file()); self.assertFalse((self.t / "a.md").exists())
-        self.assertEqual(self.post({"op": "delete", "file": "收件箱.md", "mtime": 1})[0], 409)
-        self.assertEqual(self.post({"op": "delete", "file": "收件箱.md", "mtime": d["mtime"]})[0], 200)
+        self.assertEqual(self.post({"op": "delete", "file": "收件箱.md", "version": "1-2-3"})[0], 409)
+        self.assertEqual(self.post({"op": "delete", "file": "收件箱.md", "version": d["version"]})[0], 200)
         self.assertFalse((self.t / "收件箱.md").exists())
-        self.assertEqual(self.post({"op": "delete", "file": "none.md", "mtime": 0})[0], 409)
-        _, d = self.w("Case.md", "c", 0)                       # a case-only rename on a case-insensitive disk is not a clash
-        self.assertEqual(self.post({"op": "rename", "file": "Case.md", "to": "case.md", "mtime": d["mtime"]})[0], 200)
+        self.assertEqual(self.post({"op": "delete", "file": "none.md", "version": ""})[0], 409)
+        _, d = self.w("Case.md", "c", "")                       # a case-only rename on a case-insensitive disk is not a clash
+        self.assertEqual(self.post({"op": "rename", "file": "Case.md", "to": "case.md", "version": d["version"]})[0], 200)
+
+    def test_tick_and_untick_check_the_version_and_the_line(self):
+        _, d = self.w("a.md", "# t\n- [ ] a ➕ 2026-10-01 09:00\n", "")
+        tick = {"op": "tick", "file": "a.md", "line": 1, "text": "- [ ] a ➕ 2026-10-01 09:00", "done": True, "today": "2026-10-13"}
+        code, d2 = self.post(dict(tick, version=d["version"]))
+        self.assertEqual(code, 200)
+        self.assertEqual((self.t / "a.md").read_text(encoding="utf-8"), "# t\n- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-13\n")
+        self.assertEqual(self.post(dict(tick, version=d["version"]))[0], 409)                 # stale
+        self.assertEqual(self.post(dict(tick, version=d2["version"]))[0], 409)                # the line is no longer that text
+        code, _ = self.post({"op": "tick", "file": "a.md", "line": 1, "text": "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-13",
+                             "done": False, "today": "2026-10-14", "version": d2["version"]})
+        self.assertEqual(code, 200)
+        self.assertEqual((self.t / "a.md").read_text(encoding="utf-8"), "# t\n- [ ] a ➕ 2026-10-01 09:00\n")
+        v = self.version("a.md")
+        self.assertEqual(self.post({"op": "tick", "file": "a.md", "line": 0, "text": "# t", "done": True, "today": "2026-10-14", "version": v})[0], 409)
+        for bad in ({"today": "today"}, {"line": "1"}, {"done": "yes"}, {"text": 3}):
+            self.assertEqual(self.post(dict(tick, version=v, **bad))[0], 400, bad)
+
+    def test_append_composes_the_item_and_titles_a_new_file(self):
+        add = {"op": "append", "file": "inbox.md", "text": "ask @p about it", "project": "p", "link": "xg-skills/048", "stamp": "2026-10-13 14:05:33"}
+        code, d = self.post(dict(add, version=""))
+        self.assertEqual(code, 200)
+        self.assertEqual((self.t / "inbox.md").read_text(encoding="utf-8"), "# inbox\n\n- [ ] ask @p about it [[xg-skills/048]] ➕ 2026-10-13 14:05:33\n")
+        code, _ = self.post(dict(add, text="plain", project="", link="", version=d["version"]))
+        self.assertEqual(code, 200)
+        self.assertTrue((self.t / "inbox.md").read_text(encoding="utf-8").endswith("- [ ] plain ➕ 2026-10-13 14:05:33\n"))
+        self.assertEqual(self.post(dict(add, version=d["version"]))[0], 409)
+        v = self.version("inbox.md")
+        for bad in ({"stamp": "2026-10-13"}, {"stamp": "２０２６-10-13 14:05:33"}, {"project": "a b"}, {"link": "x]]y"}, {"text": ""}, {"text": 3}):
+            self.assertEqual(self.post(dict(add, version=v, **bad))[0], 400, bad)
+
+    def test_the_viewer_and_todo_py_never_lose_each_others_writes(self):
+        _, d = self.w("inbox.md", "# inbox\n\n", "")
+        script, done, errors, lock = str(TOOLS / "todo.py"), [], [], threading.Lock()
+
+        def viewer_side(k):
+            for i in range(8):
+                text = "viewer %d-%d" % (k, i)
+                while True:
+                    code, _ = self.post({"op": "append", "file": "inbox.md", "text": text, "project": "", "link": "",
+                                         "stamp": "2026-10-13 14:05:33", "version": self.version("inbox.md")})
+                    if code == 200:
+                        with lock: done.append(text)
+                        break
+                    if code != 409:
+                        with lock: errors.append((text, code))
+                        return
+
+        def script_side(k):
+            for i in range(8):
+                text = "script %d-%d" % (k, i)
+                r = subprocess.run(["python3", script, "--dev-root", str(self.dev), "add"], input=text, capture_output=True, text=True,
+                                   env=dict(os.environ))
+                if r.returncode == 0:
+                    with lock: done.append(text)
+
+        threads = [threading.Thread(target=viewer_side, args=(k,)) for k in range(3)] + [threading.Thread(target=script_side, args=(k,)) for k in range(3)]
+        for th in threads: th.start()
+        for th in threads: th.join()
+        final = (self.t / "inbox.md").read_text(encoding="utf-8")
+        self.assertEqual(errors, [])
+        self.assertEqual(sum(1 for t in done if t.startswith("viewer")), 24)
+        self.assertGreaterEqual(len(done), 40)
+        self.assertEqual([t for t in done if "- [ ] " + t + " " not in final], [])
 
     def test_names_stay_in_the_directory(self):
         for bad in ("../x.md", "a/b.md", ".hidden.md", "x.txt", "", "a.md\x00"):
-            self.assertEqual(self.w(bad, "x", 0)[0], 400, bad)
-        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "../x.md", "mtime": 0})[0], 400)
+            self.assertEqual(self.w(bad, "x", "")[0], 400, bad)
+        self.assertEqual(self.post({"op": "rename", "file": "a.md", "to": "../x.md", "version": ""})[0], 400)
         for bad in ("x\nb.md", "x\tb.md", "字" * 90 + ".md", "a.MD"):   # 044 review: control chars, > 240 bytes, the suffix as written
-            self.assertEqual(self.w(bad, "x", 0)[0], 400, bad)
-        self.assertEqual(self.post({"op": "chmod", "file": "a.md", "mtime": 0})[0], 400)
+            self.assertEqual(self.w(bad, "x", "")[0], 400, bad)
+        self.assertEqual(self.post({"op": "chmod", "file": "a.md", "version": ""})[0], 400)
         self.assertFalse((self.tmp / "x.md").exists())
 
     def test_never_writes_through_a_link(self):      # 043 review M1
         out = self.tmp / "victim.txt"; out.write_text("safe", encoding="utf-8")
         self.t.mkdir(); (self.t / "l.md").symlink_to(out)
-        self.assertEqual(self.w("l.md", "y", int(out.stat().st_mtime * 1000))[0], 403)
+        st = out.stat()
+        for body in ({"op": "write", "file": "l.md", "text": "y"}, {"op": "append", "file": "l.md", "text": "y", "project": "", "link": "", "stamp": "2026-10-13 14:05:33"}):
+            self.assertEqual(self.post(dict(body, version="%d-%d-%d" % (st.st_ino, st.st_mtime_ns, st.st_size)))[0], 403)
         self.assertEqual(out.read_text(encoding="utf-8"), "safe")
         (self.t / "l.md").unlink(); self.t.rmdir()
         outdir = self.tmp / "elsewhere"; outdir.mkdir(); self.t.symlink_to(outdir)
-        self.assertEqual(self.w("a.md", "y", 0)[0], 403)
+        self.assertEqual(self.w("a.md", "y", "")[0], 403)
         self.assertFalse((outdir / "a.md").exists())
 
     def test_refuses_anything_but_a_same_origin_json_write(self):
-        ok = {"op": "write", "file": "a.md", "text": "t", "mtime": 0}
+        ok = {"op": "write", "file": "a.md", "text": "t", "version": ""}
         for headers in ({"X-SV-Write": None}, {"Content-Type": "text/plain"}, {"Origin": "http://evil.com"},
                         {"Host": "evil.com"}):
             self.assertEqual(self.post(ok, headers=headers)[0], 403, headers)
         self.assertEqual(self.post(ok, path="/api/other")[0], 404)
         self.assertEqual(self.post(None, raw=b"{not json")[0], 400)
         self.assertEqual(self.post(None, raw=b"[1]")[0], 400)
-        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": 3, "mtime": 0})[0], 400)
-        self.assertEqual(self.post(None, raw=b'{"file": "a.md", "text": "x", "mtime": 1e999}')[0], 400)
-        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": "x" * (300 * 1024), "mtime": 0})[0], 413)
+        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": 3, "version": ""})[0], 400)
+        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": "x", "version": 5})[0], 400)
+        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": "x", "mtime": 0})[0], 400)   # the old field is gone
+        self.assertEqual(self.post({"op": "write", "file": "a.md", "text": "x" * (300 * 1024), "version": ""})[0], 413)
         self.assertFalse(self.t.exists())
         host = urllib.parse.urlsplit(self.base).netloc
         self.assertEqual(self.post(ok, headers={"Origin": "http://" + host})[0], 200)

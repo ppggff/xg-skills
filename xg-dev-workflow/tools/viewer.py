@@ -77,6 +77,7 @@ def _load_tool(filename, modname):
 
 
 _rp = _load_tool("resolve-project.py", "rp")
+_todo = _load_tool("todo.py", "todo")   # the one writer of todo files (052): its lock, versions and line edits
 _ws = _load_tool("workflow-status.py", "ws")
 _gw = _load_tool("gitweb-companion.py", "gwc")
 
@@ -90,6 +91,34 @@ def resolve_roots(dev_arg=None, kb_arg=None):
             Path(os.path.expanduser(kb)).resolve(strict=False))
 
 
+DAY_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+STAMP_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
+TAG_NAME_RE = re.compile(r"[A-Za-z0-9_.-]*")
+
+
+def ok_todo_name(x):
+    return isinstance(x, str) and bool(TODO_NAME.fullmatch(x)) and len(x.encode("utf-8")) <= 240
+
+
+def todo_body_ok(op, body):
+    """The fields each todo op needs, with the types and shapes todo.py expects (dates in the page's local time)."""
+    str_ = lambda k: isinstance(body.get(k), str)
+    if op == "write":
+        return str_("text")
+    if op == "rename":
+        return ok_todo_name(body.get("to"))
+    if op == "delete":
+        return True
+    if op == "tick":
+        return (type(body.get("line")) is int and body["line"] >= 0 and str_("text") and type(body.get("done")) is bool
+                and str_("today") and bool(DAY_RE.fullmatch(body["today"])))
+    if op == "append":
+        return (str_("text") and body["text"].strip() != "" and str_("project") and bool(TAG_NAME_RE.fullmatch(body["project"]))
+                and str_("link") and "]]" not in body["link"] and "\n" not in body["link"]
+                and str_("stamp") and bool(STAMP_RE.fullmatch(body["stamp"])))
+    return False
+
+
 def migrate_todo(dev_root: Path):
     """043 kept todos in <dev_root>/todo.md; 044 keeps a directory of them. Move the old file in once."""
     old, tdir = dev_root / "todo.md", dev_root / TODO_DIR
@@ -98,10 +127,10 @@ def migrate_todo(dev_root: Path):
         if old.is_file():
             print("left %s in place: %s is not a plain directory" % (old, tdir), file=sys.stderr)
         return
-    if old.is_file() and not old.is_symlink() and not new.exists():
-        new.parent.mkdir(exist_ok=True)
-        os.rename(old, new)
-        print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
+    with _todo.locked(str(tdir)):
+        if old.is_file() and not old.is_symlink() and not new.exists():
+            os.rename(old, new)
+            print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
 
 
 def root_allowed(real: Path):
@@ -253,17 +282,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     raise ValueError
                 self._roots_op(op, path)
                 return
-            op, name, base = body.get("op", "write"), body["file"], int(body["mtime"])
-            text, to = body.get("text"), body.get("to")
+            op, name, version = body.get("op", "write"), body["file"], body["version"]
         except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError, OverflowError):
             self._send(400, "bad request\n")
             return
-        ok_name = lambda x: isinstance(x, str) and TODO_NAME.fullmatch(x) and len(x.encode("utf-8")) <= 240
-        if op not in ("write", "rename", "delete") or not ok_name(name) \
-                or (op == "write" and not isinstance(text, str)) or (op == "rename" and not ok_name(to)):
+        if not isinstance(version, str) or not ok_todo_name(name) or not todo_body_ok(op, body):
             self._send(400, "bad request\n")
             return
-        self._todo_op(op, name, base, text, to)
+        self._todo_op(op, name, version, body)
 
     def _roots_json(self):
         return [{"label": l, "path": str(r), "from": self.ext_from.get(l, "config")} for l, r in self.ext_roots.items()]
@@ -297,49 +323,42 @@ class Handler(http.server.BaseHTTPRequestHandler):
             sys.stderr.write("viewer roots - %s %s %s (from %s)\n" % (self.client_address[0], op, real, self.headers.get("Host", "")))
             self._json({"roots": self._roots_json()})
 
-    def _todo_op(self, op, name, base, text, to):
-        """write / rename / delete one todo file, only when it is still the version the page read (mtime ms, 0 = absent)."""
+    def _todo_op(self, op, name, version, body):
+        """One write to a todo file, done by todo.py under its lock and only at the version the page read ("" = absent)."""
         tdir = self.dev_root / TODO_DIR
         if tdir.is_symlink() or (tdir.exists() and not tdir.is_dir()):   # a link could carry the write outside dev_root
             self._send(403, "forbidden: todo/ is not a plain directory\n")
             return
-        real = tdir / name
-        if real.is_symlink():
+        if (tdir / name).is_symlink() or (op == "rename" and (tdir / body["to"]).is_symlink()):
             self._send(403, "forbidden: a link\n")
             return
-        with self.todo_lock:
-            cur = int(real.stat().st_mtime * 1000) if real.is_file() else 0
-            if cur != base or (op != "write" and not cur):
-                self._json({"error": "changed", "mtime": cur}, 409)
+        t = str(tdir)
+        try:
+            if op == "delete":
+                _todo.delete_at(t, name, version)
+                self._json({"version": ""})
                 return
-            try:
-                if op == "delete":
-                    real.unlink()
-                    self._json({"mtime": 0})
-                    return
-                if op == "rename":
-                    dst = tdir / to
-                    if dst.is_symlink() or (dst.exists() and not os.path.samefile(real, dst)):   # a case-only rename is the same file
-                        self._json({"error": "exists"}, 409)
-                        return
-                    os.rename(real, dst)
-                    self._json({"mtime": int(dst.stat().st_mtime * 1000)})
-                    return
-                tdir.mkdir(exist_ok=True)
-                fd, tmp = tempfile.mkstemp(dir=tdir, prefix=".todo.", suffix=".tmp")   # O_EXCL: never an existing path or link
-                try:
-                    with os.fdopen(fd, "w", encoding="utf-8") as f:
-                        f.write(text)
-                    os.replace(tmp, real)
-                except OSError:
-                    try:
-                        os.unlink(tmp)
-                    except OSError:
-                        pass
-                    raise
-                self._json({"mtime": int(real.stat().st_mtime * 1000)})
-            except OSError as e:
-                self._json({"error": str(e)}, 500)
+            if op == "rename":
+                self._json({"version": _todo.rename_at(t, name, body["to"], version)})
+                return
+            if op == "tick":
+                def change(text):
+                    lines = _todo.normalize(text).split("\n")
+                    if body["line"] >= len(lines) or lines[body["line"]] != body["text"]:
+                        raise _todo.TodoError("changed")   # the line the page ticked is not that line any more
+                    return _todo.toggle(text, body["line"], body["done"], body["today"])
+            elif op == "append":
+                block = _todo.compose(body["text"], body["project"], body["link"], body["stamp"])
+                change = lambda text: _todo.append_item(text, name, block)
+            else:
+                change = lambda text: body["text"]
+            self._json({"version": _todo.write_at(t, name, version, change)})
+        except _todo.Conflict as e:
+            self._json({"error": str(e), "version": e.version}, 409)
+        except _todo.TodoError:
+            self._json({"error": "changed", "version": _todo.file_version(str(tdir / name))}, 409)
+        except OSError as e:
+            self._json({"error": str(e)}, 500)
 
     def do_GET(self):
         if not self._host_ok():
@@ -473,12 +492,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             mt = int(real.stat().st_mtime * 1000)      # R63: lets the client detect a doc update; taken before the read,
         except OSError:                                # so a write in between leaves an older mtime (a later save is refused, not lost)
             mt = 0
+        ver = _todo.file_version(str(real))          # 052: what a todo write names; ns-precise, also taken before the read
         try:
             data = real.read_text(encoding="utf-8")
         except OSError:
             self._send(404, "not found\n")
             return
-        self._send(200, data, extra={"X-Mtime": str(mt)})
+        self._send(200, data, extra={"X-Mtime": str(mt), "X-Version": ver})
 
     def _serve_tree(self):
         # Two-root *.md manifest (root-relative posix); the boundary applies here too:
