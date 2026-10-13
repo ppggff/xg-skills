@@ -91,7 +91,7 @@ describe('todo segment', () => {
       expect(await ui.find({ key: 'todo-new' })).toBeUndefined()
     })
 
-    test(`new writes through the script; take fills the prompt and marks it done (${surface})`, async ($, on) => {
+    test(`new writes through the script; take only fills the prompt and keeps the todo open (${surface})`, async ($, on) => {
       const fake = world(on)
       const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
       await ui.press({ key: 'todo' })
@@ -101,8 +101,8 @@ describe('todo segment', () => {
       const take = await ui.find({ type: 'Button', text: 'take' })
       await ui.press({ key: take!.key! })
       expect(fake.draft).toBe('review the diff')
-      expect(fake.rows[0]!.done).toBe(true)
-      expect(await ui.find(count(0))).toBeDefined()
+      expect(fake.rows[0]!.done).toBe(false)
+      expect(await ui.find(count(1))).toBeDefined()
     })
 
     test(`take appends on a new line to a non-empty draft (${surface})`, async ($, on) => {

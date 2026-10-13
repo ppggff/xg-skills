@@ -268,16 +268,13 @@ async function finishTodo($: $, item: HudTodo): Promise<boolean> {
   return true
 }
 
+// Copies the todo into the prompt only; marking it done is the done button's job.
 async function takeTodo($: $, item: HudTodo): Promise<void> {
   const { text: draft } = await $.prompt.read()
   const filled = draft.trim()
     ? await $.prompt.fill({ text: `\n${item.text}`, mode: 'append' })
     : await $.prompt.fill({ text: item.text, mode: 'replace' })
-  if (!filled.isFilled) {
-    $.ui.toast('Prompt is not writable now; todo kept')
-    return
-  }
-  await finishTodo($, item)
+  if (!filled.isFilled) $.ui.toast('Prompt is not writable now')
 }
 
 // Replaces the list with what the files hold now. Items added while the list ran are kept, and a failed list changes nothing.
