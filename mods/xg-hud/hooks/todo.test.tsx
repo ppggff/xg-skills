@@ -43,9 +43,10 @@ function world(on: On, draft = '', store: Record<string, unknown> = {}, opts: { 
       minute += 1
       const project = argv.includes('--project') ? arg('--project') : null
       const key = stdin.split('\n')[0]! + (project ? ` @${project}` : '')
-      const row: Row = { file: 'inbox.md', created: `2026-10-13 09:${String(minute).padStart(2, '0')}`, key, text: stdin, project, done: false }
+      const listed = stdin.replace(/ ?\u{1F4C5} \d{4}-\d{2}-\d{2}/gu, '')
+      const row: Row = { file: 'inbox.md', created: `2026-10-13 09:${String(minute).padStart(2, '0')}`, key, text: listed, project, done: false }
       fake.rows.push(row)
-      return out(strip(row))
+      return out({ ...strip(row), text: stdin, listed })
     }
     if (argv[0] === 'list') {
       if (fake.listFail) return err('cannot read')
@@ -139,6 +140,26 @@ describe('todo segment', () => {
       expect(await ui.find(count(3))).toBeDefined()
     })
   }
+})
+
+describe('todo text across syncs', () => {
+  test('take gives back the text as stashed, marks and all, until the file is edited', async ($, on) => {
+    const due = 'ship it \u{1F4C5} 2026-10-20'
+    const fake = world(on, `${due}\nsecond line`)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: 'todo-stash' })
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: (await ui.find({ type: 'Button', text: 'take' }))!.key! })
+    expect(fake.draft).toBe(`${due}\nsecond line`)
+    fake.draft = ''
+    fake.rows[0]!.text = 'ship it\nedited line'
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: (await ui.find({ type: 'Button', text: 'take' }))!.key! })
+    expect(fake.draft).toBe('ship it\nedited line')
+  })
 })
 
 describe('todo failures', () => {

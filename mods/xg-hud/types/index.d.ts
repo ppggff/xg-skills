@@ -37,6 +37,8 @@ export type HudTodo = {
   depth?: number
   done?: boolean
   progress?: [number, number]
+  // The text todo.py's list reads back for it; while the file still says this, `text` (the original) is kept.
+  listed?: string
 }
 
 declare module 'claude-code' {

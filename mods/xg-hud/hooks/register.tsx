@@ -297,7 +297,9 @@ async function takeTodo($: $, item: HudTodo): Promise<void> {
 
 // Replaces the list with what the files hold now. Items added while the list ran are kept, and a failed list changes nothing.
 async function syncTodos($: $): Promise<void> {
-  const before = new Set((await read($, todos)).map(todoRef))
+  const current = await read($, todos)
+  const before = new Set(current.map(todoRef))
+  const known = new Map(current.map(one => [todoRef(one), one]))
   let open: HudTodo[]
   try {
     open = topLevelOpen((await runTodo($, ['list'])) as HudTodo[])
@@ -307,7 +309,13 @@ async function syncTodos($: $): Promise<void> {
   const c = await context($)
   const project = c ? projectOf(c.cwd, c.config) : null
   const own = new Set(await read($, todoSessionRefs))
-  const synced = open.filter(item => own.has(todoRef(item)) || (project !== null && item.project === project))
+  // An item's text stays the original (marks and all) while the file reads back what it did when written; an edit there wins.
+  const synced = open
+    .filter(item => own.has(todoRef(item)) || (project !== null && item.project === project))
+    .map(item => {
+      const was = known.get(todoRef(item))
+      return was?.listed !== undefined && was.listed === item.text ? { ...item, text: was.text, listed: was.listed } : { ...item, listed: item.text }
+    })
   const seen = new Set(synced.map(todoRef))
   await changeTodos($, list => [...synced, ...list.filter(one => !before.has(todoRef(one)) && !seen.has(todoRef(one)))])
 }
