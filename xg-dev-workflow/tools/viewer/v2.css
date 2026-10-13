@@ -362,8 +362,9 @@ a.tr { text-decoration: none; }
 .pane:not(.tododoc) .phd [data-t="tedit"] { display: none; }
 .md .ttag, .titem .ttag, .ttbl .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
 .md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
-  display: inline-grid; place-content: center; vertical-align: -2px; background: none; }
-.md input[type=checkbox]:checked::before { content: "✓"; font: 400 var(--t-xs)/1 var(--cjk); color: var(--done); }
+  display: inline-grid; place-content: center; vertical-align: -2px; background: none; position: relative; }
+/* the tick is out of flow, so a checked box keeps the empty box's baseline instead of sinking to the glyph's */
+.md input[type=checkbox]:checked::before { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font: 400 var(--t-xs)/1 var(--cjk); color: var(--done); }
 .md input[type=checkbox]:disabled { opacity: .55; }
 .md input.tbox { cursor: pointer; } .md input.tbox:hover { border-color: var(--sig); }
 .tedw { position: relative; display: flex; flex-direction: column; height: 100%; padding: 10px clamp(12px,2vw,28px) 16px; }
@@ -381,7 +382,7 @@ a.tr { text-decoration: none; }
 .app.narrow .ttool button { flex: none; height: 34px; min-width: 34px; }
 .tac button em { font-style: normal; color: var(--faint); margin-left: 10px; font: 400 var(--t-xs) var(--mono); }
 .ted { position: relative; flex: 1; min-height: 0; border-top: 1px solid var(--ln); }
-.ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 2px; font: 400 calc(12.5px * var(--fz))/1.7 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
+.ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 2px; font: 400 calc(12.5px * var(--fz))/1.45 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
 .ted .thl { color: var(--tx); pointer-events: none; }
 .ted .tta { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: var(--ink); }
 .ted .tta::selection { background: var(--sigs); color: transparent; }

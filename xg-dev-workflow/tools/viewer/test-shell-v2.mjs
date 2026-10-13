@@ -33,6 +33,11 @@ t("todo rows have no in-place edit; the source editor stays the way to change on
   assert.match(js.reader, /b\("tedit", "doc", "编辑这个 todo 文件"\)/);
 });
 
+t("a checked box keeps its place: the tick is out of flow; the editor's line height stays modest for WebKit's caret", () => {
+  assert.match(css, /\.md input\[type=checkbox\]:checked::before \{[^}]*position: absolute/);
+  assert.match(css, /\.ted \.thl, \.ted \.tta \{[^}]*\/1\.45 var\(--code\)/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {
