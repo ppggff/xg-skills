@@ -39,6 +39,8 @@ write through it. `todo-cases.json` pins this document: both implementations run
   trailing `✅ …` goes. Indent, marker and spacing are kept.
 - Append: `- [ ] <text>[ @<project>][ [[<link>]]] ➕ <YYYY-MM-DD HH:MM:SS>` at the end of the file (a newline is added
   first when the file lacks one); the project tag is left out when the text already has exactly that tag. Further
-  lines of a multi-line text follow as continuation lines.
+  lines of a multi-line text (split at LF, CRLF, CR, U+2028 and U+2029) follow as continuation lines.
+- A whole-file save (the source editor) stores the text as given, line ends folded to LF.
 - Every write holds one lock per todo directory and replaces the file atomically; a write that names a version
-  (`<inode>-<mtime ns>-<size>`) is refused when the file is no longer at that version.
+  (`<inode>-<mtime ns>-<ctime ns>-<size>`) is refused when the file is no longer at that version. Appending behind an
+  unclosed code fence, which would hide the item, is refused; a tick on a line that is no item is refused.

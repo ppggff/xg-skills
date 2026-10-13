@@ -370,6 +370,35 @@ class VersionedWriteTests(unittest.TestCase):
             todo.write_at(self.tdir, "inbox.md", v, lambda t: todo.toggle(t, 0, True, "2026-10-13"))
         self.assertEqual(open(self.path()).read(), "# t\n")
 
+    def test_a_case_only_rename_changes_the_version(self):
+        v = todo.write_at(self.tdir, "A.md", "", lambda t: "x\n")
+        v2 = todo.rename_at(self.tdir, "A.md", "a.md", v)
+        self.assertNotEqual(v2, v)
+        with self.assertRaises(todo.Conflict):
+            todo.write_at(self.tdir, "a.md", v, lambda t: "stale\n")
+
+    def test_tick_refuses_a_line_inside_a_code_fence(self):
+        with self.assertRaises(todo.TodoError):
+            todo.toggle("```\n- [ ] in code\n```", 1, True, "2026-10-13")
+
+    def test_append_refuses_an_item_an_unclosed_fence_would_hide(self):
+        with self.assertRaises(todo.Hidden):
+            todo.append_checked("# t\n```\nnotes\n", "t.md", todo.compose("x", "", "", "2026-10-13 14:05:33"))
+
+    def test_a_non_utf8_file_is_refused_not_crashed_on(self):
+        os.makedirs(self.tdir)
+        with open(self.path("bad.md"), "wb") as f:
+            f.write(b"- [ ] \xff\n")
+        with self.assertRaises(ValueError):
+            todo.write_at(self.tdir, "bad.md", todo.file_version(self.path("bad.md")), lambda t: t)
+
+    def test_the_lock_is_one_per_directory_however_it_is_spelled(self):
+        os.makedirs(self.tdir)
+        self.assertEqual(todo.lock_path(self.tdir), todo.lock_path(os.path.join(self.tmp.name, ".", "todo")))
+        upper = os.path.join(self.tmp.name, "TODO")
+        if os.path.exists(upper):   # a case-insensitive disk: another spelling of the same directory
+            self.assertEqual(todo.lock_path(self.tdir), todo.lock_path(upper))
+
     def test_rename_and_delete_check_the_version(self):
         v = todo.write_at(self.tdir, "a.md", "", lambda t: "x\n")
         todo.write_at(self.tdir, "b.md", "", lambda t: "y\n")

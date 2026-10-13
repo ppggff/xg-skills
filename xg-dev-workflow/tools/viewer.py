@@ -61,7 +61,6 @@ DEFAULT_PORT = 8790                            # fixed (gitweb sits on 8791) —
 SNAPSHOT_GREP = "auto: data snapshot"
 WORKTREE = "worktree"                            # the filelog/filediff pseudo-sha for uncommitted changes
 TODO_DIR = "todo"                                # the viewer writes only <dev_root>/todo/<name>.md (043, 044)
-TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")   # one path segment, not hidden, no control characters
 EXT_SCAN_MAX = 5000                              # an extra root lists at most this many docs (hidden dirs and node_modules skipped)
 TODO_MAX = 256 * 1024
 LOG_MAX = 100
@@ -77,7 +76,7 @@ def _load_tool(filename, modname):
 
 
 _rp = _load_tool("resolve-project.py", "rp")
-_todo = _load_tool("todo.py", "todo")   # the one writer of todo files (052): its lock, versions and line edits
+_todo = _load_tool("todo.py", "todo")   # the one writer of todo files: its lock, versions and line edits
 _ws = _load_tool("workflow-status.py", "ws")
 _gw = _load_tool("gitweb-companion.py", "gwc")
 
@@ -97,12 +96,17 @@ TAG_NAME_RE = re.compile(r"[A-Za-z0-9_.-]*")
 
 
 def ok_todo_name(x):
-    return isinstance(x, str) and bool(TODO_NAME.fullmatch(x)) and len(x.encode("utf-8")) <= 240
+    try:
+        return isinstance(x, str) and bool(_todo.check_name(x))
+    except _todo.TodoError:
+        return False
 
 
 def todo_body_ok(op, body):
     """The fields each todo op needs, with the types and shapes todo.py expects (dates in the page's local time)."""
-    str_ = lambda k: isinstance(body.get(k), str)
+    def str_(k):
+        return isinstance(body.get(k), str)
+
     if op == "write":
         return str_("text")
     if op == "rename":
@@ -114,7 +118,7 @@ def todo_body_ok(op, body):
                 and str_("today") and bool(DAY_RE.fullmatch(body["today"])))
     if op == "append":
         return (str_("text") and body["text"].strip() != "" and str_("project") and bool(TAG_NAME_RE.fullmatch(body["project"]))
-                and str_("link") and "]]" not in body["link"] and "\n" not in body["link"]
+                and str_("link") and not re.search(r"\[\[|\]\]|[\r\n\u2028\u2029]", body["link"])
                 and str_("stamp") and bool(STAMP_RE.fullmatch(body["stamp"])))
     return False
 
@@ -127,8 +131,11 @@ def migrate_todo(dev_root: Path):
         if old.is_file():
             print("left %s in place: %s is not a plain directory" % (old, tdir), file=sys.stderr)
         return
+    movable = lambda: old.is_file() and not old.is_symlink() and not new.exists()
+    if not movable():   # nothing to move: no lock taken, no todo/ made
+        return
     with _todo.locked(str(tdir)):
-        if old.is_file() and not old.is_symlink() and not new.exists():
+        if movable():
             os.rename(old, new)
             print("moved %s to %s (todos are a directory now)" % (old, new), file=sys.stderr)
 
@@ -349,14 +356,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return _todo.toggle(text, body["line"], body["done"], body["today"])
             elif op == "append":
                 block = _todo.compose(body["text"], body["project"], body["link"], body["stamp"])
-                change = lambda text: _todo.append_item(text, name, block)
+                change = lambda text: _todo.append_checked(text, name, block)
             else:
-                change = lambda text: body["text"]
+                change = lambda text: _todo.normalize(body["text"])
             self._json({"version": _todo.write_at(t, name, version, change)})
         except _todo.Conflict as e:
             self._json({"error": str(e), "version": e.version}, 409)
+        except _todo.Hidden:
+            self._json({"error": "hidden"}, 422)
         except _todo.TodoError:
             self._json({"error": "changed", "version": _todo.file_version(str(tdir / name))}, 409)
+        except ValueError:   # not UTF-8
+            self._json({"error": "not-utf8"}, 422)
         except OSError as e:
             self._json({"error": str(e)}, 500)
 
@@ -492,10 +503,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             mt = int(real.stat().st_mtime * 1000)      # R63: lets the client detect a doc update; taken before the read,
         except OSError:                                # so a write in between leaves an older mtime (a later save is refused, not lost)
             mt = 0
-        ver = _todo.file_version(str(real))          # 052: what a todo write names; ns-precise, also taken before the read
+        ver = _todo.file_version(str(real))          # what a todo write names; ns-precise, also taken before the read
         try:
             data = real.read_text(encoding="utf-8")
-        except OSError:
+        except (OSError, ValueError):                  # ValueError: not UTF-8, which the viewer does not show
             self._send(404, "not found\n")
             return
         self._send(200, data, extra={"X-Mtime": str(mt), "X-Version": ver})

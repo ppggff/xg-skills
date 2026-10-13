@@ -23,7 +23,9 @@
     body: JSON.stringify(Object.assign({ op, file: name }, extra)) })
     .then(r => r.json().catch(() => ({})).then(d => ({ ok: r.ok, status: r.status, d })))
     .then(res => {
-      if (!res.ok) V.toast(res.d && res.d.error === "exists" ? "已经有同名的文件" : res.status === 409 ? "这个 todo 文件在别处改过了，已重新读取，请再改一次" : "保存失败（" + res.status + "）");
+      const why = res.d && res.d.error;
+      if (!res.ok) V.toast(why === "exists" ? "已经有同名的文件" : why === "hidden" ? "没写入：文件末尾有未闭合的代码块，新条目会被藏住" : why === "not-utf8" ? "没写入：这个文件不是 UTF-8"
+        : res.status === 409 ? "这个 todo 文件在别处改过了，已重新读取，请再改一次" : "保存失败（" + res.status + "）");
       return V.load().then(() => V.emit("data")).then(() => res);   // the tree, the reader and this view all re-read
     }).catch(() => { V.toast("保存失败：连不上 viewer"); return { ok: false }; });
   // the version edits are addressed by: this view's snapshot once it has painted, else (rows shown elsewhere) the disk text

@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Read and write the viewer's todo files (<dev_root>/todo/*.md) from scripts and mods.
+"""Read and write the viewer's todo files (<dev_root>/todo/*.md) from scripts, mods and the viewer server.
 
-An item is a markdown task line the viewer reads (sv.js parseTodo / todoMeta):
-  - [ ] <first line>[ @<project>] ➕ YYYY-MM-DD HH:MM:SS   (marks read with or without the seconds)
-followed by the text's further lines as continuation lines indented four spaces (four, so a ``` line
-is not a fence to the viewer). A continuation that starts with a backslash or looks like a task item
-gets one more leading backslash, so the viewer never reads it as an item; reading drops one.
+todo-format.md is the format and todo-cases.json pins it; the viewer page (sv.js) reads the same rules. This
+module is the only writer: the CLI below, and viewer.py, which loads it for every todo write. Every write holds
+one lock per todo dir; the viewer's writes name a version (inode-mtime_ns-ctime_ns-size) and are refused when
+the file has moved on.
 
-An item is found again by file + created stamp + key, the key being its first line with the date and
-priority marks taken out and runs of whitespace folded (the viewer's todoMeta text). Continuations are
-not part of the key: the viewer edits only an item's first line.
+An item added here is `- [ ] <first line>[ @<project>][ [[link]]] ➕ YYYY-MM-DD HH:MM:SS`, its further lines as
+continuations indented four spaces (escaped when they start with a backslash or look like an item). An item is
+found again by file + created stamp + key (its first line without marks, spaces / tabs folded).
 
 Usage (stdout is one JSON value; on failure exit 1 and one line on stderr):
   todo.py add [--project P | --cwd DIR] [--file inbox.md]   < text
       -> {file, created, key, text, listed, project}   (listed: the text `list` will read back for it)
   todo.py list [--open] [--project P]
-      -> [{file, line, depth, done, created, key, text, project}]   (depth: the indent before the list marker)
+      -> [{file, line, depth, done, created, key, text, project, tags, due, done_date, priority, progress}]
+         (depth: the indent before the list marker; progress: [done, all] of its sub-items, or null)
   todo.py done --file F --created C --key K
       -> {ok: true, line} | {ok: false, reason: "not-found"}   (an invalid file name is a failure, exit 1)
-Options: --dev-root DIR (default: the shared config's dev_root) · --now "YYYY-MM-DD HH:MM" (tests)
+Options: --dev-root DIR (default: the shared config's dev_root) · --now "YYYY-MM-DD HH:MM:SS" (tests)
 """
 import argparse
 import contextlib
@@ -44,7 +44,7 @@ TODO_MARKS = re.compile(r"(?:➕|📅|✅)[ \t]*" + STAMP + r"|⏫|🔼|🔽")
 TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")
 TAG_RE = re.compile(r"(^|[ \t])[@#]([A-Za-z0-9_.-]+)")
 LINK_RE = re.compile(r"\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)")
-CREATED_RE = re.compile(r"➕[ \t]*(" + STAMP + r")")
+CREATED_RE = re.compile(r"➕[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2})(?:[ \t]+([0-9]{2}:[0-9]{2}(?::[0-9]{2})?))?")
 DUE_RE = re.compile(r"📅[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2})")
 DONE_ON_RE = re.compile(r"✅[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2})")
 DONE_MARK_RE = re.compile(r"[ \t]*✅[ \t]*" + STAMP + r"[ \t]*$")
@@ -56,6 +56,10 @@ INDENT = "    "
 
 class TodoError(Exception):
     pass
+
+
+class Hidden(TodoError):
+    """An unclosed code fence at the end of the file would hide the appended item."""
 
 
 class Conflict(TodoError):
@@ -132,7 +136,7 @@ def trailing_project(first: str, projects: set):
 def compose(text: str, project, link, stamp: str) -> str:
     """An item for `text`: `- [ ] <first>[ @project][ [[link]]] ➕ <stamp>`, then the further lines as continuations.
     The project tag is left out when the first line already has exactly that tag."""
-    first, *rest = text.split("\n")
+    first, *rest = NEWLINES_RE.sub("\n", text).split("\n")
     tag = f" @{project}" if project and project not in tags_of(first) else ""
     ref = f" [[{link}]]" if link else ""
     lines = [f"- [ ] {first}{tag}{ref} ➕ {stamp}"]
@@ -148,12 +152,21 @@ def append_item(text: str, name: str, block: str) -> str:
     return base + block + "\n"
 
 
+def append_checked(text: str, name: str, block: str) -> str:
+    """append_item, refused (Hidden) when an unclosed code fence before it would hide the new item."""
+    new = append_item(text, name, block)
+    if not any(one["line"] == new.count("\n") - block.count("\n") - 1 for one in parse(new, name, set())):
+        raise Hidden(f"an unclosed code fence in {name} would hide the item")
+    return new
+
+
 def toggle(text: str, line: int, done: bool, today: str) -> str:
-    """Tick (mark `x`, trailing ✅ replaced by today's) or untick (mark space, trailing ✅ dropped) the item at `line`."""
+    """Tick (mark `x`, trailing ✅ replaced by today's) or untick (mark space, trailing ✅ dropped) the item at `line`;
+    a line that is no item (inside a code fence, or no task at all) is refused."""
     lines = normalize(text).split("\n")
-    m = TODO_RE.match(lines[line]) if 0 <= line < len(lines) else None
-    if not m:
+    if line not in {item["line"] for item in parse(text, "", set())}:
         raise TodoError(f"line {line} is not an item")
+    m = TODO_RE.match(lines[line])
     body = DONE_MARK_RE.sub("", m.group(4)).rstrip(" \t")
     lines[line] = f"{m.group(1)}{'x' if done else ' '}{m.group(3)}{body}" + (f" ✅ {today}" if done else "")
     return "\n".join(lines)
@@ -202,7 +215,7 @@ def parse(text: str, file: str, projects: set) -> list:
             shown = shown[:TRAIL_TAG_RE.search(shown).start()]
         due, done_on = DUE_RE.search(first), DONE_ON_RE.search(first)
         items.append({"file": file, "line": i, "depth": len(m.group(1)) - len(m.group(1).lstrip(" \t")), "done": m.group(2) != " ",
-                      "created": created.group(1) if created else "", "key": key_of(first),
+                      "created": " ".join(g for g in created.groups() if g) if created else "", "key": key_of(first),
                       "text": "\n".join([shown] + more), "project": tags[0] if tags else None, "tags": tags,
                       "due": due.group(1) if due else "", "done_date": done_on.group(1) if done_on else "",
                       "priority": priority_of(first), "progress": None})
@@ -219,7 +232,7 @@ def parse(text: str, file: str, projects: set) -> list:
 
 
 def version_of(st) -> str:
-    return f"{st.st_ino}-{st.st_mtime_ns}-{st.st_size}"
+    return f"{st.st_ino}-{st.st_mtime_ns}-{st.st_ctime_ns}-{st.st_size}"
 
 
 def read_file(path: str):
@@ -233,7 +246,8 @@ def read_file(path: str):
 
 
 def file_version(path: str) -> str:
-    """inode, mtime in ns and size: tells apart writes within one millisecond, which an mtime in ms does not."""
+    """inode, mtime and ctime in ns, size: tells apart writes within one millisecond (which an mtime in ms does not)
+    and a case-only rename (which changes only the ctime)."""
     try:
         return version_of(os.stat(path))
     except FileNotFoundError:
@@ -241,8 +255,14 @@ def file_version(path: str) -> str:
 
 
 def lock_path(tdir: str) -> str:
-    """Outside the todo dir (a versioned docs tree) and at a fixed place, so every caller shares it; one per todo dir."""
-    digest = hashlib.sha1(os.path.realpath(tdir).encode("utf-8")).hexdigest()[:12]
+    """Outside the todo dir (a versioned docs tree) and at a fixed place, so every caller shares it; one per todo dir,
+    keyed by the directory itself, so two spellings of one path (case, links) share it too."""
+    try:
+        st = os.stat(tdir)
+        key = f"{st.st_dev}-{st.st_ino}"
+    except FileNotFoundError:
+        key = os.path.realpath(tdir)
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
     return str(Path.home() / ".config" / "xg-knowledge-wiki" / "todo-locks" / f"{digest}.lock")
 
 
@@ -268,17 +288,21 @@ def locked(tdir: str):
         os.close(fd_lock)
 
 
-def replace(tdir: str, path: str, new: str, expect: str) -> bool:
-    """Atomically put `new` at `path`, unless the file left version `expect` (an editor that holds no lock); False then."""
+def replace(tdir: str, path: str, new: str, expect: str):
+    """Atomically put `new` at `path`, unless the file left version `expect` (an editor that holds no lock): None then.
+    Returns the new version, or "" when an unlocked writer replaced the file again right after (the next write by
+    version is then refused rather than taking that writer's file for ours)."""
     fd, tmp = tempfile.mkstemp(dir=tdir, prefix=".todo.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(new)
+            ino = os.fstat(f.fileno()).st_ino
         if file_version(path) != expect:
             os.unlink(tmp)
-            return False
+            return None
         os.replace(tmp, path)
-        return True
+        st = os.stat(path)
+        return version_of(st) if st.st_ino == ino else ""
     except BaseException:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -298,7 +322,7 @@ def edit(tdir: str, name: str, change):
             new, result = change(text)
             if new is None:
                 return result
-            if replace(tdir, path, new, version):
+            if replace(tdir, path, new, version) is not None:
                 return result
     raise TodoError(f"{name} kept changing while being written; nothing written")
 
@@ -312,12 +336,14 @@ def write_at(tdir: str, name: str, version: str, change) -> str:
         text, now = read_file(path)
         if now != version:
             raise Conflict(now)
-        if not replace(tdir, path, change(text), now):
+        written = replace(tdir, path, change(text), now)
+        if written is None:
             raise Conflict(file_version(path))
-        return file_version(path)
+        return written
 
 
 def rename_at(tdir: str, name: str, to: str, version: str) -> str:
+    """Rename a file at `version` to `to`, which must not be another file; returns the new version."""
     path, dst = os.path.join(tdir, name), os.path.join(tdir, to)
     check_plain(tdir, path)
     check_plain(tdir, dst)
@@ -332,6 +358,7 @@ def rename_at(tdir: str, name: str, to: str, version: str) -> str:
 
 
 def delete_at(tdir: str, name: str, version: str) -> None:
+    """Delete a file at `version`."""
     path = os.path.join(tdir, name)
     check_plain(tdir, path)
     with locked(tdir):
@@ -358,10 +385,7 @@ def cmd_add(args, tdir: str, stamp: str):
     item = parse(block, name, projects)[0]
 
     def append(old):
-        new = append_item(old, name, block)
-        if not any(one["line"] == new.count("\n") - block.count("\n") - 1 for one in parse(new, name, projects)):
-            raise TodoError(f"an unclosed code fence in {name} would hide the item; nothing written")
-        return new, None
+        return append_checked(old, name, block), None
 
     edit(tdir, name, append)
     return {"file": name, "created": item["created"], "key": item["key"], "text": text, "listed": item["text"], "project": project}

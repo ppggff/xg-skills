@@ -641,9 +641,9 @@ var SV = (function () {
       return { sha: /^commit ([0-9a-f]+)/.exec(b)[1], date: date ? date[1].trim() : "", subject: subj ? subj[1].trim() : "", diff: at < 0 ? "" : b.slice(at + 1) };
     });
   }
-  // 043/044/052: the todo format is tools/todo-format.md, shared with todo.py (the only writer) and pinned by
+  // 043/044: the todo format is tools/todo-format.md, shared with todo.py (the only writer) and pinned by
   // todo-cases.json; only "- [ ] " / "- [x] " lines outside code fences are items. ASCII rules, like todo.py's.
-  var TODO_RE = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)(.*)$/;   // lead · mark · "] " · text — the marker is kept on edit
+  var TODO_RE = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)([\s\S]*)$/;   // text: to the line's end, U+2028 too   // lead · mark · "] " · text — the marker is kept on edit
   var FENCE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
   function parseTodo(text) {
     var out = [], fence = null;
@@ -663,7 +663,7 @@ var SV = (function () {
     });
     return out;
   }
-  // 052: line n of a todo file as todo.py reads it (byte order mark dropped, CRLF folded) — what a tick names
+  // line n of a todo file as todo.py reads it (byte order mark dropped, CRLF folded) — what a tick names
   function todoLine(text, n) { return String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n")[n] || ""; }
   // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time, maybe with seconds), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
   // … 3 low, 0 none) — and its text with the marks taken out

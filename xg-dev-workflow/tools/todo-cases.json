@@ -329,6 +329,155 @@
      "progress": null
     }
    ]
+  },
+  {
+   "name": "a lone CR ends a line too",
+   "text": "- [ ] one\r- [ ] two",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "one",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 1,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "two",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a tab of indent counts one",
+   "text": "- [ ] top\n\t- [x] sub",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "top",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": [
+      1,
+      1
+     ]
+    },
+    {
+     "line": 1,
+     "done": true,
+     "depth": 1,
+     "tags": [],
+     "key": "sub",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a tilde fence hides items too",
+   "text": "~~~\n- [ ] in\n~~~\n- [ ] out",
+   "items": [
+    {
+     "line": 3,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "out",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "medium and low priority",
+   "text": "- [ ] a 🔼\n- [ ] b 🔽",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "a",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 2,
+     "progress": null
+    },
+    {
+     "line": 1,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "b",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 3,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a tab after a mark sign and between date and time",
+   "text": "- [ ] t ➕\t2026-10-01\t09:00 📅\t2026-10-09",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "t",
+     "created": "2026-10-01 09:00",
+     "due": "2026-10-09",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a line separator stays inside the line",
+   "text": "- [ ] a b @p",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [
+      "p"
+     ],
+     "key": "a b @p",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
   }
  ],
  "write": [
@@ -413,6 +562,44 @@
    "stamp": "2026-10-13 14:05:33",
    "after": "# inbox\n- [ ] x @p [[xg-skills/048]] ➕ 2026-10-13 14:05:33\n",
    "file": "inbox.md"
+  },
+  {
+   "name": "ticking again replaces the done date",
+   "op": "tick",
+   "before": "- [x] a ✅ 2026-10-01",
+   "line": 0,
+   "done": true,
+   "today": "2026-10-13",
+   "after": "- [x] a ✅ 2026-10-13"
+  },
+  {
+   "name": "untick takes only the trailing done date",
+   "op": "tick",
+   "before": "- [x] cost ✅2024-01-01 receipt ✅ 2026-10-07",
+   "line": 0,
+   "done": false,
+   "today": "2026-10-13",
+   "after": "- [ ] cost ✅2024-01-01 receipt"
+  },
+  {
+   "name": "an ordered item ticks in place",
+   "op": "tick",
+   "before": "1. [ ] b",
+   "line": 0,
+   "done": true,
+   "today": "2026-10-13",
+   "after": "1. [x] b ✅ 2026-10-13"
+  },
+  {
+   "name": "line breaks in appended text become continuations, whatever their kind",
+   "op": "append",
+   "file": "inbox.md",
+   "before": "# inbox\n",
+   "text": "first\r\nsecond third",
+   "project": "",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# inbox\n- [ ] first ➕ 2026-10-13 14:05:33\n    second\n    third\n"
   }
  ]
 }

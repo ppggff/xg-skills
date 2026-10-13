@@ -271,6 +271,28 @@ class TTodo(unittest.TestCase):
         self.assertGreaterEqual(len(done), 40)
         self.assertEqual([t for t in done if "- [ ] " + t + " " not in final], [])
 
+    def test_refusals_that_keep_the_file_whole(self):
+        _, d = self.w("f.md", "- [ ] a\n```\nnotes\n", "")
+        add = {"op": "append", "file": "f.md", "text": "new", "project": "", "link": "", "stamp": "2026-10-13 14:05:33", "version": d["version"]}
+        code, body = self.post(add)
+        self.assertEqual((code, json.loads(body)["error"]), (422, "hidden"))                  # an unclosed fence would hide it
+        for link in ("x\r```", "a[[b", "a\u2028b"):
+            self.assertEqual(self.post(dict(add, file="g.md", version="", link=link))[0], 400, link)
+        self.assertEqual(self.post({"op": "tick", "file": "f.md", "line": 2, "text": "```", "done": True, "today": "2026-10-13", "version": d["version"]})[0], 409)
+        _, d2 = self.w("c.md", "```\n- [ ] in code\n```\n", "")
+        self.assertEqual(self.post({"op": "tick", "file": "c.md", "line": 1, "text": "- [ ] in code", "done": True, "today": "2026-10-13", "version": d2["version"]})[0], 409)
+        (self.t / "bad.md").write_bytes(b"- [ ] \xff\n")
+        self.assertEqual(get(self.base, "/raw/dev/todo/bad.md")[0], 404)                        # not shown, not crashed on
+        st = (self.t / "bad.md").stat()
+        code, body = self.w("bad.md", "x", "%d-%d-%d-%d" % (st.st_ino, st.st_mtime_ns, st.st_ctime_ns, st.st_size))
+        self.assertEqual((code, json.loads(body)["error"]), (422, "not-utf8"))
+        self.assertEqual((self.t / "f.md").read_text(encoding="utf-8"), "- [ ] a\n```\nnotes\n")
+        self.assertFalse((self.t / "g.md").exists())
+
+    def test_no_old_file_means_no_lock_and_no_todo_dir(self):
+        viewer.migrate_todo(self.dev)
+        self.assertFalse(self.t.exists())
+
     def test_names_stay_in_the_directory(self):
         for bad in ("../x.md", "a/b.md", ".hidden.md", "x.txt", "", "a.md\x00"):
             self.assertEqual(self.w(bad, "x", "")[0], 400, bad)
@@ -285,7 +307,7 @@ class TTodo(unittest.TestCase):
         self.t.mkdir(); (self.t / "l.md").symlink_to(out)
         st = out.stat()
         for body in ({"op": "write", "file": "l.md", "text": "y"}, {"op": "append", "file": "l.md", "text": "y", "project": "", "link": "", "stamp": "2026-10-13 14:05:33"}):
-            self.assertEqual(self.post(dict(body, version="%d-%d-%d" % (st.st_ino, st.st_mtime_ns, st.st_size)))[0], 403)
+            self.assertEqual(self.post(dict(body, version="%d-%d-%d-%d" % (st.st_ino, st.st_mtime_ns, st.st_ctime_ns, st.st_size)))[0], 403)
         self.assertEqual(out.read_text(encoding="utf-8"), "safe")
         (self.t / "l.md").unlink(); self.t.rmdir()
         outdir = self.tmp / "elsewhere"; outdir.mkdir(); self.t.symlink_to(outdir)

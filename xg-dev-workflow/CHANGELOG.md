@@ -33,8 +33,9 @@ Each entry says *what changed* and *why*, not the raw diff.
   several spaces or a tab after the list marker, no tasks inside block quotes, CRLF and a leading BOM folded.
 - Every todo write goes through `todo.py` under one lock: the viewer server loads it for write, rename, delete and the
   startup move. Why: the server's own lock was invisible to `todo.py`, and a stress test lost writes on both sides.
-  The version a write names is inode · mtime in ns · size (the `X-Version` header), since a millisecond mtime could not
-  tell apart two writes in one millisecond.
+  The version a write names is inode · mtime in ns · ctime in ns · size (the `X-Version` header), since a millisecond
+  mtime could not tell apart two writes in one millisecond, nor any mtime a case-only rename. An append behind an
+  unclosed code fence is refused (it would be hidden), and so is a tick on a line inside one.
 - The viewer ticks and captures by intent (file · line · line text, or file · text · project · link) with the page's
   local time; `todo.py` edits the line or composes the item. `list` also reports tags, due, done date, priority and
   sub-item progress, which the xg-hud band now uses instead of counting itself.
