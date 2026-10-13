@@ -69,7 +69,7 @@
 .app.phone .drow { gap: 16px 18px; }
 .app.mid .tbl .c-nx, .app.narrow .tbl .c-nx { width: 22%; }
 /* zero-wide, not display:none: a group row still spans these columns; the detail drawer shows their values */
-.app.narrow .tbl .hn, .app.phone .tbl :is(.hn, .hp) { width: 0; padding: 0; border: 0; font-size: 0; }   /* columns marked to hide (V.tableHTML) */
+.app.narrow .tbl .hide-n, .app.phone .tbl :is(.hide-n, .hide-p) { width: 0; padding: 0; border: 0; font-size: 0; }   /* columns marked to hide (V.tableHTML) */
 .app.phone .tbl .mt { width: 28px; margin-right: 5px; }
 .app.phone .tbl :is(.c-n, .c-ck) { width: 44px; } .app.phone .tbl .c-st, .app.phone .tbl .c-p { width: 66px; } .app.phone .tbl .c-prog { width: 96px; }
 .app.phone .hn { font-size: calc(36px * var(--fz)); }

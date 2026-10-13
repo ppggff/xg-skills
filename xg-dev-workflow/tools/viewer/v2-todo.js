@@ -131,9 +131,9 @@
       + `<td class="c-text">${text}</td>`
       + `<td class="c-prio">${m.prio ? `<span class="tpri p${m.prio}" data-tip="优先级：${PRIO[m.prio]}">${V.I["p" + m.prio]}</span>` : ""}</td>`
       + `<td class="c-due">${m.due ? `<span class="tdue${!it.done && m.due < t ? " late" : !it.done && m.due === t ? " now" : ""}" data-tip="截止 ${m.due}">${m.due.slice(5)}</span>` : ""}</td>`
-      + `<td class="c-done mu hp" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
-      + `<td class="c-created mu hp" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
-      + `<td class="c-file hp"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td></tr>`;
+      + `<td class="c-done mu${V.hideCls("p")}" data-tip="${m.done ? "完成 " + m.done : ""}">${m.done ? m.done.slice(5) : ""}</td>`
+      + `<td class="c-created mu${V.hideCls("p")}" data-tip="${m.created ? "创建 " + esc(m.created) : ""}">${when ? V.relT(when.getTime()) : ""}</td>`
+      + `<td class="c-file${V.hideCls("p")}"><button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></td></tr>`;
   }
   function tableT(gs) {   // the board's table, over todo items; done ones show in place — the 完成 filter picks them
     return V.tableHTML({ cls: "ttbl", cols: COLS.map(([k, l, hide]) => [k, l, SORTABLE.includes(k), hide]), val: (it, k) => SORTKEY[k](it), row: trHTML,

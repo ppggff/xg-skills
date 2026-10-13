@@ -18,6 +18,16 @@ const viewerPy = read("../viewer.py");
 let pass = 0;
 function t(name, fn) { fn(); pass++; console.log("ok  -", name); }
 
+t("the table's column-hiding classes name nothing else: no other CSS rule styles them", () => {
+  const hide = /V\.hideCls = h => \(h \? " ([\w-]+)" \+ h : ""\)/.exec(js.board);
+  assert.ok(hide, "V.hideCls keeps its one-prefix form");
+  for (const k of ["n", "p"]) {
+    const cls = hide[1] + k, uses = css.split("\n").filter((l) => new RegExp(`\\.${cls}(?![\\w-])`).test(l));
+    assert.ok(uses.length >= 1 && uses.every((l) => l.includes("columns marked to hide")), `.${cls} is styled outside the hide rule: ${uses.join(" | ")}`);
+    assert.doesNotMatch(allJs, new RegExp(`<t[dh] class="[^"]*\\bh${k}\\b`), `a table cell still names the old h${k} class`);
+  }
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

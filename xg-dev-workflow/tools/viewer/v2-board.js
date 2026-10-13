@@ -107,15 +107,15 @@
       : `<span class="mu">${esc(V.phaseNow(c))}</span>`;
     const row = c => `<tr data-card="${esc(c.id)}" data-st="${c.st}" class="${selCls(c)}"><td class="n c-n">${c.n}</td><td class="nm c-slug" data-tip="${esc(c.id + " " + c.slug)}">${esc(c.slug)}</td>`
       + (groupBy !== "p" ? `<td class="mu c-p">${esc(c.p)}</td>` : "") + (groupBy !== "s" ? `<td class="c-st" style="color:var(--c)">${c.st}</td>` : "")
-      + (groupBy !== "g" ? `<td class="mu c-gov hn">${esc(c.gov)}</td>` : "") + `<td class="c-prog">${prog(c)}</td><td class="mu c-nx hp" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
-      + `<td class="mu c-mt hp">${V.ago(mt[c.dir])}</td></tr>`;
+      + (groupBy !== "g" ? `<td class="mu c-gov${V.hideCls("n")}">${esc(c.gov)}</td>` : "") + `<td class="c-prog">${prog(c)}</td><td class="mu c-nx${V.hideCls("p")}" data-tip="${esc(V.nextOf(c))}">${esc(V.nextOf(c))}</td>`
+      + `<td class="mu c-mt${V.hideCls("p")}">${V.ago(mt[c.dir])}</td></tr>`;
     return V.tableHTML({ cols, val, row, sort: { k: sortK, desc: sortDesc, attr: "data-sort" }, fold: foldHTML,
       groups: gs.map(g => Object.assign({ key: g.key, name: g.name, n: g.cs.length }, split(g))) });
   }
   /* ---- the table form, shared with the todo view (046). T: cols [[key, label, sortable = true, hide]], hide "n" or "p"
      drops the column on narrow or phone widths (rows put V.hideCls(hide) on their cell too); sort {k, desc, attr},
      val(item, key) to sort by, row(item), fold(group, closed, show), groups [{key, name, n, open, closed, show}], cls ---- */
-  V.hideCls = h => (h ? " h" + h : "");
+  V.hideCls = h => (h ? " hide-" + h : "");
   V.tableHTML = T => {
     const { k: sk, desc, attr } = T.sort, n = T.cols.length;
     const cmp = (a, b) => { const x = T.val(a, sk), y = T.val(b, sk); return (x > y ? 1 : x < y ? -1 : 0) * (desc ? -1 : 1); };
