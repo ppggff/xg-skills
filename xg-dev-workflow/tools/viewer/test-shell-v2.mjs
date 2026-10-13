@@ -41,6 +41,10 @@ t("a checked box keeps its place: the tick is out of flow; the editor's line hei
   assert.match(css, /\.ted \.thl, \.ted \.tta \{[^}]*\/1\.45 var\(--code\)/);
 });
 
+t("a table group heading keeps its distance whether or not a dots row sits above it", () => {
+  assert.match(css, /\.tbl tbody tr:not\(\.gh\):not\(\.tfold\) \+ tr\.gh td \{ padding-top: 37px; \}/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

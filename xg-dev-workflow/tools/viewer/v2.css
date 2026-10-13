@@ -232,6 +232,8 @@ a.tr { text-decoration: none; }
 .tbl .tfold .fold { margin-top: 2px; }
 .tbl .mu { color: var(--mu); }
 .tbl .gh td { padding: 14px 10px 5px; font: 500 var(--t-sm) var(--mono); color: var(--tx); border-bottom: 1px solid var(--ln); }
+/* a group with nothing folded has no dots row under it; the next heading keeps the same distance (the dots row, less the card row's border, + 14px) */
+.tbl tbody tr:not(.gh):not(.tfold) + tr.gh td { padding-top: 37px; }
 .tbl .gh em { font-style: normal; font-weight: 300; color: var(--faint); margin-left: 8px; }
 .mt { display: inline-block; position: relative; width: 48px; height: 2px; border-radius: 1px; background: var(--ln); vertical-align: middle; margin-right: 8px; overflow: hidden; }
 .mt i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--done) 60%, var(--paper)); }
