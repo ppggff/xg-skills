@@ -346,7 +346,6 @@ a.tr { text-decoration: none; }
 .ttbl .tfile { font: 400 var(--t-xs) var(--mono); color: var(--faint); } .ttbl .tfile:hover { color: var(--sig); }
 .ttbl tbody tr:not(.gh):not(.tfold):hover td { background: var(--hover); }
 .ttbl .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; } .ttbl .tdl.broken { color: var(--blocked); }
-.ttbl .tedit { width: 100%; height: 24px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
 .titem .tfile { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
 .titem .tfile:hover { color: var(--sig); }
 /* extra roots popover (044) */
@@ -399,7 +398,6 @@ a.tr { text-decoration: none; }
 .titem .ttx { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .titem .tdl { color: var(--sig); font: inherit; text-decoration: underline dotted; }
 .titem .tdl.broken { color: var(--blocked); }
-.titem.ed .tedit { flex: 1; height: 28px; border: 1px solid var(--sig); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; padding: 0 6px; }
 .tdl.tcard { display: inline-flex; align-items: baseline; gap: 4px; text-decoration: none; }
 .tdl.tcard .cdot { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--mu)); align-self: center; }
 .btodo .bth { font: 400 var(--t-meta) var(--cjk); color: var(--faint); margin: 0 0 4px; } .btodo .bth em { font-style: normal; margin-left: 6px; }

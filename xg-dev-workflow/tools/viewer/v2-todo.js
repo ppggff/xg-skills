@@ -9,7 +9,7 @@
   // per file: text/mtime follow the disk; shown/base are the version on screen — edits address its lines and are
   // saved against its mtime, so a file that moved underneath is refused (409) instead of having the wrong line changed
   const F = V.todoFiles = {};
-  let editing = null, loaded = false;
+  let loaded = false;
   const DIR = "todo/", names = () => (V.D.tree ? V.D.tree.dev.map(x => x.path).filter(p => /^todo\/[^/]+\.md$/.test(p)).map(p => p.slice(DIR.length)) : []);
 
   function load() {
@@ -72,9 +72,8 @@
   };
   function rowHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = SV.todoMeta(it.text);
-    if (editing === id) return `<div class="titem ed"><input class="tedit" data-id="${id}" value="${esc(it.text)}" aria-label="改这一条"></div>`;
     return `<div class="titem${it.done ? " done" : ""}" style="--td:${Math.min(it.depth, 8)}"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
-      + `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`
+      + `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`
       + V.todoMetaHTML(m, it.done)
       + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></div>`;
   }
@@ -125,8 +124,7 @@
   const SORTABLE = ["prio", "due", "done", "created", "file"];
   function trHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = it.meta, t = today(), when = m.created && SV.todoDate(m.created);
-    const text = editing === id ? `<input class="tedit" data-id="${id}" value="${esc(it.text)}" aria-label="改这一条">`
-      : `<span class="ttx" data-ted="${id}" data-tip="双击修改">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`;
+    const text = `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`;
     return `<tr class="${it.done ? "done" : ""}" style="--td:${Math.min(it.depth, 8)}">`
       + `<td class="c-ck"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button></td>`
       + `<td class="c-text">${text}</td>`
@@ -160,7 +158,6 @@
       + cyc(DONES, dn, "data-tdonef", "完成") + cyc(RANGES, rg, "data-trangef", "时间") + "</div>"
       + (all.length ? tableT(gs) : `<div class="hint">还没有 todo。在左侧 todo 下新建一个文件，写 - [ ] 开头的行。</div>`);
     sc.scrollTop = top;
-    const ed = $(".tedit", sc); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
     V.emit("todo-count"); V.status();
   }
   // what a wikilink can name: recent docs first, then every dev doc, then the KB and the extra roots — as [[…]] targets
@@ -253,15 +250,9 @@
     });
   });
   V.click("[data-tdelf]", el => { const n = el.dataset.tdelf; V.ask(`删除 ${n}？里面的 todo 会一起删掉。`, [["del", "删除"], ["", "取消"]]).then(v => { if (v === "del") V.todoWrite("delete", n, { mtime: F[n].mtime }); }); });
-  document.addEventListener("dblclick", e => { const t = e.target.closest("#todo [data-ted]"); if (t && !e.target.closest("[data-open]")) { editing = t.dataset.ted; paint(); } });
-  document.addEventListener("keydown", e => {
-    const inp = e.target.closest && e.target.closest("#todo .tedit"); if (!inp) return;
-    if (e.key === "Escape") { e.stopPropagation(); editing = null; paint(); }
-    else if (e.key === "Enter") { e.preventDefault(); const v = inp.value.trim(), at = find(inp.dataset.id); editing = null; if (v && at) save(at.file, SV.editTodo(seen(at.file), at.line, { text: v })); else paint(); }
-  }, true);
-  document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#todo .tedit") && editing !== null) { editing = null; paint(); } });
+  // No in-place edit: it changed only an item's first line, which other tools use to find the item; edit the file instead.
   V.on("data", () => {
-    const busy = editing !== null || $("#todo input:focus");
+    const busy = $("#todo input:focus");
     if (!$("#todo").hidden && !busy) return refresh();
     load().then(() => {   // busy: data only, the screen keeps its version; hidden: no screen, so no snapshot either
       if ($("#todo").hidden) Object.values(F).forEach(f => { f.shown = null; });
