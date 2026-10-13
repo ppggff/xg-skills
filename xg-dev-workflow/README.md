@@ -79,6 +79,10 @@ each row script- or reader-checkable.
 - **The session's card is recorded, not guessed.** `new` and `resume` run `tools/active-card.py set <project>/<NNN>`;
   `park` and close-out run `clear`. The pointer is one line per Claude Code session (keyed by `CLAUDE_CODE_SESSION_ID`,
   under `~/.config/xg-knowledge-wiki/active-card/`), so a status line or mod can show which card this session works on.
+- **Todos have a script interface.** `tools/todo.py add|list|done` reads and writes the viewer's todo files
+  (`<dev_root>/todo/*.md`) in the viewer's own format: `add` appends to `inbox.md` with an `@project` tag and a `➕`
+  stamp (multi-line text as indented continuation lines), `list` returns every item as JSON, `done` ticks one found by
+  file, created stamp and first line. The xg-hud mod's todo band uses it; any script can.
 - **Retro improves the skill itself.** Friction is folded back into `lite.md` / `discuss.md`, recorded in
   `CHANGELOG.md` with the 体量行 by dimension (`constraints.md` Cap-1) plus the lite-face and whole-skill totals.
 

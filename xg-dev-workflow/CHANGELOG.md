@@ -4,6 +4,17 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-13 — a script interface to the viewer's todos; the todo view drops per-item delete (card xg-skills/048)
+
+- New `tools/todo.py add|list|done` (JSON on stdout, one stderr line and exit 1 on failure). `add` appends an item to
+  `<dev_root>/todo/inbox.md` with `@project` (given, or resolved from `--cwd`) and a `➕ YYYY-MM-DD HH:MM` stamp; a
+  multi-line text keeps its further lines as four-space continuations, escaped so the viewer never reads them as items
+  or fences. `list` reads every todo file; `done` ticks an item found by file, created stamp and first line (`✅` date).
+  Writes are serialized by a lock outside the docs tree and re-read when the file's mtime moves. Why: the xg-hud mod's
+  todo band now keeps its queue in the viewer's inbox, and other scripts can do the same.
+- The viewer's todo list and table no longer have a per-item delete: they show only an item's first line, so deleting
+  from there left continuation lines under the item above. Items are deleted in the source editor.
+
 ## 2026-10-09 — the session's active card is recorded explicitly (card xg-skills/047)
 
 - New `tools/active-card.py set|clear|get`: one pointer file per Claude Code session (`CLAUDE_CODE_SESSION_ID`) under

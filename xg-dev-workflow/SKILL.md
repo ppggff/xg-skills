@@ -50,6 +50,8 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   `--trace` and `--digest` print one 不适用 line for a lite card (they render five-phase scaffolding).
   `tools/active-card.py set|clear|get` records the card this Claude Code session works on (one pointer file per
   `CLAUDE_CODE_SESSION_ID` under `~/.config/xg-knowledge-wiki/active-card/`; readers such as a status mod only read it).
+  `tools/todo.py add|list|done` reads and writes the viewer's todo files (`<dev_root>/todo/*.md`) for scripts and mods
+  (JSON on stdout; `add` appends to `inbox.md` with `@project` and a `➕` stamp, `done` ticks an item by file · stamp · first line).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
   `resolve-project.py`.
 
