@@ -203,7 +203,7 @@
     const text = $(".capin", box).value.trim(), proj = $(".capproj", box).value, link = $(".capdoc", box) && $(".capdoc", box).checked ? box.dataset.doc : "";
     if (!text) return $(".capin", box).focus();
     if (proj) store.set("todo-proj", proj);
-    const body = text + (proj && !text.includes("@" + proj) ? " @" + proj : "") + (link ? " [[" + link + "]]" : "") + " ➕ " + SV.todoStamp(new Date());
+    const body = text + (proj && !text.includes("@" + proj) ? " @" + proj : "") + (link ? " [[" + link + "]]" : "") + " ➕ " + SV.todoStamp(new Date(), true);
     if (box.dataset.busy) return;
     box.dataset.busy = "1";   // the box stays open, text and all, until the line is really written
     V.todoAppend("inbox.md", body).then(res => {

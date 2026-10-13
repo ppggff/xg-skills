@@ -1027,6 +1027,15 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("046 todo marks may carry seconds; the seconds never stay in the text", () => {
+  const m = SV.todoMeta("ship it @p ➕ 2026-10-13 14:05:33 📅 2026-10-20");
+  assert.deepEqual(m, { created: "2026-10-13 14:05:33", due: "2026-10-20", done: "", prio: 0, text: "ship it @p" });
+  assert.equal(SV.editTodo("- [x] a ✅ 2026-10-07 12:00:09", 0, { done: false, today: "x" }), "- [ ] a");
+  assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7, 4), true), "2026-01-05 09:07:04");
+  assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7, 4)), "2026-01-05 09:07");
+  assert.equal(SV.todoDate("2026-10-13 14:05:33").getSeconds(), 33);
+  assert.equal(SV.continueLine("- [ ] ➕ 2026-10-13 14:05:33").empty, true);
+});
 t("045 todo marks: done date on tick, meta parsing, subtask progress", () => {
   assert.equal(SV.editTodo("- [ ] a ➕ 2026-10-01 09:00", 0, { done: true, today: "2026-10-07" }), "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-07");
   assert.equal(SV.editTodo("- [x] a ✅ 2026-10-07", 0, { done: false, today: "2026-10-08" }), "- [ ] a");

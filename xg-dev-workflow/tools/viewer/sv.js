@@ -669,16 +669,16 @@ var SV = (function () {
     if (change.remove) { ls.splice(line, 1); return ls.join("\n"); }
     var done = change.done !== undefined ? change.done : m[2] !== " ", body = change.text !== undefined ? change.text : m[4];
     if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away (only the trailing mark)
-      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?\s*$/, "");
+      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?\s*$/, "");
       if (done) body = body.replace(/\s+$/, "") + " ✅ " + change.today;
     }
     ls[line] = m[1] + (done ? "x" : " ") + m[3] + body;
     return ls.join("\n");
   }
-  // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
+  // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time, maybe with seconds), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
   // … 3 low, 0 none) — and its text with the marks taken out
   function todoMeta(text) {
-    var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "\\s*(\\d{4}-\\d{2}-\\d{2})(?:\\s+(\\d{2}:\\d{2}))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
+    var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "\\s*(\\d{4}-\\d{2}-\\d{2})(?:\\s+(\\d{2}:\\d{2}(?::\\d{2})?))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
     var p = /⏫/.test(t) ? 1 : /🔼/.test(t) ? 2 : /🔽/.test(t) ? 3 : 0;
     var plain = t.replace(TODO_MARKS, "").replace(/\s{2,}/g, " ").trim();
     return { created: d("➕"), due: d("📅").slice(0, 10), done: d("✅").slice(0, 10), prio: p, text: plain };
@@ -704,7 +704,7 @@ var SV = (function () {
   // 045: how a list line continues on Enter — the next line's prefix (same indent, quote and bullet; an ordered number
   // +1; a task restarts unticked), and whether this item is empty (only its prefix and date marks), which ends the list
   // the marks spelled out: 📅 🔼 🔽 are astral, so a [character class] without the u flag would split them
-  var TODO_MARKS = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?|⏫|🔼|🔽/g;
+  var TODO_MARKS = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽/g;
   var LIST_RE = /^(\s*(?:>\s?)*)(?:([-*+])|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?(.*)$/;
   function continueLine(line) {
     var m = LIST_RE.exec(line || "");
@@ -712,9 +712,9 @@ var SV = (function () {
     var bullet = m[2] || (+m[3] + 1) + m[4], rest = m[7].replace(TODO_MARKS, "").trim();
     return { next: m[1] + bullet + m[5] + (m[6] ? "[ ] " : ""), empty: !rest, todo: !!m[6] };
   }
-  function todoStamp(d) {   // "YYYY-MM-DD HH:MM", local time — the Obsidian Tasks date with the minute
+  function todoStamp(d, withSeconds) {   // "YYYY-MM-DD HH:MM[:SS]", local time — the Obsidian Tasks date with the minute
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
-    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + (withSeconds ? ":" + p(d.getSeconds()) : "");
   }
   function addTodo(text, body) {
     var t = String(text || "");
