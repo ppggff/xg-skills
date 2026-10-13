@@ -162,6 +162,27 @@ describe('todo text across syncs', () => {
   })
 })
 
+describe('todo actions row', () => {
+  test('new and stash sit at the right end of the list', async ($, on) => {
+    world(on)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    const find = (node: unknown): { props?: Record<string, unknown>; children?: unknown[] } | null => {
+      if (!node || typeof node !== 'object') return null
+      const n = node as { props?: Record<string, unknown>; children?: unknown[] }
+      if (n.props?.key === 'todo-actions') return n
+      for (const child of n.children ?? []) {
+        const hit = find(child)
+        if (hit) return hit
+      }
+      return null
+    }
+    const row = find(await ui.drawn())
+    const first = (row?.children ?? [])[0] as { props?: Record<string, unknown> } | undefined
+    expect(first?.props?.flexGrow).toBe(1)
+  })
+})
+
 describe('todo failures', () => {
   test('a failed stash keeps the prompt and adds nothing', async ($, on) => {
     const fake = world(on, 'keep me')

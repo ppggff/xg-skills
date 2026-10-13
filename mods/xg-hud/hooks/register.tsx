@@ -608,8 +608,8 @@ export const register: Register = on => {
     const pressable = (key: string, label: string, onPress: () => unknown) =>
       <Box key={`${key}-hover`}><Button key={key} plain dimColor hover={{ underline: true }} label={label} onPress={onPress} /></Box>
 
-    // Todo detail: a fixed-width, left-aligned list; each text wraps beside its take/done. The last row, indented to
-    // the text column (the number's two cells plus the gap), holds the new field and stash.
+    // Todo detail: a fixed-width, left-aligned list; each text wraps beside its take/done. The last row holds the new
+    // field and stash at its right end.
     const todoBlock: RenderChildren[] = []
     if (todoOpen) {
       // Connectors as KB and card draw them: ┤ on each entry's first row, │ on its wrapped rows, ┘ closing the block.
@@ -657,10 +657,10 @@ export const register: Register = on => {
         )
       })()
       todoBlock.push(
-        <Box key="todo-actions" flexDirection="row" gap={1} width={todoWidth} paddingLeft={3}>
+        <Box key="todo-actions" flexDirection="row" gap={1} width={todoWidth}>
+          <Box flexGrow={1} />
           {field}
           {pressable('todo-stash', 'stash', () => stashPrompt($))}
-          <Box flexGrow={1} />
           {tick(['┘'])}
         </Box>,
       )
