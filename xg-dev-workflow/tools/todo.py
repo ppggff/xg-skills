@@ -22,6 +22,7 @@ Options: --dev-root DIR (default: the shared config's dev_root) · --now "YYYY-M
 """
 import argparse
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
@@ -173,6 +174,12 @@ def _mtime(path: str) -> int:
         return 0
 
 
+def lock_path(tdir: str) -> str:
+    """Outside the todo dir, which is a versioned docs tree; one lock per todo dir."""
+    digest = hashlib.sha1(os.path.realpath(tdir).encode("utf-8")).hexdigest()[:12]
+    return os.path.join(tempfile.gettempdir(), f"xg-todo-{digest}.lock")
+
+
 def edit(tdir: str, name: str, change):
     """Read, change and atomically replace one todo file under a lock shared by this script's writers.
 
@@ -181,7 +188,7 @@ def edit(tdir: str, name: str, change):
     """
     os.makedirs(tdir, exist_ok=True)
     path = os.path.join(tdir, name)
-    with open(os.path.join(tdir, ".todo.lock"), "a") as lock:
+    with open(lock_path(tdir), "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         for _ in range(RETRIES):
             text, mtime = read_file(path)

@@ -132,6 +132,11 @@ class TodoTests(unittest.TestCase):
         self.write("inbox.md", "```\n- [ ] fenced\n```\n- [ ] real\n")
         self.assertEqual([i["text"] for i in self.ok("list")], ["real"])
 
+    def test_writing_leaves_only_the_todo_file_in_the_dir(self):
+        self.ok("add", stdin="x")
+        self.ok("done", "--file", "inbox.md", "--created", NOW, "--key", "x")
+        self.assertEqual(os.listdir(self.tdir), ["inbox.md"])
+
     def test_list_with_no_todo_dir_is_empty(self):
         shutil.rmtree(self.tdir)
         self.assertEqual(self.ok("list"), [])
