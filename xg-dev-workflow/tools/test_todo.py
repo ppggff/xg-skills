@@ -27,6 +27,9 @@ class TodoTests(unittest.TestCase):
         self.dev_root = os.path.join(self.tmp.name, "dev")
         self.tdir = os.path.join(self.dev_root, "todo")
         os.makedirs(self.tdir)
+        home = mock.patch.dict(os.environ, {"HOME": os.path.join(self.tmp.name, "home")})
+        home.start()
+        self.addCleanup(home.stop)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -88,7 +91,7 @@ class TodoTests(unittest.TestCase):
             self.assertEqual(out, "")
             self.assertTrue(err.strip())
 
-    # --- multi-line round trip (Inv-3) ---
+    # --- multi-line round trip ---
 
     TRICKY = "first line @alice\nsecond\n\n\n```\n- [ ] not an item\n* [x] nor this\n1. [ ] nor this\n\\escaped already\n    deep"
 
@@ -107,6 +110,49 @@ class TodoTests(unittest.TestCase):
     def test_continuation_lines_are_indented_and_escaped(self):
         self.ok("add", stdin="a\n- [ ] b\n\\c")
         self.assertIn("- [ ] a ➕ 2026-10-13 09:30\n    \\- [ ] b\n    \\\\c\n", self.read())
+
+    def test_carriage_returns_and_line_separators_become_newlines(self):
+        rec = self.ok("add", stdin="one\rtwo\r\nthree\u2028four")
+        self.assertEqual(rec["text"], "one\ntwo\nthree\nfour")
+        self.assertEqual(self.ok("list")[0]["text"], "one\ntwo\nthree\nfour")
+        self.assertNotIn("\r", self.read())
+        self.assertTrue(self.ok("done", "--file", "inbox.md", "--created", rec["created"], "--key", rec["key"])["ok"])
+
+    def test_a_first_line_with_its_own_created_mark_still_matches(self):
+        rec = self.ok("add", stdin="meet ➕ 2026-01-01 about it")
+        got = self.ok("list")[0]
+        self.assertEqual((got["created"], got["key"]), (rec["created"], rec["key"]))
+        self.assertTrue(self.ok("done", "--file", "inbox.md", "--created", rec["created"], "--key", rec["key"])["ok"])
+
+    def test_a_trailing_project_tag_in_the_text_round_trips(self):
+        cases = [("fix bug @xg-skills", ["--project", "xg-skills"]), ("ping @xg-skills", []), ("x @xg-skills", ["--project", "cbdb"]),
+                 ("ask about @cbdb locks", ["--project", "cbdb"])]
+        for text, extra in cases:
+            self.ok("add", *extra, stdin=text)
+        self.assertEqual([i["text"] for i in self.ok("list")], [t for t, _ in cases])
+
+    def test_add_refuses_an_item_an_unclosed_fence_would_hide(self):
+        self.write("inbox.md", "```\nnotes\n")
+        code, out, err = self.run_tool("add", stdin="hidden")
+        self.assertNotEqual(code, 0)
+        self.assertIn("fence", err)
+        self.assertEqual(self.read(), "```\nnotes\n")
+
+    def test_links_are_refused(self):
+        outside = os.path.join(self.tmp.name, "outside")
+        os.makedirs(outside)
+        with open(os.path.join(outside, "real.md"), "w") as f:
+            f.write("- [ ] x\n")
+        os.symlink(os.path.join(outside, "real.md"), os.path.join(self.tdir, "link.md"))
+        self.assertNotEqual(self.run_tool("add", "--file", "link.md", stdin="y")[0], 0)
+        shutil.rmtree(self.tdir)
+        os.symlink(outside, self.tdir)
+        self.assertNotEqual(self.run_tool("add", stdin="y")[0], 0)
+        self.assertEqual(os.listdir(outside), ["real.md"])
+
+    def test_the_lock_lives_under_the_shared_config_dir_not_tmp(self):
+        path = todo.lock_path(self.tdir)
+        self.assertTrue(path.startswith(os.path.join(self.tmp.name, "home", ".config", "xg-knowledge-wiki") + os.sep), path)
 
     # --- list ---
 
@@ -137,6 +183,15 @@ class TodoTests(unittest.TestCase):
         self.ok("done", "--file", "inbox.md", "--created", NOW, "--key", "x")
         self.assertEqual(os.listdir(self.tdir), ["inbox.md"])
 
+    def test_list_skips_a_file_that_is_not_utf8(self):
+        self.write("inbox.md", "- [ ] good\n")
+        with open(os.path.join(self.tdir, "bad.md"), "wb") as f:
+            f.write(b"- [ ] \xff\xfe\n")
+        code, out, err = self.run_tool("list")
+        self.assertEqual(code, 0)
+        self.assertEqual([i["text"] for i in json.loads(out)], ["good"])
+        self.assertIn("bad.md", err)
+
     def test_list_with_no_todo_dir_is_empty(self):
         shutil.rmtree(self.tdir)
         self.assertEqual(self.ok("list"), [])
@@ -165,7 +220,7 @@ class TodoTests(unittest.TestCase):
         self.write("inbox.md", "- [x] A ➕ 2026-10-13 09:30 ✅ 2026-10-13\n- [ ] A ➕ 2026-10-13 09:30\n")
         self.assertEqual(self.ok("done", "--file", "inbox.md", "--created", NOW, "--key", "A")["line"], 1)
 
-    # --- concurrency (Inv-2) ---
+    # --- concurrency ---
 
     def test_a_write_between_read_and_replace_is_kept(self):
         self.write("inbox.md", "- [ ] mine ➕ 2026-10-13 09:30\n")
@@ -175,7 +230,7 @@ class TodoTests(unittest.TestCase):
         def racing_read(path):
             got = real_read(path)
             calls["n"] += 1
-            if calls["n"] == 1:   # someone else appends right after our first read
+            if calls["n"] == 1:
                 with open(path, "a", encoding="utf-8") as f:
                     f.write("- [ ] theirs\n")
                 st = os.stat(path)
@@ -188,6 +243,16 @@ class TodoTests(unittest.TestCase):
         self.assertIn("- [ ] theirs", text)
         self.assertIn("- [x] mine", text)
         self.assertGreaterEqual(calls["n"], 2)
+
+    def test_a_replace_keeping_the_mtime_is_still_seen(self):
+        path = os.path.join(self.tdir, "inbox.md")
+        self.write("inbox.md", "- [ ] a\n")
+        _, stamp = todo.read_file(path)
+        st = os.stat(path)
+        self.write("other.md", "- [ ] b\n")
+        os.replace(os.path.join(self.tdir, "other.md"), path)
+        os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.assertNotEqual(todo.read_file(path)[1], stamp)
 
     def test_a_file_that_keeps_changing_fails_without_writing(self):
         self.write("inbox.md", "- [ ] mine ➕ 2026-10-13 09:30\n")
@@ -205,7 +270,7 @@ class TodoTests(unittest.TestCase):
         self.assertIn("kept changing", err)
         self.assertEqual(self.read(), "- [ ] mine ➕ 2026-10-13 09:30\n")
 
-    # --- viewer agreement (Inv-1) ---
+    # --- viewer agreement ---
 
     @unittest.skipUnless(shutil.which("node"), "node not installed")
     def test_viewer_parses_what_the_script_writes(self):
