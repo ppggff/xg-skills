@@ -250,9 +250,8 @@
   function accept(ed, ta, i) {
     const a = ed.ac, pick = a.list[i]; ed.ac = null; $(".tac", P[ed.k].body).hidden = true;
     if (a.tok.kind === "/") { ins(ta, "", a.tok.from, ta.selectionStart); ACT[pick[0]](ta); return; }
-    const ins2 = a.tok.kind === "@" ? "@" + pick + " " : "[[" + pick + "]]";
-    const end = a.tok.kind === "[[" && ta.value.slice(ta.selectionStart, ta.selectionStart + 2) === "]]" ? ta.selectionStart + 2 : ta.selectionStart;
-    ins(ta, ins2, a.tok.from, end);
+    const r = SV.completeSpan(ta.value, a.tok.from, ta.selectionStart, a.tok.kind, pick);
+    ins(ta, r.text, r.start, r.end); ta.setSelectionRange(r.caret, r.caret);
   }
 
   /* ---- keys: menus first, then save, continuation, indent, marks and pairs ---- */

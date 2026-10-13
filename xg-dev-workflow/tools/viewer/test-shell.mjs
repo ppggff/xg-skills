@@ -1019,6 +1019,20 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("046 completeSpan: a picked @project or [[doc]] takes what is already there instead of doubling it", () => {
+  const C = (v, from, caret, kind, pick) => { const r = SV.completeSpan(v, from, caret, kind, pick); return v.slice(0, r.start) + r.text + v.slice(r.end) + "|" + r.caret; };
+  assert.equal(C("ask @xg", 4, 7, "@", "xg-skills"), "ask @xg-skills |15");             // at the end: a space to type on
+  assert.equal(C("ask @xg about", 4, 7, "@", "xg-skills"), "ask @xg-skills about|15");  // a space follows: none added, the caret steps over it
+  assert.equal(C("ask @xg-sk about", 4, 7, "@", "xg-skills"), "ask @xg-skills about|15"); // the rest of the word is taken, not kept twice
+  assert.equal(C("ask @xg\nnext", 4, 7, "@", "xg-skills"), "ask @xg-skills \nnext|15");
+  assert.equal(C("see [[xg", 4, 8, "[[", "xg-skills/048"), "see [[xg-skills/048]]|21");
+  assert.equal(C("see [[xg]] now", 4, 8, "[[", "xg-skills/048"), "see [[xg-skills/048]] now|21");
+  assert.equal(C("see [[xg-sk/04]] now", 4, 8, "[[", "xg-skills/048"), "see [[xg-skills/048]] now|21");   // the half-typed rest up to ]] goes
+  assert.equal(C("see [[xg and [[b]]", 4, 8, "[[", "xg-skills/048"), "see [[xg-skills/048]] and [[b]]|21");   // not across another link
+});
+t("046 toggleTask: trailing spaces do not double before the created mark", () => {
+  assert.deepEqual(SV.toggleTask("buy milk  ", 10, "2026-10-13 14:05:33"), { line: "- [ ] buy milk ➕ 2026-10-13 14:05:33", caret: 14 });
+});
 t("052 todoLine: the line a tick names, read as todo.py reads it", () => {
   assert.equal(SV.todoLine("\ufeffa\r\nb\rc", 0), "a");
   assert.equal(SV.todoLine("\ufeffa\r\nb\rc", 2), "c");

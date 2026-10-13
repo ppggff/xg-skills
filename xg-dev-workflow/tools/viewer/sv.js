@@ -711,8 +711,24 @@ var SV = (function () {
   var LINE_PREFIX = /^(\s*)(?:>\s?|#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
   function toggleTask(line, off, stamp) {
     var m = LINE_PREFIX.exec(line), lead = m[1], rest = line.slice(m[0].length), on = !/\[[ xX]\]/.test(m[0]);
-    var head = lead + (on ? "- [ ] " : ""), body = on && !/➕/.test(rest) ? rest + " ➕ " + stamp : rest;
-    return { line: head + body, caret: head.length + Math.max(0, Math.min(off - m[0].length, rest.length)) };
+    var mark = on && !/➕/.test(rest), text = mark ? rest.replace(/[ \t]+$/, "") : rest;   // no doubled space before the mark
+    var head = lead + (on ? "- [ ] " : ""), body = mark ? text + " ➕ " + stamp : text;
+    return { line: head + body, caret: head.length + Math.max(0, Math.min(off - m[0].length, text.length)) };
+  }
+  // 046: what a picked completion replaces and where the caret lands — an @project takes the rest of the word after
+  // the caret and adds a space only when none follows; a [[doc]] takes a half-typed rest up to its ]] (not across
+  // another link)
+  function completeSpan(v, from, caret, kind, pick) {
+    var rest = String(v).slice(caret), end, text;
+    if (kind === "@") {
+      end = caret + /^[\w.-]*/.exec(rest)[0].length;
+      var spaced = v[end] === " " || v[end] === "\t";
+      text = "@" + pick + (spaced ? "" : " ");
+      return { start: from, end: end, text: text, caret: from + text.length + (spaced ? 1 : 0) };
+    }
+    var m = /^[^\[\]\n]*\]\]/.exec(rest);
+    end = caret + (m ? m[0].length : 0); text = "[[" + pick + "]]";
+    return { start: from, end: end, text: text, caret: from + text.length };
   }
 
 
@@ -732,7 +748,7 @@ var SV = (function () {
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, todoLine: todoLine, resolveWikiAny: resolveWikiAny,
            continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
-           todoDate: todoDate, toggleTask: toggleTask };
+           todoDate: todoDate, toggleTask: toggleTask, completeSpan: completeSpan };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;
