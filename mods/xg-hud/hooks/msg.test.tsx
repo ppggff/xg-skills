@@ -41,6 +41,15 @@ describe('time text', () => {
 })
 
 describe('msg segment', () => {
+  test('the time leads the line', async ($, on) => {
+    const clock = world(on)
+    await clock.set(new Date(2026, 9, 13, 14, 5).getTime())
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await typed($)
+    const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn.indexOf('14:05')).toBeLessThan(drawn.indexOf('todo 0'))
+  })
+
   test('hidden until a typed message; other origins do not count', async ($, on) => {
     const clock = world(on)
     await clock.set(new Date(2026, 9, 13, 14, 5).getTime())
@@ -49,7 +58,7 @@ describe('msg segment', () => {
     await typed($, 'task-notification')
     expect(await ui.find({ key: 'msg' })).toBeUndefined()
     await typed($)
-    expect((await ui.find({ key: 'msg' }))?.text).toBe('msg 14:05')
+    expect((await ui.find({ key: 'msg' }))?.text).toBe('14:05')
   })
 
   test('open shows the last message and the last reply with how long ago, kept fresh', async ($, on) => {
@@ -75,6 +84,6 @@ describe('msg segment', () => {
     await start($)
     await clock.settle()
     const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
-    expect((await ui.find({ key: 'msg' }))?.text).toBe('msg 08:30')
+    expect((await ui.find({ key: 'msg' }))?.text).toBe('08:30')
   })
 })

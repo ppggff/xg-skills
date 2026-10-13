@@ -480,7 +480,7 @@ export const register: Register = on => {
     const todoText = `todo ${queue.length}${todoOpen ? ' ▾' : ''}`
     const stamps = await read($, times)
     const msgOpen = stamps.message !== null && (await read($, isMsgOpen))
-    const msgText = stamps.message === null ? null : `msg ${clockText(stamps.message)}${msgOpen ? ' ▾' : ''}`
+    const msgText = stamps.message === null ? null : `${clockText(stamps.message)}${msgOpen ? ' ▾' : ''}`
     const msgCost = msgText ? cells(msgText) + SEP_CELLS : 0
     if (view !== null) {
       const counts = [pending && `${pending}c`, view.reads.length && `${view.reads.length}r`, written && `${written}w`].filter(Boolean)
@@ -507,7 +507,7 @@ export const register: Register = on => {
         await update($, msgNow, () => now)
         await update($, isMsgOpen, v => !v)
       }
-      all.push({ key: 'msg', text: msgText, onPress: toggleMsg, rank: 3 })
+      all.unshift({ key: 'msg', text: msgText, onPress: toggleMsg, rank: 3 })
     }
 
     // Narrow screens drop whole segments by rank instead of letting the row wrap mid-segment.

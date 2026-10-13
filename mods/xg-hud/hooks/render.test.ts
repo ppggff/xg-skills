@@ -65,3 +65,13 @@ describe('dashboard validates on terminal and desktop', () => {
     })
   }
 })
+
+describe('msg segment beside the others', () => {
+  for (const bodyColumns of [80, 120, 200]) {
+    test(`shows with KB, card and todo at ${bodyColumns} columns`, async ($, on) => {
+      seed(on, { kb: KB, card: CARD, times: { message: Date.UTC(2026, 9, 13, 6, 5), reply: null } })
+      const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns } as never })
+      expect(await ui.find({ key: 'msg' })).toBeDefined()
+    })
+  }
+})
