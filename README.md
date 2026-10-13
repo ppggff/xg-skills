@@ -43,6 +43,14 @@ the other two packages and reads no shared configuration; they may call it, it
 never calls them. Hand-drawn Markdown + Mermaid today; a checker, resolvers and
 an interactive surface are later stages, gated on the trial.
 
+### [`mods/`](mods/)
+
+Claude Code mods that surface the skills in the session itself: `xg-hud` draws a
+band above the prompt (the session's KB activity, its current workflow card, and
+a todo queue kept in the workflow's todo files), and `xg-git-guard` checks Bash
+git calls against the commit and push conventions. Mods depend on the skills'
+scripts and files; the skills never depend on a mod.
+
 ## Layout
 
 ```
@@ -61,6 +69,16 @@ directories into your personal skills location:
 ```sh
 ln -s "$PWD/xg-dev-workflow"   ~/.claude/skills/xg-dev-workflow
 ln -s "$PWD/xg-knowledge-lite" ~/.claude/skills/xg-knowledge-lite
+```
+
+The mods load from directories named in `CLAUDE_CODE_PLUGIN_DIRS` (the `env` block of
+`~/.claude/settings.json`), e.g.:
+
+```sh
+mkdir -p ~/.claude/mods
+ln -s "$PWD/mods/xg-hud"       ~/.claude/mods/xg-hud
+ln -s "$PWD/mods/xg-git-guard" ~/.claude/mods/xg-git-guard
+# settings.json: "CLAUDE_CODE_PLUGIN_DIRS": "<home>/.claude/mods/xg-git-guard:<home>/.claude/mods/xg-hud"
 ```
 
 Both skills share one config at `~/.config/xg-knowledge-wiki/config.yaml`
