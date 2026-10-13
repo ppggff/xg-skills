@@ -128,12 +128,15 @@ class TodoTests(unittest.TestCase):
         self.assertEqual((got["created"], got["key"]), (rec["created"], rec["key"]))
         self.assertTrue(self.ok("done", "--file", "inbox.md", "--created", rec["created"], "--key", rec["key"])["ok"])
 
-    def test_a_trailing_project_tag_in_the_text_round_trips(self):
-        cases = [("fix bug @xg-skills", ["--project", "xg-skills"]), ("ping @xg-skills", []), ("x @xg-skills", ["--project", "cbdb"]),
-                 ("ask about @cbdb locks", ["--project", "cbdb"])]
-        for text, extra in cases:
-            self.ok("add", *extra, stdin=text)
-        self.assertEqual([i["text"] for i in self.ok("list")], [t for t, _ in cases])
+    def test_a_project_tag_in_the_text_is_written_once_and_listed_says_how_it_reads_back(self):
+        cases = [("fix bug @xg-skills", ["--project", "xg-skills"], "fix bug"), ("ping @xg-skills", [], "ping"),
+                 ("x @xg-skills", ["--project", "cbdb"], "x @xg-skills"), ("ask about @cbdb locks", ["--project", "cbdb"], "ask about @cbdb locks")]
+        recs = [self.ok("add", *extra, stdin=text) for text, extra, _ in cases]
+        self.assertNotIn("@xg-skills @xg-skills", self.read())
+        listed = [i["text"] for i in self.ok("list")]
+        self.assertEqual(listed, [want for _, _, want in cases])
+        self.assertEqual([r["listed"] for r in recs], listed)
+        self.assertEqual([r["text"] for r in recs], [text for text, _, _ in cases])
 
     def test_add_refuses_an_item_an_unclosed_fence_would_hide(self):
         self.write("inbox.md", "```\nnotes\n")
@@ -314,6 +317,101 @@ class TodoTests(unittest.TestCase):
         self.assertEqual(seen[1]["meta"]["created"], NOW)
         self.assertEqual(seen[1]["tags"], ["alice", "xg-skills"])
         self.assertEqual(seen[2]["meta"]["text"], "after")
+
+
+class VersionedWriteTests(unittest.TestCase):
+    """The viewer server's writes: only at the version the page read, under the shared lock."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.tdir = os.path.join(self.tmp.name, "todo")
+        home = mock.patch.dict(os.environ, {"HOME": os.path.join(self.tmp.name, "home")})
+        home.start()
+        self.addCleanup(home.stop)
+        self.addCleanup(self.tmp.cleanup)
+
+    def path(self, name="inbox.md"):
+        return os.path.join(self.tdir, name)
+
+    def test_back_to_back_writes_have_different_versions(self):
+        v = todo.write_at(self.tdir, "inbox.md", "", lambda t: "- [ ] a\n")
+        seen = {v}
+        for i in range(50):
+            v = todo.write_at(self.tdir, "inbox.md", v, lambda t, i=i: t + f"- [ ] {i}\n")
+            seen.add(v)
+        self.assertEqual(len(seen), 51)
+
+    def test_a_stale_version_is_refused_and_nothing_written(self):
+        v1 = todo.write_at(self.tdir, "inbox.md", "", lambda t: "- [ ] a\n")
+        v2 = todo.write_at(self.tdir, "inbox.md", v1, lambda t: t + "- [ ] b\n")
+        with self.assertRaises(todo.Conflict) as cm:
+            todo.write_at(self.tdir, "inbox.md", v1, lambda t: "lost\n")
+        self.assertEqual(cm.exception.version, v2)
+        with self.assertRaises(todo.Conflict):
+            todo.write_at(self.tdir, "inbox.md", "", lambda t: "a new file over an old one\n")
+        self.assertEqual(open(self.path()).read(), "- [ ] a\n- [ ] b\n")
+
+    def test_an_editor_writing_between_read_and_replace_is_caught(self):
+        v = todo.write_at(self.tdir, "inbox.md", "", lambda t: "- [ ] a\n")
+
+        def editor_meanwhile(text):
+            with open(self.path(), "a") as f:
+                f.write("- [ ] from vim\n")
+            return text + "- [ ] mine\n"
+
+        with self.assertRaises(todo.Conflict):
+            todo.write_at(self.tdir, "inbox.md", v, editor_meanwhile)
+        self.assertIn("from vim", open(self.path()).read())
+        self.assertNotIn("mine", open(self.path()).read())
+
+    def test_a_refused_change_writes_nothing(self):
+        v = todo.write_at(self.tdir, "inbox.md", "", lambda t: "# t\n")
+        with self.assertRaises(todo.TodoError):
+            todo.write_at(self.tdir, "inbox.md", v, lambda t: todo.toggle(t, 0, True, "2026-10-13"))
+        self.assertEqual(open(self.path()).read(), "# t\n")
+
+    def test_rename_and_delete_check_the_version(self):
+        v = todo.write_at(self.tdir, "a.md", "", lambda t: "x\n")
+        todo.write_at(self.tdir, "b.md", "", lambda t: "y\n")
+        with self.assertRaises(todo.Conflict):
+            todo.rename_at(self.tdir, "a.md", "c.md", "stale")
+        with self.assertRaises(todo.Conflict) as cm:
+            todo.rename_at(self.tdir, "a.md", "b.md", v)
+        self.assertEqual(str(cm.exception), "exists")
+        v2 = todo.rename_at(self.tdir, "a.md", "c.md", v)
+        with self.assertRaises(todo.Conflict):
+            todo.delete_at(self.tdir, "c.md", v + "x")
+        todo.delete_at(self.tdir, "c.md", v2)
+        self.assertEqual(sorted(os.listdir(self.tdir)), ["b.md"])
+        with self.assertRaises(todo.Conflict):
+            todo.delete_at(self.tdir, "c.md", "")
+
+
+CASES = os.path.join(HERE, "todo-cases.json")
+FIELDS = ("line", "done", "depth", "tags", "key", "created", "due", "done_date", "priority", "progress")
+
+
+class SharedCaseTests(unittest.TestCase):
+    """The cases the viewer's test-shell.mjs runs too: one expectation for both implementations."""
+
+    def setUp(self):
+        with open(CASES, encoding="utf-8") as f:
+            self.cases = json.load(f)
+
+    def test_parse_cases(self):
+        for case in self.cases["parse"]:
+            with self.subTest(case["name"]):
+                got = [{k: item[k] for k in FIELDS} for item in todo.parse(todo.normalize(case["text"]), "f.md", set())]
+                self.assertEqual(got, case["items"])
+
+    def test_write_cases(self):
+        for case in self.cases["write"]:
+            with self.subTest(case["name"]):
+                if case["op"] == "tick":
+                    got = todo.toggle(case["before"], case["line"], case["done"], case["today"])
+                else:
+                    got = todo.append_item(case["before"], case["file"], todo.compose(case["text"], case["project"], case["link"], case["stamp"]))
+                self.assertEqual(got, case["after"])
 
 
 if __name__ == "__main__":

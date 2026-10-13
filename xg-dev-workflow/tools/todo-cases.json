@@ -1,0 +1,418 @@
+{
+ "_about": "Shared todo-format cases (see todo-format.md). parse runs on todo.py and on the viewer's sv.js; write runs on todo.py, the only writer.",
+ "parse": [
+  {
+   "name": "marks and tags",
+   "text": "- [ ] ship it @p ➕ 2026-10-13 09:00:01 📅 2026-10-20 ⏫\n- [x] filed #old ✅ 2026-10-12",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [
+      "p"
+     ],
+     "key": "ship it @p",
+     "created": "2026-10-13 09:00:01",
+     "due": "2026-10-20",
+     "done_date": "",
+     "priority": 1,
+     "progress": null
+    },
+    {
+     "line": 1,
+     "done": true,
+     "depth": 0,
+     "tags": [
+      "old"
+     ],
+     "key": "filed #old",
+     "created": "",
+     "due": "",
+     "done_date": "2026-10-12",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "several spaces or a tab after the marker still make an item",
+   "text": "-   [ ] spaced\n-\t[x]\ttabbed",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "spaced",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 1,
+     "done": true,
+     "depth": 0,
+     "tags": [],
+     "key": "tabbed",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a task inside a block quote is not an item",
+   "text": "> - [ ] quoted\n- [ ] real",
+   "items": [
+    {
+     "line": 1,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "real",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "items inside a code fence do not count",
+   "text": "```\n- [ ] in fence\n```\n- [ ] after",
+   "items": [
+    {
+     "line": 3,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "after",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "CRLF line ends",
+   "text": "- [ ] one\r\n- [x] two\r\n",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "one",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 1,
+     "done": true,
+     "depth": 0,
+     "tags": [],
+     "key": "two",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a leading byte order mark",
+   "text": "﻿- [ ] first",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "first",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "tags are ASCII only",
+   "text": "- [ ] ask @中文 and @ok",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [
+      "ok"
+     ],
+     "key": "ask @中文 and @ok",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "date digits are ASCII only",
+   "text": "- [ ] x ➕ ２０２６-１０-１３",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "x ➕ ２０２６-１０-１３",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "ordinal digits are ASCII only",
+   "text": "１. [ ] x\n1. [ ] y\n2) [x] z",
+   "items": [
+    {
+     "line": 1,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "y",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 2,
+     "done": true,
+     "depth": 0,
+     "tags": [],
+     "key": "z",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "only spaces and tabs fold",
+   "text": "- [ ] ab  c\t\td",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "ab c d",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "sub-items: depth and the parent's done / total",
+   "text": "- [ ] parent\n  - [x] one\n  - [ ] two\n- [ ] next",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "parent",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": [
+      1,
+      2
+     ]
+    },
+    {
+     "line": 1,
+     "done": true,
+     "depth": 2,
+     "tags": [],
+     "key": "one",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 2,
+     "done": false,
+     "depth": 2,
+     "tags": [],
+     "key": "two",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    },
+    {
+     "line": 3,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "next",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "a tag inside a link is not a tag",
+   "text": "- [ ] see [[a#b]] and [x](#y) @real",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [
+      "real"
+     ],
+     "key": "see [[a#b]] and [x](#y) @real",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  },
+  {
+   "name": "escaped continuation lines are not items",
+   "text": "- [ ] a\n    \\- [ ] b\n    more",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "a",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null
+    }
+   ]
+  }
+ ],
+ "write": [
+  {
+   "name": "tick writes the done date",
+   "op": "tick",
+   "before": "- [ ] a ➕ 2026-10-01 09:00",
+   "line": 0,
+   "done": true,
+   "today": "2026-10-13",
+   "after": "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-13"
+  },
+  {
+   "name": "untick takes the trailing done date away",
+   "op": "tick",
+   "before": "- [x] a ✅ 2026-10-07 12:00:09",
+   "line": 0,
+   "done": false,
+   "today": "2026-10-13",
+   "after": "- [ ] a"
+  },
+  {
+   "name": "tick keeps indent, marker and spacing",
+   "op": "tick",
+   "before": "x\n  *   [ ] sub",
+   "line": 1,
+   "done": true,
+   "today": "2026-10-13",
+   "after": "x\n  *   [x] sub ✅ 2026-10-13"
+  },
+  {
+   "name": "append to a file without a trailing newline",
+   "op": "append",
+   "before": "# inbox\n\n- [ ] old",
+   "text": "new",
+   "project": "p",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# inbox\n\n- [ ] old\n- [ ] new @p ➕ 2026-10-13 14:05:33\n",
+   "file": "inbox.md"
+  },
+  {
+   "name": "append to a missing file titles it after its name",
+   "op": "append",
+   "before": "",
+   "text": "new",
+   "project": "",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# inbox\n\n- [ ] new ➕ 2026-10-13 14:05:33\n",
+   "file": "inbox.md"
+  },
+  {
+   "name": "a project tag already in the text is not added again",
+   "op": "append",
+   "before": "# work\n",
+   "text": "ask @p about it",
+   "project": "p",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# work\n- [ ] ask @p about it ➕ 2026-10-13 14:05:33\n",
+   "file": "work.md"
+  },
+  {
+   "name": "a longer tag is not the project tag",
+   "op": "append",
+   "before": "# work\n",
+   "text": "see @p-old",
+   "project": "p",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# work\n- [ ] see @p-old @p ➕ 2026-10-13 14:05:33\n",
+   "file": "work.md"
+  },
+  {
+   "name": "the link comes after the project tag",
+   "op": "append",
+   "before": "# inbox\n",
+   "text": "x",
+   "project": "p",
+   "link": "xg-skills/048",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# inbox\n- [ ] x @p [[xg-skills/048]] ➕ 2026-10-13 14:05:33\n",
+   "file": "inbox.md"
+  }
+ ]
+}

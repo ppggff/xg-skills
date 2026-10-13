@@ -21,6 +21,7 @@ Usage (stdout is one JSON value; on failure exit 1 and one line on stderr):
 Options: --dev-root DIR (default: the shared config's dev_root) · --now "YYYY-MM-DD HH:MM" (tests)
 """
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import importlib.util
@@ -35,16 +36,19 @@ from pathlib import Path
 TODO_DIR = "todo"
 INBOX = "inbox.md"
 RETRIES = 3
-# Mirrors of sv.js: TODO_RE, FENCE_RE, TODO_MARKS, and viewer.py TODO_NAME.
-TODO_RE = re.compile(r"^(\s*(?:[-*+]|\d+[.)]) \[)( |x|X)(\] )(.*)$")
+# The rules of todo-format.md; viewer/sv.js has the same ones, and todo-cases.json holds both to them.
+TODO_RE = re.compile(r"^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)(.*)$")
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
-TODO_MARKS = re.compile(r"(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽")
+STAMP = r"[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[ \t]+[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?"
+TODO_MARKS = re.compile(r"(?:➕|📅|✅)[ \t]*" + STAMP + r"|⏫|🔼|🔽")
 TODO_NAME = re.compile(r"[^/\\\x00-\x1f.][^/\\\x00-\x1f]{0,118}\.md")
-TAG_RE = re.compile(r"(^|\s)[@#]([\w.-]+)")
+TAG_RE = re.compile(r"(^|[ \t])[@#]([A-Za-z0-9_.-]+)")
 LINK_RE = re.compile(r"\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)")
-CREATED_RE = re.compile(r"➕\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)")
-DONE_MARK_RE = re.compile(r"\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?\s*$")
-TRAIL_TAG_RE = re.compile(r"\s@([\w.-]+)$")
+CREATED_RE = re.compile(r"➕[ \t]*(" + STAMP + r")")
+DUE_RE = re.compile(r"📅[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2})")
+DONE_ON_RE = re.compile(r"✅[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2})")
+DONE_MARK_RE = re.compile(r"[ \t]*✅[ \t]*" + STAMP + r"[ \t]*$")
+TRAIL_TAG_RE = re.compile(r"[ \t]@([A-Za-z0-9_.-]+)$")
 # JS ends a line at \r, U+2028 and U+2029 too; the viewer would split an item there, so input is normalized.
 NEWLINES_RE = re.compile("\r\n?|[\u2028\u2029]")
 INDENT = "    "
@@ -52,6 +56,14 @@ INDENT = "    "
 
 class TodoError(Exception):
     pass
+
+
+class Conflict(TodoError):
+    """The file is no longer at the version the caller read; `version` is where it is now."""
+
+    def __init__(self, version: str, why: str = "changed"):
+        super().__init__(why)
+        self.version = version
 
 
 def _resolve_project_module():
@@ -83,8 +95,17 @@ def project_of_cwd(cwd: str):
     return rp.find_project(Path(cwd), rp.parse_projects(text)) if text is not None else None
 
 
+def normalize(text: str) -> str:
+    """Drop a leading byte order mark and turn CRLF / lone CR into LF, as both readers do before parsing."""
+    return re.sub(r"\r\n?", "\n", text[1:] if text.startswith("\ufeff") else text)
+
+
 def key_of(first: str) -> str:
-    return re.sub(r"\s{2,}", " ", TODO_MARKS.sub("", first)).strip()
+    return re.sub(r"[ \t]{2,}", " ", TODO_MARKS.sub("", first)).strip(" \t")
+
+
+def priority_of(first: str) -> int:
+    return 1 if "⏫" in first else 2 if "🔼" in first else 3 if "🔽" in first else 0
 
 
 def tags_of(first: str) -> list:
@@ -108,16 +129,34 @@ def trailing_project(first: str, projects: set):
     return m.group(1) if m and m.group(1) in projects else None
 
 
-def render(text: str, project, stamp: str, projects: set) -> list:
-    """The item's lines. A first line ending in a project tag gets one appended even when present, so that `parse`,
-    which drops one trailing project tag as the script's own, gives the text back unchanged."""
+def compose(text: str, project, link, stamp: str) -> str:
+    """An item for `text`: `- [ ] <first>[ @project][ [[link]]] ➕ <stamp>`, then the further lines as continuations.
+    The project tag is left out when the first line already has exactly that tag."""
     first, *rest = text.split("\n")
-    ends = trailing_project(first, projects)
-    tag = project if project and (project not in tags_of(first) or ends) else ends
-    suffix = f" @{tag}" if tag else ""
-    lines = [f"- [ ] {first}{suffix} ➕ {stamp}"]
+    tag = f" @{project}" if project and project not in tags_of(first) else ""
+    ref = f" [[{link}]]" if link else ""
+    lines = [f"- [ ] {first}{tag}{ref} ➕ {stamp}"]
     lines += [INDENT + escape(line) if line else "" for line in rest]
-    return lines
+    return "\n".join(lines)
+
+
+def append_item(text: str, name: str, block: str) -> str:
+    """`block` appended to a file's text; an empty file is titled after its name first."""
+    base = normalize(text) if text.strip() else f"# {name[:-3]}\n\n"
+    if not base.endswith("\n"):
+        base += "\n"
+    return base + block + "\n"
+
+
+def toggle(text: str, line: int, done: bool, today: str) -> str:
+    """Tick (mark `x`, trailing ✅ replaced by today's) or untick (mark space, trailing ✅ dropped) the item at `line`."""
+    lines = normalize(text).split("\n")
+    m = TODO_RE.match(lines[line]) if 0 <= line < len(lines) else None
+    if not m:
+        raise TodoError(f"line {line} is not an item")
+    body = DONE_MARK_RE.sub("", m.group(4)).rstrip(" \t")
+    lines[line] = f"{m.group(1)}{'x' if done else ' '}{m.group(3)}{body}" + (f" ✅ {today}" if done else "")
+    return "\n".join(lines)
 
 
 def is_continuation(line: str) -> bool:
@@ -126,7 +165,7 @@ def is_continuation(line: str) -> bool:
 
 def parse(text: str, file: str, projects: set) -> list:
     """Every task item outside code fences, with the continuation lines this script writes."""
-    lines = text.split("\n")
+    lines = normalize(text).split("\n")
     items, fence, i = [], None, 0
     while i < len(lines):
         line = lines[i]
@@ -158,33 +197,47 @@ def parse(text: str, file: str, projects: set) -> list:
             j += 1
         tags = tags_of(first)
         created = CREATED_RE.search(first)
-        shown = re.sub(r"\s{2,}", " ", TODO_MARKS.sub("", first)).strip()   # as the viewer's todoMeta shows it
+        shown = key_of(first)
         if trailing_project(first, projects):
             shown = shown[:TRAIL_TAG_RE.search(shown).start()]
-        items.append({"file": file, "line": i, "depth": len(m.group(1)) - len(m.group(1).lstrip()), "done": m.group(2) != " ",
+        due, done_on = DUE_RE.search(first), DONE_ON_RE.search(first)
+        items.append({"file": file, "line": i, "depth": len(m.group(1)) - len(m.group(1).lstrip(" \t")), "done": m.group(2) != " ",
                       "created": created.group(1) if created else "", "key": key_of(first),
-                      "text": "\n".join([shown] + more), "project": tags[0] if tags else None})
+                      "text": "\n".join([shown] + more), "project": tags[0] if tags else None, "tags": tags,
+                      "due": due.group(1) if due else "", "done_date": done_on.group(1) if done_on else "",
+                      "priority": priority_of(first), "progress": None})
         i = j
+    for n, item in enumerate(items):
+        under = []
+        for later in items[n + 1:]:
+            if later["depth"] <= item["depth"]:
+                break
+            under.append(later)
+        if under:
+            item["progress"] = [sum(1 for u in under if u["done"]), len(under)]
     return items
 
 
+def version_of(st) -> str:
+    return f"{st.st_ino}-{st.st_mtime_ns}-{st.st_size}"
+
+
 def read_file(path: str):
-    """(text, stamp); an absent file reads as ("", None). The stamp comes from the open file, so a replace between
-    reading and stamping cannot pair old text with the new file's stamp."""
+    """(text, version); an absent file reads as ("", ""). The version comes from the open file, so a replace between
+    reading and stamping cannot pair old text with the new file's version."""
     try:
         with open(path, encoding="utf-8") as f:
-            st = os.fstat(f.fileno())
-            return f.read(), (st.st_ino, st.st_mtime_ns)
+            return f.read(), version_of(os.fstat(f.fileno()))
     except FileNotFoundError:
-        return "", None
+        return "", ""
 
 
-def file_stamp(path: str):
+def file_version(path: str) -> str:
+    """inode, mtime in ns and size: tells apart writes within one millisecond, which an mtime in ms does not."""
     try:
-        st = os.stat(path)
-        return st.st_ino, st.st_mtime_ns
+        return version_of(os.stat(path))
     except FileNotFoundError:
-        return None
+        return ""
 
 
 def lock_path(tdir: str) -> str:
@@ -201,43 +254,91 @@ def check_plain(tdir: str, path: str):
         raise TodoError(f"{os.path.basename(path)} is a link")
 
 
-def edit(tdir: str, name: str, change):
-    """Read, change and atomically replace one todo file under a lock shared by this script's writers.
-
-    `change(text)` returns (new_text, result) or (None, result) to leave the file alone. A file whose mtime
-    moved since it was read (the viewer, an editor) is read again, up to RETRIES times.
-    """
-    path = os.path.join(tdir, name)
-    check_plain(tdir, path)
+@contextlib.contextmanager
+def locked(tdir: str):
+    """The one lock every writer of a todo dir holds: todo.py and the viewer server alike."""
     os.makedirs(tdir, exist_ok=True)
     lock = lock_path(tdir)
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     fd_lock = os.open(lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(fd_lock, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd_lock)
+
+
+def replace(tdir: str, path: str, new: str, expect: str) -> bool:
+    """Atomically put `new` at `path`, unless the file left version `expect` (an editor that holds no lock); False then."""
+    fd, tmp = tempfile.mkstemp(dir=tdir, prefix=".todo.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(new)
+        if file_version(path) != expect:
+            os.unlink(tmp)
+            return False
+        os.replace(tmp, path)
+        return True
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
+def edit(tdir: str, name: str, change):
+    """Read, change and replace one todo file under the lock, reading again (up to RETRIES times) when the file moves.
+
+    `change(text)` returns (new_text, result) or (None, result) to leave the file alone.
+    """
+    path = os.path.join(tdir, name)
+    check_plain(tdir, path)
+    with locked(tdir):
         for _ in range(RETRIES):
-            text, stamp = read_file(path)
+            text, version = read_file(path)
             new, result = change(text)
             if new is None:
                 return result
-            if file_stamp(path) != stamp:
-                continue
-            fd, tmp = tempfile.mkstemp(dir=tdir, prefix=".todo.", suffix=".tmp")
-            try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    f.write(new)
-                if file_stamp(path) != stamp:
-                    os.unlink(tmp)
-                    continue
-                os.replace(tmp, path)
-            except BaseException:
-                if os.path.exists(tmp):
-                    os.unlink(tmp)
-                raise
-            return result
-    finally:
-        os.close(fd_lock)
+            if replace(tdir, path, new, version):
+                return result
     raise TodoError(f"{name} kept changing while being written; nothing written")
+
+
+def write_at(tdir: str, name: str, version: str, change) -> str:
+    """Write `change(text)` to a file only while it is at `version` ("" = absent): the viewer's writes. Returns the
+    new version; raises Conflict when the file moved, TodoError when `change` refuses."""
+    path = os.path.join(tdir, name)
+    check_plain(tdir, path)
+    with locked(tdir):
+        text, now = read_file(path)
+        if now != version:
+            raise Conflict(now)
+        if not replace(tdir, path, change(text), now):
+            raise Conflict(file_version(path))
+        return file_version(path)
+
+
+def rename_at(tdir: str, name: str, to: str, version: str) -> str:
+    path, dst = os.path.join(tdir, name), os.path.join(tdir, to)
+    check_plain(tdir, path)
+    check_plain(tdir, dst)
+    with locked(tdir):
+        now = file_version(path)
+        if not now or now != version:
+            raise Conflict(now)
+        if os.path.exists(dst) and not os.path.samefile(path, dst):   # a case-only rename is the same file
+            raise Conflict(now, "exists")
+        os.rename(path, dst)
+        return file_version(dst)
+
+
+def delete_at(tdir: str, name: str, version: str) -> None:
+    path = os.path.join(tdir, name)
+    check_plain(tdir, path)
+    with locked(tdir):
+        now = file_version(path)
+        if not now or now != version:
+            raise Conflict(now)
+        os.unlink(path)
 
 
 def check_name(name: str) -> str:
@@ -253,15 +354,12 @@ def cmd_add(args, tdir: str, stamp: str):
         raise TodoError("empty text")
     project = args.project or (project_of_cwd(args.cwd) if args.cwd else None)
     projects = known_projects()
-    lines = render(text, project, stamp, projects)
-    item = parse("\n".join(lines), name, projects)[0]
+    block = compose(text, project, None, stamp)
+    item = parse(block, name, projects)[0]
 
     def append(old):
-        base = old if old.strip() else f"# {name[:-3]}\n\n"   # a new file is titled after its name, as the viewer names one
-        if not base.endswith("\n"):
-            base += "\n"
-        new = base + "\n".join(lines) + "\n"
-        if not any(one["line"] == base.count("\n") for one in parse(new, name, projects)):
+        new = append_item(old, name, block)
+        if not any(one["line"] == new.count("\n") - block.count("\n") - 1 for one in parse(new, name, projects)):
             raise TodoError(f"an unclosed code fence in {name} would hide the item; nothing written")
         return new, None
 
@@ -305,11 +403,7 @@ def cmd_done(args, tdir: str, stamp: str):
     def tick(text):
         for item in parse(text, name, set()):
             if not item["done"] and item["created"] == args.created and item["key"] == args.key:
-                lines = text.split("\n")
-                m = TODO_RE.match(lines[item["line"]])
-                body = DONE_MARK_RE.sub("", m.group(4)).rstrip()
-                lines[item["line"]] = f"{m.group(1)}x{m.group(3)}{body} ✅ {today}"
-                return "\n".join(lines), {"ok": True, "line": item["line"]}
+                return toggle(text, item["line"], True, today), {"ok": True, "line": item["line"]}
         return None, {"ok": False, "reason": "not-found"}
 
     return edit(tdir, name, tick)

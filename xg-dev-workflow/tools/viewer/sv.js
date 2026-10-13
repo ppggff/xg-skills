@@ -641,13 +641,13 @@ var SV = (function () {
       return { sha: /^commit ([0-9a-f]+)/.exec(b)[1], date: date ? date[1].trim() : "", subject: subj ? subj[1].trim() : "", diff: at < 0 ? "" : b.slice(at + 1) };
     });
   }
-  // 043/044: a todo file is markdown; only "- [ ] " / "- [x] " lines outside code fences are items, every other line
-  // is kept as is. An item's @words (and the older #words) are its project tags; edits address an item by its line.
-  var TODO_RE = /^(\s*(?:[-*+]|\d+[.)]) \[)( |x|X)(\] )(.*)$/;   // lead · mark · "] " · text — the marker is kept on edit
+  // 043/044/052: the todo format is tools/todo-format.md, shared with todo.py (the only writer) and pinned by
+  // todo-cases.json; only "- [ ] " / "- [x] " lines outside code fences are items. ASCII rules, like todo.py's.
+  var TODO_RE = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)(.*)$/;   // lead · mark · "] " · text — the marker is kept on edit
   var FENCE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
   function parseTodo(text) {
     var out = [], fence = null;
-    String(text || "").split("\n").forEach(function (l, i) {
+    String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n").forEach(function (l, i) {
       var f = FENCE_RE.exec(l);
       if (fence === null) {
         if (f && !(f[1].charAt(0) === "`" && f[2].indexOf("`") >= 0)) { fence = f[1]; return; }
@@ -658,8 +658,8 @@ var SV = (function () {
       var m = TODO_RE.exec(l), tags = [];
       if (!m) return;
       m[4].replace(/\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)/g, " ")   // a tag inside a link's text or target is not a tag
-        .replace(/(^|\s)[@#]([\w.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
-      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^\s*/.exec(m[1])[0].length });
+        .replace(/(^|[ \t])[@#]([A-Za-z0-9_.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
+      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^[ \t]*/.exec(m[1])[0].length });
     });
     return out;
   }
@@ -669,7 +669,7 @@ var SV = (function () {
     if (change.remove) { ls.splice(line, 1); return ls.join("\n"); }
     var done = change.done !== undefined ? change.done : m[2] !== " ", body = change.text !== undefined ? change.text : m[4];
     if (change.done !== undefined && change.today) {   // 045: ticking writes ✅ today, unticking takes it away (only the trailing mark)
-      body = body.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?\s*$/, "");
+      body = body.replace(/[ \t]*✅[ \t]*[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[ \t]+[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?[ \t]*$/, "");
       if (done) body = body.replace(/\s+$/, "") + " ✅ " + change.today;
     }
     ls[line] = m[1] + (done ? "x" : " ") + m[3] + body;
@@ -678,9 +678,9 @@ var SV = (function () {
   // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time, maybe with seconds), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
   // … 3 low, 0 none) — and its text with the marks taken out
   function todoMeta(text) {
-    var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "\\s*(\\d{4}-\\d{2}-\\d{2})(?:\\s+(\\d{2}:\\d{2}(?::\\d{2})?))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
+    var t = String(text || ""), d = function (sym) { var m = new RegExp(sym + "[ \\t]*([0-9]{4}-[0-9]{2}-[0-9]{2})(?:[ \\t]+([0-9]{2}:[0-9]{2}(?::[0-9]{2})?))?").exec(t); return m ? m[1] + (m[2] ? " " + m[2] : "") : ""; };
     var p = /⏫/.test(t) ? 1 : /🔼/.test(t) ? 2 : /🔽/.test(t) ? 3 : 0;
-    var plain = t.replace(TODO_MARKS, "").replace(/\s{2,}/g, " ").trim();
+    var plain = t.replace(TODO_MARKS, "").replace(/[ \t]{2,}/g, " ").replace(/^[ \t]+|[ \t]+$/g, "");
     return { created: d("➕"), due: d("📅").slice(0, 10), done: d("✅").slice(0, 10), prio: p, text: plain };
   }
   // 045: a mark's date or date-and-time as a local Date (a bare "YYYY-MM-DD" would otherwise parse as UTC midnight)
@@ -704,7 +704,7 @@ var SV = (function () {
   // 045: how a list line continues on Enter — the next line's prefix (same indent, quote and bullet; an ordered number
   // +1; a task restarts unticked), and whether this item is empty (only its prefix and date marks), which ends the list
   // the marks spelled out: 📅 🔼 🔽 are astral, so a [character class] without the u flag would split them
-  var TODO_MARKS = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽/g;
+  var TODO_MARKS = /(?:➕|📅|✅)[ \t]*[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[ \t]+[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?|⏫|🔼|🔽/g;
   var LIST_RE = /^(\s*(?:>\s?)*)(?:([-*+])|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?(.*)$/;
   function continueLine(line) {
     var m = LIST_RE.exec(line || "");

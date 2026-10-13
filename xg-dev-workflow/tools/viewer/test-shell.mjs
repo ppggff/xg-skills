@@ -1027,6 +1027,15 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("052 shared todo cases: the viewer parses each one as todo.py does", () => {
+  const cases = JSON.parse(readFileSync(new URL("../todo-cases.json", import.meta.url), "utf8")).parse;
+  for (const c of cases) {
+    const items = SV.parseTodo(c.text);
+    const got = items.map((it, i) => { const m = SV.todoMeta(it.text), p = SV.todoProgress(items, i);
+      return { line: it.line, done: it.done, depth: it.depth, tags: it.tags, key: m.text, created: m.created, due: m.due, done_date: m.done, priority: m.prio, progress: p }; });
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(got)), c.items, c.name);   // sv.js runs in a vm: compare plain data
+  }
+});
 t("046 toggleTask: the toolbar's todo button keeps the caret in the text, never past the created mark", () => {
   const T = (line, off) => SV.toggleTask(line, off, "2026-10-13 14:05:33");
   assert.deepEqual(T("", 0), { line: "- [ ]  ➕ 2026-10-13 14:05:33", caret: 6 });

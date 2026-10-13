@@ -10,7 +10,7 @@
   /* ---- reading: tickable checkboxes and @project tags ---- */
   // marked's own task items, in render order, located in the source by their raw text; a box is enabled only when
   // the line found is a task line in the same state, so an item we cannot place stays read-only rather than wrong
-  const TOG = /^(\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])/;
+  const TOG = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\])/;   // as todo-format.md: no task inside a block quote
   function taskLines(body) {
     const at = [];
     const walk = (tokens, from) => { let pos = from; (tokens || []).forEach(t => {
@@ -34,7 +34,7 @@
       box.disabled = false; box.dataset.tline = ln; box.classList.add("tbox");
     });
     // @tags as chips; the date and priority marks of each task as the same small labels the todo view shows
-    const MARK = /(?:➕|📅|✅)\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|⏫|🔼|🔽/;   // spelled out: astral emoji in a class would split
+    const MARK = /(?:➕|📅|✅)[ \t]*[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[ \t]+[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?|⏫|🔼|🔽/;   // spelled out: astral emoji in a class would split
     const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest("code,pre,a,button") || !(/(^|\s)@[\w.-]/.test(n.data) || MARK.test(n.data)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     const texts = []; while (walk.nextNode()) texts.push(walk.currentNode);
     texts.forEach(n => {
