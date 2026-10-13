@@ -4,6 +4,17 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-13 — a lite check that cited commit ids are still on a branch (card xg-skills/053)
+
+- New lite check `commit-refs` (ak). It takes the commit ids a card cites in backticks (one id, or `a..b`) from its
+  `.md` files, resolves them in the repos the viewer's gitweb serves (project paths, dev_root, KB, `gitweb_repos:`),
+  and asks whether a branch or tag still reaches each. Ids on none are a finding, one line per file and repo, when the
+  card declares `branch:` and is not done; elsewhere, and for ids no known repo has (all-digit ones aside), a hint.
+  Human quotes, struck text and `<!-- commit-refs: off -->` regions are left out. Git-3 names the check and the marks.
+- Why: after a rebase nothing told a card its SHAs had gone stale. A survey of all lite cards found the three
+  legitimate kinds of unreachable ids (a mapping note, superseded ids on a branchless card, a deleted spike branch on
+  a done card) that the gating leaves as hints.
+
 ## 2026-10-13 — commit ids in the docs follow a history rewrite (card xg-skills/051)
 
 - New `tools/remap-shas.py`. `map --old A..B --new C..D` pairs each old commit with the new one carrying its change: by

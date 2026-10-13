@@ -2,7 +2,8 @@
 """workflow-checks.py — the deterministic check domain (L2 of the status/checks split), lite half.
 
 Check implementations behind `workflow-status.py --check`: the checks a lite card runs — links (o),
-status-field (p), progress-cap (s), governance-carriers (ai), lite-board-sync (ah), lite-doc-form (aj) — plus the project
+status-field (p), progress-cap (s), governance-carriers (ai), lite-board-sync (ah), lite-doc-form (aj),
+commit-refs (ak) — plus the project
 scope (o)(u)(v)(w) and the registry / exemption infrastructure. The 23 存量-only card checks (ledger,
 grill, receipts, trace, doc-native blocks, …) were split out to legacy/legacy_checks.py (031,
 2026-09-14) and are lazy-loaded by `_legacy()` only for a non-lite card, for `--manifest`, or when a
@@ -564,6 +565,113 @@ def check_lite_doc_form(project, card_dir, ws):
         [("grandfathered", "pre-cutoff lite card: doc-form findings shown as hints")]
 
 
+# ---- (ak) commit-refs: the commit ids a lite card cites are still on a branch (card 053) ----
+
+COMMIT_SPAN = re.compile(r"`([0-9a-f]{7,40})(?:\.\.\.?([0-9a-f]{7,40}))?`")
+COMMIT_OFF = re.compile(r"<!--\s*commit-refs:\s*off\s*-->.*?(?:<!--\s*commit-refs:\s*on\s*-->|\Z)", re.S)
+_REPOS = None        # [(label, git dir)], loaded once per run
+_REACHABLE = {}      # git dir -> the commits some ref reaches; None when git cannot tell
+
+
+def _known_repos():
+    """[(label, git dir)] the viewer's gitweb serves: project paths, dev_root, KB, `gitweb_repos:`."""
+    import importlib.util
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gitweb-companion.py")
+    spec = importlib.util.spec_from_file_location("gitweb_companion", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.collect_repos()
+
+
+def _git_dir_out(gd, *args, stdin=None):
+    """stdout of git on a git dir; None when git cannot run or fails."""
+    import subprocess
+    try:
+        res = subprocess.run(["git", "--git-dir", gd, *args], input=stdin, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return res.stdout if res.returncode == 0 else None
+
+
+def _reachable(gd):
+    if gd not in _REACHABLE:
+        out = _git_dir_out(gd, "rev-list", "--all")
+        _REACHABLE[gd] = set(out.split()) if out is not None else None
+    return _REACHABLE[gd]
+
+
+def _cited_commits(card_dir, ws):
+    """{id: {rel path}} — backtick spans holding one id or a range of two in the card's .md files; human quotes,
+    struck text (~~…~~) and `<!-- commit-refs: off -->` regions (to `… on -->` or the end) left out."""
+    cited = {}
+    for path in sorted(glob.glob(os.path.join(card_dir, "**", "*.md"), recursive=True)):
+        rel = os.path.relpath(path, card_dir)
+        if rel == os.path.join("notes", "human-messages.md"):
+            continue
+        text = re.sub(r"~~.*?~~", "", COMMIT_OFF.sub("", ws._read(path)))
+        for m in COMMIT_SPAN.finditer(text):
+            for sha in filter(None, m.groups()):
+                cited.setdefault(sha, set()).add(rel)
+    return cited
+
+
+def check_commit_refs(project, card_dir, ws):
+    """(ak) 053 — every commit id the card cites is on a branch or tag of a known repo. Ids on none (history
+    rewritten, a branch deleted) are findings, one per file and repo, on a card that declares `branch:` and is not
+    done — carry them with remap-shas.py (Git-3) or mark a deliberate old id — and a hint elsewhere; ids no known
+    repo has (all-digit ones aside) are a hint. Runs for lite cards only (LITE_ONLY_CHECKS)."""
+    global _REPOS
+    cited = _cited_commits(card_dir, ws)
+    if not cited:
+        return [], [], [("not-yet-due", "no commit ids cited")]
+    if _REPOS is None:
+        _REPOS = _known_repos()
+    if not _REPOS:
+        return [], [], [("carrier-missing", "no known git repo")]
+    left, stray = set(cited), {}      # stray: id -> the first repo that has it on no branch; a later repo may reach it
+    for label, gd in _REPOS:
+        todo = sorted(left)
+        if not todo:
+            break
+        out = _git_dir_out(gd, "cat-file", "--batch-check=%(objectname) %(objecttype)",
+                           stdin="".join(sha + "^{commit}\n" for sha in todo))
+        if out is None:
+            continue
+        for sha, line in zip(todo, out.splitlines()):
+            fields = line.split()
+            if line.endswith(" ambiguous"):
+                left.discard(sha)
+            elif len(fields) == 2 and fields[1] == "commit":
+                reach = _reachable(gd)
+                if reach is None or fields[0] in reach:
+                    left.discard(sha)
+                    stray.pop(sha, None)
+                else:
+                    stray.setdefault(sha, label)
+    left -= set(stray)
+    dangling = {}
+    for sha, label in stray.items():
+        for rel in cited[sha]:
+            dangling.setdefault((rel, label), []).append(sha)
+    gate = bool(ws.frontmatter(os.path.join(card_dir, "design.md")).get("branch", "").split("#", 1)[0].strip()) \
+        and ws.lite_status_word(card_dir) not in ("done", "dropped")
+    findings, hints = [], []
+    for (rel, label), shas in sorted(dangling.items()):
+        line = "%s cites %d id(s) on no branch or tag of %s: %s" % (
+            rel, len(shas), label, " ".join("`%s`" % s for s in sorted(shas)[:5]) + (" …" if len(shas) > 5 else ""))
+        if gate:
+            findings.append("commit-dangling: " + line + " — carry them with remap-shas.py (Git-3), "
+                            "or mark a deliberate old id (~~…~~ or <!-- commit-refs: off -->)")
+        else:
+            hints.append("commit-refs: " + line)
+    unknown = sorted(s for s in left if not s.isdigit())
+    if unknown:
+        hints.append("commit-refs: %d id(s) in no known repo: %s" % (
+            len(unknown), " ".join("`%s` (%s)" % (s, ", ".join(sorted(cited[s]))) for s in unknown[:3])
+            + (" …" if len(unknown) > 3 else "")))
+    return findings, hints
+
+
 def check_board_monotonic(project, project_dir, ws):
     """(w) B5 — the machine-decidable board subset (021 D6): Deps acyclic ·
     整体状态 canonical (post markup-strip) · done ⇒ close-out review doc or skip note
@@ -663,6 +771,7 @@ CARD_ORDER = (
     "governance-carriers",
     "lite-board-sync",
     "lite-doc-form",
+    "commit-refs",
 )   # output order of every card check — lite and legacy interleaved exactly as before the 031 split
 
 # The six checks a lite card runs; the 23 存量-only ones live in
@@ -685,6 +794,11 @@ LITE_ENTRIES = {
         "human-messages 日期早于最新 变更 · 无 lens 记录；提示级：skill: 落后 HEAD · 「视为 go」措辞",
         "lite 卡；created ≥ 2026-09-16 或带 skill: 字段 → findings，更早的卡 → skips 提示", "Lay-2 · Lay-3 · Id-1 · Id-3 · Doc-3 · Doc-4 · Doc-8 · Go-1 · Go-2 · Go-4 · card 032",
         misfire="LiteDocForm")),
+    "commit-refs": ("commit-refs", check_commit_refs,
+     _m("(ak)", "卡片反引号里的提交号（单个或 a..b）在已知仓库（viewer 的 gitweb：项目路径 · dev_root · KB · gitweb_repos）里解析，"
+        "并在某个分支或 tag 上；不在的按文件与仓库合成：声明了 branch: 的未收卡为 finding，其余提示；解析不到的（全数字除外）提示；"
+        "human-messages、~~…~~、<!-- commit-refs: off --> 区段不取",
+        "lite 卡（非 lite 卡不跑，输出零变化）", "Git-3 · card 053", misfire="CommitRefs")),
 }
 
 PROJECT_CHECKS = (
@@ -745,8 +859,9 @@ def _run_entries(entries, args, ws):
     return findings, skips, exemptions
 
 
-LITE_CHECKS = ("links", "status-field", "progress-cap", "governance-carriers", "lite-board-sync", "lite-doc-form")   # what a lite card runs
-LITE_ONLY_CHECKS = ("lite-board-sync", "lite-doc-form")   # never run for other modes — their output stays byte-identical
+LITE_CHECKS = ("links", "status-field", "progress-cap", "governance-carriers", "lite-board-sync", "lite-doc-form",
+               "commit-refs")   # what a lite card runs
+LITE_ONLY_CHECKS = ("lite-board-sync", "lite-doc-form", "commit-refs")   # never run for other modes — their output stays byte-identical
 
 
 class LegacyChecksUnavailable(RuntimeError):

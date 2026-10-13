@@ -6,6 +6,7 @@ import importlib.util
 import io
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -784,12 +785,102 @@ class LegacySplit(unittest.TestCase):
     def test_registry_order_and_forwarding(self):
         ids = [e[0] for e in wc.CARD_CHECKS]
         self.assertEqual(ids, list(wc.CARD_ORDER))
-        self.assertEqual(len(ids), 29)
-        self.assertEqual(ids[-1], "lite-doc-form")           # 032: appended after lite-board-sync
+        self.assertEqual(len(ids), 30)
+        self.assertEqual(ids[-2:], ["lite-doc-form", "commit-refs"])   # 032 after lite-board-sync, 053 after it
         self.assertEqual(ids[10:12], ["links", "status-field"])   # lite checks stay interleaved where they were
         self.assertTrue(callable(wc.check_grill_reverse))          # a legacy name resolves through __getattr__
         with self.assertRaises(AttributeError):
             wc.no_such_check_anywhere
+
+
+class CommitRefs(unittest.TestCase):
+    """053: (ak) — the commit ids a lite card cites are on a branch or tag of a known repo."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = self.tmp.name
+        repo = os.path.join(self.root, "repo")
+        os.makedirs(repo)
+
+        def g(*args):
+            return subprocess.run(["git", "-C", repo, "-c", "user.email=t@t", "-c", "user.name=t", *args],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+        g("init", "-q", "-b", "main")
+        _write(repo, "a.txt", "a\n")
+        g("add", "-A")
+        g("commit", "-q", "-m", "a")
+        self.kept = g("rev-parse", "HEAD")[:9]
+        g("checkout", "-q", "-b", "spike")
+        _write(repo, "b.txt", "b\n")
+        g("add", "-A")
+        g("commit", "-q", "-m", "b")
+        self.gone = g("rev-parse", "HEAD")[:9]
+        g("checkout", "-q", "main")
+        g("branch", "-q", "-D", "spike")
+        saved = (wc._REPOS, dict(wc._REACHABLE))
+        wc._REPOS = [("repo", os.path.join(repo, ".git"))]
+        wc._REACHABLE.clear()
+
+        def restore():
+            wc._REPOS = saved[0]
+            wc._REACHABLE.clear()
+            wc._REACHABLE.update(saved[1])
+        self.addCleanup(restore)
+
+    def _check(self, docs, status="executing", branch=True):
+        d = os.path.join(self.root, "proj", "001-a")
+        _write(d, "design.md", LITE_FM % ("001", status, "2026-10-13", "branch: main\n" if branch else "") + "# 001\n")
+        for rel, text in docs.items():
+            _write(d, rel, text)
+        return wc._normalize(wc.check_commit_refs("proj", d, ws._L1))
+
+    def test_ids_on_a_branch_pass(self):
+        self.assertEqual(self._check({"plan.md": "提交 `%s`\n" % self.kept}), ([], [], []))
+
+    def test_an_id_on_no_branch_of_a_live_branch_card_is_a_finding(self):
+        f, s, _ = self._check({"plan.md": "提交 `%s`、`%s`\n" % (self.kept, self.gone)})
+        self.assertEqual(len(f), 1, f)
+        self.assertIn("plan.md cites 1 id(s) on no branch or tag of repo: `%s`" % self.gone, f[0])
+        self.assertIn("remap-shas.py", f[0])
+        self.assertEqual(s, [])
+
+    def test_elsewhere_an_id_on_no_branch_is_a_hint(self):
+        for status, branch in (("done", True), ("executing", False)):
+            f, s, _ = self._check({"plan.md": "`%s`\n" % self.gone}, status=status, branch=branch)
+            self.assertEqual(f, [], (status, branch))
+            self.assertEqual(len(s), 1)
+            self.assertTrue(s[0].startswith("commit-refs: plan.md cites 1 id(s)"), s)
+
+    def test_quotes_struck_text_and_off_regions_are_left_out(self):
+        f, _, _ = self._check({
+            "notes/human-messages.md": "- 2026-10-13：「`%s`」\n" % self.gone,
+            "design.md.extra.md": "~~旧号 `%s`~~\n<!-- commit-refs: off -->\n| `%s` |\n<!-- commit-refs: on -->\n" % (self.gone, self.gone),
+            "notes/map.md": "<!-- commit-refs: off -->\n`%s`\n" % self.gone,
+        })
+        self.assertEqual(f, [])
+        f, _, _ = self._check({"notes/after.md": "<!-- commit-refs: off -->x<!-- commit-refs: on -->\n`%s..%s`\n" % (self.kept, self.gone)})
+        self.assertEqual(len(f), 1)
+        self.assertIn("notes/after.md cites 1 id(s)", f[0])
+
+    def test_a_later_repo_that_reaches_the_id_wins(self):
+        import shutil
+        repo = os.path.dirname(wc._REPOS[0][1])
+        other = os.path.join(self.root, "other")
+        shutil.copytree(repo, other)
+        subprocess.run(["git", "-C", other, "branch", "keep", self.gone], capture_output=True, check=True)
+        wc._REPOS = wc._REPOS + [("other", os.path.join(other, ".git"))]
+        self.assertEqual(self._check({"plan.md": "`%s`\n" % self.gone}), ([], [], []))
+
+    def test_ids_no_repo_has_are_a_hint_and_numbers_are_skipped(self):
+        f, s, _ = self._check({"plan.md": "`abcdef12345` `1791658800`\n"})
+        self.assertEqual(f, [])
+        self.assertEqual(s, ["commit-refs: 1 id(s) in no known repo: `abcdef12345` (plan.md)"])
+
+    def test_no_ids_or_no_repo_is_an_exemption(self):
+        self.assertEqual(self._check({"plan.md": "无\n"}), ([], [], [("not-yet-due", "no commit ids cited")]))
+        wc._REPOS = []
+        self.assertEqual(self._check({"plan.md": "`%s`\n" % self.kept}), ([], [], [("carrier-missing", "no known git repo")]))
 
 
 class ConstraintsBasis(unittest.TestCase):

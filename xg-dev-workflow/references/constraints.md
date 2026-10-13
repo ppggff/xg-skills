@@ -94,8 +94,9 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
   line or a plan.md row names the SHAs. Product code and dev_root docs are two commits, never one.
 - Git-2 (S: check-code-refs.py) — code and comments never point into dev_root or the KB: no `dev_root` / `~/knowledge` paths,
   `[[wiki]]` links, `ADR-NNNN`, private `*.md` names or `file:line`; run the checker on the diff before finishing.
-- Git-3 (S: remap-shas.py) — rewriting product commits the card cites (rebase · squash · split · reorder · reword): `map` the old range
-  to the new, `apply` over the card (and KB pages citing it), never over human quotes or the map; unpaired old ids stay, named in the card.
+- Git-3 (S: remap-shas.py · ak) — rewriting product commits the card cites (rebase · squash · split · reorder · reword): `map` the old
+  range to the new, `apply` over the card (and KB pages citing it), never over human quotes or the map; unpaired old ids stay, named
+  in the card. A deliberate old id is struck (`~~…~~`) or sits in a `<!-- commit-refs: off -->` region, as a mapping note does.
 
 ## Versioning the docs (Ver) — dev_root is its own git repo
 
