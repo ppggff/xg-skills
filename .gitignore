@@ -6,3 +6,6 @@
 __pycache__/
 *.pyc
 .playwright-mcp/
+
+# Claude Code writes these on every mod load
+mods/*/.claude-plugin/types/

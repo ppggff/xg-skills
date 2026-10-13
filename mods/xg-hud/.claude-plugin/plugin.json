@@ -1,0 +1,1 @@
+{ "name": "xg-hud", "version": "0.1.0", "description": "An always-on line above the prompt: this session's KB activity and the current dev-workflow card, each expandable", "types": "./types/index.d.ts" }

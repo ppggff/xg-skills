@@ -1,0 +1,1 @@
+{ "name": "xg-git-guard", "version": "0.1.0", "description": "Enforce the global git conventions on Bash calls: clean commit messages, --no-tags fetches, remote check before push, ask before history rewrites", "types": "./types/index.d.ts" }
