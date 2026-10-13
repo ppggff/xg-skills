@@ -180,20 +180,10 @@ async function setSessionRefs($: $, fn: (refs: string[]) => string[]): Promise<v
   await $.store.set(await sessionRefsKey($), refs)
 }
 
-// A todo's project is its first tag, as the viewer groups it; sub-items count toward their parent's done / total.
+// A todo's project is its first tag, as the viewer groups it; todo.py reports each item's depth and its sub-items'
+// done / total (todo-format.md), so the band only keeps the open top-level ones.
 function topLevelOpen(all: HudTodo[]): HudTodo[] {
-  const out: HudTodo[] = []
-  all.forEach((item, i) => {
-    if ((item.depth ?? 0) > 0 || item.done) return
-    let done = 0
-    let total = 0
-    for (let j = i + 1; j < all.length && all[j]!.file === item.file && (all[j]!.depth ?? 0) > (item.depth ?? 0); j++) {
-      total += 1
-      if (all[j]!.done) done += 1
-    }
-    out.push(total ? { ...item, progress: [done, total] } : item)
-  })
-  return out
+  return all.filter(item => (item.depth ?? 0) === 0 && !item.done)
 }
 
 export function shownText(item: HudTodo): string {

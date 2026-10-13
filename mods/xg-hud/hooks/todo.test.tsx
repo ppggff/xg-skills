@@ -240,12 +240,13 @@ describe('todo sync', () => {
     expect(await ui.find({ type: 'Text', text: /ask about locks/ })).toBeUndefined()
   })
 
-  test('sub-items stay out of the list; their parent shows done / total', async ($, on) => {
+  test('sub-items stay out of the list; their parent shows the done / total todo.py reports', async ($, on) => {
     const fake = world(on, '', {}, { project: true })
-    fake.rows.push(tagged('parent'), { ...tagged('child one', null), depth: 2, done: true }, { ...tagged('child two', null), depth: 2 }, tagged('next'))
+    // todo.py reports the parent's progress; the band shows that value and does not count the children itself
+    fake.rows.push({ ...tagged('parent'), progress: [5, 9] }, { ...tagged('child one', null), depth: 2, done: true }, { ...tagged('child two', null), depth: 2 }, tagged('next'))
     const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
     await ui.press({ key: 'todo' })
-    expect(await ui.find({ type: 'Text', text: 'parent 1/2' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'parent 5/9' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /child/ })).toBeUndefined()
     expect(await ui.find(count(2))).toBeDefined()
   })
