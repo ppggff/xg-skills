@@ -4,6 +4,17 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-13 — commit ids in the docs follow a history rewrite (card xg-skills/051)
+
+- New `tools/remap-shas.py`. `map --old A..B --new C..D` pairs each old commit with the new one carrying its change: by
+  `git patch-id` (rebase, reorder, reword), then subject and author time (a conflict resolved), then combined diffs (a
+  run of old commits squashed into one; one old commit split into a run, mapped to its last); `--manual` adds pairs,
+  unpaired old commits are listed. `apply` replaces every 7–40 hex token that is a prefix of exactly one old commit,
+  keeping its length; `--dry-run`, `--exclude`.
+- New constraints row Git-3: after rewriting product commits a card cites, carry its SHAs with the tool; human quotes
+  and the map stay as they are.
+- Why: a rebase of hashdata/013 onto its base branch left 209 SHAs in 14 card files pointing at the old commits.
+
 ## 2026-10-13 — a script interface to the viewer's todos; the todo view drops per-item delete (card xg-skills/048)
 
 - New `tools/todo.py add|list|done` (JSON on stdout, one stderr line and exit 1 on failure). `add` appends an item to

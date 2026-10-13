@@ -52,6 +52,7 @@ Bare `steps/…` and `templates/…` names below and in the steps resolve under 
   `CLAUDE_CODE_SESSION_ID` under `~/.config/xg-knowledge-wiki/active-card/`; readers such as a status mod only read it).
   `tools/todo.py add|list|done` reads and writes the viewer's todo files (`<dev_root>/todo/*.md`) for scripts and mods
   (JSON on stdout; `add` appends to `inbox.md` with `@project` and a `➕` stamp, `done` ticks an item by file · stamp · first line).
+  `tools/remap-shas.py map|apply` carries the SHAs a card cites across a history rewrite (constraints.md Git-3).
   Other tools: `viewer.py` · `commit-data-repos.py` · `check-sync.py` · `check-code-refs.py` · `log-usage.py` ·
   `resolve-project.py`.
 
