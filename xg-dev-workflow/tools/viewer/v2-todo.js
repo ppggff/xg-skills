@@ -28,6 +28,7 @@
     }).catch(() => { V.toast("保存失败：连不上 viewer"); return { ok: false }; });
   // the version edits are addressed by: this view's snapshot once it has painted, else (rows shown elsewhere) the disk text
   const seen = n => (F[n].shown != null ? F[n].shown : F[n].text);
+  const TICK_MS = 600;
   const save = (name, text) => V.todoWrite("write", name, { text, mtime: F[name] ? (F[name].shown != null ? F[name].base : F[name].mtime) : 0 });
   const refresh = () => load().then(paint).catch(e => { const b = $("#tscroll"); if (b) b.innerHTML = `<div class="derr"><b>读不到 todo 目录</b><br>${esc(e.message)}</div>`; });
 
@@ -227,7 +228,13 @@
     if (F[n]) return V.toast("已经有 " + n);
     V.todoWrite("write", n, { text: "# " + n.replace(/\.md$/i, "") + "\n\n", mtime: 0 }).then(res => { if (res.ok) V.openDoc("dev", DIR + n); });
   }));
-  V.click("[data-tck]", el => { const at = find(el.dataset.tck); if (!at) return; const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })); });
+  // A tick shows on the row first and is written a moment later, so the row visibly changes before a filter drops it.
+  V.click("[data-tck]", el => {
+    const at = find(el.dataset.tck); if (!at || el.dataset.busy) return;
+    const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line), row = el.closest("tr, .titem");
+    el.dataset.busy = "1"; el.textContent = it.done ? "" : "✓"; if (row) row.classList.toggle("done", !it.done);
+    setTimeout(() => save(at.file, SV.editTodo(seen(at.file), at.line, { done: !it.done, today: today() })), TICK_MS);
+  });
   // No per-item delete: an item's continuation lines are invisible here, so deleting is left to the source editor.
   V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
     const k = el.dataset.tsortc, by = store.get("todo-sort", ""), desc = store.get("todo-desc", false);
