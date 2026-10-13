@@ -250,7 +250,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _json(self, obj, code=200):
         self._send(code, json.dumps(obj, ensure_ascii=False), "application/json; charset=utf-8")
 
-    todo_lock = threading.Lock()
+    roots_lock = threading.Lock()   # todo writes hold todo.py's lock instead
 
     def do_POST(self):
         # The writes: todo files (043/044) and the page-set extra roots (044). A cross-site page cannot send them:
@@ -297,7 +297,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _roots_op(self, op, path):
         """add / remove a page-set extra root. Only an existing directory under the home directory (not home itself);
         roots from config.yaml are left to config.yaml. Every change is logged."""
-        with self.todo_lock:
+        with self.roots_lock:
             mine, p = ui_roots(), path.strip()
             if not (p.startswith("/") or p == "~" or p.startswith("~/")):
                 self._json({"error": "请写完整路径（/… 或 ~/…）"}, 400)
