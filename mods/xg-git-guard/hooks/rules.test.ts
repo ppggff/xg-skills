@@ -21,6 +21,19 @@ describe('commit messages', () => {
   test('path before commit is not the message', () => {
     expect(judge('git -C ~/xxx/x commit -m "plain"', true)).toBe(null)
   })
+  test('a later command in the same call is not the message', () => {
+    expect(judge('git commit -m "plain" && python3 - <<\'EOF\'\nprint("✅ Req-3")\nEOF', true)).toBe(null)
+    expect(judge('git commit -m \'plain\'; echo "① ✅"', true)).toBe(null)
+    expect(judge('git commit -m "plain" | cat && echo ✅', true)).toBe(null)
+    expect(judge('git commit -m "plain"\necho "✅"', true)).toBe(null)
+  })
+  test('the message is still checked in every form', () => {
+    expect(judge('git commit -m "a && b ✅"', true)).toHaveProperty('deny')
+    expect(judge("git commit -m 'step ① ; done'", true)).toHaveProperty('deny')
+    expect(judge("git commit -m \"$(cat <<'EOF'\nfix ✅ dates\nEOF\n)\" && echo ok", true)).toHaveProperty('deny')
+    expect(judge("git commit -F - <<'EOF'\nfix (045 Req-3)\nEOF\necho done", true)).toHaveProperty('deny')
+    expect(judge('git commit -F - <<-TAG\n\tfix ✅\n\tTAG', true)).toHaveProperty('deny')
+  })
   test('amend asks', () => {
     expect(judge('git commit --amend --no-edit', true)).toHaveProperty('ask')
   })

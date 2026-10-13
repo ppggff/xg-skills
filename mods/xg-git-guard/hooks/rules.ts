@@ -21,8 +21,66 @@ function gitCalls(command: string): Call[] {
 }
 
 // The KB and dev_root data repos may cite workflow ids; only product repos may not.
+const HEREDOC = /^<<(-?)[ \t]*(['"]?)([A-Za-z_]\w*)\2/
+
+// One commit's own text: its arguments up to the first top-level &&, ;, | or newline, plus the body of any heredoc
+// opened before that. Quotes and $( ) nest, so a separator inside them belongs to the message.
+export function commitSegment(command: string, at: number): string {
+  const stack: string[] = []
+  const pending: { tag: string; strip: boolean }[] = []
+  let i = at
+  while (i < command.length) {
+    const ch = command[i]!
+    const top = stack[stack.length - 1]
+    if (top === "'") {
+      if (ch === "'") stack.pop()
+      i += 1
+      continue
+    }
+    if (top === '"') {
+      if (ch === '\\') i += 1
+      else if (ch === '"') stack.pop()
+      else if (command.startsWith('$(', i)) {
+        stack.push('(')
+        i += 1
+      }
+      i += 1
+      continue
+    }
+    const heredoc = HEREDOC.exec(command.slice(i))
+    if (heredoc) {
+      pending.push({ tag: heredoc[3]!, strip: heredoc[1] === '-' })
+      i += heredoc[0].length
+      continue
+    }
+    if (ch === '\n' && pending.length) {
+      for (const { tag, strip } of pending.splice(0)) {
+        let end = command.indexOf('\n', i + 1)
+        while (end !== -1) {
+          const line = command.slice(i + 1, end)
+          i = end
+          if ((strip ? line.replace(/^\t+/, '') : line) === tag) break
+          end = command.indexOf('\n', i + 1)
+        }
+        if (end === -1) i = command.length
+      }
+      if (!stack.length) break
+      i += 1
+      continue
+    }
+    if (!stack.length && (ch === '\n' || ch === ';' || ch === '|' || (ch === '&' && !'<>'.includes(command[i - 1] ?? '') && command[i + 1] !== '>'))) break
+    if (ch === "'" || ch === '"') stack.push(ch)
+    else if (command.startsWith('$(', i)) {
+      stack.push('(')
+      i += 1
+    } else if (ch === ')' && top === '(') stack.pop()
+    i += 1
+  }
+  return command.slice(at, i)
+}
+
 function commitMessageProblem(command: string, at: number): string | null {
-  const message = command.slice(at)
+  const message = commitSegment(command, at)
   const found: string[] = []
   if (EMOJI.test(message)) found.push('emoji')
   if (ENCLOSED_DIGIT.test(message)) found.push('circled/boxed digits')
