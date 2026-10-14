@@ -563,7 +563,10 @@ export const register: Register = on => {
     // Todo rows are reserved first (wrapped items from `at` on, a more row, the new/stash row); KB and card share the rest.
     const othersOpen = (kbOpen && kbLines.length > 0) || (cardOpen && c !== null)
     const todoWidth = Math.min(64, room)
-    const todoTextWidth = Math.max(8, todoWidth - 14)
+    // An item row is number(2) text take(4) done(4) spacer [connector(1)], one gap between each; the text gets the rest
+    // exactly, or the surface wraps it a second time.
+    const hasTicks = !isDesktop && !isNarrow
+    const todoTextWidth = Math.max(8, todoWidth - (hasTicks ? 16 : 14))
     const todoAvail = (othersOpen ? Math.max(3, Math.ceil(allRows / 2)) : allRows) - 2
     const todoItems: { item: HudTodo; lines: string[] }[] = []
     let todoUsed = 0
@@ -613,7 +616,6 @@ export const register: Register = on => {
     const todoBlock: RenderChildren[] = []
     if (todoOpen) {
       // Connectors as KB and card draw them: ┤ on each entry's first row, │ on its wrapped rows, ┘ closing the block.
-      const hasTicks = !isDesktop && !isNarrow
       const tick = (glyphs: string[]) => hasTicks ? <Box flexDirection="column">{glyphs.map(g => <Text dimColor>{g}</Text>)}</Box> : null
       todoItems.forEach(({ item, lines }, i) => {
         const id = `${todoId(item)}-${at + i}`

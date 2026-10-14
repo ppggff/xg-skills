@@ -183,6 +183,36 @@ describe('todo actions row', () => {
   })
 })
 
+describe('todo item row', () => {
+  test('the wrapped text, take, done and connector fit the row, so the surface does not wrap the text again', async ($, on) => {
+    world(on)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    await ui.input({ key: 'todo-new', text: '准备一个长时间的测试，看看是否符合预期，是否与其他系统一致' })
+    type N = { type?: string; props?: Record<string, unknown>; children?: unknown[] }
+    const rowOf = (node: unknown): N | null => {
+      if (!node || typeof node !== 'object') return null
+      const n = node as N
+      if (String(n.props?.key ?? '').startsWith('todo-') && typeof n.props?.width === 'number' && (n.children ?? []).length >= 5) return n
+      for (const child of n.children ?? []) {
+        const hit = rowOf(child)
+        if (hit) return hit
+      }
+      return null
+    }
+    const label = (node: unknown): number => {
+      const n = node as N
+      if (n.type === 'Button') return String(n.props?.label ?? '').length
+      if (n.type === 'Text') return 1
+      return Math.max(0, ...(n.children ?? []).map(label))
+    }
+    const row = rowOf(await ui.drawn())!
+    const kids = (row.children ?? []).filter(Boolean) as N[]
+    const used = kids.reduce((sum, k) => sum + (typeof k.props?.width === 'number' ? k.props.width as number : k.props?.flexGrow ? 0 : label(k)), 0)
+    expect(used + kids.length - 1).toBeLessThanOrEqual(row.props!.width as number)
+  })
+})
+
 describe('todo failures', () => {
   test('a failed stash keeps the prompt and adds nothing', async ($, on) => {
     const fake = world(on, 'keep me')
