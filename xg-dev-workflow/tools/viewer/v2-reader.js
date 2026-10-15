@@ -19,8 +19,9 @@
     renderer: t => `<span class="cite" data-ref="${esc(t.id)}" tabindex="0" role="link">[<b>${esc(t.id + t.clause)}</b>]</span>`,
   }] });
 
-  // a todo file reads as Obsidian shows it: a single line break stays a break, so a multi-line item keeps its lines
-  const mdOpt = loc => (V.isTodo(loc) ? { breaks: true } : undefined);
+  // a todo file reads as Obsidian shows it: a single line break stays a break, so a multi-line item keeps its lines,
+  // and an item's further lines render as the markdown they were
+  const mdHTML = (body, loc) => (V.isTodo(loc) ? window.marked.parse(SV.todoReadable(body), { breaks: true }) : window.marked.parse(body));
 
   /* ---- pane chrome ---- */
   function shell(k) {
@@ -218,7 +219,7 @@
     const fm = src ? { fields: {}, body: text } : SV.parseFrontmatter(text);
     p.doc = { text, body: fm.body, fields: fm.fields, mtime, version, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
     p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
-    const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body, mdOpt(loc));
+    const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + mdHTML(fm.body, loc);
     p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
     const md = $(".md", p.body);
     if (!src) { markDoc(k, md, loc); renderMermaid(k, md); linkGit(k, md, loc); }
@@ -538,7 +539,7 @@
   function changeArticle(d, loc, k) {
     const fm = SV.parseFrontmatter(d.after || ""), body = fm.body, fmLines = (d.after || "").split("\n").length - body.split("\n").length;
     const spans = SV.blockSpans(window.marked.lexer(body)), tmp = document.createElement("div");
-    tmp.innerHTML = window.marked.parse(body, mdOpt(loc));
+    tmp.innerHTML = mdHTML(body, loc);
     const els = [...tmp.children], use = spans.length === els.length ? spans : els.map((_, i) => spans[i] || { start: 0, end: 0 });
     if (spans.length === els.length) SV.blockLineNumbers(spans, fmLines).forEach((n, i) => { els[i].dataset.ln = n; });
     const adds = (d.adds || []).map(x => x - 1 - fmLines), dels = (d.dels || []).map(g => ({ at: g.at - 1 - fmLines, lines: g.lines }));

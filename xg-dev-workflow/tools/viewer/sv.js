@@ -670,6 +670,22 @@ var SV = (function () {
     });
     return out;
   }
+  // a todo file as the reader renders it, line for line: continuation lines move from todo.py's fixed four-space indent
+  // to the item's own text column, so the text inside reads as the markdown it was (a "  - x" in it is a nested list,
+  // not a code-deep line shown as is); a line todo.py escaped stays plain text, never a task box
+  function todoReadable(text) {
+    var ls = String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n");
+    parseTodo(text).forEach(function (it) {
+      var col = TODO_RE.exec(ls[it.line])[1].length - 1, pad = new Array(col + 1).join(" ");
+      it.more.forEach(function (orig, k) {
+        var n = it.line + 1 + k;
+        if (ls[n] === "") return;
+        ls[n] = pad + (ls[n].charAt(4) !== "\\" ? orig : orig.charAt(0) === "\\" ? "\\" + orig
+          : orig.replace(/^([ \t]*)([-*+]|[0-9]+(?=[.)]))/, function (all, ws, mk) { return ws + (/[0-9]/.test(mk) ? mk + "\\" : "\\" + mk); }));
+      });
+    });
+    return ls.join("\n");
+  }
   // line n of a todo file as todo.py reads it (byte order mark dropped, CRLF folded) — what a tick names
   function todoLine(text, n) { return String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n")[n] || ""; }
   // 045: an item's Obsidian Tasks marks — ➕ created (date, maybe a time, maybe with seconds), 📅 due, ✅ done, ⏫ 🔼 🔽 priority (1 high
@@ -754,7 +770,7 @@ var SV = (function () {
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, todoLine: todoLine, resolveWikiAny: resolveWikiAny,
-           continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
+           continueLine: continueLine, todoReadable: todoReadable, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
            todoDate: todoDate, toggleTask: toggleTask, completeSpan: completeSpan };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;

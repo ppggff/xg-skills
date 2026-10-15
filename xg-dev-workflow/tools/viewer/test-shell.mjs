@@ -1019,6 +1019,12 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("046 todoReadable: continuation lines move to the item's text column, escaped lines stay plain text, the line count holds", () => {
+  const R = SV.todoReadable;
+  assert.equal(R("- [ ] a\n      - one\n\n    two\n- [ ] b"), "- [ ] a\n    - one\n\n  two\n- [ ] b");
+  assert.equal(R("  1. [ ] a\n    \\- [ ] x\n    \\1. [ ] y\n    \\\\z"), "  1. [ ] a\n     \\- [ ] x\n     1\\. [ ] y\n     \\\\z");
+  assert.equal(R("- [ ] a\n  two spaces\n```\n    - [ ] in\n```"), "- [ ] a\n  two spaces\n```\n    - [ ] in\n```");
+});
 t("046 completeSpan: a picked @project or [[doc]] takes what is already there instead of doubling it", () => {
   const C = (v, from, caret, kind, pick) => { const r = SV.completeSpan(v, from, caret, kind, pick); return v.slice(0, r.start) + r.text + v.slice(r.end) + "|" + r.caret; };
   assert.equal(C("ask @xg", 4, 7, "@", "xg-skills"), "ask @xg-skills |15");             // at the end: a space to type on

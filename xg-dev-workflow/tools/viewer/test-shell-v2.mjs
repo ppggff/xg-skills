@@ -46,8 +46,8 @@ t("a table group heading keeps its distance whether or not a dots row sits above
 });
 
 t("a multi-line todo: the reader keeps a todo file's single line breaks, the todo view counts the further lines", () => {
-  assert.match(js.reader, /const mdOpt = loc => \(V\.isTodo\(loc\) \? \{ breaks: true \} : undefined\);/);
-  assert.equal((js.reader.match(/window\.marked\.parse\([^)]*, mdOpt\(loc\)\)/g) || []).length, 2);   // the article and the change view
+  assert.match(js.reader, /const mdHTML = \(body, loc\) => \(V\.isTodo\(loc\) \? window\.marked\.parse\(SV\.todoReadable\(body\), \{ breaks: true \}\)/);
+  assert.equal((js.reader.match(/mdHTML\((fm\.)?body, loc\)/g) || []).length, 2);   // the article and the change view
   assert.match(js.todo, /it\.more\.length \? `<span class="tmore"/);
   assert.equal((js.todo.match(/\$\{moreHTML\(it\)\}/g) || []).length, 2);   // the list form and the table
   assert.match(css, /#tip \.tfull \{ white-space: pre-wrap;/);
