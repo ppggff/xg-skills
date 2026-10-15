@@ -52,6 +52,10 @@ t("a multi-line todo: the todo view counts the further lines; the reader renders
   assert.match(css, /#tip \.tfull \{ white-space: pre-wrap;/);
 });
 
+t("a loose list reads as tight: an item's last paragraph has no bottom margin", () => {
+  assert.match(css, /\.md li > p:last-child \{ margin-bottom: 0; \}/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

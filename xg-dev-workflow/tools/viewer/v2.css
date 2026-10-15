@@ -463,6 +463,8 @@ a.tr { text-decoration: none; }
 .md p { margin: 0 0 14px; }
 .md ul, .md ol { margin: 0 0 14px; padding-left: 40px; }
 .md li > ul, .md li > ol { margin: 0; }
+/* a loose list (a blank line between items) keeps a tight list's rhythm; only a second block inside one item adds a gap */
+.md li > p:last-child { margin-bottom: 0; }
 .md strong { font-weight: 700; }
 .md a { color: var(--sig); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--sig) 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .md a:hover { text-decoration-color: var(--sig); }
