@@ -71,10 +71,12 @@
       + (m.done ? `<span class="tmeta" data-tip="完成 ${m.done}">${V.I.done}${m.done.slice(5)}</span>` : "")
       + (when ? `<span class="tmeta" data-tip="创建 ${m.created}">${V.relT(when.getTime())}</span>` : "");
   };
+  // a multi-line item shows its first line and how many follow; the whole text opens on hover or a tap
+  const moreHTML = it => (it.more.length ? `<span class="tmore" data-tmore="${esc(it.file)}|${it.line}">+${it.more.length} 行</span>` : "");
   function rowHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = SV.todoMeta(it.text);
     return `<div class="titem${it.done ? " done" : ""}" style="--td:${Math.min(it.depth, 8)}"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
-      + `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`
+      + `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}${moreHTML(it)}</span>`
       + V.todoMetaHTML(m, it.done)
       + `<button class="tfile" data-open="dev:${DIR}${esc(it.file)}" data-oline="${it.line + 1}" data-tip="打开 ${esc(it.file)} 的这一行">${esc(it.file.replace(/\.md$/, ""))}</button></div>`;
   }
@@ -125,7 +127,7 @@
   const SORTABLE = ["prio", "due", "done", "created", "file"];
   function trHTML(it) {
     const id = esc(it.file) + "|" + it.line, m = it.meta, t = today(), when = m.created && SV.todoDate(m.created);
-    const text = `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}</span>`;
+    const text = `<span class="ttx">${V.todoItemHTML(m.text, it.file)}${it.prog ? `<span class="tprog">${it.prog[0]}/${it.prog[1]}</span>` : ""}${moreHTML(it)}</span>`;
     return `<tr class="${it.done ? "done" : ""}" style="--td:${Math.min(it.depth, 8)}">`
       + `<td class="c-ck"><button class="tck" data-tck="${id}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button></td>`
       + `<td class="c-text">${text}</td>`
@@ -211,6 +213,17 @@
   });
   V.todoOpen = () => Object.values(F).reduce((n, f) => n + SV.parseTodo(f.text).filter(i => !i.done).length, 0);
   const find = id => { const i = id.lastIndexOf("|"), file = id.slice(0, i), line = +id.slice(i + 1); return F[file] && SV.parseTodo(seen(file)).find(x => x.line === line) && { file, line }; };
+
+  const showMore = el => {
+    const at = find(el.dataset.tmore), it = at && SV.parseTodo(seen(at.file)).find(x => x.line === at.line); if (!it) return;
+    V.tipAt(el, `<div class="h"><b>${esc(at.file)}</b><span style="margin-left:auto">第 ${at.line + 1} 行</span></div>`
+      + `<div class="tfull">${esc([SV.todoMeta(it.text).text, ...it.more].join("\n"))}</div>`);
+  };
+  document.addEventListener("mouseover", e => { const el = e.target.closest && e.target.closest(".tmore"); if (el) showMore(el); });
+  document.addEventListener("mouseout", e => {
+    if (e.target.closest && e.target.closest(".tmore") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".tmore"))) V.hideTip();
+  });
+  V.click(".tmore", el => showMore(el));
 
   V.views.todo = (k, loc, opt) => {
     const el = $("#todo");

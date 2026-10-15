@@ -4,7 +4,7 @@
 "use strict";
 (function (V) {
   const { $, $$, esc } = V, P = V.P;
-  const isTodo = loc => loc && loc.kind === "doc" && loc.tree === "dev" && /^todo\/[^/]+\.md$/.test(loc.rel);
+  const isTodo = V.isTodo;
   const fileOf = loc => loc.rel.slice("todo/".length);
 
   /* ---- reading: tickable checkboxes and @project tags ---- */

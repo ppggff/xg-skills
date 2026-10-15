@@ -343,7 +343,7 @@ a.tr { text-decoration: none; }
 .ttbl .c-text { padding-left: calc(10px + var(--td, 0) * 14px); white-space: normal; overflow-wrap: anywhere; }   /* a todo is read whole, not cut */
 .ttbl .tck { vertical-align: middle; }
 .ttbl tr.done .ttx { color: var(--faint); text-decoration: line-through; }
-.ttbl .tdue, .ttbl .tpri, .ttbl .tprog { margin-left: 0; } .ttbl .tprog { margin-left: 6px; }
+.ttbl .tdue, .ttbl .tpri, .ttbl .tprog { margin-left: 0; } .ttbl .tprog, .ttbl .tmore { margin-left: 6px; }
 .ttbl .c-done, .ttbl .c-created { font: 400 var(--t-xs) var(--mono); }
 .ttbl .tfile { font: 400 var(--t-xs) var(--mono); color: var(--faint); } .ttbl .tfile:hover { color: var(--sig); }
 .ttbl tbody tr:not(.gh):not(.tfold):hover td { background: var(--hover); }
@@ -412,6 +412,9 @@ a.tr { text-decoration: none; }
 .tpri svg { margin: 0; } .tpri.p1 { color: var(--blocked); } .tpri.p2 { color: var(--paused); }
 .tmeta svg { color: var(--done); }
 .tprog { color: var(--done); }
+/* a multi-line item's "+N 行": the rest of its text shows in the tip, lines kept */
+.tmore { margin-left: 6px; font: 400 var(--t-xs) var(--mono); color: var(--mu); white-space: nowrap; cursor: help; border-bottom: 1px dotted var(--ln2); }
+#tip .tfull { white-space: pre-wrap; overflow-wrap: anywhere; font: 400 var(--t-md)/1.65 var(--cjk); color: var(--tx); }
 .titem { padding-left: calc(4px + var(--td, 0) * 7px); }
 .md .tmeta, .md .tdue, .md .tpri, .md .tprog { font-size: var(--t-xs); }
 

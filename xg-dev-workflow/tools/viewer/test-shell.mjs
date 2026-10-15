@@ -1043,7 +1043,7 @@ t("052 shared todo cases: the viewer parses each one as todo.py does", () => {
   for (const c of cases) {
     const items = SV.parseTodo(c.text);
     const got = items.map((it, i) => { const m = SV.todoMeta(it.text), p = SV.todoProgress(items, i);
-      return { line: it.line, done: it.done, depth: it.depth, tags: it.tags, key: m.text, created: m.created, due: m.due, done_date: m.done, priority: m.prio, progress: p }; });
+      return { line: it.line, done: it.done, depth: it.depth, tags: it.tags, key: m.text, created: m.created, due: m.due, done_date: m.done, priority: m.prio, progress: p, more: it.more }; });
     assert.deepStrictEqual(JSON.parse(JSON.stringify(got)), c.items, c.name);   // sv.js runs in a vm: compare plain data
   }
 });

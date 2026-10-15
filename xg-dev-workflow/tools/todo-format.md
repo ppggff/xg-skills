@@ -21,8 +21,9 @@ write through it. `todo-cases.json` pins this document: both implementations run
 - `depth` is the number of indent characters (a tab counts one). The items right after an item that sit deeper are its
   sub-items; an item with sub-items has `progress` = [done sub-items, all sub-items].
 - Continuation lines (written by `todo.py` for multi-line text): lines indented four spaces under an item; a line whose
-  content starts with a backslash or looks like an item gets one more leading backslash. They are not items; only
-  `todo.py` reads them back as part of the item's text.
+  content starts with a backslash or looks like an item gets one more leading backslash. They are not items; both
+  readers take them, with that one backslash dropped, as the further lines of the item's text (`more`), and a blank
+  line between two of them as an empty line.
 
 ## Marks, tags and the key
 

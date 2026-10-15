@@ -17,7 +17,8 @@
      "due": "2026-10-20",
      "done_date": "",
      "priority": 1,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 1,
@@ -31,7 +32,8 @@
      "due": "",
      "done_date": "2026-10-12",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -49,7 +51,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 1,
@@ -61,7 +64,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -79,7 +83,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -97,7 +102,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -115,7 +121,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 1,
@@ -127,7 +134,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -145,7 +153,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -165,7 +174,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -183,7 +193,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -201,7 +212,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 2,
@@ -213,7 +225,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -231,7 +244,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -252,7 +266,8 @@
      "progress": [
       1,
       2
-     ]
+     ],
+     "more": []
     },
     {
      "line": 1,
@@ -264,7 +279,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 2,
@@ -276,7 +292,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 3,
@@ -288,7 +305,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -308,7 +326,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -326,7 +345,11 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": [
+      "- [ ] b",
+      "more"
+     ]
     }
    ]
   },
@@ -344,7 +367,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 1,
@@ -356,7 +380,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -377,7 +402,8 @@
      "progress": [
       1,
       1
-     ]
+     ],
+     "more": []
     },
     {
      "line": 1,
@@ -389,7 +415,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -407,7 +434,8 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -425,7 +453,8 @@
      "due": "",
      "done_date": "",
      "priority": 2,
-     "progress": null
+     "progress": null,
+     "more": []
     },
     {
      "line": 1,
@@ -437,7 +466,8 @@
      "due": "",
      "done_date": "",
      "priority": 3,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -455,7 +485,8 @@
      "due": "2026-10-09",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
     }
    ]
   },
@@ -475,7 +506,76 @@
      "due": "",
      "done_date": "",
      "priority": 0,
-     "progress": null
+     "progress": null,
+     "more": []
+    }
+   ]
+  },
+  {
+   "name": "continuation lines are the rest of an item's text",
+   "text": "- [ ] a\n    two\n\n    \\- [ ] three\n    \\\\four\n- [ ] b\n    - [ ] sub\n    note\n\n- [ ] c\n  two spaces\n\ta tab",
+   "items": [
+    {
+     "line": 0,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "a",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null,
+     "more": [
+      "two",
+      "",
+      "- [ ] three",
+      "\\four"
+     ]
+    },
+    {
+     "line": 5,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "b",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": [
+      0,
+      1
+     ],
+     "more": []
+    },
+    {
+     "line": 6,
+     "done": false,
+     "depth": 4,
+     "tags": [],
+     "key": "sub",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null,
+     "more": [
+      "note"
+     ]
+    },
+    {
+     "line": 9,
+     "done": false,
+     "depth": 0,
+     "tags": [],
+     "key": "c",
+     "created": "",
+     "due": "",
+     "done_date": "",
+     "priority": 0,
+     "progress": null,
+     "more": []
     }
    ]
   }

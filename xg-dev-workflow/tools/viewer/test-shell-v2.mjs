@@ -45,6 +45,14 @@ t("a table group heading keeps its distance whether or not a dots row sits above
   assert.match(css, /\.tbl tbody tr:not\(\.gh\):not\(\.tfold\) \+ tr\.gh td \{ padding-top: 37px; \}/);
 });
 
+t("a multi-line todo: the reader keeps a todo file's single line breaks, the todo view counts the further lines", () => {
+  assert.match(js.reader, /const mdOpt = loc => \(V\.isTodo\(loc\) \? \{ breaks: true \} : undefined\);/);
+  assert.equal((js.reader.match(/window\.marked\.parse\([^)]*, mdOpt\(loc\)\)/g) || []).length, 2);   // the article and the change view
+  assert.match(js.todo, /it\.more\.length \? `<span class="tmore"/);
+  assert.equal((js.todo.match(/\$\{moreHTML\(it\)\}/g) || []).length, 2);   // the list form and the table
+  assert.match(css, /#tip \.tfull \{ white-space: pre-wrap;/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

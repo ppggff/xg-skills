@@ -430,7 +430,8 @@ class SharedCaseTests(unittest.TestCase):
     def test_parse_cases(self):
         for case in self.cases["parse"]:
             with self.subTest(case["name"]):
-                got = [{k: item[k] for k in FIELDS} for item in todo.parse(todo.normalize(case["text"]), "f.md", set())]
+                got = [{**{k: item[k] for k in FIELDS}, "more": item["text"].split("\n")[1:]}
+                       for item in todo.parse(todo.normalize(case["text"]), "f.md", set())]
                 self.assertEqual(got, case["items"])
 
     def test_write_cases(self):

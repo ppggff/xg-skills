@@ -646,8 +646,9 @@ var SV = (function () {
   var TODO_RE = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)([\s\S]*)$/;   // text: to the line's end, U+2028 too   // lead · mark · "] " · text — the marker is kept on edit
   var FENCE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
   function parseTodo(text) {
-    var out = [], fence = null;
-    String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n").forEach(function (l, i) {
+    var out = [], fence = null, ls = String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n");
+    var cont = function (l) { return l.slice(0, 4) === "    " && !TODO_RE.test(l); };
+    ls.forEach(function (l, i) {
       var f = FENCE_RE.exec(l);
       if (fence === null) {
         if (f && !(f[1].charAt(0) === "`" && f[2].indexOf("`") >= 0)) { fence = f[1]; return; }
@@ -659,7 +660,13 @@ var SV = (function () {
       if (!m) return;
       m[4].replace(/\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)/g, " ")   // a tag inside a link's text or target is not a tag
         .replace(/(^|[ \t])[@#]([A-Za-z0-9_.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
-      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^[ \t]*/.exec(m[1])[0].length });
+      var more = [];   // the continuation lines todo.py writes, one leading backslash dropped; a blank line counts when one follows
+      for (var j = i + 1; j < ls.length; j++) {
+        if (cont(ls[j])) more.push(ls[j].slice(4).replace(/^\\/, ""));
+        else if (ls[j] === "" && cont(ls.slice(j + 1).filter(function (x) { return x !== ""; })[0] || "")) more.push("");
+        else break;
+      }
+      out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^[ \t]*/.exec(m[1])[0].length, more: more });
     });
     return out;
   }

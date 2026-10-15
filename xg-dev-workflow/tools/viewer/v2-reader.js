@@ -19,6 +19,9 @@
     renderer: t => `<span class="cite" data-ref="${esc(t.id)}" tabindex="0" role="link">[<b>${esc(t.id + t.clause)}</b>]</span>`,
   }] });
 
+  // a todo file reads as Obsidian shows it: a single line break stays a break, so a multi-line item keeps its lines
+  const mdOpt = loc => (V.isTodo(loc) ? { breaks: true } : undefined);
+
   /* ---- pane chrome ---- */
   function shell(k) {
     const b = (t, icon, tip, key) => `<button class="ib" data-t="${t}" data-tip="${tip}"${key ? ` data-key="${key}"` : ""} aria-label="${tip}">${V.I[icon]}</button>`;
@@ -215,7 +218,7 @@
     const fm = src ? { fields: {}, body: text } : SV.parseFrontmatter(text);
     p.doc = { text, body: fm.body, fields: fm.fields, mtime, version, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
     p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
-    const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
+    const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body, mdOpt(loc));
     p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
     const md = $(".md", p.body);
     if (!src) { markDoc(k, md, loc); renderMermaid(k, md); linkGit(k, md, loc); }
@@ -414,6 +417,7 @@
     t.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left - 20)) + "px";
     t.style.top = (r.bottom + h + 12 > innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 6) + "px";
   }
+  V.tipAt = showTipAt; V.hideTip = hideTip;
   const tipHead = (b, where, extra) => `<div class="h"><b>${esc(b)}</b>${extra || ""}<span style="margin-left:auto">${esc(where)}</span></div>`;
   const inline = s => window.marked.parseInline(s.length > 260 ? s.slice(0, 260) + "…" : s);
   function claimBefore(ce, id) {   // the clause of the sentence a citation backs, as the tip's first line
@@ -534,7 +538,7 @@
   function changeArticle(d, loc, k) {
     const fm = SV.parseFrontmatter(d.after || ""), body = fm.body, fmLines = (d.after || "").split("\n").length - body.split("\n").length;
     const spans = SV.blockSpans(window.marked.lexer(body)), tmp = document.createElement("div");
-    tmp.innerHTML = window.marked.parse(body);
+    tmp.innerHTML = window.marked.parse(body, mdOpt(loc));
     const els = [...tmp.children], use = spans.length === els.length ? spans : els.map((_, i) => spans[i] || { start: 0, end: 0 });
     if (spans.length === els.length) SV.blockLineNumbers(spans, fmLines).forEach((n, i) => { els[i].dataset.ln = n; });
     const adds = (d.adds || []).map(x => x - 1 - fmLines), dels = (d.dels || []).map(g => ({ at: g.at - 1 - fmLines, lines: g.lines }));
