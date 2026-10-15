@@ -247,7 +247,7 @@
     setTimeout(() => V.todoWrite("tick", at.file, { line: at.line, text: SV.todoLine(seen(at.file), at.line), done: !it.done, today: today(),
       version: F[at.file].shown != null ? F[at.file].base : F[at.file].version }), TICK_MS);
   });
-  // No per-item delete: an item's continuation lines are invisible here, so deleting is left to the source editor.
+  // No per-item delete: an item's continuation lines are not on its row, so deleting is left to the source editor.
   V.click("[data-tsortc]", el => {   // first click sorts ascending, the second descending, the third back to file order
     const k = el.dataset.tsortc, by = store.get("todo-sort", ""), desc = store.get("todo-desc", false);
     if (by !== k) { store.set("todo-sort", k); store.set("todo-desc", false); } else if (!desc) store.set("todo-desc", true); else { store.set("todo-sort", ""); store.set("todo-desc", false); }

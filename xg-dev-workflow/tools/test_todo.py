@@ -111,9 +111,9 @@ class TodoTests(unittest.TestCase):
         lines = self.read().split("\n")
         self.assertTrue(lines[2].startswith("- [x] first line @alice @xg-skills ➕ 2026-10-13 09:30 ✅ 2026-10-13"))
 
-    def test_continuation_lines_are_indented_and_escaped(self):
+    def test_continuation_lines_are_indented_broken_and_escaped(self):
         self.ok("add", stdin="a\n- [ ] b\n\\c")
-        self.assertIn("- [ ] a ➕ 2026-10-13 09:30\n    \\- [ ] b\n    \\\\c\n", self.read())
+        self.assertIn("- [ ] a ➕ 2026-10-13 09:30  \n  \\- [ ] b  \n  \\c\n", self.read())
 
     def test_carriage_returns_and_line_separators_become_newlines(self):
         rec = self.ok("add", stdin="one\rtwo\r\nthree\u2028four")

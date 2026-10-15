@@ -4,6 +4,16 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-15 — a multi-line todo is plain markdown that renders line for line (card xg-skills/046)
+
+- `todo.py` writes a multi-line text's further lines two spaces in (the item's text column, not four) and ends each
+  line a non-blank line follows with a markdown hard break; a line that would read as an item gets a backslash before
+  its marker (`\-`, `1\.`). Any markdown renderer, the viewer's reader included, now shows the lines as written and
+  the text's own lists and code as markdown, with no todo-specific rendering. Ticks keep the hard break. Why: four
+  spaces put a text's own `  - x` code-deep, and plain markdown joined the lines into one paragraph.
+- The viewer reads continuation lines too (`more`, held to the same cases as `todo.py`): the todo view marks a
+  multi-line item with `+N 行` and shows the whole text on hover or tap.
+
 ## 2026-10-13 — a lite check that cited commit ids are still on a branch (card xg-skills/053)
 
 - New lite check `commit-refs` (ak). It takes the commit ids a card cites in backticks (one id, or `a..b`) from its

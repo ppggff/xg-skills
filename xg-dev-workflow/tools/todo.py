@@ -7,7 +7,9 @@ one lock per todo dir; the viewer's writes name a version (inode-mtime_ns-ctime_
 the file has moved on.
 
 An item added here is `- [ ] <first line>[ @<project>][ [[link]]] ➕ YYYY-MM-DD HH:MM:SS`, its further lines as
-continuations indented four spaces (escaped when they start with a backslash or look like an item). An item is
+continuations indented to its text column (two spaces) with a markdown hard break (two trailing spaces) before each
+next line, so any markdown renderer shows the lines as written; a line that would read as an item gets a backslash
+before its marker. An item is
 found again by file + created stamp + key (its first line without marks, spaces / tabs folded).
 
 Usage (stdout is one JSON value; on failure exit 1 and one line on stderr):
@@ -51,7 +53,7 @@ DONE_MARK_RE = re.compile(r"[ \t]*✅[ \t]*" + STAMP + r"[ \t]*$")
 TRAIL_TAG_RE = re.compile(r"[ \t]@([A-Za-z0-9_.-]+)$")
 # JS ends a line at \r, U+2028 and U+2029 too; the viewer would split an item there, so input is normalized.
 NEWLINES_RE = re.compile("\r\n?|[\u2028\u2029]")
-INDENT = "    "
+ESC_RE = re.compile(r"^([ \t]*)(?:(\\*)([-*+])|([0-9]+)(\\*)([.)]))(.*)$")
 
 
 class TodoError(Exception):
@@ -120,12 +122,17 @@ def tags_of(first: str) -> list:
     return tags
 
 
-def escape(line: str) -> str:
-    return "\\" + line if line.startswith("\\") or TODO_RE.match(line) else line
-
-
-def unescape(line: str) -> str:
-    return line[1:] if line.startswith("\\") else line
+def shift_escape(line: str, by: int) -> str:
+    """One backslash more (+1) or less (-1) before the list marker of a line that reads as an item without them."""
+    m = ESC_RE.match(line)
+    if not m:
+        return line
+    ws, run1, bullet, num, run2, punct, rest = m.groups()
+    run = run1 if bullet else run2
+    if not TODO_RE.match(ws + (bullet or num + punct) + rest) or len(run) + by < 0:
+        return line
+    run = "\\" * (len(run) + by)
+    return ws + (run + bullet if bullet else num + run + punct) + rest
 
 
 def trailing_project(first: str, projects: set):
@@ -140,8 +147,8 @@ def compose(text: str, project, link, stamp: str) -> str:
     tag = f" @{project}" if project and project not in tags_of(first) else ""
     ref = f" [[{link}]]" if link else ""
     lines = [f"- [ ] {first}{tag}{ref} ➕ {stamp}"]
-    lines += [INDENT + escape(line) if line else "" for line in rest]
-    return "\n".join(lines)
+    lines += ["  " + shift_escape(line, 1) if line else "" for line in rest]
+    return "\n".join(line + "  " if line and nxt else line for line, nxt in zip(lines, lines[1:] + [""]))
 
 
 def append_item(text: str, name: str, block: str) -> str:
@@ -167,13 +174,14 @@ def toggle(text: str, line: int, done: bool, today: str) -> str:
     if line not in {item["line"] for item in parse(text, "", set())}:
         raise TodoError(f"line {line} is not an item")
     m = TODO_RE.match(lines[line])
-    body = DONE_MARK_RE.sub("", m.group(4)).rstrip(" \t")
-    lines[line] = f"{m.group(1)}{'x' if done else ' '}{m.group(3)}{body}" + (f" ✅ {today}" if done else "")
+    trail = re.search(r"[ \t]*$", m.group(4)).group()
+    body = DONE_MARK_RE.sub("", m.group(4)[:len(m.group(4)) - len(trail)]).rstrip(" \t")
+    lines[line] = f"{m.group(1)}{'x' if done else ' '}{m.group(3)}{body}" + (f" ✅ {today}" if done else "") + trail
     return "\n".join(lines)
 
 
-def is_continuation(line: str) -> bool:
-    return line.startswith(INDENT) and not TODO_RE.match(line)
+def is_continuation(line: str, col: int) -> bool:
+    return line.startswith(" " * col) and not TODO_RE.match(line)
 
 
 def parse(text: str, file: str, projects: set) -> list:
@@ -197,17 +205,19 @@ def parse(text: str, file: str, projects: set) -> list:
         if not m:
             i += 1
             continue
-        first = m.group(4)
-        more, j = [], i + 1
+        first, col = m.group(4), len(m.group(1)) - 1
+        raw, j = [], i + 1
         while j < len(lines):
             nxt = lines[j]
-            if is_continuation(nxt):
-                more.append(unescape(nxt[len(INDENT):]))
-            elif nxt == "" and is_continuation(next((l for l in lines[j + 1:] if l != ""), "")):
-                more.append("")
+            if is_continuation(nxt, col):
+                raw.append(nxt[col:])
+            elif nxt == "" and is_continuation(next((l for l in lines[j + 1:] if l != ""), ""), col):
+                raw.append("")
             else:
                 break
             j += 1
+        unbroken = [line[:-2] if line.endswith("  ") and nxt else line for line, nxt in zip(raw, raw[1:] + [""])]
+        more = [shift_escape(line, -1) for line in unbroken]
         tags = tags_of(first)
         created = CREATED_RE.search(first)
         shown = key_of(first)

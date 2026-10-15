@@ -20,10 +20,13 @@ write through it. `todo-cases.json` pins this document: both implementations run
   a fence closes on the same character, at least as long, with nothing after it.
 - `depth` is the number of indent characters (a tab counts one). The items right after an item that sit deeper are its
   sub-items; an item with sub-items has `progress` = [done sub-items, all sub-items].
-- Continuation lines (written by `todo.py` for multi-line text): lines indented four spaces under an item; a line whose
-  content starts with a backslash or looks like an item gets one more leading backslash. They are not items; both
-  readers take them, with that one backslash dropped, as the further lines of the item's text (`more`), and a blank
-  line between two of them as an empty line.
+- Continuation lines (written by `todo.py` for multi-line text): lines under an item indented with spaces to its text
+  column (the width of indent, marker and the spaces after it: two for `- [ ] `), so any markdown renderer keeps them
+  in the item and renders them as the markdown they are. They are not items; both readers take them, that indent
+  taken off, as the further lines of the item's text (`more`), and a blank line between two of them as an empty line.
+  A line ending in two spaces that a non-blank continuation line follows loses those two (the hard break `todo.py`
+  wrote). A line that, without them, would read as an item has one backslash more before its list marker (`\-`,
+  `1\.`); reading takes one away.
 
 ## Marks, tags and the key
 
@@ -37,10 +40,12 @@ write through it. `todo-cases.json` pins this document: both implementations run
 ## Writes (todo.py)
 
 - Tick: the mark becomes `x`, a trailing `✅ …` is replaced by `✅ <today>`. Untick: the mark becomes a space and the
-  trailing `✅ …` goes. Indent, marker and spacing are kept.
+  trailing `✅ …` goes. Indent, marker and spacing are kept, trailing spaces / tabs (a hard break) included.
 - Append: `- [ ] <text>[ @<project>][ [[<link>]]] ➕ <YYYY-MM-DD HH:MM:SS>` at the end of the file (a newline is added
   first when the file lacks one); the project tag is left out when the text already has exactly that tag. Further
-  lines of a multi-line text (split at LF, CRLF, CR, U+2028 and U+2029) follow as continuation lines.
+  lines of a multi-line text (split at LF, CRLF, CR, U+2028 and U+2029) follow as continuation lines, two spaces in;
+  every non-blank line, the item line included, that a non-blank line follows ends in two spaces (a markdown hard
+  break), so the lines render as written.
 - A whole-file save (the source editor) stores the text as given, line ends folded to LF.
 - Every write holds one lock per todo directory and replaces the file atomically; a write that names a version
   (`<inode>-<mtime ns>-<ctime ns>-<size>`) is refused when the file is no longer at that version. Appending behind an

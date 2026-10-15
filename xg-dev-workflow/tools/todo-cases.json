@@ -333,7 +333,7 @@
   },
   {
    "name": "escaped continuation lines are not items",
-   "text": "- [ ] a\n    \\- [ ] b\n    more",
+   "text": "- [ ] a  \n  \\- [ ] b  \n  more",
    "items": [
     {
      "line": 0,
@@ -512,8 +512,8 @@
    ]
   },
   {
-   "name": "continuation lines are the rest of an item's text",
-   "text": "- [ ] a\n    two\n\n    \\- [ ] three\n    \\\\four\n- [ ] b\n    - [ ] sub\n    note\n\n- [ ] c\n  two spaces\n\ta tab",
+   "name": "continuation lines: indented to the item's text column, hard breaks and one escape backslash dropped",
+   "text": "- [ ] a  \n  two\n\n  \\- [ ] three  \n  1\\. [ ] four  \n  \\\\- [ ] five  \n  - plain  \n  ```  \n  \\- [ ] code  \n  ```\n- [ ] b\n  - [ ] sub\n    note  \n    end\n\n- [ ] c\n \tone space and a tab",
    "items": [
     {
      "line": 0,
@@ -530,11 +530,16 @@
       "two",
       "",
       "- [ ] three",
-      "\\four"
+      "1. [ ] four",
+      "\\- [ ] five",
+      "- plain",
+      "```",
+      "- [ ] code",
+      "```"
      ]
     },
     {
-     "line": 5,
+     "line": 10,
      "done": false,
      "depth": 0,
      "tags": [],
@@ -550,9 +555,9 @@
      "more": []
     },
     {
-     "line": 6,
+     "line": 11,
      "done": false,
-     "depth": 4,
+     "depth": 2,
      "tags": [],
      "key": "sub",
      "created": "",
@@ -561,11 +566,12 @@
      "priority": 0,
      "progress": null,
      "more": [
-      "note"
+      "note",
+      "end"
      ]
     },
     {
-     "line": 9,
+     "line": 15,
      "done": false,
      "depth": 0,
      "tags": [],
@@ -699,7 +705,36 @@
    "project": "",
    "link": "",
    "stamp": "2026-10-13 14:05:33",
-   "after": "# inbox\n- [ ] first ➕ 2026-10-13 14:05:33\n    second\n    third\n"
+   "after": "# inbox\n- [ ] first ➕ 2026-10-13 14:05:33  \n  second  \n  third\n"
+  },
+  {
+   "name": "a further line that would read as an item gets a backslash before its marker, one more if it has some",
+   "op": "append",
+   "file": "inbox.md",
+   "before": "# inbox\n",
+   "text": "x\n- [ ] y\n\\- [ ] z\n1. [ ] n\n  - q\n\nlast",
+   "project": "",
+   "link": "",
+   "stamp": "2026-10-13 14:05:33",
+   "after": "# inbox\n- [ ] x ➕ 2026-10-13 14:05:33  \n  \\- [ ] y  \n  \\\\- [ ] z  \n  1\\. [ ] n  \n    - q\n\n  last\n"
+  },
+  {
+   "name": "tick and untick keep the hard break at the line's end",
+   "op": "tick",
+   "before": "- [ ] a ➕ 2026-10-01 09:00  \n  more",
+   "line": 0,
+   "done": true,
+   "today": "2026-10-13",
+   "after": "- [x] a ➕ 2026-10-01 09:00 ✅ 2026-10-13  \n  more"
+  },
+  {
+   "name": "untick with a hard break",
+   "op": "tick",
+   "before": "- [x] a ✅ 2026-10-13  \n  more",
+   "line": 0,
+   "done": false,
+   "today": "2026-10-13",
+   "after": "- [ ] a  \n  more"
   }
  ]
 }

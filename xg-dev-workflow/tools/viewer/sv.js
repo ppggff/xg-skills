@@ -645,46 +645,42 @@ var SV = (function () {
   // todo-cases.json; only "- [ ] " / "- [x] " lines outside code fences are items. ASCII rules, like todo.py's.
   var TODO_RE = /^([ \t]*(?:[-*+]|[0-9]+[.)])[ \t]+\[)( |x|X)(\][ \t]+)([\s\S]*)$/;   // text: to the line's end, U+2028 too   // lead · mark · "] " · text — the marker is kept on edit
   var FENCE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+  // one backslash more (+1) or less (-1) before the list marker of a line that reads as an item without them
+  var ESC_RE = /^([ \t]*)(?:(\\*)([-*+])|([0-9]+)(\\*)([.)]))([\s\S]*)$/;
+  function shiftEscape(l, by) {
+    var m = ESC_RE.exec(l); if (!m) return l;
+    var run = m[3] ? m[2] : m[5];
+    if (!TODO_RE.test(m[1] + (m[3] || m[4] + m[6]) + m[7]) || run.length + by < 0) return l;
+    run = new Array(run.length + by + 1).join("\\");
+    return m[1] + (m[3] ? run + m[3] : m[4] + run + m[6]) + m[7];
+  }
   function parseTodo(text) {
-    var out = [], fence = null, ls = String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n");
-    var cont = function (l) { return l.slice(0, 4) === "    " && !TODO_RE.test(l); };
-    ls.forEach(function (l, i) {
-      var f = FENCE_RE.exec(l);
+    var out = [], fence = null, ls = String(text || "").replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n");
+    for (var i = 0; i < ls.length; i++) {
+      var l = ls[i], f = FENCE_RE.exec(l);
       if (fence === null) {
-        if (f && !(f[1].charAt(0) === "`" && f[2].indexOf("`") >= 0)) { fence = f[1]; return; }
+        if (f && !(f[1].charAt(0) === "`" && f[2].indexOf("`") >= 0)) { fence = f[1]; continue; }
       } else {   // a fence closes on the same character, at least as long, with nothing after it
         if (f && f[1].charAt(0) === fence.charAt(0) && f[1].length >= fence.length && !f[2].trim()) fence = null;
-        return;
+        continue;
       }
       var m = TODO_RE.exec(l), tags = [];
-      if (!m) return;
+      if (!m) continue;
       m[4].replace(/\[\[[^\]]*\]\]|\[[^\]]*\]\([^)]*\)/g, " ")   // a tag inside a link's text or target is not a tag
         .replace(/(^|[ \t])[@#]([A-Za-z0-9_.-]+)/g, function (all, sp, t) { if (tags.indexOf(t) < 0) tags.push(t); return all; });
-      var more = [];   // the continuation lines todo.py writes, one leading backslash dropped; a blank line counts when one follows
-      for (var j = i + 1; j < ls.length; j++) {
-        if (cont(ls[j])) more.push(ls[j].slice(4).replace(/^\\/, ""));
-        else if (ls[j] === "" && cont(ls.slice(j + 1).filter(function (x) { return x !== ""; })[0] || "")) more.push("");
+      // continuation lines sit at the item's text column; a blank line counts when one follows; they are never fences
+      var pad = new Array(m[1].length).join(" "), cont = function (x) { return x.slice(0, pad.length) === pad && !TODO_RE.test(x); };
+      var raw = [], j = i + 1;
+      for (; j < ls.length; j++) {
+        if (cont(ls[j])) raw.push(ls[j].slice(pad.length));
+        else if (ls[j] === "" && cont(ls.slice(j + 1).filter(function (x) { return x !== ""; })[0] || "")) raw.push("");
         else break;
       }
+      var more = raw.map(function (x, k) { return shiftEscape(/  $/.test(x) && raw[k + 1] ? x.slice(0, -2) : x, -1); });
       out.push({ line: i, done: m[2] !== " ", text: m[4], tags: tags, depth: /^[ \t]*/.exec(m[1])[0].length, more: more });
-    });
+      i = j - 1;
+    }
     return out;
-  }
-  // a todo file as the reader renders it, line for line: continuation lines move from todo.py's fixed four-space indent
-  // to the item's own text column, so the text inside reads as the markdown it was (a "  - x" in it is a nested list,
-  // not a code-deep line shown as is); a line todo.py escaped stays plain text, never a task box
-  function todoReadable(text) {
-    var ls = String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n");
-    parseTodo(text).forEach(function (it) {
-      var col = TODO_RE.exec(ls[it.line])[1].length - 1, pad = new Array(col + 1).join(" ");
-      it.more.forEach(function (orig, k) {
-        var n = it.line + 1 + k;
-        if (ls[n] === "") return;
-        ls[n] = pad + (ls[n].charAt(4) !== "\\" ? orig : orig.charAt(0) === "\\" ? "\\" + orig
-          : orig.replace(/^([ \t]*)([-*+]|[0-9]+(?=[.)]))/, function (all, ws, mk) { return ws + (/[0-9]/.test(mk) ? mk + "\\" : "\\" + mk); }));
-      });
-    });
-    return ls.join("\n");
   }
   // line n of a todo file as todo.py reads it (byte order mark dropped, CRLF folded) — what a tick names
   function todoLine(text, n) { return String(text || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n")[n] || ""; }
@@ -770,7 +766,7 @@ var SV = (function () {
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, todoLine: todoLine, resolveWikiAny: resolveWikiAny,
-           continueLine: continueLine, todoReadable: todoReadable, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
+           continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
            todoDate: todoDate, toggleTask: toggleTask, completeSpan: completeSpan };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;

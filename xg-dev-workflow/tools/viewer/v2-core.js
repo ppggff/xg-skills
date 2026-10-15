@@ -121,7 +121,6 @@ var V2 = (function () {
   const W = V.W = Object.assign({ wn: 240, ws: 250, wa: .5, nc: false, sc: false, dc: true, nx: false, sx: false, hd: 0 }, V.store.get("w", {}));
   V.saveW = () => V.store.set("w", W);
   V.isNarrow = () => app.classList.contains("narrow");
-  V.isTodo = loc => !!loc && loc.kind === "doc" && loc.tree === "dev" && /^todo\/[^/]+\.md$/.test(loc.rel);
   V.applyW = () => {
     const nar = V.isNarrow(), nt = $("#navTog");
     app.style.setProperty("--wnu", W.wn + "px"); app.style.setProperty("--wsu", W.ws + "px");
