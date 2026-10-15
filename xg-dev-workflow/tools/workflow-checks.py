@@ -378,6 +378,9 @@ GO_ENTRY = re.compile(r"^\S+\s*·\s*\*\*go(（续）|\(续\))?\*\*")   # `<date>
 BULLET = r"^[-*] "
 QUOTE = re.compile(r"原话[:：]\s*[「“\"]([^」”\"]+)[」”\"]")
 INFERRED_GO = re.compile(r"(视为|视作|等同|即为)\s*(go|授权)")
+GO_CHECKS_CUTOFF = "2026-10-16"   # Go-4's per-entry fields: each go / go（续） entry dated from then carries grill: and lens:
+SKIPPED_NO_REASON = re.compile(r"未做(?!\s*[（(])")
+DEFERRED = re.compile(r"收尾|close-?out|以后|之后再|稍后|按规模|later", re.I)
 
 
 def _git_here(*args):
@@ -478,7 +481,7 @@ def check_lite_doc_form(project, card_dir, ws):
     """(aj) 032 Req-5 — the reader rules constraints.md marks (S: aj), as one check with tagged findings:
     long-cell (Doc-3) · inline-clause (Id-1) · inv-missing (Doc-8, done cards) · observations-missing (Lay-3,
     done cards) · fact-home (Id-3) · go-quote (Go-1) · change-unconfirmed (Go-2) · messages-stale (Lay-3) ·
-    lens-missing (Go-4) — plus two hints that never gate: skill-behind (Lay-2) and an inferred-go wording.
+    lens-missing and go-checks (Go-4) — plus two hints that never gate: skill-behind (Lay-2) and an inferred-go wording.
     Gate: created >= LITE_DOC_FORM_CUTOFF or a `skill:` field; an older card gets the findings as skips and one
     grandfathered exemption. Runs for lite cards only (LITE_ONLY_CHECKS)."""
     design_path = os.path.join(card_dir, "design.md")
@@ -537,6 +540,16 @@ def check_lite_doc_form(project, card_dir, ws):
             elif " ".join(q.group(1).split()) not in msgs_norm:
                 hits.append("doc-form/go-quote: 授权记录 go entry %s quotes 「%s」 which is not in notes/human-messages.md"
                             % (when, q.group(1)[:40]))
+        if GO_ENTRY.search(entry) and when != "?" and when >= GO_CHECKS_CUTOFF:
+            for field in ("grill", "lens"):
+                f = re.search(field + r"[:：]\s*([^·\n]*)", entry)
+                if not f:
+                    hits.append("doc-form/go-checks: 授权记录 go entry %s has no `%s:` field (Go-4)" % (when, field))
+                elif SKIPPED_NO_REASON.search(f.group(1)):
+                    hits.append("doc-form/go-checks: 授权记录 go entry %s says `%s: 未做` without （原因）(Go-4)" % (when, field))
+                elif DEFERRED.search(f.group(1)):
+                    hits.append("doc-form/go-checks: 授权记录 go entry %s puts `%s` off ('%s') — the pre-go checks run before the go (Go-4)"
+                                % (when, field, f.group(1).strip()[:30]))
         m = INFERRED_GO.search(entry)
         if m:
             hints.append("lite-doc-form: 授权记录 entry %s reads like an inferred go ('%s') — Go-1 wants the human's words"

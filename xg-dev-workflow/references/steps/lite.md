@@ -76,9 +76,10 @@ commitment stands, only dependent work pauses. Clarifications and blockers are n
 what code can answer, ask promptly for what only the human knows. A human correction lands as one line in
 `notes/observations.md` at once — never inside a message that also asks a question; memory is the model's to write.
 **A human addition mid-run** (executing or closing: the human adds a goal or tightens one a go covers; a Req still 讨论中
-waits for its go ask) is its own authorization — land it (a new Req block, or a 变更 + same-day 确认 line) and a `go（续）`
-授权记录 line, both quoting it verbatim, then continue (closing → executing); stop only for reasons (1)–(3) — a conflict
-with a commitment, what the go excluded, an Ops operation. A question or a musing is not an addition; unsure → ask.
+waits for its go ask) is its own authorization — run the pre-go checks on it first (current code, grill and lenses per
+「Triggers」), land it (a new Req block, or a 变更 + same-day 确认 line) and a `go（续）` 授权记录 line with their fields
+(Go-4), both quoting it verbatim, then continue (closing → executing); stop only for (1)–(3) — a conflict with a
+commitment, what the go excluded, an Ops operation. A question or a musing is not an addition; unsure → ask.
 **Re-open after close-out**: a new goal after `status: done` returns the card to executing (board done → active
 once, with a reason line — Lay-4), adds a new Req block and a **new go ask** (lenses per 「Triggers」), and writes an
 授权记录 line `go（续）`; only a different project or carrier opens a new card. A close-out leaving any 待人判 item
@@ -150,9 +151,9 @@ message opens with the 待人判 items (none → 无), then (3)'s results. Askin
 Re-checked whenever the scope or impact forecast grows; a switch once on stays on, with one reason line.
 - **Lenses** (falsifier + commitment coverage — `lenses.md`, dispatch per `discuss.md` §3) and the **close-out
   review** are on by default; off only with a written reason in the 收敛行, carried into the 授权记录 line (`lens: 未做（原因）` ·
-  `review: 自审（原因）`).
+  `review: 自审（原因）`); close-out is no such reason — lenses run before any go, a go（续）too.
 - **Grill to convergence** (`discuss.md` §1–§2, §4 topics) ← the approach spans ≥2 interacting modules or holds a
-  hard-to-reverse choice; otherwise one round may share the go ask (say so in the 收敛行).
+  hard-to-reverse choice; otherwise one round may share the go ask (`grill:` on the go line, as `lens:`).
 - **Inv blocks** ← any Req mentions a lock · signal · exit code · disk format · output shape · external environment ·
   irreversible operation (`constraints.md` Doc-8). **Baseline run first** ← an existing tool or script (「Drafting」).
 - **Diagram** · **plan.md · facts.md · adr/** ← 「Card files」(interacting components / decision branch; content volume); **split** ←

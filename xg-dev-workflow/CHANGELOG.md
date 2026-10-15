@@ -4,6 +4,19 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-15 — every go, a go（续）included, carries its own grill and lens fields (card hashdata/013)
+
+- Go-4 is now per entry: each 授权记录 **go** / **go（续）** dated from 2026-10-16 carries `grill:` and `lens:`, as
+  `已做 …` or `未做（原因）`. The lite check flags an entry missing a field, a bare `未做`, and a field put off to later
+  (`收尾` / close-out / 按规模 / later) as `doc-form/go-checks`; older entries are left alone. The design-lite template's
+  授权记录 line gains `grill:`.
+- lite.md: a human addition mid-run runs the pre-go checks (current code, grill and lenses per「Triggers」) before it is
+  landed; 「Triggers」 says close-out is no reason to skip the lenses and puts `grill:` on the go line.
+- Why: on card hashdata/013, Req-14/15/16 were each proposed and started on a go（续）with `lens: 收尾时按规模定` — no
+  grill, no pre-go lens, no check of the current code first. The steps existed; nothing enforced them per requirement.
+  The human (2026-10-15): 「除了检查实际状态，还要检查是合理，是否需要grill，每次新增需求的开工前，应该有自动的检查」.
+- **体量行**: SKILL.md 95 · 流程 8 files / 835 · 约束 136 · 模版 6 files / 169 · lite face otherwise unchanged.
+
 ## 2026-10-15 — a multi-line todo is plain markdown that renders line for line (card xg-skills/046)
 
 - `todo.py` writes a multi-line text's further lines two spaces in (the item's text column, not four) and ends each

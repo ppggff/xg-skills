@@ -77,7 +77,8 @@ needing judgment is flow (`steps/lite.md` · `discuss.md`) or the model's call (
 - Go-3 (H) — cross-card supersede: the superseding card writes one `- 退役:` line under the superseded item, `(<its go commit>, date)`;
   on a 存量 card through `commit-data-repos.py --allow-approved-edit`.
 - Go-4 (S: aj) — an executing, closing or done card has a `## 授权记录` section, and `notes/lens-*.md` or a 授权记录 line carrying
-  `lens: 未做（原因）` (the 收敛行's lens / review fields ride the go line).
+  `lens: 未做（原因）` (the 收敛行's lens / review fields ride the go line). From 2026-10-16 each **go** and **go（续）** entry
+  carries its own `grill:` and `lens:` fields — `已做 …` or `未做（原因）`; putting them off to close-out is no reason.
 
 ## Operations (Ops) — never covered by a go on tasks
 

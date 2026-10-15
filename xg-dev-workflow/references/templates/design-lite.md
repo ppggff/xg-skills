@@ -36,4 +36,4 @@ lines below; clauses are line-leading `- (a)` (constraints.md Id-1); a table cel
 ## 待解问题与证据  open questions as a list (`- Q-n …`; an answered one is struck through with its answer); facts are `Fact-n` in facts.md, never inline
 ## 任务            next steps · remaining work (→ plan.md from `templates/plan.md` when tasks crowd the doc)
 ## 测试与验证      plan as blocks (`### V-n` · 验证什么 · 判据) or a layered list — never long cells; results table: one word + one sentence per row · 单次测不到的 · 未验证项
-## 授权记录        one line per event, newest-first: date · **go / go（续）/ 答复** · Req ids · scope & not-in-scope · 人原话：「…」(verbatim from notes/human-messages.md) · lens: 已做 n / 未做（原因）· review: <tier>（原因）· commit; a correction is a new line — the old line stays
+## 授权记录        one line per event, newest-first: date · **go / go（续）/ 答复** · Req ids · scope & not-in-scope · 人原话：「…」(verbatim from notes/human-messages.md) · grill: 已做 n 轮 / 未做（原因）· lens: 已做 n / 未做（原因）· review: <tier>（原因）· commit; a correction is a new line — the old line stays

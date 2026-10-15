@@ -985,6 +985,22 @@ class LiteDocForm(unittest.TestCase):
         f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
         self.assertEqual(len(f), 10)
 
+    def test_each_go_entry_from_the_cutoff_carries_its_checks(self):
+        auth = ("## 授权记录\n"
+                "- 2026-10-17 · **go（续）** · Req-1 · 人原话：「go」· grill: 1 轮 · lens: 未做（纯文档改动）\n"
+                "- 2026-10-16 · **go（续）** · Req-1 · 人原话：「go」· lens: 收尾时按规模定\n"
+                "- 2026-10-16 · **go** · Req-1 · 人原话：「go」· grill: 未做 · lens: 已做 2\n"
+                "- 2026-09-16 · **go** · Req-1 · 人原话：「go」· 基线 abc\n")
+        design = self.GOOD_DESIGN.split("## 授权记录")[0] + auth
+        card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-10-17 「go」\n",
+                          extra=[("notes/lens-2026-09-16.md", "x")])
+        f, s, exs = wc.check_lite_doc_form("proj", card, ws._L1)
+        checks = sorted(l for l in f if l.startswith("doc-form/go-checks"))
+        self.assertEqual(len(checks), 3, checks)
+        self.assertTrue(any("no `grill:`" in l for l in checks), checks)
+        self.assertTrue(any("puts `lens` off" in l for l in checks), checks)
+        self.assertTrue(any("`grill: 未做` without" in l for l in checks), checks)
+
     def test_lens_skip_note_satisfies_go4(self):
         design = self.GOOD_DESIGN.replace("人原话：「go」· 基线 abc", "人原话：「go」· lens: 未做（纯文档改动）· 基线 abc")
         card = self._card("001-a", "executing", "2026-09-16", "abc1234", design, "- 2026-09-16 「go」\n")
