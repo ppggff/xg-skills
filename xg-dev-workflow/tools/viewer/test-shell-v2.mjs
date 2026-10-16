@@ -92,6 +92,10 @@ t("the table and the time form span a tray's outer width", () => {
   assert.match(css, /#bscroll\.tm-form \{ padding: 0 var\(--bG\) 40px; \}/);
 });
 
+t("054: a time row names the card only, no done count", () => {
+  assert.doesNotMatch(js.time, /<span class="s">\$\{esc\(c\.slug\)\}<\/span>\$\{c\.lite/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

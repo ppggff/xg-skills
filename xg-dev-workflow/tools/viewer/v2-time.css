@@ -19,7 +19,6 @@
 .tm-name { flex: none; width: var(--tm-lw); display: flex; align-items: center; gap: 6px; padding: 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tm-name .fr { margin-left: auto; padding-left: 6px; }
 .tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }
 .tm-track { position: relative; flex: 1; min-width: 0; overflow: hidden; cursor: grab; touch-action: pan-y; }
 .tm-pan { position: absolute; top: 0; bottom: 0; left: 0; transform: translateX(calc(-1 * var(--tm-pan, 0px))); }

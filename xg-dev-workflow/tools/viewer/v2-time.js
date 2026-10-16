@@ -75,7 +75,7 @@
       if (x.end && x.b > x.a) { const [e, ew] = fit(X(x.b) - 4, 4); bars += `<i class="tm-q end k-${x.end}" style="left:${e}px;width:${ew}px"></i>`; }
     }));
     return `<div class="tm-row${alt ? " alt" : ""}" data-trow="${esc(c.id)}"><button class="tm-name ${B.selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}">`
-      + `<span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span>${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button>`
+      + `<span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span></button>`
       + `<div class="tm-track"><div class="tm-pan" style="width:${geo.total}px">${band}${bars}</div></div></div>`;
   }
   // after the board drew the form: the indicator and its label
