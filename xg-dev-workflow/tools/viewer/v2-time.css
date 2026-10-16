@@ -19,10 +19,12 @@
 :root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { --tm-bg: var(--sigs); }
 /* the name floats over the row's left end, fading the colours under it; every row's fade starts at the same place
    (--tm-nw, set from the longest name) and the whole stays within half the table */
-.tmv { --tm-fade: 120px; }
-.tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); max-width: 50%; display: flex; align-items: center; gap: 6px;
-  padding: 0 var(--tm-fade) 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
-  background: linear-gradient(90deg, var(--tm-bg) var(--tm-nw, 220px), transparent); }
+.tmv { --tm-fade: 200px; }
+.tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
+  padding: 0 8px 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
+  background: linear-gradient(90deg, var(--tm-bg) var(--tm-nw, 220px), color-mix(in srgb, var(--tm-bg) 78%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .25),
+    color-mix(in srgb, var(--tm-bg) 45%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .55), color-mix(in srgb, var(--tm-bg) 15%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .82), transparent); }
+.tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
 .tm-name .fr { flex: none; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
