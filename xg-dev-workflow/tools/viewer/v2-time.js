@@ -10,7 +10,7 @@
   const LST = { draft: "todo", executing: "active", closing: "paused", done: "done" };   // a lite status in the board's colours
   const KN = { done: "已验证", todo: "待验证", drop: "放弃", bad: "失败 / 阻塞", plan: "仅方案" };
   let H = null, loading = null, geo = null, pant = null, pan = 0;   // history; drawn geometry; the left edge's moment (null: follow today)
-  V.timeCur = null;   // the indicator, in ms
+  V.timeCur = null;   // the indicator, in ms: now until it is moved
 
   const range = () => store.get("tmRange", "14");
   const histOf = c => (H && H[c.id]) || { status: [], reqs: {}, first: "", last: "" };
@@ -28,7 +28,7 @@
 
   /* ---- the form, drawn by the board with its groups ---- */
   V.timeRangeBtn = () => { const r = RANGES.find(x => x[0] === range()) || RANGES[0];
-    return `<button data-tmr data-tip="时间范围：${r[1]}（点击换下一个：${RANGES.map(x => x[1]).join(" → ")}）">${r[1]}</button>`; };
+    return `<button data-tmnow data-tip="指示线回到现在">现在</button><button data-tmr data-tip="时间范围：${r[1]}（点击换下一个：${RANGES.map(x => x[1]).join(" → ")}）">${r[1]}</button>`; };
   V.timeHTML = (gs, B) => {
     if (!H) { load(); return '<div class="hint">读取卡片的历史…</div>'; }
     const now = Date.now(), box = $("#bscroll"), cs = gs.flatMap(g => g.cs);
@@ -38,6 +38,7 @@
     const span = range() === "all" ? now - d0 : Math.min(now - d0, +range() * DAY), k = W / span, total = Math.round((now - d0) * k);
     pan = Math.min(Math.max(0, pant === null ? total - W : Math.round((pant - d0) * k)), total - W);
     geo = { d0, k, W, total, now, lw };
+    if (V.timeCur === null) V.timeCur = now;
     const X = ms => Math.round((Math.min(Math.max(ms, d0), now) - d0) * k);
     const pxDay = DAY * k, step = pxDay >= 44 ? 1 : pxDay >= 7 ? 7 : 14;
     let head = "";
@@ -83,7 +84,7 @@
     const v = $("#bscroll .tmv"), line = v && $(".tm-line", v), lab = v && $(".tm-cur", v); if (!line || !geo) return;
     const x = V.timeCur === null ? -1 : geo.lw + (V.timeCur - geo.d0) * geo.k - pan, off = V.timeCur === null || x < geo.lw - 1 || x > geo.lw + geo.W + 1;
     line.style.display = lab.style.display = off ? "none" : "block";
-    if (!off) { line.style.left = lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); }
+    if (!off) { line.style.left = lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); lab.classList.toggle("left", x > geo.lw + geo.W - 90); }   // near the right edge the label sits left of the line
   }
   function setPan(px) {
     if (!geo) return;
@@ -117,7 +118,7 @@
     return `<div class="card tmc" data-st="${stOf(c, cs) || c.st}"><div class="c1"><span class="no">${esc(c.id)}</span><span class="w">${esc(word)}</span>`
       + `<span class="r">${reqs.length ? V.frac(ok, reqs.length) : ""}</span></div><div class="sl">${esc(c.slug)}</div>`
       + `<div class="nx">${fmt(t)}${reqs.length ? " · " + countsOf(reqs).map(([k, n]) => KN[k] + " " + n).join(" · ") : ""}</div>`
-      + (reqs.length ? `<div class="tk ${ok === reqs.length ? "full" : ""}">${reqs.map(r => `<i class="${r.k === "done" ? "on" : ""}"></i>`).join("")}<span class="ok">${V.I.tick}</span></div>` : "")
+      + (reqs.length ? `<div class="tk ${ok === reqs.length ? "full" : ""}"><i style="--p:${(ok / reqs.length).toFixed(3)}"></i><span class="ok">${V.I.tick}</span></div>` : "")
       + (near.length ? `<div class="tmq">${near.slice(0, 8).map(rqHTML).join("")}${near.length > 8 ? `<div class="more">… 另有 ${near.length - 8} 个</div>` : ""}</div>` : "") + "</div>";
   }
   const rqHTML = r => `<div class="rq ${r.k === "done" ? "" : r.k === "drop" ? "open drop" : "open"}" data-tip="Req-${r.n} · ${esc(r.w || "无状态词")}${r.last ? " · 最近变化 " + esc(r.last.t.slice(5)) : ""}">`
@@ -180,5 +181,6 @@
   // a new width redraws the axis (window, side columns, the detail's gutter): the moment at the left edge stays
   let lastW = 0;
   new ResizeObserver(() => { const w = $("#bscroll").clientWidth; if (w === lastW) return; lastW = w; if ($("#bscroll .tmv")) V.setForm("time"); }).observe($("#bscroll"));
+  V.click("[data-tmnow]", () => { V.timeCur = Date.now(); pant = null; V.setForm("time"); V.emit("time-moment"); V.untip(); });
   V.click("[data-tmr]", () => { const i = RANGES.findIndex(x => x[0] === range()); store.set("tmRange", RANGES[(i + 1) % RANGES.length][0]); pant = null; V.setForm("time"); V.untip(); });
 })(V2);

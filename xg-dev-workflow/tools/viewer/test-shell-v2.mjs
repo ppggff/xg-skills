@@ -68,6 +68,18 @@ t("the tree renders before the first data: no ext list is an empty one", () => {
   assert.doesNotMatch(js.tree, /D\.tree\.ext\.length/);
 });
 
+t("054 round 2: the progress bar is one bar; done requirements list last; the detail's columns keep their own rows; the indicator starts at now", () => {
+  assert.match(js.board, /<i style="--p:\$\{\(c\.ok \/ c\.req\)\.toFixed\(3\)\}"><\/i>/);
+  assert.doesNotMatch(js.board, /--k:\$\{i\}/);
+  assert.match(js.board, /rq\.slice\(\)\.sort\(\(a, b\) => \(a\.st === "已验证"\) - \(b\.st === "已验证"\)\)/);
+  assert.match(js.board, /<div class="bdg" data-st="\$\{c\.st\}"><div class="bdl">/);
+  assert.match(css, /\.bdl \{ display: grid; gap: 6px; align-content: start;/);
+  assert.doesNotMatch(css, /grid-row: 1 \/ span 5/);
+  assert.match(css, /:is\(#bscroll, #tscroll\) \{[^}]*scrollbar-gutter: stable;/);
+  assert.match(js.time, /if \(V\.timeCur === null\) V\.timeCur = now;/);
+  assert.match(js.time, /V\.click\("\[data-tmnow\]"/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

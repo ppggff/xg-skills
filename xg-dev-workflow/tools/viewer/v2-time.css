@@ -40,6 +40,7 @@ body.tm-panning, body.tm-panning .tm-track { cursor: grabbing; user-select: none
 .tm-line { position: absolute; top: 0; bottom: 0; width: 0; display: none; z-index: 4; pointer-events: none; border-left: 1px solid color-mix(in srgb, var(--sig) 45%, transparent); }
 .tm-cur { position: absolute; top: 4px; display: none; z-index: 5; margin-left: 4px; padding: 1px 5px; border-radius: var(--r-sm); pointer-events: none;
   background: color-mix(in srgb, var(--sig) 14%, var(--paper)); color: var(--sig); font: 400 var(--t-xs) var(--mono); white-space: nowrap; box-shadow: 0 0 0 3px var(--paper); }
+.tm-cur.left { transform: translateX(-100%); margin-left: -4px; }
 #dotpop:has(.tmc) { width: 300px; }
 #dotpop .card.tmc { height: auto; }
 .tmc .tmq { border-top: 1px solid var(--ln); padding-top: 6px; margin-top: 2px; }

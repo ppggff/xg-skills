@@ -48,8 +48,8 @@
   /* ---- forms ---- */
   function progHTML(c) {
     if (c.lite && c.req) {
-      const ticks = Array.from({ length: c.req }, (_, i) => `<i class="${i < c.ok ? "on" : ""}" style="--k:${i}"></i>`).join("");
-      return `<div class="tk ${seenTicks.has(c.id) ? "" : "pre"} ${c.ok === c.req ? "full" : ""}" data-tk="${esc(c.id)}">${ticks}<span class="ok">${V.I.tick}</span></div>`;
+      // one bar filled to the verified share: its density never depends on how many requirements the card has
+      return `<div class="tk ${seenTicks.has(c.id) ? "" : "pre"} ${c.ok === c.req ? "full" : ""}" data-tk="${esc(c.id)}"><i style="--p:${(c.ok / c.req).toFixed(3)}"></i><span class="ok">${V.I.tick}</span></div>`;
     }
     if (c.lite) return '<div class="tk"></div>';
     return `<div class="ph6" data-st="${c.st}">${c.ph.map((v, i) => `${i ? `<span class="${v ? "on" : ""}"></span>` : ""}<b class="s${v}"></b>`).join("")}</div>`;
@@ -181,7 +181,7 @@
   function reqsHTML(c) {
     if (c.lite) {
       const rq = reqsOf(c), bars = Array.from({ length: c.req }, (_, i) => `<i class="${i < c.ok ? "" : "o"}"></i>`).join("");
-      const rows = rq ? rq.map(r => `<button class="rq ${r.st === "已验证" ? "" : "open"}" data-rq data-tip="Req-${r.n} · ${esc(r.st)}">`
+      const rows = rq ? rq.slice().sort((a, b) => (a.st === "已验证") - (b.st === "已验证")).map(r => `<button class="rq ${r.st === "已验证" ? "" : "open"}" data-rq data-tip="Req-${r.n} · ${esc(r.st)}">`
         + `<span class="ck">${r.st === "已验证" ? V.I.tick : ""}</span><b>R${r.n}</b><span>${esc(r.t)}</span></button>`).join("")
         : '<div class="hint" style="padding:0">读取 Req…</div>';
       return `<div class="rhead"><span class="vt">${bars}</span><span class="bfr"><b>${c.ok}</b><i>/</i><s>${c.req}</s></span></div>` + rows;
@@ -218,7 +218,7 @@
     const m = form() === "time" ? V.timeMoment(c) : null;   // the time form shows the card at its indicator
     const meta = `<span class="hst">${c.st}</span>　${esc(c.p)}　${esc(c.gov)}${c.deps && c.deps !== "—" ? "　deps " + esc(c.deps) : ""}`;
     const row = inner => `<div class="brow">${inner}</div>`;
-    return head + `<div class="bdg" data-st="${c.st}">`
+    return head + `<div class="bdg" data-st="${c.st}"><div class="bdl">`
       + `<div class="brow big"><div class="hero"><span class="hn">${c.n}</span><span class="hline"><span class="hm">${meta}</span></span></div></div>`
       + row(`<div class="sfl"><span class="hsl">${esc(c.slug)}</span>${files}</div>`)
       + row(m ? m.nx : `<div class="bv nx">${esc(V.nextOf(c))}</div>`)
@@ -228,7 +228,7 @@
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
       + ((ts => (ts.length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${ts.length}</em></div>${ts.map(V.todoRowHTML).join("")}</div>`) : ""))(V.todosOfCard ? V.todosOfCard(c) : []))
-      + row(`<div>${m ? m.reqs : reqsHTML(c)}</div>`) + "</div>";
+      + `</div><div class="bdr">${m ? m.reqs : reqsHTML(c)}</div></div>`;
   }
   const onShow = () => !$("#board").hidden;
   function paintDetail() { if (onShow()) $("#bdet").innerHTML = detailHTML(); }
@@ -341,7 +341,7 @@
   V.on("narrow", () => { if (onShow() && !store.get("form", null)) render(); });
   V.on("split", () => { if (onShow()) render(); });
 
-  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold],.tmv,[data-tmr]")) closeDetail(); });
+  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold],.tmv,[data-tmr],[data-tmnow]")) closeDetail(); });
   const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
   V.setGroup = g => { groupBy = g; store.set("grp", groupBy); unfold.clear(); render(); V.untip(); };
   V.setForm = f => {

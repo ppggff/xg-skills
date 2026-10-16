@@ -138,7 +138,7 @@ a.tr { text-decoration: none; }
 
 /* board rhythm: G is the visible gap from the head and the side edges to the trays, I the gap between trays, T the tray
    padding. Content sits at the same place with or without trays: a tray grows outward into the gap by T + 1px border. */
-:is(#bscroll, #tscroll) { flex: 1; min-height: 0; overflow: auto; max-width: 100%;
+:is(#bscroll, #tscroll) { flex: 1; min-height: 0; overflow: auto; max-width: 100%; scrollbar-gutter: stable;
   --bT: 14px; --bG: clamp(18px,3vw,40px); --bI: 16px; --bS: calc(var(--bG) + var(--bT) + 1px);
   padding: var(--bS) var(--bS) 40px; }
 :is(#bscroll, #tscroll).tbl-form { padding-top: 14px; }
@@ -170,11 +170,8 @@ a.tr { text-decoration: none; }
 .card .nx { font: 400 var(--t-sm)/1.4 var(--cjk); color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -3px; }
 .tk { display: flex; gap: 2px; align-items: center; }
 .tk i { flex: 1; height: 2px; border-radius: 1px; background: var(--ln); position: relative; overflow: hidden; }
-.tk i.on::after {
-  content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--done) 60%, var(--card)); transform-origin: left;
-  transition: transform .35s var(--ease); transition-delay: calc(var(--k) * 45ms);
-}
-.tk.pre i.on::after { transform: scaleX(0); }
+.tk i::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--done) 60%, var(--card)); transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform .5s var(--ease); }
+.tk.pre i::after { transform: scaleX(0); }
 .tk .ok { width: 0; overflow: hidden; color: var(--done); transition: width .3s var(--ease) .5s; display: grid; place-items: center; }
 .tk.full .ok { width: 12px; }
 .tk .ok svg { width: 10px; height: 10px; }
@@ -280,9 +277,9 @@ a.tr { text-decoration: none; }
 .bdg { display: grid; gap: 6px; padding: 12px clamp(18px,3vw,40px) 28px; max-width: 960px; }
 .brow { display: grid; grid-template-columns: minmax(0,1fr); align-items: baseline; }
 .brow.big { align-items: end; margin: 14px 0 6px; }
-.brow:last-child { margin-top: 16px; }
-@media (min-width: 1180px) { .bdg { grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); column-gap: 56px; max-width: 1500px; align-content: start; }
-  .bdg > .brow { grid-column: 1; } .bdg > .brow:last-child { grid-column: 2; grid-row: 1 / span 5; margin-top: 14px; align-self: start; } }
+/* the detail's two columns each keep their own rows: a long requirement list no longer stretches the rows beside it */
+.bdl { display: grid; gap: 6px; align-content: start; min-width: 0; } .bdr { margin-top: 16px; min-width: 0; }
+@media (min-width: 1180px) { .bdg { grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); column-gap: 56px; max-width: 1500px; align-items: start; } .bdr { margin-top: 14px; } }
 .hero { display: flex; align-items: flex-end; gap: 16px; min-width: 0; }
 .hn { font: 100 calc(48px * var(--fz))/.8 var(--mono); color: var(--tx); letter-spacing: -.02em; flex: none; }
 .hline { display: flex; align-items: baseline; gap: 14px; min-width: 0; white-space: nowrap; overflow: hidden; padding-bottom: 4px; }
