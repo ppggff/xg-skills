@@ -63,6 +63,11 @@ t("046 Req-52/53: an amber card answers the pointer; closing the detail keeps th
   assert.match(js.board, /V\.layer\(10, \(\) => V\.view === "board" && !!sel && !V\.W\.dc, closeDetail\)/);
 });
 
+t("the tree renders before the first data: no ext list is an empty one", () => {
+  assert.match(js.tree, /const ext = D\.tree\.ext \|\| \[\];/);
+  assert.doesNotMatch(js.tree, /D\.tree\.ext\.length/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

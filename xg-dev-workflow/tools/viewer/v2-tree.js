@@ -149,8 +149,9 @@
       h += nodeRows("kb", SV.buildTree(D.tree.kb), "", 0, SV.sortCmp(sorts.kb.key, sorts.kb.dir), cur, false);
     }
     // extra roots, read-only: from config.yaml's extra_roots and from the page (the ⚙ in this head)
-    h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button><button class="tc" data-troots data-tip="设置外部目录">⚙</button>${D.tree.ext.length ? ctl("ext") : ""}</div>`;
-    if (isOpen("ext") && D.tree.ext.length) h += nodeRows("ext", SV.buildTree(D.tree.ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
+    const ext = D.tree.ext || [];   // a render before the first data has no ext list yet
+    h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button><button class="tc" data-troots data-tip="设置外部目录">⚙</button>${ext.length ? ctl("ext") : ""}</div>`;
+    if (isOpen("ext") && ext.length) h += nodeRows("ext", SV.buildTree(ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
     tree.innerHTML = h; tree.scrollTop = top;
     const cr = $("#tree .tr.cur:not([data-goboard])");
     if (reveal && cr && (cr.offsetTop < tree.scrollTop || cr.offsetTop > tree.scrollTop + tree.clientHeight - 30)) tree.scrollTop = cr.offsetTop - tree.clientHeight / 3;
