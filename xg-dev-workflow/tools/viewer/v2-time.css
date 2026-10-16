@@ -18,7 +18,7 @@
 .tm-row:has(.tm-name.sel) { --tm-bg: var(--card2); }
 :root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { --tm-bg: var(--sigs); }
 /* the name floats over the row's left end, fading the colours under it; every row's fade starts at the same place
-   (--tm-nw, set from the longest name) and the whole stays within half the table */
+   (--tm-nw, set from the longest name) and the name stays within a third of the table */
 .tmv { --tm-fade: 200px; --tm-fs: var(--tm-nw, 220px); }
 .app:not(.narrow, .short) .tmv { --tm-fs: calc(var(--tm-nw, 220px) + var(--tm-cw, 0px)); }   /* big screens: the fade starts after the done-count column */
 .tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-fs) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;

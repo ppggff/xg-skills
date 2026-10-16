@@ -80,20 +80,20 @@
   }
   // after the board drew the form: the indicator and its label
   V.timeAfter = () => { fitNames(); placeLine(); };
-  // every row's name takes the width of the longest number and name (at most half the axis), so the fades line up;
+  // every row's name takes the width of the longest number and name (at most a third of the axis), so the fades line up;
   // the done count is left out: on big screens it gets its own column (--tm-cw) before the fade, else it may run into the fade
   function fitNames() {
     const v = $("#bscroll .tmv"); if (!v) return;
     const names = $$(".tm-row .tm-name", v), track = $(".tm-head .tm-track", v); if (!names.length || !track) return;
     const need = Math.max(...names.map(b => $(".n", b).offsetWidth + 6 + $(".s", b).scrollWidth)) + 18;
-    v.style.setProperty("--tm-nw", Math.round(Math.min(need, track.clientWidth / 2)) + "px");
+    v.style.setProperty("--tm-nw", Math.round(Math.min(need, track.clientWidth / 3)) + "px");
     v.style.setProperty("--tm-cw", Math.max(0, ...names.map(b => { const f = $(".fr", b); return f ? f.offsetWidth : 0; })) + 16 + "px");
   }
   function placeLine() {
     const v = $("#bscroll .tmv"), line = v && $(".tm-line", v), lab = v && $(".tm-cur", v); if (!line || !geo) return;
     const x = V.timeCur === null ? -1 : geo.lw + (V.timeCur - geo.d0) * geo.k - pan, off = V.timeCur === null || x < geo.lw - 1 || x > geo.lw + geo.W + 1;
     line.style.display = lab.style.display = off ? "none" : "block";
-    if (!off) { line.style.left = lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); lab.classList.toggle("left", x > geo.lw + geo.W - 90); }   // near the right edge the label sits left of the line
+    if (!off) { line.style.left = Math.min(x, geo.lw + geo.W - 1) + "px"; lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); lab.classList.toggle("left", x > geo.lw + geo.W - 90); }   // at now the line would sit just past the clipped right edge; near it the label sits left of the line
   }
   function setPan(px) {
     if (!geo) return;
