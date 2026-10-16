@@ -17,10 +17,16 @@
 .tm-row:hover { --tm-bg: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
 .tm-row:has(.tm-name.sel) { --tm-bg: var(--card2); }
 :root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { --tm-bg: var(--sigs); }
-/* the name floats over the row's left end, fading the colours under it: at most half the table */
-.tm-name { position: absolute; left: 0; top: 0; bottom: 0; max-width: 50%; display: flex; align-items: center; gap: 6px; padding: 0 40px 0 10px; min-width: 0; text-align: left;
-  font: 400 var(--t-sm) var(--cjk); color: var(--tx); background: linear-gradient(90deg, var(--tm-bg) calc(100% - 40px), transparent); }
-.tm-name .fr { flex: none; }
+/* the name floats over the row's left end, fading the colours under it; every row's fade starts at the same place
+   (--tm-nw, set from the longest name) and the whole stays within half the table */
+.tmv { --tm-fade: 120px; }
+.tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); max-width: 50%; display: flex; align-items: center; gap: 6px;
+  padding: 0 var(--tm-fade) 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
+  background: linear-gradient(90deg, var(--tm-bg) var(--tm-nw, 220px), transparent); }
+.tm-fr { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; transform: translateX(calc(-100% - 4px)); pointer-events: none; }
+.tm-fr .fr { padding: 1px 5px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--paper) 82%, transparent); }
+.tm-fr .fr s, .tm-fr .fr i { color: var(--mu); }
+.tm-fr.out { transform: none; margin-left: 4px; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }

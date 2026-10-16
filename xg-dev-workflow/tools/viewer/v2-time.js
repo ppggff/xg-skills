@@ -74,12 +74,21 @@
       bars += `<i class="tm-q k-${x.b === x.a && x.end ? x.end : x.k}" style="left:${l}px;width:${w}px"></i>`;
       if (x.end && x.b > x.a) { const [e, ew] = fit(X(x.b) - 4, 4); bars += `<i class="tm-q end k-${x.end}" style="left:${e}px;width:${ew}px"></i>`; }
     }));
-    return `<div class="tm-row${alt ? " alt" : ""}" data-trow="${esc(c.id)}"><div class="tm-track"><div class="tm-pan" style="width:${geo.total}px">${band}${bars}</div></div>`
-      + `<button class="tm-name ${B.selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span>`
-      + `${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button></div>`;
+    // the done count rides on the card's own span: inside its end when there is room, else just past it
+    const fr = c.lite && c.req ? `<span class="tm-fr${x1 - x0 < 56 ? " out" : ""}" style="left:${x1}px">${V.frac(c.ok, c.req)}</span>` : "";
+    return `<div class="tm-row${alt ? " alt" : ""}" data-trow="${esc(c.id)}"><div class="tm-track"><div class="tm-pan" style="width:${geo.total}px">${band}${bars}${fr}</div></div>`
+      + `<button class="tm-name ${B.selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span></button></div>`;
   }
   // after the board drew the form: the indicator and its label
-  V.timeAfter = () => placeLine();
+  V.timeAfter = () => { fitNames(); placeLine(); };
+  // every row's name takes the width of the longest (at most half the table, less the fade), so the fades line up
+  function fitNames() {
+    const v = $("#bscroll .tmv"); if (!v) return;
+    const names = $$(".tm-row .tm-name", v), track = $(".tm-head .tm-track", v); if (!names.length || !track) return;
+    const fade = parseFloat(getComputedStyle(v).getPropertyValue("--tm-fade")) || 120;
+    const need = Math.max(...names.map(b => $(".n", b).offsetWidth + 6 + $(".s", b).scrollWidth)) + 18;
+    v.style.setProperty("--tm-nw", Math.round(Math.min(need, track.clientWidth / 2 - fade)) + "px");
+  }
   function placeLine() {
     const v = $("#bscroll .tmv"), line = v && $(".tm-line", v), lab = v && $(".tm-cur", v); if (!line || !geo) return;
     const x = V.timeCur === null ? -1 : geo.lw + (V.timeCur - geo.d0) * geo.k - pan, off = V.timeCur === null || x < geo.lw - 1 || x > geo.lw + geo.W + 1;

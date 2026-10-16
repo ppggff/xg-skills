@@ -83,6 +83,8 @@
 /* a small screen (narrow or short): a lower detail, its progress as a number beside the governance, no bars */
 :is(.app.narrow, .app.short):not(.hdset) #bdet { max-height: 40%; }
 .hfr { display: none; } :is(.app.narrow, .app.short) .hfr { display: inline; }
+:is(.app.narrow, .app.short) :is(#bscroll, #tscroll):is(.tbl-form, .tm-form) { padding-left: 0; padding-right: 0; }
+:is(.app.narrow, .app.short) .tmv { --tm-fade: 48px; }
 :is(.app.narrow, .app.short) #bdet .rhead { display: none; } :is(.app.narrow, .app.short) .bdr { margin-top: 0; }
 .app.short .hn { font-size: calc(32px * var(--fz)); }
 .app.short .brow.big { margin: 6px 0 4px; }
