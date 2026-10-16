@@ -228,7 +228,7 @@
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
       + ((ts => (ts.length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${ts.length}</em></div>${ts.map(V.todoRowHTML).join("")}</div>`) : ""))(V.todosOfCard ? V.todosOfCard(c) : []))
-      + row(`<div>${m && m.reqs ? m.reqs : reqsHTML(c)}</div>`) + "</div>";
+      + row(`<div>${m ? m.reqs : reqsHTML(c)}</div>`) + "</div>";
   }
   const onShow = () => !$("#board").hidden;
   function paintDetail() { if (onShow()) $("#bdet").innerHTML = detailHTML(); }
@@ -341,7 +341,7 @@
   V.on("narrow", () => { if (onShow() && !store.get("form", null)) render(); });
   V.on("split", () => { if (onShow()) render(); });
 
-  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold],.tm-track,[data-tmr]")) closeDetail(); });
+  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold],.tmv,[data-tmr]")) closeDetail(); });
   const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
   V.setGroup = g => { groupBy = g; store.set("grp", groupBy); unfold.clear(); render(); V.untip(); };
   V.setForm = f => {
@@ -370,7 +370,7 @@
   V.layer(10, () => V.view === "board" && !!sel && !V.W.dc, closeDetail);
   document.addEventListener("mouseover", e => {
     const d = e.target.closest(".dot[data-card]"), pop = $("#dotpop");
-    if (!d) { if (!e.target.closest(".tm-track")) pop.classList.remove("on"); return; }
+    if (!d) { if (!e.target.closest(".tm-row .tm-track")) pop.classList.remove("on"); return; }
     const c = V.card(d.dataset.card); if (!c) return;
     seenTicks.add(c.id); pop.innerHTML = cardHTML(c); pop.classList.add("on");
     const r = d.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;

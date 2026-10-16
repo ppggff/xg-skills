@@ -771,6 +771,22 @@ class THistory(unittest.TestCase):
         self.assertEqual((d["foo/003"]["first"], d["foo/003"]["last"]), ("2026-10-06 07:00", "2026-10-06 07:00"))
         self.assertEqual(d["foo/001"]["last"], "2026-10-02 10:30")
 
+    def test_a_dev_root_inside_a_larger_repo(self):           # paths from the repo's top are taken relative to dev_root
+        outer = self.tmp / "outer"; card = outer / "docs" / "foo" / "001-y"; card.mkdir(parents=True)
+        _git(outer, "init", "-q")
+        for status in ("draft", "executing"):
+            (card / "design.md").write_text("---\ngovernance: lite\nstatus: %s\n---\n" % status, encoding="utf-8")
+            _git(outer, "add", "-A"); _git(outer, "commit", "-q", "-m", "foo/001: " + status)
+        viewer._history.update(key=None, data=None)
+        c = viewer.card_history((outer / "docs").resolve())["foo/001"]
+        self.assertEqual([e["v"] for e in c["status"]], ["draft", "executing"])
+
+    def test_a_failed_log_is_not_cached(self):
+        with unittest.mock.patch.object(viewer.subprocess, "run", side_effect=OSError("no git")):
+            viewer._history.update(key=None, data=None)
+            viewer.card_history(self.dev.resolve())
+        self.assertIsNone(viewer._history["key"])
+
     def test_uncommitted_design_is_the_last_revision(self):
         self.doc("closing", "### Req-1 已验证 — first, renamed\n- 陈述: one, sharper\n")
         c = json.loads(get(self.base, "/api/history")[1])["foo/001"]

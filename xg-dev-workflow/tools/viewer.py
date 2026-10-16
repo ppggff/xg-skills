@@ -885,6 +885,8 @@ def _cat_blobs(root: Path, specs):
     texts, i = [], 0
     for _ in specs:
         nl = out.find(b"\n", i)
+        if nl < 0:                                 # output cut short: the rest stay empty rather than shifting
+            break
         head, i = out[i:nl].split(), nl + 1
         if len(head) == 3 and head[1] == b"blob":
             n = int(head[2])
@@ -892,7 +894,7 @@ def _cat_blobs(root: Path, specs):
             i += n + 1
         else:
             texts.append("")
-    return texts
+    return texts + [""] * (len(specs) - len(texts))
 
 
 _REQ_HEAD = re.compile(r"### Req-(\d+)\s+(\S+)\s*[—-]+\s*(.*)")
@@ -924,15 +926,22 @@ def card_history(dev_root: Path):
     for f in sorted(dev_root.glob("*/[0-9][0-9][0-9]-*/design.md")):
         try:
             if "governance: lite" in f.read_text(encoding="utf-8", errors="replace")[:3000]:
-                docs[f.relative_to(dev_root).as_posix()] = f
+                docs[f.relative_to(dev_root).as_posix()] = (f, f.stat().st_mtime_ns)
         except OSError:
             pass
-    key = (_git(dev_root, "rev-parse", "HEAD").strip(), tuple((k, f.stat().st_mtime_ns) for k, f in docs.items()))
+    key = (_git(dev_root, "rev-parse", "HEAD").strip(), tuple((k, m) for k, (_, m) in docs.items()))
     with _history_lock:
         if _history["key"] == key:
             return _history["data"]
-    log = _git(dev_root, "-c", "core.quotepath=false", "log", "--reverse", "--date=format-local:%Y-%m-%d %H:%M",
-               "--format=%x1e%H%x1f%cd%x1f%s", "--name-only")
+    # paths relative to dev_root, which may sit inside a larger repo; cat-file wants them from the repo's top
+    prefix = _git(dev_root, "rev-parse", "--show-prefix").strip()
+    try:
+        r = subprocess.run(["git", "-C", str(dev_root), "-c", "core.quotepath=false", "log", "--reverse", "--relative",
+                            "--date=format-local:%Y-%m-%d %H:%M", "--format=%x1e%H%x1f%cd%x1f%s", "--name-only"],
+                           capture_output=True, timeout=120)
+        failed, log = r.returncode != 0, r.stdout.decode("utf-8", "replace")
+    except (OSError, subprocess.SubprocessError):
+        failed, log = True, ""
     span, swept, revs = {}, {}, {k: [] for k in docs}
     for chunk in log.split("\x1e")[1:]:
         head, _, names = chunk.partition("\n")
@@ -942,20 +951,25 @@ def card_history(dev_root: Path):
         sha, t, subject = parts
         names = [n for n in names.splitlines() if n]
         dirs = {m.group(1) + "/" + m.group(2) for m in (re.match(r"^([^/]+)/(\d{3})-[^/]+/", n) for n in names) if m}
-        named = len(dirs) <= HISTORY_BULK and (len(dirs) == 1 or any(d.split("/")[1] in subject for d in dirs))
+        named = dirs if len(dirs) == 1 else {d for d in dirs if re.search(r"\b%s\b" % d.split("/")[1], subject)} if len(dirs) <= HISTORY_BULK else set()
         for d in dirs:
-            (span if named else swept).setdefault(d, [t, t])[1] = t
+            (span if d in named else swept).setdefault(d, [t, t])[1] = t
         for n in names:
             if n in revs:
                 revs[n].append((sha, t))
     out = {d: {"status": [], "reqs": {}, "first": a, "last": b} for d, (a, b) in {**swept, **span}.items()}   # a dir only swept keeps the sweeps' span
     order = [(k, sha, t) for k, rs in revs.items() for sha, t in rs]
-    texts = dict(zip(((k, sha) for k, sha, _ in order), _cat_blobs(dev_root, ["%s:%s" % (sha, k) for k, sha, _ in order])))
-    for k, f in docs.items():
+    texts = dict(zip(((k, sha) for k, sha, _ in order), _cat_blobs(dev_root, ["%s:%s%s" % (sha, prefix, k) for k, sha, _ in order])))
+    for k, (f, mt) in docs.items():
         steps = [(t, texts.get((k, sha), "")) for sha, t in revs[k]]
-        now = f.read_text(encoding="utf-8", errors="replace")
-        if not steps or steps[-1][1] != now:
-            steps.append((datetime.datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M"), now))
+        try:
+            now = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:                                # gone since the scan: its committed revisions still count
+            now = steps[-1][1] if steps else ""
+        if now and (not steps or steps[-1][1] != now):
+            steps.append((datetime.datetime.fromtimestamp(mt / 1e9).strftime("%Y-%m-%d %H:%M"), now))
+        if not steps:
+            continue
         cid = k.split("/")[0] + "/" + k.split("/")[1][:3]
         card = out.setdefault(cid, {"status": [], "reqs": {}, "first": steps[0][0], "last": steps[-1][0]})
         last_st, prev = None, {}
@@ -979,8 +993,9 @@ def card_history(dev_root: Path):
                 if n not in reqs:
                     card["reqs"].setdefault(n, []).append({"t": t, "type": "gone"})
             prev = reqs
-    with _history_lock:
-        _history["key"], _history["data"] = key, out
+    if not failed:                                     # a failed log is served, never cached
+        with _history_lock:
+            _history["key"], _history["data"] = key, out
     return out
 
 

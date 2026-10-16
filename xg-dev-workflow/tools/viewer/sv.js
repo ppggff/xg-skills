@@ -698,11 +698,10 @@ var SV = (function () {
   function tmMs(s) { s = String(s || ""); return new Date(s.length === 10 ? s + "T00:00" : s.replace(" ", "T")).getTime(); }
   function tmKind(w) { w = String(w || ""); return /已验证/.test(w) ? "done" : /放弃|撤回/.test(w) ? "drop" : /失败|阻塞/.test(w) ? "bad" : /仅方案/.test(w) ? "plan" : "todo"; }
   var TM_SETTLED = /已验证|放弃|撤回/;
-  // 054: a card's span: its first status (else its dir's first commit) to its done status (else, for a closed card,
-  // its dir's last commit; else now)
+  // 054: a card's span: its first status (else its dir's first commit) to done when its last status is done (a card
+  // reopened after done runs on), else, for a closed card, its dir's last commit; else now
   function tmRange(h, closed, now) {
-    var st = (h && h.status) || [], done = null;
-    for (var i = 0; i < st.length; i++) if (st[i].v === "done") { done = st[i]; break; }
+    var st = (h && h.status) || [], done = st.length && st[st.length - 1].v === "done" ? st[st.length - 1] : null;
     var a = st.length ? tmMs(st[0].t) : h && h.first ? tmMs(h.first) : now;
     var b = done ? tmMs(done.t) : !st.length && closed && h && h.last ? tmMs(h.last) : now;
     return [Math.min(a, b), b];

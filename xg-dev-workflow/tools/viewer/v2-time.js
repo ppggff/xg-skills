@@ -145,10 +145,11 @@
   const pop = () => $("#dotpop");
   document.addEventListener("pointerdown", e => {
     const tr = e.button === 0 && e.target.closest && e.target.closest("#bscroll .tm-row .tm-track"); if (!tr || !geo) return;
-    drag = { x: e.clientX, y: e.clientY, pan, moved: false, track: tr, id: tr.closest(".tm-row").dataset.trow };
+    drag = { x: e.clientX, y: e.clientY, pan, moved: false, id: tr.closest(".tm-row").dataset.trow };
     if (e.pointerType === "mouse") e.preventDefault();
   });
   document.addEventListener("pointermove", e => {
+    if (drag && e.pointerType === "mouse" && !e.buttons) { drag = null; document.body.classList.remove("tm-panning"); }   // the release was missed
     if (drag) {
       const dx = e.clientX - drag.x;
       if (!drag.moved && Math.abs(dx) > 3 && Math.abs(dx) >= Math.abs(e.clientY - drag.y)) { drag.moved = true; document.body.classList.add("tm-panning"); pop().classList.remove("on"); }
@@ -165,7 +166,9 @@
   document.addEventListener("pointerup", e => {
     if (!drag) return;
     const d = drag; drag = null; document.body.classList.remove("tm-panning");
-    if (!d.moved && geo && Math.abs(e.clientY - d.y) < 8) setCur(tAt(d.track, e.clientX), d.id);
+    // the row is looked up again: a refresh while the pointer was down replaces it
+    const tr = $(`#bscroll .tm-row[data-trow="${V.cssEsc(d.id)}"] .tm-track`);
+    if (!d.moved && geo && tr && Math.abs(e.clientY - d.y) < 8) setCur(tAt(tr, e.clientX), d.id);
   });
   document.addEventListener("pointercancel", () => { drag = null; document.body.classList.remove("tm-panning"); });
   document.addEventListener("wheel", e => {
@@ -174,5 +177,8 @@
   }, { passive: false });
   document.addEventListener("mouseleave", () => pop().classList.remove("on"));
   $("#bscroll").addEventListener("scroll", () => pop().classList.remove("on"), { passive: true });
+  // a new width redraws the axis (window, side columns, the detail's gutter): the moment at the left edge stays
+  let lastW = 0;
+  new ResizeObserver(() => { const w = $("#bscroll").clientWidth; if (w === lastW) return; lastW = w; if ($("#bscroll .tmv")) V.setForm("time"); }).observe($("#bscroll"));
   V.click("[data-tmr]", () => { const i = RANGES.findIndex(x => x[0] === range()); store.set("tmRange", RANGES[(i + 1) % RANGES.length][0]); pant = null; V.setForm("time"); V.untip(); });
 })(V2);

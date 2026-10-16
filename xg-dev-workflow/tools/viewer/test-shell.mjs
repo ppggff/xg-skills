@@ -1038,6 +1038,11 @@ t("054 time form: a card's span, a Req's intervals clipped to it, the state at a
   assert.deepEqual(at.reqs.map(r => [r.n, r.k, r.title]), [[1, "done", "a"], [2, "done", "b2"], [3, "todo", "c"]]);
   assert.equal(SV.tmStateAt(h, ms("2026-09-29 00:00")).cs, null);
   assert.equal(SV.tmKind("验证失败"), "bad");
+  const reopened = { status: [{ t: "2026-10-01 09:00", v: "executing" }, { t: "2026-10-02 09:00", v: "done" }, { t: "2026-10-05 09:00", v: "executing" }],
+    reqs: { 1: [{ t: "2026-10-06 09:00", type: "new", word: "待验证", title: "late" }] } };
+  const [ra, rb] = SV.tmRange(reopened, false, now);
+  assert.equal(rb, now, "reopened after done: runs on to now");
+  assert.equal(SV.tmSpans(reopened.reqs[1], ra, rb).length, 1);
 });
 t("046 completeSpan: a picked @project or [[doc]] takes what is already there instead of doubling it", () => {
   const C = (v, from, caret, kind, pick) => { const r = SV.completeSpan(v, from, caret, kind, pick); return v.slice(0, r.start) + r.text + v.slice(r.end) + "|" + r.caret; };
