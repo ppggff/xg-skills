@@ -87,6 +87,11 @@ t("054 round 3: a small screen keeps the detail low and shows its progress as a 
   assert.match(js.board, /<span class="hfr">　\$\{done\}<\/span>/);
 });
 
+t("the table and the time form span a tray's outer width", () => {
+  assert.match(css, /:is\(#bscroll, #tscroll\)\.tbl-form \{ padding: 14px var\(--bG\) 40px; \}/);
+  assert.match(css, /#bscroll\.tm-form \{ padding: 0 var\(--bG\) 40px; \}/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

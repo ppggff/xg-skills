@@ -1,6 +1,6 @@
 /* status viewer v2 — the board's time form (054), drawn by v2-time.js: rows on a time axis, the card's status as the
    row's colour, requirements as bars across it, the indicator, and the moment in the hover card and the card detail. */
-#bscroll.tm-form { padding-top: 0; }
+#bscroll.tm-form { padding: 0 var(--bG) 40px; }   /* as wide as a tray's outer edge, like the table */
 .tmv { position: relative; }
 .tm-head { position: sticky; top: 0; z-index: 3; display: flex; height: 34px; background: var(--paper); }
 .tm-head .tm-track { cursor: default; }

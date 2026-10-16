@@ -141,7 +141,7 @@ a.tr { text-decoration: none; }
 :is(#bscroll, #tscroll) { flex: 1; min-height: 0; overflow: auto; max-width: 100%; scrollbar-gutter: stable;
   --bT: 14px; --bG: clamp(18px,3vw,40px); --bI: 16px; --bS: calc(var(--bG) + var(--bT) + 1px);
   padding: var(--bS) var(--bS) 40px; }
-:is(#bscroll, #tscroll).tbl-form { padding-top: 14px; }
+:is(#bscroll, #tscroll).tbl-form { padding: 14px var(--bG) 40px; }   /* a table spans a tray's outer width: it draws no tray itself */
 .proj, .dproj { margin: 0 0 calc(var(--bI) + 2 * var(--bT) + 2px); }
 .app:not(.notray) :is(#bscroll, #tscroll) .proj:not(.kcol), .app:not(.notray) :is(#bscroll, #tscroll) .dproj {
   margin: calc(-1 * var(--bT) - 1px) calc(-1 * var(--bT) - 1px) calc(var(--bI) + var(--bT) + 1px);
