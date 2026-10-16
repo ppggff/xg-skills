@@ -102,11 +102,11 @@ t("054: a time row's name and done count float over its left end, fading the col
   assert.match(css, /:is\(\.app\.narrow, \.app\.short\) :is\(#bscroll, #tscroll\):is\(\.tbl-form, \.tm-form\) \{ padding-left: 0; padding-right: 0; \}/);
 });
 
-t("054: brightness is kept per theme; the bars and the date head set the indicator, the name and its wash only select", () => {
+t("054: brightness is kept per theme; the bars and the date head set the indicator, the name before its fade only selects", () => {
   assert.match(js.core, /const lumKey = k => k \+ ":" \+ \(document\.documentElement\.getAttribute\("data-theme"\) \|\| \(V\.isDark\(\) \? "dark" : "light"\)\);/);
   assert.match(js.core, /V\.store\.set\(lumKey\(k\), v\)/);
   assert.match(js.time, /t\.closest\("#bscroll \.tm-row \.tm-track, #bscroll \.tm-head \.tm-track"\)/);
-  assert.doesNotMatch(css, /\.tm-name \{ pointer-events: none/);
+  assert.match(css, /\.tm-name \{ pointer-events: none; \} \.tm-name::before \{[^}]*width: var\(--tm-nw, 220px\); pointer-events: auto; \}/);
 });
 
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });

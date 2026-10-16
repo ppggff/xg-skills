@@ -28,6 +28,8 @@
     color-mix(in srgb, var(--tm-bg) 22%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .7), transparent); }
 .tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
 .tm-name .fr { flex: none; }
+/* only the part before the fade picks a card at the same moment; a press on the fade reaches the bars and sets the time */
+.tm-name { pointer-events: none; } .tm-name::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--tm-nw, 220px); pointer-events: auto; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }

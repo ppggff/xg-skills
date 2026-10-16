@@ -152,7 +152,7 @@
 
   /* ---- pointer (mouse or touch): a sideways drag pans, a short press sets the indicator, hovering shows the moment.
      A press on a row's bars sets the indicator and selects the card; one on the date head sets the indicator only; the
-     name and its wash take no time — a press there selects the card and leaves the indicator where it is ---- */
+     name up to where its wash starts fading takes no time — a press there selects the card and leaves the indicator ---- */
   let drag = null;
   const pop = () => $("#dotpop");
   const hit = t => t.closest && t.closest("#bscroll .tm-row .tm-track, #bscroll .tm-head .tm-track");
