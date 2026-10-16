@@ -82,7 +82,7 @@ t("054 round 2: the progress bar is one bar; done requirements list last; the de
 
 t("054 round 3: a small screen keeps the detail low and shows its progress as a number beside the governance", () => {
   assert.match(css, /:is\(\.app\.narrow, \.app\.short\):not\(\.hdset\) #bdet \{ max-height: 40%; \}/);
-  assert.match(css, /:is\(\.app\.narrow, \.app\.short\) #bdet \.rhead \{ display: none; \}/);
+  assert.match(css, /:is\(\.app\.narrow, \.app\.short\) #bdet \.rhead \{ display: none; \} :is\(\.app\.narrow, \.app\.short\) \.bdr \{ margin-top: 0; \}/);
   assert.doesNotMatch(css, /#bdet \{ max-height: 62%; \}/);
   assert.match(js.board, /<span class="hfr">　\$\{done\}<\/span>/);
 });
