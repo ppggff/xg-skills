@@ -95,7 +95,8 @@ t("the table and the time form span a tray's outer width", () => {
 t("054: a time row's name and done count float over its left end, fading the colours under them, at most half the table", () => {
   assert.match(css, /\.tm-name \{ position: absolute;[^}]*max-width: 50%;[^}]*linear-gradient\(90deg, var\(--tm-bg\) var\(--tm-nw, 220px\), transparent\)/);
   assert.match(js.time, /const lw = 0, W = /);
-  assert.match(js.time, /<span class="tm-fr\$\{x1 - x0 < 56 \? " out" : ""\}" style="left:\$\{x1\}px">\$\{V\.frac\(c\.ok, c\.req\)\}<\/span>/);
+  assert.match(js.time, /\$\{c\.lite && c\.req \? V\.frac\(c\.ok, c\.req\) : ""\}<\/button><\/div>/);
+  assert.match(css, /\.tmv \{ position: relative; overflow-x: clip; \}/);
   assert.match(js.time, /v\.style\.setProperty\("--tm-nw"/);
   assert.match(css, /:is\(\.app\.narrow, \.app\.short\) :is\(#bscroll, #tscroll\):is\(\.tbl-form, \.tm-form\) \{ padding-left: 0; padding-right: 0; \}/);
 });
