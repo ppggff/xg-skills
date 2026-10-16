@@ -150,13 +150,18 @@
     };
   };
 
-  /* ---- pointer (mouse or touch): a sideways drag pans, a short press sets the indicator, hovering shows the moment ---- */
+  /* ---- pointer (mouse or touch): a sideways drag pans, a short press sets the indicator, hovering shows the moment.
+     A press anywhere on a row (its name included) sets the indicator there and selects the card; on the date head it
+     sets the indicator only ---- */
   let drag = null;
   const pop = () => $("#dotpop");
+  const hit = t => t.closest && t.closest("#bscroll .tm-row .tm-track, #bscroll .tm-row .tm-name, #bscroll .tm-head .tm-track");
+  const trackOf = id => (id ? $(`#bscroll .tm-row[data-trow="${V.cssEsc(id)}"] .tm-track`) : $("#bscroll .tm-head .tm-track"));
   document.addEventListener("pointerdown", e => {
-    const tr = e.button === 0 && e.target.closest && e.target.closest("#bscroll .tm-row .tm-track"); if (!tr || !geo) return;
-    drag = { x: e.clientX, y: e.clientY, pan, moved: false, id: tr.closest(".tm-row").dataset.trow };
-    if (e.pointerType === "mouse") e.preventDefault();
+    const el = e.button === 0 && hit(e.target); if (!el || !geo) return;
+    const row = el.closest(".tm-row");
+    drag = { x: e.clientX, y: e.clientY, pan, moved: false, id: row ? row.dataset.trow : null };
+    if (e.pointerType === "mouse" && !el.classList.contains("tm-name")) e.preventDefault();
   });
   document.addEventListener("pointermove", e => {
     if (drag && e.pointerType === "mouse" && !e.buttons) { drag = null; document.body.classList.remove("tm-panning"); }   // the release was missed
@@ -166,8 +171,8 @@
       if (drag.moved) { setPan(drag.pan - dx); return; }
     }
     if (e.pointerType !== "mouse") return;
-    const tr = e.target.closest && e.target.closest("#bscroll .tm-row .tm-track"); if (!tr || !geo) return;
-    const c = V.card(tr.closest(".tm-row").dataset.trow); if (!c) return;
+    const el = e.target.closest && e.target.closest("#bscroll .tm-row .tm-track, #bscroll .tm-row .tm-name"); if (!el || !geo) return;
+    const row = el.closest(".tm-row"), tr = $(".tm-track", row), c = V.card(row.dataset.trow); if (!c) return;
     const p = pop(); p.innerHTML = cardAt(c, tAt(tr, e.clientX)); p.classList.add("on");
     const w = p.offsetWidth, hgt = p.offsetHeight;
     p.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX + 14)) + "px";
@@ -177,7 +182,7 @@
     if (!drag) return;
     const d = drag; drag = null; document.body.classList.remove("tm-panning");
     // the row is looked up again: a refresh while the pointer was down replaces it
-    const tr = $(`#bscroll .tm-row[data-trow="${V.cssEsc(d.id)}"] .tm-track`);
+    const tr = trackOf(d.id);
     if (!d.moved && geo && tr && Math.abs(e.clientY - d.y) < 8) setCur(tAt(tr, e.clientX), d.id);
   });
   document.addEventListener("pointercancel", () => { drag = null; document.body.classList.remove("tm-panning"); });

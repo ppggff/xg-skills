@@ -3,7 +3,7 @@
 #bscroll.tm-form { padding: 0 var(--bG) 40px; }   /* as wide as a tray's outer edge, like the table */
 .tmv { position: relative; overflow-x: clip; }   /* the indicator at now would stick 1px out and let the board scroll sideways */
 .tm-head { position: sticky; top: 0; z-index: 3; display: flex; height: 34px; background: var(--paper); }
-.tm-head .tm-track { cursor: default; }
+.tm-head .tm-track { cursor: pointer; touch-action: pan-y; }
 .tm-d { position: absolute; top: 6px; transform: translateX(-50%); font: 400 var(--t-xs)/1.25 var(--mono); color: var(--mu); text-align: center; white-space: nowrap; }
 .tm-d small { display: block; font-size: 9px; color: var(--faint); }
 .tm-d.now { color: var(--sig); transform: translateX(-100%); }
@@ -23,10 +23,11 @@
 .tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
   padding: 0 8px 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
   /* a thin wash, not a cover: the bars show from the table's first pixel, lighter under the name, then clear */
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 62%, transparent) var(--tm-nw, 220px),
-    color-mix(in srgb, var(--tm-bg) 40%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .35),
-    color-mix(in srgb, var(--tm-bg) 15%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .7), transparent); }
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 80%, transparent) var(--tm-nw, 220px),
+    color-mix(in srgb, var(--tm-bg) 55%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .35),
+    color-mix(in srgb, var(--tm-bg) 22%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .7), transparent); }
 .tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
+.tm-name { pointer-events: none; } .tm-name > * { pointer-events: auto; cursor: pointer; }   /* only the words take a press; the wash lets it through to the axis */
 .tm-name .fr { flex: none; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

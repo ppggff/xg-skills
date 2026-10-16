@@ -201,18 +201,21 @@ var V2 = (function () {
       { duration: 540, easing: "cubic-bezier(.65,0,.25,1)", pseudoElement: "::view-transition-new(root)" })).catch(() => {});
   };
   { const t0 = V.store.get("theme", ""); if (t0) document.documentElement.setAttribute("data-theme", t0); }
-  // brightness in three parts over every theme — the interface's surfaces (blum), its text (lum), the reading text (tlum):
-  // each scales the lightness of its colour tokens, read fresh from the theme, so hues stay; the reader and the editor
-  // take the text tokens from their own -r copies
+  // brightness in three parts — the interface's surfaces (blum), its text (lum), the reading text (tlum) — kept per theme
+  // (跟随系统 shares the look it shows, light or dark; a theme not yet set starts from the old shared value): each scales
+  // the lightness of its colour tokens, read fresh from the theme, so hues stay; the reader and the editor take the text
+  // tokens from their own -r copies
   const SURF = ["--chrome", "--paper", "--card", "--card2", "--ln", "--ln2"], TEXT = ["--ink", "--tx", "--mu", "--faint"];
+  const lumKey = k => k + ":" + (document.documentElement.getAttribute("data-theme") || (V.isDark() ? "dark" : "light"));
+  V.lumOf = k => V.store.get(lumKey(k), V.store.get(k, 100));
   V.applyLum = () => {
-    const root = document.documentElement, f = k => V.store.get(k, 100) / 100;
+    const root = document.documentElement, f = k => V.lumOf(k) / 100;
     SURF.concat(TEXT, TEXT.map(p => p + "-r")).forEach(p => root.style.removeProperty(p));
     const cs = getComputedStyle(root), scale = (p, k) => { const c = cs.getPropertyValue(p).trim(); return k === 1 ? c : `oklch(from ${c} calc(l * ${k}) c h)`; };
     SURF.forEach(p => { if (f("blum") !== 1) root.style.setProperty(p, scale(p, f("blum"))); });
     TEXT.forEach(p => { root.style.setProperty(p + "-r", scale(p, f("tlum"))); if (f("lum") !== 1) root.style.setProperty(p, scale(p, f("lum"))); });
   };
-  V.setLum = (k, v) => { v = Math.max(60, Math.min(200, Math.round(+v) || 100)); V.store.set(k, v); V.applyLum(); return v; };
+  V.setLum = (k, v) => { v = Math.max(60, Math.min(200, Math.round(+v) || 100)); V.store.set(lumKey(k), v); V.applyLum(); return v; };
   V.applyLum();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { V.applyLum(); V.emit("theme"); });
 
@@ -231,7 +234,7 @@ var V2 = (function () {
     const cur = document.documentElement.getAttribute("data-theme") || "";
     const item = ([k, n, sw]) => `<button class="thm ${k === cur ? "on" : ""}" data-theme-k="${k}" role="menuitemradio" aria-checked="${k === cur}">`
       + `<span class="sw">${sw.map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}<span class="ck">${k === cur ? V.I.tick : ""}</span></button>`;
-    const lum = ([k, l]) => { const v = V.store.get(k, 100);
+    const lum = ([k, l]) => { const v = V.lumOf(k);
       return `<div class="lum"><span>${l}</span><input data-lum="${k}" type="range" min="60" max="200" step="2" value="${v}" aria-label="${l}亮度">`
         + `<em>${v}%</em><button data-lum0="${k}" data-tip="回到 100%">复位</button></div>`; };
     V.pop("themePop", V.THEMES.map(item).join("") + [["blum", "底色"], ["lum", "界面字"], ["tlum", "正文"]].map(lum).join(""), btn);
