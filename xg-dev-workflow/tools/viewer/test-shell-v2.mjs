@@ -92,8 +92,10 @@ t("the table and the time form span a tray's outer width", () => {
   assert.match(css, /#bscroll\.tm-form \{ padding: 0 var\(--bG\) 40px; \}/);
 });
 
-t("054: a time row names the card only, no done count", () => {
-  assert.doesNotMatch(js.time, /<span class="s">\$\{esc\(c\.slug\)\}<\/span>\$\{c\.lite/);
+t("054: a time row's name and done count float over its left end, fading the colours under them, at most half the table", () => {
+  assert.match(css, /\.tm-name \{ position: absolute; left: 0; top: 0; bottom: 0; max-width: 50%;[^}]*linear-gradient\(90deg, var\(--tm-bg\) calc\(100% - 40px\), transparent\)/);
+  assert.match(js.time, /const lw = 0, W = /);
+  assert.match(js.time, /\$\{c\.lite && c\.req \? V\.frac\(c\.ok, c\.req\) : ""\}<\/button><\/div>/);
 });
 
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });

@@ -11,12 +11,16 @@
 .tm-gh[data-st] { color: var(--c); }
 .tm-gh em { font-style: normal; font-weight: 300; color: var(--faint); margin-left: 8px; }
 .tm-head + .tm-gh { padding-top: 6px; }
-.tm-row { display: flex; height: 28px; border-top: 1px solid var(--paper); background: var(--paper); }
-.tm-row.alt { background: var(--tray); }
-.tm-row:hover { background: var(--hover); }
-.tm-row:has(.tm-name.sel) { background: var(--card2); }
-:root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { background: var(--sigs); }
-.tm-name { flex: none; width: var(--tm-lw); display: flex; align-items: center; gap: 6px; padding: 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
+/* one opaque colour per row state, shared by the row and the fade behind its name */
+.tm-row { position: relative; display: flex; height: 28px; border-top: 1px solid var(--paper); --tm-bg: var(--paper); background: var(--tm-bg); }
+.tm-row.alt { --tm-bg: var(--tray); }
+.tm-row:hover { --tm-bg: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
+.tm-row:has(.tm-name.sel) { --tm-bg: var(--card2); }
+:root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { --tm-bg: var(--sigs); }
+/* the name floats over the row's left end, fading the colours under it: at most half the table */
+.tm-name { position: absolute; left: 0; top: 0; bottom: 0; max-width: 50%; display: flex; align-items: center; gap: 6px; padding: 0 40px 0 10px; min-width: 0; text-align: left;
+  font: 400 var(--t-sm) var(--cjk); color: var(--tx); background: linear-gradient(90deg, var(--tm-bg) calc(100% - 40px), transparent); }
+.tm-name .fr { flex: none; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
 .tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }

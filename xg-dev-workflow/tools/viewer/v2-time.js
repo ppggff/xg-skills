@@ -5,7 +5,7 @@
 "use strict";
 (function (V) {
   const { $, $$, esc, store } = V;
-  const DAY = 864e5, ROW_LW = 236;
+  const DAY = 864e5;
   const RANGES = [["14", "2 周"], ["42", "6 周"], ["all", "全部"]];
   const LST = { draft: "todo", executing: "active", closing: "paused", done: "done" };   // a lite status in the board's colours
   const KN = { done: "已验证", todo: "待验证", drop: "放弃", bad: "失败 / 阻塞", plan: "仅方案" };
@@ -34,7 +34,7 @@
     const now = Date.now(), box = $("#bscroll"), cs = gs.flatMap(g => g.cs);
     const d0 = new Date(Math.min(now - 14 * DAY, ...cs.map(c => SV.tmRange(histOf(c), !V.OPEN_ST.includes(c.st), now)[0]))).setHours(0, 0, 0, 0);
     const pad = parseFloat(getComputedStyle(box).paddingLeft) + parseFloat(getComputedStyle(box).paddingRight);
-    const lw = V.app.classList.contains("phone") ? 108 : V.isNarrow() ? 150 : ROW_LW, W = Math.max(80, box.clientWidth - pad - lw);
+    const lw = 0, W = Math.max(80, box.clientWidth - pad);   // the axis takes the whole row; the card's name floats over its left end
     const span = range() === "all" ? now - d0 : Math.min(now - d0, +range() * DAY), k = W / span, total = Math.round((now - d0) * k);
     pan = Math.min(Math.max(0, pant === null ? total - W : Math.round((pant - d0) * k)), total - W);
     geo = { d0, k, W, total, now, lw };
@@ -55,7 +55,7 @@
       return `<div class="tm-gh"${g.st ? ` data-st="${g.st}"` : ""}>${esc(g.name)}<em>${g.cs.length}</em></div>` + open.map(row).join("")
         + (closed.length ? `<div class="tm-fold">${B.foldHTML(g, closed, show)}</div>` + (show ? closed.map(row).join("") : "") : "");
     }).join("");
-    return `<div class="tmv" style="--tm-pan:${pan}px;--tm-lw:${lw}px"><div class="tm-head"><div class="tm-name"></div><div class="tm-track"><div class="tm-pan" style="width:${total}px">${head}</div></div>`
+    return `<div class="tmv" style="--tm-pan:${pan}px"><div class="tm-head"><div class="tm-track"><div class="tm-pan" style="width:${total}px">${head}</div></div>`
       + `<span class="tm-cur"></span></div>${body}<div class="tm-line"></div></div>`;
   };
   function rowHTML(c, X, B, alt) {
@@ -74,9 +74,9 @@
       bars += `<i class="tm-q k-${x.b === x.a && x.end ? x.end : x.k}" style="left:${l}px;width:${w}px"></i>`;
       if (x.end && x.b > x.a) { const [e, ew] = fit(X(x.b) - 4, 4); bars += `<i class="tm-q end k-${x.end}" style="left:${e}px;width:${ew}px"></i>`; }
     }));
-    return `<div class="tm-row${alt ? " alt" : ""}" data-trow="${esc(c.id)}"><button class="tm-name ${B.selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}">`
-      + `<span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span></button>`
-      + `<div class="tm-track"><div class="tm-pan" style="width:${geo.total}px">${band}${bars}</div></div></div>`;
+    return `<div class="tm-row${alt ? " alt" : ""}" data-trow="${esc(c.id)}"><div class="tm-track"><div class="tm-pan" style="width:${geo.total}px">${band}${bars}</div></div>`
+      + `<button class="tm-name ${B.selCls(c)}" data-card="${esc(c.id)}" data-st="${c.st}"><span class="n">${c.n}</span><span class="s">${esc(c.slug)}</span>`
+      + `${c.lite && c.req ? V.frac(c.ok, c.req) : ""}</button></div>`;
   }
   // after the board drew the form: the indicator and its label
   V.timeAfter = () => placeLine();
