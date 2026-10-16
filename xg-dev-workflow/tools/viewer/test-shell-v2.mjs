@@ -93,7 +93,7 @@ t("the table and the time form span a tray's outer width", () => {
 });
 
 t("054: a time row's name and done count float over its left end, fading the colours under them, at most half the table", () => {
-  assert.match(css, /\.tm-name \{ position: absolute;[^}]*linear-gradient\(90deg, var\(--tm-bg\) var\(--tm-nw, 220px\), color-mix/);
+  assert.match(css, /\.tm-name \{ position: absolute;[^}]*linear-gradient\(90deg, color-mix\(in srgb, var\(--tm-bg\) 62%, transparent\) var\(--tm-nw, 220px\)/);
   assert.match(js.time, /Math\.min\(need, track\.clientWidth \/ 2\)/);
   assert.match(js.time, /const lw = 0, W = /);
   assert.match(js.time, /\$\{c\.lite && c\.req \? V\.frac\(c\.ok, c\.req\) : ""\}<\/button><\/div>/);

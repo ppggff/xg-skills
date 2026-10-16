@@ -22,8 +22,10 @@
 .tmv { --tm-fade: 200px; }
 .tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
   padding: 0 8px 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
-  background: linear-gradient(90deg, var(--tm-bg) var(--tm-nw, 220px), color-mix(in srgb, var(--tm-bg) 78%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .25),
-    color-mix(in srgb, var(--tm-bg) 45%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .55), color-mix(in srgb, var(--tm-bg) 15%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .82), transparent); }
+  /* a thin wash, not a cover: the bars show from the table's first pixel, lighter under the name, then clear */
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 62%, transparent) var(--tm-nw, 220px),
+    color-mix(in srgb, var(--tm-bg) 40%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .35),
+    color-mix(in srgb, var(--tm-bg) 15%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .7), transparent); }
 .tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
 .tm-name .fr { flex: none; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
