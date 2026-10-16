@@ -81,12 +81,13 @@
   // after the board drew the form: the indicator and its label
   V.timeAfter = () => { fitNames(); placeLine(); };
   // every row's name takes the width of the longest number and name (at most half the axis), so the fades line up;
-  // the done count is left out: on big screens it sits just past the fade start, else it may run into the fade
+  // the done count is left out: on big screens it gets its own column (--tm-cw) before the fade, else it may run into the fade
   function fitNames() {
     const v = $("#bscroll .tmv"); if (!v) return;
     const names = $$(".tm-row .tm-name", v), track = $(".tm-head .tm-track", v); if (!names.length || !track) return;
     const need = Math.max(...names.map(b => $(".n", b).offsetWidth + 6 + $(".s", b).scrollWidth)) + 18;
     v.style.setProperty("--tm-nw", Math.round(Math.min(need, track.clientWidth / 2)) + "px");
+    v.style.setProperty("--tm-cw", Math.max(0, ...names.map(b => { const f = $(".fr", b); return f ? f.offsetWidth : 0; })) + 16 + "px");
   }
   function placeLine() {
     const v = $("#bscroll .tmv"), line = v && $(".tm-line", v), lab = v && $(".tm-cur", v); if (!line || !geo) return;

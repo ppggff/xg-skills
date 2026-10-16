@@ -19,16 +19,17 @@
 :root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { --tm-bg: var(--sigs); }
 /* the name floats over the row's left end, fading the colours under it; every row's fade starts at the same place
    (--tm-nw, set from the longest name) and the whole stays within half the table */
-.tmv { --tm-fade: 200px; }
-.tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-nw, 220px) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
+.tmv { --tm-fade: 200px; --tm-fs: var(--tm-nw, 220px); }
+.app:not(.narrow, .short) .tmv { --tm-fs: calc(var(--tm-nw, 220px) + var(--tm-cw, 0px)); }   /* big screens: the fade starts after the done-count column */
+.tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-fs) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
   padding: 0 8px 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
   /* a thin wash, not a cover: the bars show from the table's first pixel, lighter under the name, then clear */
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 80%, transparent) var(--tm-nw, 220px),
-    color-mix(in srgb, var(--tm-bg) 55%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .35),
-    color-mix(in srgb, var(--tm-bg) 22%, transparent) calc(var(--tm-nw, 220px) + var(--tm-fade) * .7), transparent); }
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 80%, transparent) var(--tm-fs),
+    color-mix(in srgb, var(--tm-bg) 55%, transparent) calc(var(--tm-fs) + var(--tm-fade) * .35),
+    color-mix(in srgb, var(--tm-bg) 22%, transparent) calc(var(--tm-fs) + var(--tm-fade) * .7), transparent); }
 .tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
 .tm-name .fr { flex: none; }
-.app:not(.narrow, .short) .tm-name .fr { position: absolute; left: calc(var(--tm-nw, 220px) + 8px); }   /* big screens: one column just past the name, where a press sets the time */
+.app:not(.narrow, .short) .tm-name .fr { position: absolute; left: calc(var(--tm-nw, 220px) + 8px); }   /* big screens: one column just past the name, still where a press sets the time */
 /* only the part before the fade picks a card at the same moment; a press on the fade reaches the bars and sets the time */
 .tm-name { pointer-events: none; } .tm-name::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--tm-nw, 220px); pointer-events: auto; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }

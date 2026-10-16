@@ -93,7 +93,7 @@ t("the table and the time form span a tray's outer width", () => {
 });
 
 t("054: a time row's name and done count float over its left end, fading the colours under them, at most half the table", () => {
-  assert.match(css, /\.tm-name \{ position: absolute;[^}]*linear-gradient\(90deg, color-mix\(in srgb, var\(--tm-bg\) 80%, transparent\) var\(--tm-nw, 220px\)/);
+  assert.match(css, /\.tm-name \{ position: absolute;[^}]*linear-gradient\(90deg, color-mix\(in srgb, var\(--tm-bg\) 80%, transparent\) var\(--tm-fs\)/);
   assert.match(js.time, /Math\.min\(need, track\.clientWidth \/ 2\)/);
   assert.match(js.time, /const lw = 0, W = /);
   assert.match(js.time, /\$\{c\.lite && c\.req \? V\.frac\(c\.ok, c\.req\) : ""\}<\/button><\/div>/);
@@ -106,6 +106,8 @@ t("054: brightness is kept per theme; the bars and the date head set the indicat
   assert.match(js.core, /const lumKey = k => k \+ ":" \+ \(document\.documentElement\.getAttribute\("data-theme"\) \|\| \(V\.isDark\(\) \? "dark" : "light"\)\);/);
   assert.match(js.core, /V\.store\.set\(lumKey\(k\), v\)/);
   assert.match(js.time, /t\.closest\("#bscroll \.tm-row \.tm-track, #bscroll \.tm-head \.tm-track"\)/);
+  assert.match(css, /\.app:not\(\.narrow, \.short\) \.tmv \{ --tm-fs: calc\(var\(--tm-nw, 220px\) \+ var\(--tm-cw, 0px\)\); \}/);
+  assert.match(js.time, /v\.style\.setProperty\("--tm-cw", /);
   assert.match(css, /\.app:not\(\.narrow, \.short\) \.tm-name \.fr \{ position: absolute; left: calc\(var\(--tm-nw, 220px\) \+ 8px\); \}/);
   assert.match(css, /\.tm-name \{ pointer-events: none; \} \.tm-name::before \{[^}]*width: var\(--tm-nw, 220px\); pointer-events: auto; \}/);
 });
