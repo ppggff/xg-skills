@@ -75,15 +75,9 @@ var V2 = (function () {
   V.relT = ms => since((Date.now() - ms) / 1000, [[45, 0, "刚才"], [3600, 60, " 分钟前"], [86400, 3600, " 小时前"], [Infinity, 86400, " 天前"]]);
   let toastT;
   V.toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), V.CFG.toastMs); };
-  // the clipboard API only exists on a secure context (not a plain-http --lan IP page): fall back to execCommand inside the click
-  const execCopy = text => {
-    const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;opacity:0";
-    document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (e) {} ta.remove(); return ok;
-  };
   V.copy = (text, ok) => {
-    const done = () => V.toast(ok), no = () => V.toast("复制失败，浏览器没有允许");
-    if (!(window.isSecureContext && navigator.clipboard)) return execCopy(text) ? done() : no();
-    navigator.clipboard.writeText(text).then(done, () => (execCopy(text) ? done() : no()));
+    const no = () => V.toast("复制失败，浏览器没有允许");
+    try { navigator.clipboard.writeText(text).then(() => V.toast(ok), no); } catch (e) { no(); }
   };
 
   /* ---- events between the area files ---- */
@@ -114,11 +108,6 @@ var V2 = (function () {
       D.mtime[k] = {}; t[k].forEach(it => { D.mtime[k][it.path] = it.mtime; });
     });
   });
-  V.absPath = (tree, rel) => {
-    const R = V.D.tree.roots; if (!R) return "";
-    if (tree !== "ext") return R[tree] ? R[tree] + "/" + rel : "";
-    const i = rel.indexOf("/"), root = R.ext && R.ext[rel.slice(0, i)]; return root ? root + rel.slice(i) : "";
-  };
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };
   V.docsOf = c => V.D.tree.dev.filter(it => it.path.startsWith(c.dir + "/")).map(it => ({ rel: it.path, mtime: it.mtime }));

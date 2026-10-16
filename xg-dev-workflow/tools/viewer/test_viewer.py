@@ -553,8 +553,6 @@ class T345Endpoints(unittest.TestCase):
         self.assertIn("foo/001-x/design.md", devpaths)
         self.assertIn("k.md", [x["path"] for x in t["kb"]])
         self.assertTrue(all(isinstance(x.get("mtime"), (int, float)) for x in t["dev"]))
-        self.assertEqual(t["roots"]["dev"], str(self.dev.resolve()))   # the reader's path bar copies root + rel
-        self.assertEqual(t["roots"]["kb"], str(self.kb.resolve()))
 
     def test_board_schema(self):
         _, body = get(self.base, "/api/board")

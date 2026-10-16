@@ -522,9 +522,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         ext = [dict(it, path=label + "/" + it["path"]) for label, root in self.ext_roots.items()
                for it in scan_tree(root, with_mtime=True, limit=EXT_SCAN_MAX)]
         self._json({"dev": scan_tree(self.dev_root, with_mtime=True),
-                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext,
-                    "roots": {"dev": str(self.dev_root), "kb": str(self.kb_root),
-                              "ext": {label: str(root) for label, root in self.ext_roots.items()}}})
+                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext})
 
     def _serve_board(self):
         # schema = iter_cards' pinned fields (incl. 017 `governance`, 020 `carriers` —
