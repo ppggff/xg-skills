@@ -9,8 +9,8 @@ import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), "utf8");
-const AREAS = ["core", "tree", "board", "reader", "search", "find", "todo", "edit"];
-const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css");
+const AREAS = ["core", "tree", "board", "time", "reader", "search", "find", "todo", "edit"];
+const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css") + "\n" + read("v2-time.css");
 const js = Object.fromEntries(AREAS.map((a) => [a, read(`v2-${a}.js`)]));
 const allJs = Object.values(js).join("\n");
 const viewerPy = read("../viewer.py");
@@ -66,7 +66,7 @@ t("046 Req-52/53: an amber card answers the pointer; closing the detail keeps th
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {
-  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ["v2-themes.css", read("v2-themes.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
+  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ["v2-themes.css", read("v2-themes.css")], ["v2-time.css", read("v2-time.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
     assert.ok(src.split("\n").length <= 820, `${f} has ${src.split("\n").length} lines`);
 });
 
@@ -173,9 +173,10 @@ t("Inv-6-f: scroll writers in priority order — explicit target, then (entering
   assert.ok(i0 > 0 && i0 < i1 && i1 < i2, "keep → target → anchor");
   assert.match(js.board, /const b = \$\("#bscroll"\), top = b\.scrollTop, kc = \$\("\.kcols", b\), left = kc \? kc\.scrollLeft : 0;/, "board re-render keeps both scroll axes");
 });
-t("Inv-6-g: nothing sticks to a bottom edge — the one sticky element is a table head", () => {
+t("Inv-6-g: nothing sticks to a bottom edge — the sticky elements are heads at the top: the table's and the time form's", () => {
   const sticky = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*sticky[^}]*\}/g)];
-  assert.strictEqual(sticky.length, 1); assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/);
+  assert.strictEqual(sticky.length, 2);
+  assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/); assert.match(sticky[1][0], /\.tm-head \{[^}]*top: 0/);
 });
 
 t("round 5: iOS keeps the text size on turning to landscape", () => {

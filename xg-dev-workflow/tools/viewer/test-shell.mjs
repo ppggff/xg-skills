@@ -1019,6 +1019,26 @@ t("045 continueLine: the next prefix keeps indent, quote and bullet, numbers +1,
   assert.equal(c("plain"), null);
   assert.equal(SV.todoStamp(new Date(2026, 0, 5, 9, 7)), "2026-01-05 09:07");
 });
+t("054 time form: a card's span, a Req's intervals clipped to it, the state at a moment", () => {
+  const ms = SV.tmMs, now = ms("2026-10-10 00:00");
+  const h = { status: [{ t: "2026-10-01 09:00", v: "draft" }, { t: "2026-10-02 10:00", v: "executing" }, { t: "2026-10-05 12:00", v: "done" }],
+    reqs: { 1: [{ t: "2026-10-01 09:00", type: "new", word: "待验证", title: "a" }, { t: "2026-10-03 08:00", type: "word", from: "待验证", to: "已验证" }],
+      2: [{ t: "2026-09-30 08:00", type: "new", word: "已验证", title: "b" }, { t: "2026-10-04 08:00", type: "title", from: "b", to: "b2" }],
+      3: [{ t: "2026-10-02 10:00", type: "new", word: "待验证", title: "c" }, { t: "2026-10-04 09:00", type: "word", from: "待验证", to: "放弃" },
+        { t: "2026-10-04 10:00", type: "word", from: "放弃", to: "待验证" }] }, first: "2026-09-29 08:00", last: "2026-10-06 08:00" };
+  assert.deepEqual(SV.tmRange(h, true, now), [ms("2026-10-01 09:00"), ms("2026-10-05 12:00")]);
+  assert.deepEqual(SV.tmRange({ status: [], first: "2026-10-01 09:00", last: "2026-10-03 09:00" }, true, now), [ms("2026-10-01 09:00"), ms("2026-10-03 09:00")]);
+  assert.deepEqual(SV.tmRange({ status: [], first: "2026-10-01 09:00", last: "2026-10-03 09:00" }, false, now), [ms("2026-10-01 09:00"), now]);
+  const [lo, hi] = SV.tmRange(h, true, now);
+  assert.deepEqual(SV.tmSpans(h.reqs[1], lo, hi), [{ a: ms("2026-10-01 09:00"), b: ms("2026-10-03 08:00"), k: "todo", end: "done" }]);
+  assert.deepEqual(SV.tmSpans(h.reqs[2], lo, hi), [], "written settled before the card began: outside its span");
+  assert.deepEqual(SV.tmSpans(h.reqs[3], lo, hi).map(x => [x.k, x.end || "", x.b === hi]), [["todo", "drop", false], ["todo", "", true]], "re-opened after a drop");
+  const at = SV.tmStateAt(h, ms("2026-10-04 08:30"));
+  assert.equal(at.cs, "executing");
+  assert.deepEqual(at.reqs.map(r => [r.n, r.k, r.title]), [[1, "done", "a"], [2, "done", "b2"], [3, "todo", "c"]]);
+  assert.equal(SV.tmStateAt(h, ms("2026-09-29 00:00")).cs, null);
+  assert.equal(SV.tmKind("验证失败"), "bad");
+});
 t("046 completeSpan: a picked @project or [[doc]] takes what is already there instead of doubling it", () => {
   const C = (v, from, caret, kind, pick) => { const r = SV.completeSpan(v, from, caret, kind, pick); return v.slice(0, r.start) + r.text + v.slice(r.end) + "|" + r.caret; };
   assert.equal(C("ask @xg", 4, 7, "@", "xg-skills"), "ask @xg-skills |15");             // at the end: a space to type on

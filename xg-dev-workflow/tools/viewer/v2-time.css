@@ -1,0 +1,52 @@
+/* status viewer v2 — the board's time form (054), drawn by v2-time.js: rows on a time axis, the card's status as the
+   row's colour, requirements as bars across it, the indicator, and the moment in the hover card and the card detail. */
+#bscroll.tm-form { padding-top: 0; }
+.tmv { position: relative; }
+.tm-head { position: sticky; top: 0; z-index: 3; display: flex; height: 34px; background: var(--paper); }
+.tm-head .tm-track { cursor: default; }
+.tm-d { position: absolute; top: 6px; transform: translateX(-50%); font: 400 var(--t-xs)/1.25 var(--mono); color: var(--mu); text-align: center; white-space: nowrap; }
+.tm-d small { display: block; font-size: 9px; color: var(--faint); }
+.tm-d.now { color: var(--sig); transform: translateX(-100%); }
+.tm-gh { padding: 14px 10px 5px; font: 500 var(--t-sm) var(--mono); color: var(--tx); border-bottom: 1px solid var(--ln); }
+.tm-gh[data-st] { color: var(--c); }
+.tm-gh em { font-style: normal; font-weight: 300; color: var(--faint); margin-left: 8px; }
+.tm-head + .tm-gh { padding-top: 6px; }
+.tm-row { display: flex; height: 28px; border-top: 1px solid var(--paper); background: var(--paper); }
+.tm-row.alt { background: var(--tray); }
+.tm-row:hover { background: var(--hover); }
+.tm-row:has(.tm-name.sel) { background: var(--card2); }
+:root[data-theme^="amber"] .tm-row:has(.tm-name.sel) { background: var(--sigs); }
+.tm-name { flex: none; width: var(--tm-lw); display: flex; align-items: center; gap: 6px; padding: 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
+.tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
+.tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-name .fr { margin-left: auto; padding-left: 6px; }
+.tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }
+.tm-track { position: relative; flex: 1; min-width: 0; overflow: hidden; cursor: grab; touch-action: pan-y; }
+.tm-pan { position: absolute; top: 0; bottom: 0; left: 0; transform: translateX(calc(-1 * var(--tm-pan, 0px))); }
+body.tm-panning, body.tm-panning .tm-track { cursor: grabbing; user-select: none; }
+.tm-band { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--faint) 30%, var(--paper)); }
+.tm-band.s-todo { background: color-mix(in srgb, var(--todo) 34%, var(--paper)); }
+.tm-band.s-active { background: color-mix(in srgb, var(--active) 34%, var(--paper)); }
+.tm-band.s-paused { background: color-mix(in srgb, var(--paused) 34%, var(--paper)); }
+.tm-band.s-blocked { background: color-mix(in srgb, var(--blocked) 30%, var(--paper)); }
+.tm-band.s-done { background: color-mix(in srgb, var(--done) 30%, var(--paper)); }
+.tm-band.s-dropped { background: color-mix(in srgb, var(--dropped) 30%, var(--paper)); }
+.tm-cap { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--done); }
+.tm-q { position: absolute; top: 8px; height: 12px; opacity: .3; background: var(--todo); }
+.tm-q.end { opacity: .6; }
+.tm-q.k-done { background: var(--done); } .tm-q.k-drop { background: var(--dropped); } .tm-q.k-bad { background: var(--blocked); }
+.tm-q.k-plan { background: color-mix(in srgb, var(--active) 55%, var(--blocked)); }
+.tm-fold { padding: 2px 10px 4px; border-top: 1px solid var(--paper); }
+.tm-line { position: absolute; top: 0; bottom: 0; width: 0; display: none; z-index: 4; pointer-events: none; border-left: 1px solid color-mix(in srgb, var(--sig) 45%, transparent); }
+.tm-cur { position: absolute; top: 4px; display: none; z-index: 5; margin-left: 4px; padding: 1px 5px; border-radius: var(--r-sm); pointer-events: none;
+  background: color-mix(in srgb, var(--sig) 14%, var(--paper)); color: var(--sig); font: 400 var(--t-xs) var(--mono); white-space: nowrap; box-shadow: 0 0 0 3px var(--paper); }
+#dotpop:has(.tmc) { width: 300px; }
+#dotpop .card.tmc { height: auto; }
+.tmc .tmq { border-top: 1px solid var(--ln); padding-top: 6px; margin-top: 2px; }
+.tmc .tmq .rq { font-size: var(--t-sm); padding: 1px 4px; }
+.tmc .tmq .more { font: 400 var(--t-xs) var(--cjk); color: var(--faint); padding-left: 18px; }
+.rq.drop span { text-decoration: line-through; color: var(--faint); }
+.tmev { display: grid; grid-template-columns: 88px 34px minmax(0,1fr); gap: 6px; align-items: baseline; font: 400 var(--t-sm)/1.6 var(--cjk); color: var(--tx); }
+.tmev code { font: 400 var(--t-xs) var(--mono); color: var(--mu); white-space: nowrap; }
+.tmev b { font: 400 var(--t-xs) var(--mono); color: var(--faint); }
+.tmev.later { color: var(--faint); }

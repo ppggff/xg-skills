@@ -4,7 +4,7 @@
 (function (V) {
   const { $, $$, esc, store } = V;
   const GRPS = [["p", "项目"], ["s", "状态"], ["g", "治理"]];
-  const FORMS = [["cards", "卡片", "grid"], ["cols", "列", "cols"], ["table", "表格", "tbl"], ["dots", "信号", "dots"]];
+  const FORMS = [["cards", "卡片", "grid"], ["cols", "列", "cols"], ["table", "表格", "tbl"], ["dots", "信号", "dots"], ["time", "时间", "hist"]];
   const STATES = ["active", "blocked", "paused", "todo", "backlog", "unknown", "done", "dropped"];
   const GOVS = ["lite", "doc-gate", "ledger", "doc-native", "doc-native-pilot", "legacy"];
   const hidden = new Set(store.get("hide", []));
@@ -40,7 +40,7 @@
     const k = V.hostOf("board");
     return `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>` + V.paneHead(k)
       + `<div class="ppath"><bdi>dev_root / <b>看板</b></bdi></div>`
-      + `<div class="seg" style="margin-left:auto">${grp}${forms}`
+      + `<div class="seg" style="margin-left:auto">${f === "time" ? V.timeRangeBtn() : ""}${grp}${forms}`
       + `<button class="${hidden.size ? "on" : ""}" data-flt data-popbtn data-tip="${fltTip}" aria-label="过滤状态">${V.I.filter}</button>`
       + `<button class="${trays ? "on" : ""}" data-trays data-tip="${trays ? "关闭" : "打开"}分组外框">${V.I.trays}</button></div>` + V.paneEnd(k);
   }
@@ -133,6 +133,7 @@
       return '<div class="empty-b">没有卡片。</div>';
     }
     if (f === "dots") return dotsHTML(gs);
+    if (f === "time") return V.timeHTML(gs, { split, foldHTML, selCls });
     if (f === "table") return tableHTML(gs);
     if (f === "cols") return `<div class="kcols">${gs.map(g => groupHTML(g, "proj kcol", "kstack")).join("")}</div>`;
     return gs.map(g => groupHTML(g, "proj", "grid")).join("");
@@ -142,7 +143,9 @@
     const b = $("#bscroll"), top = b.scrollTop, kc = $(".kcols", b), left = kc ? kc.scrollLeft : 0;
     $("#bhd").innerHTML = headHTML();
     b.classList.toggle("tbl-form", form() === "table");
+    b.classList.toggle("tm-form", form() === "time");
     b.innerHTML = bodyHTML(); b.scrollTop = top;
+    if (form() === "time") V.timeAfter();
     const k2 = $(".kcols", b); if (k2) k2.scrollLeft = left;
     V.app.classList.toggle("notray", !trays);
     if (tkObs) tkObs.disconnect();
@@ -212,18 +215,20 @@
     const key = V.docsOf(c).map(x => x.rel).filter(d => !d.slice(c.dir.length + 1).includes("/"))
       .sort((a, b) => (b.endsWith("/design.md") - a.endsWith("/design.md")) || a.localeCompare(b));
     const files = key.map(d => `<button class="kf" data-open="dev:${esc(d)}" data-tip="${esc(d)}">${esc(d.slice(c.dir.length + 1))}</button>`).join("");
+    const m = form() === "time" ? V.timeMoment(c) : null;   // the time form shows the card at its indicator
     const meta = `<span class="hst">${c.st}</span>　${esc(c.p)}　${esc(c.gov)}${c.deps && c.deps !== "—" ? "　deps " + esc(c.deps) : ""}`;
     const row = inner => `<div class="brow">${inner}</div>`;
     return head + `<div class="bdg" data-st="${c.st}">`
       + `<div class="brow big"><div class="hero"><span class="hn">${c.n}</span><span class="hline"><span class="hm">${meta}</span></span></div></div>`
       + row(`<div class="sfl"><span class="hsl">${esc(c.slug)}</span>${files}</div>`)
-      + row(`<div class="bv nx">${esc(V.nextOf(c))}</div>`)
+      + row(m ? m.nx : `<div class="bv nx">${esc(V.nextOf(c))}</div>`)
+      + (m ? row(m.counts) + (m.near ? row(m.near) : "") : "")
       + (c.now ? row(`<div class="bv"><span><b>now</b>${esc(c.now)}</span></div>`) : "")
       + (c.block && c.block !== "—" ? row(`<div class="bv blk"><span><b>block</b>${esc(c.block)}</span></div>`) : "")
       + row(`<div class="blinks">${linksHTML(c)}</div>`)
       + (c.branch && V.GITWEB ? row(branchHTML(c)) : "")
       + ((ts => (ts.length ? row(`<div class="btodo"><div class="bth">相关 todo<em>${ts.length}</em></div>${ts.map(V.todoRowHTML).join("")}</div>`) : ""))(V.todosOfCard ? V.todosOfCard(c) : []))
-      + row(`<div>${reqsHTML(c)}</div>`) + "</div>";
+      + row(`<div>${m && m.reqs ? m.reqs : reqsHTML(c)}</div>`) + "</div>";
   }
   const onShow = () => !$("#board").hidden;
   function paintDetail() { if (onShow()) $("#bdet").innerHTML = detailHTML(); }
@@ -246,7 +251,9 @@
   }
   V.on("detail-close", closeDetail);
   V.selCard = () => sel;   // the capture box links the selected card's main doc
-  V.on("todo-count", () => { if (onShow() && sel) paintDetail(); });   // the detail's related todos follow the todo files
+  V.on("todo-count", () => { if (onShow() && sel) paintDetail(); });
+  V.on("time-data", () => { if (onShow() && form() === "time") render(); });
+  V.on("time-moment", () => { if (onShow() && form() === "time") paintDetail(); });   // the detail's related todos follow the todo files
   V.revealCard = c => {
     unfold.add(groupBy === "s" ? "s:" + c.st : groupBy === "g" ? "g:" + c.gov : "p:" + c.p);
     hidden.delete(c.st); store.set("hide", [...hidden]); render(); V.pickCard(c.id);
@@ -334,7 +341,7 @@
   V.on("narrow", () => { if (onShow() && !store.get("form", null)) render(); });
   V.on("split", () => { if (onShow()) render(); });
 
-  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold]")) closeDetail(); });
+  V.on("click", e => { if (sel && e.target.closest("#bscroll") && !e.target.closest("[data-card],[data-fold],.tm-track,[data-tmr]")) closeDetail(); });
   const next = (list, cur) => list[(list.findIndex(x => x[0] === cur) + 1) % list.length][0];
   V.setGroup = g => { groupBy = g; store.set("grp", groupBy); unfold.clear(); render(); V.untip(); };
   V.setForm = f => {
@@ -358,12 +365,12 @@
   V.click("[data-diff]", (el, e) => { const k = V.paneOf(el); V.nav(e.shiftKey ? V.other(k) : k, { kind: "diff", card: el.dataset.diff }); });
   V.click("[data-card]", (el, e) => (e.shiftKey || e.detail >= 2 ? openCard(el.dataset.card, e) : selectCard(el.dataset.card)));
   const boardKeys = () => V.view === "board";
-  ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (boardKeys() ? moveSel(e.key) : false)));
+  ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (boardKeys() ? (form() === "time" && V.timeKey(e)) || moveSel(e.key) : false)));
   V.hotkey("Enter", e => (boardKeys() && sel ? openCard(sel, e) : false));
   V.layer(10, () => V.view === "board" && !!sel && !V.W.dc, closeDetail);
   document.addEventListener("mouseover", e => {
     const d = e.target.closest(".dot[data-card]"), pop = $("#dotpop");
-    if (!d) { pop.classList.remove("on"); return; }
+    if (!d) { if (!e.target.closest(".tm-track")) pop.classList.remove("on"); return; }
     const c = V.card(d.dataset.card); if (!c) return;
     seenTicks.add(c.id); pop.innerHTML = cardHTML(c); pop.classList.add("on");
     const r = d.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;

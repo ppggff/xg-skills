@@ -11,8 +11,9 @@ Lives only in xg-dev-workflow/tools/ (not a synced copy). stdlib-only.
 Security (R6): binds 127.0.0.1 only; every route checks the Host header is localhost
 (--lan binds every interface and adds the LAN IP, plus any --host, to that allowlist)
 (DNS-rebinding guard); /raw and the tree scan are confined to the two roots by realpath;
-the shell + vendored asset come from a hardcoded repo path, never a user path. Read-only:
-no write endpoints, no disk writes, no cross-request state — Ctrl-C stops it clean.
+the shell + vendored asset come from a hardcoded repo path, never a user path. Writes go only
+to the todo files (through todo.py) and the extra-roots list; the one cross-request state is the
+card-history cache, keyed by dev_root's HEAD and the design.md mtimes — Ctrl-C stops it clean.
 
 Ports are fixed by default (viewer 8790; the gitweb companion on loopback 8791, served by the
 viewer at /gitweb/) so one `ssh -L` rule for 8790 keeps working across restarts; a busy port is
@@ -50,8 +51,8 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
           "sv.js": "text/javascript",
           "martian-mono.woff2": "font/woff2",
-          "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css",
-          **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "reader", "search", "find", "todo", "edit")}}
+          "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css", "v2-time.css": "text/css",
+          **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "time", "reader", "search", "find", "todo", "edit")}}
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
@@ -64,6 +65,7 @@ TODO_DIR = "todo"                                # the viewer writes only <dev_r
 EXT_SCAN_MAX = 5000                              # an extra root lists at most this many docs (hidden dirs and node_modules skipped)
 TODO_MAX = 256 * 1024
 LOG_MAX = 100
+HISTORY_BULK = 6                                 # a commit touching more card dirs than this is a sweep, not work on them
 SEARCH_MAX = 200                               # cap search hits (bounded response)
 
 
@@ -409,6 +411,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_branchlog(qs.get("repo", [""])[0], qs.get("branch", [""])[0])
         elif path == "/api/roots":
             self._json({"roots": self._roots_json()})
+        elif path == "/api/history":
+            self._json(card_history(self.dev_root))
         elif path == "/api/shas":
             self._serve_shas(qs.get("h", []), qs.get("prefer", []))
         else:
@@ -518,7 +522,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         ext = [dict(it, path=label + "/" + it["path"]) for label, root in self.ext_roots.items()
                for it in scan_tree(root, with_mtime=True, limit=EXT_SCAN_MAX)]
         self._json({"dev": scan_tree(self.dev_root, with_mtime=True),
-                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext})
+                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext,
+                    "roots": {"dev": str(self.dev_root), "kb": str(self.kb_root),
+                              "ext": {label: str(root) for label, root in self.ext_roots.items()}}})
 
     def _serve_board(self):
         # schema = iter_cards' pinned fields (incl. 017 `governance`, 020 `carriers` —
@@ -867,6 +873,117 @@ def _diff_untracked(dev_root: Path, rel):
             parts.append(_git(dev_root, "-c", "core.quotepath=false", "diff",
                               "--no-index", os.devnull, str(f)))
     return "".join(p for p in parts if p)
+
+
+def _cat_blobs(root: Path, specs):
+    """The texts of many "<rev>:<path>" specs through one `git cat-file --batch` ("" for a missing one)."""
+    if not specs:
+        return []
+    try:
+        out = subprocess.run(["git", "-C", str(root), "cat-file", "--batch"], input=("\n".join(specs) + "\n").encode(),
+                             capture_output=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        return [""] * len(specs)
+    texts, i = [], 0
+    for _ in specs:
+        nl = out.find(b"\n", i)
+        head, i = out[i:nl].split(), nl + 1
+        if len(head) == 3 and head[1] == b"blob":
+            n = int(head[2])
+            texts.append(out[i:i + n].decode("utf-8", "replace"))
+            i += n + 1
+        else:
+            texts.append("")
+    return texts
+
+
+_REQ_HEAD = re.compile(r"### Req-(\d+)\s+(\S+)\s*[—-]+\s*(.*)")
+
+
+def _doc_state(text):
+    """A lite design.md's status and, per Req, (state word, title, statement digest)."""
+    st = re.search(r"^status:\s*(\w+)", text, re.M)
+    reqs = {}
+    for block in re.split(r"(?m)^(?=### Req-\d+)", text)[1:]:
+        h = _REQ_HEAD.match(block)
+        if not h:
+            continue
+        stmt = re.search(r"^- 陈述:(.*(?:\n  .*)*)", block.split("\n## ")[0], re.M)
+        reqs[h.group(1)] = (h.group(2), h.group(3).strip(), re.sub(r"\s+", " ", stmt.group(1)).strip() if stmt else "")
+    return (st.group(1) if st else ""), reqs
+
+
+_history = {"key": None, "data": None}
+_history_lock = threading.Lock()
+
+
+def card_history(dev_root: Path):
+    """Every card's life from dev_root's git history (/api/history): for a lite card the status of each design.md
+    revision and every Req's state, title and statement changes; for every card its dir's first and last commit
+    (sweeps that name no card skipped, unless a dir has nothing else). An uncommitted design.md counts as a last revision at its mtime. Cached
+    until HEAD or a lite design.md changes."""
+    docs = {}
+    for f in sorted(dev_root.glob("*/[0-9][0-9][0-9]-*/design.md")):
+        try:
+            if "governance: lite" in f.read_text(encoding="utf-8", errors="replace")[:3000]:
+                docs[f.relative_to(dev_root).as_posix()] = f
+        except OSError:
+            pass
+    key = (_git(dev_root, "rev-parse", "HEAD").strip(), tuple((k, f.stat().st_mtime_ns) for k, f in docs.items()))
+    with _history_lock:
+        if _history["key"] == key:
+            return _history["data"]
+    log = _git(dev_root, "-c", "core.quotepath=false", "log", "--reverse", "--date=format-local:%Y-%m-%d %H:%M",
+               "--format=%x1e%H%x1f%cd%x1f%s", "--name-only")
+    span, swept, revs = {}, {}, {k: [] for k in docs}
+    for chunk in log.split("\x1e")[1:]:
+        head, _, names = chunk.partition("\n")
+        parts = head.split("\x1f", 2)
+        if len(parts) != 3:
+            continue
+        sha, t, subject = parts
+        names = [n for n in names.splitlines() if n]
+        dirs = {m.group(1) + "/" + m.group(2) for m in (re.match(r"^([^/]+)/(\d{3})-[^/]+/", n) for n in names) if m}
+        named = len(dirs) <= HISTORY_BULK and (len(dirs) == 1 or any(d.split("/")[1] in subject for d in dirs))
+        for d in dirs:
+            (span if named else swept).setdefault(d, [t, t])[1] = t
+        for n in names:
+            if n in revs:
+                revs[n].append((sha, t))
+    out = {d: {"status": [], "reqs": {}, "first": a, "last": b} for d, (a, b) in {**swept, **span}.items()}   # a dir only swept keeps the sweeps' span
+    order = [(k, sha, t) for k, rs in revs.items() for sha, t in rs]
+    texts = dict(zip(((k, sha) for k, sha, _ in order), _cat_blobs(dev_root, ["%s:%s" % (sha, k) for k, sha, _ in order])))
+    for k, f in docs.items():
+        steps = [(t, texts.get((k, sha), "")) for sha, t in revs[k]]
+        now = f.read_text(encoding="utf-8", errors="replace")
+        if not steps or steps[-1][1] != now:
+            steps.append((datetime.datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M"), now))
+        cid = k.split("/")[0] + "/" + k.split("/")[1][:3]
+        card = out.setdefault(cid, {"status": [], "reqs": {}, "first": steps[0][0], "last": steps[-1][0]})
+        last_st, prev = None, {}
+        for t, text in steps:
+            st, reqs = _doc_state(text)
+            if st and st != last_st:
+                card["status"].append({"t": t, "v": st})
+                last_st = st
+            for n, (word, title, stmt) in reqs.items():
+                ev, p = card["reqs"].setdefault(n, []), prev.get(n)
+                if p is None:
+                    ev.append({"t": t, "type": "new", "word": word, "title": title})
+                    continue
+                if word != p[0]:
+                    ev.append({"t": t, "type": "word", "from": p[0], "to": word})
+                if title != p[1]:
+                    ev.append({"t": t, "type": "title", "from": p[1], "to": title})
+                if stmt != p[2]:
+                    ev.append({"t": t, "type": "stmt"})
+            for n in prev:
+                if n not in reqs:
+                    card["reqs"].setdefault(n, []).append({"t": t, "type": "gone"})
+            prev = reqs
+    with _history_lock:
+        _history["key"], _history["data"] = key, out
+    return out
 
 
 def _git(dev_root: Path, *args):

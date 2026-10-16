@@ -553,6 +553,8 @@ class T345Endpoints(unittest.TestCase):
         self.assertIn("foo/001-x/design.md", devpaths)
         self.assertIn("k.md", [x["path"] for x in t["kb"]])
         self.assertTrue(all(isinstance(x.get("mtime"), (int, float)) for x in t["dev"]))
+        self.assertEqual(t["roots"]["dev"], str(self.dev.resolve()))   # the reader's path bar copies root + rel
+        self.assertEqual(t["roots"]["kb"], str(self.kb.resolve()))
 
     def test_board_schema(self):
         _, body = get(self.base, "/api/board")
@@ -713,6 +715,69 @@ class T345Endpoints(unittest.TestCase):
         # 1-char guard
         _, body = get(self.base, "/api/search?q=x")
         self.assertIn("note", json.loads(body))
+
+
+class THistory(unittest.TestCase):
+    """/api/history: each lite card's status and Req changes over its design.md revisions; dirs' first/last commits."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.dev = self.tmp / "dev"; self.kb = self.tmp / "kb"
+        self.dev.mkdir(); self.kb.mkdir()
+        self.card = self.dev / "foo" / "001-x"; self.card.mkdir(parents=True)
+        (self.dev / "foo" / "002-legacy").mkdir()
+        _git(self.dev, "init", "-q")
+        self.doc("draft", "### Req-1 待验证 — first\n- 陈述: one\n")
+        self.commit("2026-10-01T09:00:00", "foo/001: open")
+        self.doc("executing", "### Req-1 已验证 — first, renamed\n- 陈述: one\n### Req-2 待验证 — second\n- 陈述: two\n")
+        self.commit("2026-10-02T10:30:00", "foo/001: go")
+        (self.dev / "foo" / "002-legacy" / "requirement.md").write_text("---\nstatus: confirmed\n---\n", encoding="utf-8")
+        self.commit("2026-10-03T08:00:00", "foo/002: start")
+        self.doc("executing", "### Req-1 已验证 — first, renamed\n- 陈述: one, sharper\n### Req-2 放弃 — second\n- 陈述: two\n")
+        (self.dev / "foo" / "002-legacy" / "requirement.md").write_text("swept\n", encoding="utf-8")
+        self.commit("2026-10-05T12:00:00", "sweep the docs")         # two dirs, names neither: not work on them
+        viewer._history.update(key=None, data=None)
+        self.httpd, self.base = start(self.dev, self.kb)
+
+    def tearDown(self):
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def doc(self, status, reqs):
+        (self.card / "design.md").write_text("---\nid: 001\ngovernance: lite\nstatus: %s\n---\n# x\n## 目标与边界\n%s## 当前方案\n" % (status, reqs), encoding="utf-8")
+
+    def commit(self, when, msg):
+        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+               "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+        subprocess.run(["git", "-C", str(self.dev), "add", "-A"], env=env, capture_output=True)
+        subprocess.run(["git", "-C", str(self.dev), "commit", "-q", "-m", msg], env=env, capture_output=True)
+
+    def test_status_and_req_events_in_order(self):
+        d = json.loads(get(self.base, "/api/history")[1])
+        c = d["foo/001"]
+        self.assertEqual([(e["t"], e["v"]) for e in c["status"]], [("2026-10-01 09:00", "draft"), ("2026-10-02 10:30", "executing")])
+        self.assertEqual([(e["t"][5:], e["type"]) for e in c["reqs"]["1"]],
+                         [("10-01 09:00", "new"), ("10-02 10:30", "word"), ("10-02 10:30", "title"), ("10-05 12:00", "stmt")])
+        self.assertEqual(c["reqs"]["1"][1]["to"], "已验证")
+        self.assertEqual([(e["type"], e.get("to")) for e in c["reqs"]["2"]], [("new", None), ("word", "放弃")])
+
+    def test_dir_span_skips_unnamed_sweeps(self):
+        d = json.loads(get(self.base, "/api/history")[1])
+        self.assertEqual((d["foo/001"]["first"], d["foo/001"]["last"]), ("2026-10-01 09:00", "2026-10-02 10:30"))
+        self.assertEqual(d["foo/002"], {"status": [], "reqs": {}, "first": "2026-10-03 08:00", "last": "2026-10-03 08:00"})
+
+    def test_a_dir_only_swept_keeps_the_sweeps_span(self):
+        (self.dev / "foo" / "003-old").mkdir()
+        (self.dev / "foo" / "003-old" / "a.md").write_text("a", encoding="utf-8")
+        (self.card / "notes.md").write_text("n", encoding="utf-8")
+        self.commit("2026-10-06T07:00:00", "sweep again")                # 001 and 003, neither named
+        d = json.loads(get(self.base, "/api/history")[1])
+        self.assertEqual((d["foo/003"]["first"], d["foo/003"]["last"]), ("2026-10-06 07:00", "2026-10-06 07:00"))
+        self.assertEqual(d["foo/001"]["last"], "2026-10-02 10:30")
+
+    def test_uncommitted_design_is_the_last_revision(self):
+        self.doc("closing", "### Req-1 已验证 — first, renamed\n- 陈述: one, sharper\n")
+        c = json.loads(get(self.base, "/api/history")[1])["foo/001"]
+        self.assertEqual(c["status"][-1]["v"], "closing")
+        self.assertEqual(c["reqs"]["2"][-1]["type"], "gone")
 
 
 class T6Port(unittest.TestCase):

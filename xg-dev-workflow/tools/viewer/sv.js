@@ -694,6 +694,53 @@ var SV = (function () {
   }
   // 045: a mark's date or date-and-time as a local Date (a bare "YYYY-MM-DD" would otherwise parse as UTC midnight)
   function todoDate(s) { var d = new Date(String(s || "").length === 10 ? s + "T00:00" : String(s || "").replace(" ", "T")); return isNaN(d) ? null : d; }
+  // 054: the board's time form — a history stamp ("YYYY-MM-DD HH:MM", local) as ms; a Req state word's kind
+  function tmMs(s) { s = String(s || ""); return new Date(s.length === 10 ? s + "T00:00" : s.replace(" ", "T")).getTime(); }
+  function tmKind(w) { w = String(w || ""); return /已验证/.test(w) ? "done" : /放弃|撤回/.test(w) ? "drop" : /失败|阻塞/.test(w) ? "bad" : /仅方案/.test(w) ? "plan" : "todo"; }
+  var TM_SETTLED = /已验证|放弃|撤回/;
+  // 054: a card's span: its first status (else its dir's first commit) to its done status (else, for a closed card,
+  // its dir's last commit; else now)
+  function tmRange(h, closed, now) {
+    var st = (h && h.status) || [], done = null;
+    for (var i = 0; i < st.length; i++) if (st[i].v === "done") { done = st[i]; break; }
+    var a = st.length ? tmMs(st[0].t) : h && h.first ? tmMs(h.first) : now;
+    var b = done ? tmMs(done.t) : !st.length && closed && h && h.last ? tmMs(h.last) : now;
+    return [Math.min(a, b), b];
+  }
+  // 054: a Req's life as intervals of one state word inside [lo, hi]: written → each change → settled; a settled one
+  // stops there (end = its kind) until a later change opens it again; written already settled is a point
+  function tmSpans(ev, lo, hi) {
+    var out = [], w = null, a = 0;
+    (ev || []).forEach(function (e) {
+      var at = tmMs(e.t), to = e.type === "new" ? e.word || "" : e.to;
+      if (e.type === "new" || (e.type === "word" && w === null)) {
+        if (TM_SETTLED.test(to)) out.push({ a: at, b: at, k: tmKind(to), end: tmKind(to) }); else { w = to; a = at; }
+      } else if (e.type === "word") {
+        var x = { a: a, b: at, k: tmKind(w) }; out.push(x);
+        if (TM_SETTLED.test(to)) { x.end = tmKind(to); w = null; } else { w = to; a = at; }
+      } else if (e.type === "gone" && w !== null) { out.push({ a: a, b: at, k: tmKind(w) }); w = null; }
+    });
+    if (w !== null) out.push({ a: a, b: hi, k: tmKind(w) });
+    return out.map(function (x) { return { a: Math.max(x.a, lo), b: Math.min(x.b, hi), k: x.k, end: x.end }; })
+      .filter(function (x) { return x.b >= x.a && x.a <= hi && x.b >= lo; });
+  }
+  // 054: the card's status and every Req's state at one moment: the title as it was, the last change up to it
+  function tmStateAt(h, t) {
+    var cs = null, st = (h && h.status) || [], reqs = [];
+    for (var i = 0; i < st.length && tmMs(st[i].t) <= t; i++) cs = st[i].v;
+    Object.keys((h && h.reqs) || {}).forEach(function (n) {
+      var w = null, title = "", last = null;
+      h.reqs[n].forEach(function (e) {
+        if (tmMs(e.t) > t) return;
+        last = e;
+        if (e.type === "new") { w = e.word || ""; title = e.title || ""; } else if (e.type === "word") w = e.to;
+        else if (e.type === "title") title = e.to; else if (e.type === "gone") w = null;
+      });
+      if (w !== null) reqs.push({ n: +n, w: w, k: tmKind(w), title: title, last: last });
+    });
+    reqs.sort(function (a, b) { return a.n - b.n; });
+    return { cs: cs, reqs: reqs };
+  }
   // 045: an item's subtasks are the items right after it that sit deeper: [done, total], or null when it has none
   function todoProgress(items, i) {
     var n = 0, k = 0;
@@ -767,7 +814,8 @@ var SV = (function () {
            xidHead: xidHead, xidCite: xidCite, xidCiteStart: xidCiteStart, xidHomeRel: xidHomeRel, stepFace: stepFace,
            parseTodo: parseTodo, todoLine: todoLine, resolveWikiAny: resolveWikiAny,
            continueLine: continueLine, todoStamp: todoStamp, todoMeta: todoMeta, todoProgress: todoProgress,
-           todoDate: todoDate, toggleTask: toggleTask, completeSpan: completeSpan };
+           todoDate: todoDate, toggleTask: toggleTask, completeSpan: completeSpan,
+           tmMs: tmMs, tmKind: tmKind, tmRange: tmRange, tmSpans: tmSpans, tmStateAt: tmStateAt };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = SV;
 if (typeof window !== "undefined") window.SV = SV;

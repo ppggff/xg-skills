@@ -17,6 +17,21 @@ Each entry says *what changed* and *why*, not the raw diff.
   The human (2026-10-15): 「除了检查实际状态，还要检查是合理，是否需要grill，每次新增需求的开工前，应该有自动的检查」.
 - **体量行**: SKILL.md 95 · 流程 8 files / 835 · 约束 136 · 模版 6 files / 169 · lite face otherwise unchanged.
 
+## 2026-10-16 — the viewer board's time form (card xg-skills/054)
+
+- The board gets a fifth form, 时间: one row per card on a time axis with no grid, inside the board's own groups, status
+  filter and folds. A lite card's status over its design.md revisions (draft / executing / closing, ending at done) is
+  the row's colour, a legacy card spans its dir's first to last commit; each Req is a translucent bar from the
+  revision that wrote it to the one that settled it, in the colour of its state word then, kept inside the card's span.
+  Drag or scroll sideways to pan, the range (2 周 / 6 周 / 全部) only zooms. Hovering shows the moment as a board card;
+  a click sets a light indicator and selects the card, and the card detail under the board shows that moment (status,
+  counts, the changes within 12 hours, every Req's state then); ← → move it, Esc folds the detail and keeps it.
+- New `/api/history` (viewer.py) reads it from dev_root's git history in one `git log` and one `git cat-file --batch`,
+  cached by HEAD and the lite design.md mtimes; sweeps that name no card do not count as work on a dir.
+- Why: the board shows where cards are, not how they got there; the user wanted each card's and each requirement's
+  course visible, settled through the mock rounds on this card.
+- Board fixes alongside (card 046): an amber card answers the pointer; closing the card detail keeps the card selected.
+
 ## 2026-10-15 — a multi-line todo is plain markdown that renders line for line (card xg-skills/046)
 
 - `todo.py` writes a multi-line text's further lines two spaces in (the item's text column, not four) and ends each
