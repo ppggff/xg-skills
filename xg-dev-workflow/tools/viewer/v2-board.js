@@ -239,10 +239,10 @@
     selectCard(id);
     const el = $(`#bscroll [data-card="${V.cssEsc(id)}"]`); if (el) el.scrollIntoView({ block: "nearest", behavior: V.RM ? "auto" : "smooth" });
   };
+  // closing only folds the panel: the card stays selected, and picking it again opens the panel
   function closeDetail() {
-    if (!sel && V.W.dc) return;
-    sel = null; store.set("sel", null); V.W.dc = true; V.applyW(); V.saveW();
-    $$("#board [data-card].sel").forEach(e => e.classList.remove("sel")); paintDetail();
+    if (V.W.dc) return;
+    V.W.dc = true; V.applyW(); V.saveW();
   }
   V.on("detail-close", closeDetail);
   V.selCard = () => sel;   // the capture box links the selected card's main doc
@@ -360,7 +360,7 @@
   const boardKeys = () => V.view === "board";
   ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(k => V.hotkey(k, e => (boardKeys() ? moveSel(e.key) : false)));
   V.hotkey("Enter", e => (boardKeys() && sel ? openCard(sel, e) : false));
-  V.layer(10, () => V.view === "board" && !!sel, closeDetail);
+  V.layer(10, () => V.view === "board" && !!sel && !V.W.dc, closeDetail);
   document.addEventListener("mouseover", e => {
     const d = e.target.closest(".dot[data-card]"), pop = $("#dotpop");
     if (!d) { pop.classList.remove("on"); return; }

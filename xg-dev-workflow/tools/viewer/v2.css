@@ -133,6 +133,8 @@ a.tr { text-decoration: none; }
 .ppath { flex: 1; min-width: 0; font: 400 var(--t-sm) var(--mono); color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
 .ppath bdi { direction: ltr; unicode-bidi: isolate; }
 .ppath b { font-weight: 400; color: var(--ink); }
+.ppath[data-path] bdi { cursor: copy; }
+.ppath[data-path] bdi:hover b { color: var(--sig); }
 
 /* board rhythm: G is the visible gap from the head and the side edges to the trays, I the gap between trays, T the tray
    padding. Content sits at the same place with or without trays: a tray grows outward into the gap by T + 1px border. */
@@ -507,7 +509,7 @@ a.tr { text-decoration: none; }
 .fmt b { font-weight: 400; color: var(--faint); }
 .fmt span { color: var(--tx); word-break: break-all; }
 .anc { position: absolute; left: -18px; top: 0; font: 300 .8em var(--mono); color: var(--faint); opacity: 0; transition: opacity .15s; padding: 0 4px; }
-.md :is(h2,h3,h4):hover .anc { opacity: 1; }
+.md :is(h1,h2,h3,h4):hover .anc { opacity: 1; }
 .anc:hover { color: var(--sig); }
 .cite { color: var(--faint); cursor: pointer; border-radius: 3px; transition: background .15s, color .15s; font-size: .9em; }
 .cite b { font-weight: 400; color: color-mix(in srgb, var(--sig) 55%, var(--mu)); }
@@ -801,6 +803,7 @@ a.tr { text-decoration: none; }
 :root[data-theme^="amber"] .chip { border: 1px solid transparent; color: var(--ink); }
 :root[data-theme^="amber"] .chip:hover { border-color: var(--sig); background: none; }
 :root[data-theme^="amber"] .card { background: var(--chrome); border-color: var(--ln2); }
+:root[data-theme^="amber"] .card:hover { border-color: var(--mu); }
 :root[data-theme^="amber"] .app.notray :is(#bscroll, #tscroll) .proj .card { background: var(--chrome); }
 :root[data-theme^="amber"] .card.sel, :root[data-theme^="amber"] :is(#bscroll, #tscroll) .proj .card.sel { background: var(--chrome); border-color: var(--ln2); outline: 2px solid var(--sig); outline-offset: -1px; }
 :root[data-theme^="amber"] .row { border: 1px solid var(--ln2); background: var(--chrome); margin-bottom: 4px; }
