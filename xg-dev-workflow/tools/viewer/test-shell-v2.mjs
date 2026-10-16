@@ -80,6 +80,13 @@ t("054 round 2: the progress bar is one bar; done requirements list last; the de
   assert.match(js.time, /V\.click\("\[data-tmnow\]"/);
 });
 
+t("054 round 3: a small screen keeps the detail low and shows its progress as a number beside the governance", () => {
+  assert.match(css, /:is\(\.app\.narrow, \.app\.short\):not\(\.hdset\) #bdet \{ max-height: 40%; \}/);
+  assert.match(css, /:is\(\.app\.narrow, \.app\.short\) #bdet \.rhead \{ display: none; \}/);
+  assert.doesNotMatch(css, /#bdet \{ max-height: 62%; \}/);
+  assert.match(js.board, /<span class="hfr">　\$\{done\}<\/span>/);
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

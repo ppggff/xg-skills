@@ -75,12 +75,15 @@
 .app.phone .hn { font-size: calc(36px * var(--fz)); }
 .app.phone .bdg { padding: 10px 14px 20px; }
 .app.phone .sfl, .app.phone .hline { flex-wrap: wrap; white-space: normal; gap: 2px 14px; }
-.app.phone #bdet { max-height: 62%; }
+
 .app.phone .status > span:not(:first-child):not(:last-child) { display: none; }
 .app.phone #histPop { width: 94vw; }
 .app.phone #trailPop, .app.phone #starPop { width: 88vw; }
 /* short (phone landscape) */
-.app.short #bdet { max-height: 62%; }
+/* a small screen (narrow or short): a lower detail, its progress as a number beside the governance, no bars */
+:is(.app.narrow, .app.short):not(.hdset) #bdet { max-height: 40%; }
+.hfr { display: none; } :is(.app.narrow, .app.short) .hfr { display: inline; }
+:is(.app.narrow, .app.short) #bdet .rhead { display: none; }
 .app.short .hn { font-size: calc(32px * var(--fz)); }
 .app.short .brow.big { margin: 6px 0 4px; }
 .app.short .qo { padding-top: 4vh; }

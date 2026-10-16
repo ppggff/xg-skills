@@ -133,6 +133,7 @@
     const word = t < a ? "卡还没开" : "卡 " + stWord(c, cs) + (t > b && !V.OPEN_ST.includes(c.st) ? "，已结束" : "");
     return {
       nx: `<div class="bv nx">${fmt(t)} 这一刻 · ${esc(word)}</div>`,
+      frac: reqs.length ? `${ok}/${reqs.length}` : "",
       counts: `<div class="bv">${countsOf(reqs).map(([k, n]) => `<span><b>${KN[k]}</b>${n}</span>`).join("") || "<span>这一刻没有需求</span>"}</div>`,
       near: near.length ? `<div class="btodo"><div class="bth">前后 12 小时的变化<em>${near.length}</em></div>`
         + near.map(x => `<div class="tmev${SV.tmMs(x.e.t) > t ? " later" : ""}"><code>${esc(x.e.t.slice(5))}</code><b>R${x.n}</b><span>${label[x.e.type](x.e)}</span></div>`).join("") + "</div>" : "",

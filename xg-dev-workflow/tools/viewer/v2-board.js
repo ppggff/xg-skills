@@ -216,7 +216,9 @@
       .sort((a, b) => (b.endsWith("/design.md") - a.endsWith("/design.md")) || a.localeCompare(b));
     const files = key.map(d => `<button class="kf" data-open="dev:${esc(d)}" data-tip="${esc(d)}">${esc(d.slice(c.dir.length + 1))}</button>`).join("");
     const m = form() === "time" ? V.timeMoment(c) : null;   // the time form shows the card at its indicator
-    const meta = `<span class="hst">${c.st}</span>　${esc(c.p)}　${esc(c.gov)}${c.deps && c.deps !== "—" ? "　deps " + esc(c.deps) : ""}`;
+    // on a small screen the progress goes beside the governance instead of the bars over the requirement list
+    const done = m && m.frac ? m.frac : c.lite ? (c.req ? `${c.ok}/${c.req}` : "") : esc(V.phaseNow(c));
+    const meta = `<span class="hst">${c.st}</span>　${esc(c.p)}　${esc(c.gov)}${done ? `<span class="hfr">　${done}</span>` : ""}${c.deps && c.deps !== "—" ? "　deps " + esc(c.deps) : ""}`;
     const row = inner => `<div class="brow">${inner}</div>`;
     return head + `<div class="bdg" data-st="${c.st}"><div class="bdl">`
       + `<div class="brow big"><div class="hero"><span class="hn">${c.n}</span><span class="hline"><span class="hm">${meta}</span></span></div></div>`
