@@ -81,7 +81,7 @@
   // after the board drew the form: the indicator and its label
   V.timeAfter = () => { fitNames(); placeLine(); };
   // every row's name takes the width of the longest number and name (at most half the axis), so the fades line up;
-  // the done count is left out and may run into the fade
+  // the done count is left out: on big screens it sits just past the fade start, else it may run into the fade
   function fitNames() {
     const v = $("#bscroll .tmv"); if (!v) return;
     const names = $$(".tm-row .tm-name", v), track = $(".tm-head .tm-track", v); if (!names.length || !track) return;

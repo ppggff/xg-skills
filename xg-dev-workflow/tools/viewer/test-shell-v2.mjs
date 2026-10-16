@@ -106,6 +106,7 @@ t("054: brightness is kept per theme; the bars and the date head set the indicat
   assert.match(js.core, /const lumKey = k => k \+ ":" \+ \(document\.documentElement\.getAttribute\("data-theme"\) \|\| \(V\.isDark\(\) \? "dark" : "light"\)\);/);
   assert.match(js.core, /V\.store\.set\(lumKey\(k\), v\)/);
   assert.match(js.time, /t\.closest\("#bscroll \.tm-row \.tm-track, #bscroll \.tm-head \.tm-track"\)/);
+  assert.match(css, /\.app:not\(\.narrow, \.short\) \.tm-name \.fr \{ position: absolute; left: calc\(var\(--tm-nw, 220px\) \+ 8px\); \}/);
   assert.match(css, /\.tm-name \{ pointer-events: none; \} \.tm-name::before \{[^}]*width: var\(--tm-nw, 220px\); pointer-events: auto; \}/);
 });
 
