@@ -76,7 +76,10 @@ t("054 round 2: the progress bar is one bar; done requirements list last; the de
   assert.match(css, /\.bdl \{ display: grid; gap: 6px; align-content: start;/);
   assert.doesNotMatch(css, /grid-row: 1 \/ span 5/);
   assert.match(css, /:is\(#bscroll, #tscroll\) \{[^}]*scrollbar-gutter: stable;/);
-  assert.match(js.time, /if \(V\.timeCur === null\) V\.timeCur = now;/);
+  assert.match(js.time, /if \(follow\) V\.timeCur = now;/);
+  assert.match(js.time, /function setCur\(t, id\) \{\n    follow = false;/);
+  assert.match(js.time, /V\.click\("\[data-tmnow\]", \(\) => \{ follow = true;/);
+  assert.match(js.time, /new ResizeObserver\(\(\[en\]\) => \{ const w = en\.contentRect\.width;/);
   assert.match(js.time, /V\.click\("\[data-tmnow\]"/);
 });
 
@@ -95,8 +98,8 @@ t("the table and the time form span a tray's outer width", () => {
 t("054: a time row's name and done count float over its left end, fading the colours under them, the name at most a third of the table", () => {
   assert.match(css, /\.tm-name \{ position: absolute;[^}]*linear-gradient\(90deg, color-mix\(in srgb, var\(--tm-bg\) 80%, transparent\) var\(--tm-fs\)/);
   assert.match(js.time, /Math\.min\(need, track\.clientWidth \/ 3\)/);
-  assert.match(js.time, /line\.style\.left = Math\.min\(x, geo\.lw \+ geo\.W - 1\) \+ "px"/);
-  assert.match(js.time, /const lw = 0, W = /);
+  assert.match(js.time, /line\.style\.left = Math\.min\(x, geo\.W - 1\) \+ "px"/);
+  assert.match(js.time, /const W = Math\.max\(80, box\.clientWidth - pad\);   \/\/ the axis takes the whole row/);
   assert.match(js.time, /\$\{c\.lite && c\.req \? V\.frac\(c\.ok, c\.req\) : ""\}<\/button><\/div>/);
   assert.match(css, /\.tmv \{ position: relative; overflow-x: clip; \}/);
   assert.match(js.time, /v\.style\.setProperty\("--tm-nw"/);

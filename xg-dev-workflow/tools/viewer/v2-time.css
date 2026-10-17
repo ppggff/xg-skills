@@ -3,7 +3,7 @@
 #bscroll.tm-form { padding: 0 var(--bG) 40px; }   /* as wide as a tray's outer edge, like the table */
 .tmv { position: relative; overflow-x: clip; }   /* the indicator at now would stick 1px out and let the board scroll sideways */
 .tm-head { position: sticky; top: 0; z-index: 3; display: flex; height: 34px; background: var(--paper); }
-.tm-head .tm-track { cursor: pointer; touch-action: pan-y; }
+.tm-head .tm-track { cursor: pointer; }
 .tm-d { position: absolute; top: 6px; transform: translateX(-50%); font: 400 var(--t-xs)/1.25 var(--mono); color: var(--mu); text-align: center; white-space: nowrap; }
 .tm-d small { display: block; font-size: 9px; color: var(--faint); }
 .tm-d.now { color: var(--sig); transform: translateX(-100%); }
@@ -22,18 +22,17 @@
 .tmv { --tm-fade: 200px; --tm-fs: var(--tm-nw, 220px); }
 .app:not(.narrow, .short) .tmv { --tm-fs: calc(var(--tm-nw, 220px) + var(--tm-cw, 0px)); }   /* big screens: the fade starts after the done-count column */
 .tm-name { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--tm-fs) + var(--tm-fade)); display: flex; align-items: center; gap: 6px;
-  padding: 0 8px 0 10px; min-width: 0; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
+  padding: 0 8px 0 10px; text-align: left; font: 400 var(--t-sm) var(--cjk); color: var(--tx);
   /* a thin wash, not a cover: the bars show from the table's first pixel, lighter under the name, then clear */
   background: linear-gradient(90deg, color-mix(in srgb, var(--tm-bg) 80%, transparent) var(--tm-fs),
     color-mix(in srgb, var(--tm-bg) 55%, transparent) calc(var(--tm-fs) + var(--tm-fade) * .35),
     color-mix(in srgb, var(--tm-bg) 22%, transparent) calc(var(--tm-fs) + var(--tm-fade) * .7), transparent); }
-.tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); }
 .tm-name .fr { flex: none; }
 .app:not(.narrow, .short) .tm-name .fr { position: absolute; left: calc(var(--tm-nw, 220px) + 8px); }   /* big screens: one column just past the name, still where a press sets the time */
 /* only the part before the fade picks a card at the same moment; a press on the fade reaches the bars and sets the time */
 .tm-name { pointer-events: none; } .tm-name::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--tm-nw, 220px); pointer-events: auto; }
 .tm-name .n { font: 400 var(--t-sm) var(--mono); color: var(--faint); flex: none; }
-.tm-name .s { font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-name .s { flex: 0 1 auto; max-width: calc(var(--tm-nw, 220px) - 40px); font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-name.sel .n, .tm-name.sel .s { color: var(--sig); }
 .tm-track { position: relative; flex: 1; min-width: 0; overflow: hidden; cursor: grab; touch-action: pan-y; }
 .tm-pan { position: absolute; top: 0; bottom: 0; left: 0; transform: translateX(calc(-1 * var(--tm-pan, 0px))); }

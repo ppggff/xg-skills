@@ -11,10 +11,11 @@
   const KN = { done: "已验证", todo: "待验证", drop: "放弃", bad: "失败 / 阻塞", plan: "仅方案" };
   let H = null, loading = null, geo = null, pant = null, pan = 0;   // history; drawn geometry; the left edge's moment (null: follow today)
   V.timeCur = null;   // the indicator, in ms: now until it is moved
+  let follow = true;   // the indicator rides along with now on every redraw until a press or a key moves it
 
   const range = () => store.get("tmRange", "14");
   const histOf = c => (H && H[c.id]) || { status: [], reqs: {}, first: "", last: "" };
-  const rangeOf = c => SV.tmRange(histOf(c), !V.OPEN_ST.includes(c.st), geo ? geo.now : Date.now());
+  const rangeOf = (c, now = geo ? geo.now : Date.now()) => SV.tmRange(histOf(c), !V.OPEN_ST.includes(c.st), now);
   const two = n => String(n).padStart(2, "0");
   const fmt = ms => { const d = new Date(ms); return `${d.getMonth() + 1}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`; };
   const stOf = (c, cs) => (c.lite ? (cs ? LST[cs] || "unknown" : "") : c.st);   // the board-colour state of a card at a moment
@@ -32,13 +33,13 @@
   V.timeHTML = (gs, B) => {
     if (!H) { load(); return '<div class="hint">读取卡片的历史…</div>'; }
     const now = Date.now(), box = $("#bscroll"), cs = gs.flatMap(g => g.cs);
-    const d0 = new Date(Math.min(now - 14 * DAY, ...cs.map(c => SV.tmRange(histOf(c), !V.OPEN_ST.includes(c.st), now)[0]))).setHours(0, 0, 0, 0);
+    const d0 = new Date(Math.min(now - 14 * DAY, ...cs.map(c => rangeOf(c, now)[0]))).setHours(0, 0, 0, 0);
     const pad = parseFloat(getComputedStyle(box).paddingLeft) + parseFloat(getComputedStyle(box).paddingRight);
-    const lw = 0, W = Math.max(80, box.clientWidth - pad);   // the axis takes the whole row; the card's name floats over its left end
+    const W = Math.max(80, box.clientWidth - pad);   // the axis takes the whole row; the card's name floats over its left end
     const span = range() === "all" ? now - d0 : Math.min(now - d0, +range() * DAY), k = W / span, total = Math.round((now - d0) * k);
     pan = Math.min(Math.max(0, pant === null ? total - W : Math.round((pant - d0) * k)), total - W);
-    geo = { d0, k, W, total, now, lw };
-    if (V.timeCur === null) V.timeCur = now;
+    geo = { d0, k, W, total, now };
+    if (follow) V.timeCur = now;
     const X = ms => Math.round((Math.min(Math.max(ms, d0), now) - d0) * k);
     const pxDay = DAY * k, step = pxDay >= 44 ? 1 : pxDay >= 7 ? 7 : 14;
     let head = "";
@@ -91,9 +92,9 @@
   }
   function placeLine() {
     const v = $("#bscroll .tmv"), line = v && $(".tm-line", v), lab = v && $(".tm-cur", v); if (!line || !geo) return;
-    const x = V.timeCur === null ? -1 : geo.lw + (V.timeCur - geo.d0) * geo.k - pan, off = V.timeCur === null || x < geo.lw - 1 || x > geo.lw + geo.W + 1;
+    const x = (V.timeCur - geo.d0) * geo.k - pan, off = x < -1 || x > geo.W + 1;
     line.style.display = lab.style.display = off ? "none" : "block";
-    if (!off) { line.style.left = Math.min(x, geo.lw + geo.W - 1) + "px"; lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); lab.classList.toggle("left", x > geo.lw + geo.W - 90); }   // at now the line would sit just past the clipped right edge; near it the label sits left of the line
+    if (!off) { line.style.left = Math.min(x, geo.W - 1) + "px"; lab.style.left = x + "px"; lab.textContent = fmt(V.timeCur); lab.classList.toggle("left", x > geo.W - lab.offsetWidth - 8); }   // at now the line would sit just past the clipped right edge; near it the label sits left of the line
   }
   function setPan(px) {
     if (!geo) return;
@@ -105,8 +106,9 @@
   const tAt = (track, clientX) => geo.d0 + (Math.min(Math.max(0, clientX - track.getBoundingClientRect().left), geo.W) + pan) / geo.k;
   // the indicator moves to t; with a card it selects it (which opens the detail), else the detail follows the moment
   function setCur(t, id) {
+    follow = false;
     V.timeCur = Math.min(geo.now, Math.max(geo.d0, t));
-    const x = (V.timeCur - geo.d0) * geo.k;   // keep the indicator in the window
+    const x = (V.timeCur - geo.d0) * geo.k;
     if (x < pan + 20) setPan(x - 20); else if (x > pan + geo.W - 20) setPan(x - geo.W + 20);
     placeLine();
     if (id) V.pickCard(id); else V.emit("time-moment");
@@ -114,7 +116,7 @@
   // ← → move the indicator (⇧ by the hour); ↑ ↓ stay the board's row movement
   V.timeKey = e => {
     if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || !geo) return false;
-    setCur((V.timeCur === null ? geo.now : V.timeCur) + (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 36e5 : DAY), null);
+    setCur(V.timeCur + (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 36e5 : DAY), null);
     return true;
   };
 
@@ -132,9 +134,9 @@
   }
   const rqHTML = r => `<div class="rq ${r.k === "done" ? "" : r.k === "drop" ? "open drop" : "open"}" data-tip="Req-${r.n} · ${esc(r.w || "无状态词")}${r.last ? " · 最近变化 " + esc(r.last.t.slice(5)) : ""}">`
     + `<span class="ck">${r.k === "done" ? V.I.tick : ""}</span><b>R${r.n}</b><span>${esc(r.title)}</span></div>`;
-  // the detail's parts for the selected card at the indicator: null when the form has no indicator
+  // the detail's parts for the selected card at the indicator: null before the form's first draw
   V.timeMoment = c => {
-    if (V.timeCur === null || !H || !geo) return null;
+    if (!H || !geo) return null;
     const t = V.timeCur, h = histOf(c), { cs, reqs } = SV.tmStateAt(h, t), [a, b] = rangeOf(c), ok = reqs.filter(r => r.k === "done").length;
     const label = { new: e => "写入（" + esc(e.word || "无") + "）", word: e => esc(e.from || "无") + " → " + esc(e.to), title: () => "改标题", stmt: () => "改陈述", gone: () => "删除" };
     const near = Object.keys(h.reqs).flatMap(n => h.reqs[n].map(e => ({ n, e }))).filter(x => Math.abs(SV.tmMs(x.e.t) - t) < 12 * 36e5).sort((p, q) => p.e.t.localeCompare(q.e.t));
@@ -173,8 +175,8 @@
     }
     if (e.pointerType !== "mouse") return;
     const el = e.target.closest && e.target.closest("#bscroll .tm-row .tm-track"); if (!el || !geo) return;
-    const row = el.closest(".tm-row"), tr = $(".tm-track", row), c = V.card(row.dataset.trow); if (!c) return;
-    const p = pop(); p.innerHTML = cardAt(c, tAt(tr, e.clientX)); p.classList.add("on");
+    const c = V.card(el.closest(".tm-row").dataset.trow); if (!c) return;
+    const p = pop(); p.innerHTML = cardAt(c, tAt(el, e.clientX)); p.classList.add("on");
     const w = p.offsetWidth, hgt = p.offsetHeight;
     p.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX + 14)) + "px";
     p.style.top = (e.clientY + 16 + hgt > innerHeight - 8 ? Math.max(8, e.clientY - hgt - 12) : e.clientY + 16) + "px";
@@ -193,9 +195,10 @@
   }, { passive: false });
   document.addEventListener("mouseleave", () => pop().classList.remove("on"));
   $("#bscroll").addEventListener("scroll", () => pop().classList.remove("on"), { passive: true });
-  // a new width redraws the axis (window, side columns, the detail's gutter): the moment at the left edge stays
+  // a new content width redraws the axis (window, side columns, the detail's gutter, the small-screen padding): the moment
+  // at the left edge stays
   let lastW = 0;
-  new ResizeObserver(() => { const w = $("#bscroll").clientWidth; if (w === lastW) return; lastW = w; if ($("#bscroll .tmv")) V.setForm("time"); }).observe($("#bscroll"));
-  V.click("[data-tmnow]", () => { V.timeCur = Date.now(); pant = null; V.setForm("time"); V.emit("time-moment"); V.untip(); });
+  new ResizeObserver(([en]) => { const w = en.contentRect.width; if (w === lastW) return; lastW = w; if ($("#bscroll .tmv")) V.setForm("time"); }).observe($("#bscroll"));
+  V.click("[data-tmnow]", () => { follow = true; pant = null; V.setForm("time"); V.emit("time-moment"); V.untip(); });
   V.click("[data-tmr]", () => { const i = RANGES.findIndex(x => x[0] === range()); store.set("tmRange", RANGES[(i + 1) % RANGES.length][0]); pant = null; V.setForm("time"); V.untip(); });
 })(V2);
