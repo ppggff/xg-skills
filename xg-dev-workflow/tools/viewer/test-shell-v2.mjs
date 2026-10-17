@@ -236,5 +236,8 @@ t("round 5: iOS keeps the text size on turning to landscape", () => {
 t("043 Req-4: the history labels uncommitted changes, not a sha", () => {
   assert.match(js.reader, /const shaLabel = sha => \(sha === "worktree" \? "未提交" : sha\.slice\(0, 7\)\);/);
 });
+t("046 Req-62: the editor's selection is see-through, so the highlighted text under the textarea stays readable", () => {
+  assert.match(css, /\.ted \.tta::selection \{ background: color-mix\(in srgb, var\(--sig\) \d+%, transparent\);/);
+});
 
 console.log(`${pass} v2 shell tests passed`);

@@ -386,7 +386,7 @@ a.tr { text-decoration: none; }
 .ted .thl, .ted .tta { position: absolute; inset: 0; margin: 0; padding: 12px 2px; font: 400 calc(12.5px * var(--fz))/1.45 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; tab-size: 2; }
 .ted .thl { color: var(--tx); pointer-events: none; }
 .ted .tta { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: var(--ink); }
-.ted .tta::selection { background: var(--sigs); color: transparent; }
+.ted .tta::selection { background: color-mix(in srgb, var(--sig) 22%, transparent); color: transparent; }   /* the textarea lies over the highlighted text: an opaque wash (amber's --sigs) would hide it */
 .thl i { font-style: normal; } .thl .h { color: var(--ink); } .thl .ck { color: var(--done); } .thl .tg { color: var(--sig); }
 .thl .wl, .thl .ln { color: var(--sig); text-decoration: underline dotted; } .thl .cd { color: var(--paused); }
 .tac { position: absolute; z-index: 5; min-width: 220px; max-width: 420px; display: flex; flex-direction: column; padding: 4px;
