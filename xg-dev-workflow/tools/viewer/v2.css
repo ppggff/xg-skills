@@ -463,7 +463,10 @@ a.tr { text-decoration: none; }
 .md ul, .md ol { margin: 0 0 14px; padding-left: 40px; }
 .md li > ul, .md li > ol { margin: 0; }
 /* a loose list (a blank line between items) keeps a tight list's rhythm; only a second block inside one item adds a gap */
-.md li > p:last-child { margin-bottom: 0; }
+.md li > p:last-child, .md li > p:has(+ ul, + ol) { margin-bottom: 0; }
+/* a task's continuation lines start under its text, not under the box (box 14px + 6px margin + one space) */
+.md li:has(> input[type=checkbox]:first-child), .md li > p:has(> input[type=checkbox]:first-child) { padding-left: calc(20px + .27em); text-indent: calc(-20px - .27em); }
+.md li:has(> input[type=checkbox]:first-child) > :is(ul, ol) { text-indent: 0; margin-left: calc(-20px - .27em); }
 .md strong { font-weight: 700; }
 .md a { color: var(--sig); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--sig) 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .md a:hover { text-decoration-color: var(--sig); }

@@ -52,8 +52,13 @@ t("a multi-line todo: the todo view counts the further lines; the reader renders
   assert.match(css, /#tip \.tfull \{ white-space: pre-wrap;/);
 });
 
-t("a loose list reads as tight: an item's last paragraph has no bottom margin", () => {
-  assert.match(css, /\.md li > p:last-child \{ margin-bottom: 0; \}/);
+t("a loose list reads as tight: an item's last paragraph, or one followed by its sublist, has no bottom margin", () => {
+  assert.match(css, /\.md li > p:last-child, \.md li > p:has\(\+ ul, \+ ol\) \{ margin-bottom: 0; \}/);
+});
+
+t("a task's continuation lines hang under its text, and its sublist stays where a plain item's would", () => {
+  assert.match(css, /\.md li > p:has\(> input\[type=checkbox\]:first-child\) \{ padding-left: calc\(20px \+ \.27em\); text-indent: calc\(-20px - \.27em\); \}/);
+  assert.match(css, /> :is\(ul, ol\) \{ text-indent: 0; margin-left: calc\(-20px - \.27em\); \}/);
 });
 
 t("046 Req-52/53: an amber card answers the pointer; closing the detail keeps the card selected", () => {
