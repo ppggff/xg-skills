@@ -201,6 +201,8 @@ def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "lo
         'our $projects_list = $projectroot;\n'
         'our $git_temp = "%s";\n'
         "$feature{'snapshot'}{'default'} = [];\n"  # no tarball download (shrinks bulk-exfil surface)
+        "$feature{'blame'}{'default'} = [1];\n"
+        "$feature{'javascript-actions'}{'default'} = [1];\n"   # blame links open the incremental blame
         'our $my_uri = "/gitweb/";\n'           # served by the viewer under /gitweb/: gitweb's own links carry the prefix
         'our $home_link = "/gitweb/";\n'
         "our $prevent_xss = 1;\n"                 # same origin as the viewer: a repo's HTML is never rendered as a page

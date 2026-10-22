@@ -132,6 +132,8 @@ class TUnit(unittest.TestCase):
         self.assertIn('our $home_link = "/gitweb/";', gw)
         self.assertIn("our $prevent_xss = 1;", gw)             # same origin as the viewer: a repo's HTML is never rendered as a page
         self.assertIn("our $default_text_plain_charset = 'utf-8';", gw)   # raw CJK docs, not ISO-8859-1 mojibake
+        self.assertIn("$feature{'blame'}{'default'} = [1];", gw)
+        self.assertIn("$feature{'javascript-actions'}{'default'} = [1];", gw)
 
     def test_write_configs_lan(self):
         tmp = Path(tempfile.mkdtemp())

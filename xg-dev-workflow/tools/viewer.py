@@ -436,7 +436,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         upstream = (parsed.path[len("/gitweb"):] or "/") + ("?" + parsed.query if parsed.query else "")
         try:
-            c = http.client.HTTPConnection("127.0.0.1", self.gitweb_port, timeout=30)
+            c = http.client.HTTPConnection("127.0.0.1", self.gitweb_port, timeout=300)   # lighttpd sends a CGI response only once it is complete: a big blame says nothing until git is done
             c.request("GET", upstream, headers={"Host": "127.0.0.1:%d" % self.gitweb_port, "Accept-Encoding": "identity"})
             r = c.getresponse()
             body = r.read()
