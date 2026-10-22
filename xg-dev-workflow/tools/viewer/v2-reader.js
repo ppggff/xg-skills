@@ -130,7 +130,7 @@
     });
     $$("h1,h2,h3,h4", md).forEach((h, i) => {
       h.id = k + "-h" + i;
-      if (h.tagName !== "H1") h.insertAdjacentHTML("afterbegin", '<button class="anc" data-anc data-tip="复制这一节的链接" aria-label="复制链接">#</button>');
+      h.insertAdjacentHTML("afterbegin", `<button class="anc" data-anc data-tip="复制${h.tagName === "H1" ? "这篇" : "这一节"}的链接" aria-label="复制链接">#</button>`);
     });
     $$("a[href]", md).forEach(a => markLink(a, loc));
   }
@@ -185,7 +185,9 @@
   }
   function crumb(k, loc) {
     const s = loc.rel.split("/"), pre = loc.tree !== "dev" ? V.ROOT_NAME[loc.tree] + " / " : "", at = P[k].chg ? " @ " + esc(shaLabel(P[k].chg)) : "";
-    $(".ppath", P[k].el).dataset.tip = V.ROOT_NAME[loc.tree] + "/" + loc.rel;
+    const pp = $(".ppath", P[k].el), abs = V.absPath(loc.tree, loc.rel);
+    pp.dataset.tip = (abs || V.ROOT_NAME[loc.tree] + "/" + loc.rel) + (abs ? " · 点击复制完整路径" : "");
+    if (abs) pp.dataset.path = abs; else delete pp.dataset.path;
     $(".ppath", P[k].el).innerHTML = `<bdi>${esc(pre + s.slice(0, -1).join(" / "))} / <b>${esc(s[s.length - 1])}</b>${at}</bdi>`;
   }
   function lineTarget(k, loc) {   // the block holding a source line, else (no line table) the section holding it
@@ -582,8 +584,10 @@
   });
   V.click(".md a.broken", () => V.toast("这个链接的目标在 dev_root 和知识库里都找不到"));
   V.click("[data-anc]", el => {
-    const loc = P[V.paneOf(el)].loc, s = slug(el.parentElement.textContent);
-    V.copy(`${loc.rel.split("/").slice(-2).join("/")}#${s}`, `已复制 ${loc.rel.split("/").pop()}#${s}`);
+    const loc = P[V.paneOf(el)].loc, ref = loc.rel.split("/").slice(-2).join("/");
+    if (el.parentElement.tagName === "H1") return V.copy(ref, "已复制 " + ref);
+    const s = slug(el.parentElement.textContent);
+    V.copy(`${ref}#${s}`, `已复制 ${loc.rel.split("/").pop()}#${s}`);
   });
   V.click("[data-fmx]", el => {
     const tb = el.parentElement.nextElementSibling, open = tb.hidden;
@@ -603,7 +607,8 @@
   V.hotkey("s", () => { const k = V.readingK(); if (!k) return false; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
   V.hotkey("\\", () => V.setSplit(!V.isSplit()));
   V.on("split", () => toc());
-  V.on("blank", k => { const p = P[k]; p.doc = null; p.el.classList.add("blank"); p.body.innerHTML = BLANK; $(".ppath", p.el).innerHTML = ""; });
+  V.on("blank", k => { const p = P[k]; p.doc = null; p.el.classList.add("blank"); p.body.innerHTML = BLANK; const pp = $(".ppath", p.el); pp.innerHTML = ""; delete pp.dataset.path; });
+  V.click(".ppath[data-path] bdi", el => { const p = el.parentElement.dataset.path; V.copy(p, "已复制 " + p); });
   V.click('.phd [data-t="mirror"]', el => { const k = V.paneOf(el), l = P[k].loc; if (l && l.kind === "doc") V.nav(V.other(k), Object.assign({}, l, { xid: null, line: 0 })); });
   V.on("theme", () => {
     if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, theme: V.isDark() ? "dark" : "default" });
