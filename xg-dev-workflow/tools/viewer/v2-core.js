@@ -61,6 +61,7 @@ var V2 = (function () {
     up: svg('<path d="M6 15l6-6 6 6"/>', 2), down: svg('<path d="M6 9l6 6 6-6"/>', 2),
     doc: svg('<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4"/>'),
     code: svg('<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>', 1.7),
+    tab: svg('<path d="M14 4h6v6M20 4l-8 8"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>', 1.7),
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>', 1.8),
     done: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.2),
     box: svg('<rect x="5" y="5" width="14" height="14" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', 1.8),
@@ -92,7 +93,7 @@ var V2 = (function () {
   V.emit = (ev, ...a) => (subs[ev] || []).forEach(fn => fn(...a));
 
   /* ---- data: board + both trees, re-read on every dev/kb change ---- */
-  V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, at: 0 };
+  V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, pages: { untrusted: [] }, at: 0 };
   const PH = ["需求", "设计", "详设", "实现", "测试", "评审"];
   V.phaseNow = c => {
     if (c.st === "done") return "已完成"; if (c.st === "dropped") return "已放弃";
@@ -104,8 +105,8 @@ var V2 = (function () {
     const t = (c.next || "").replace(/^—.*$/, "").replace(/^done — nothing pending$/, "").trim();
     return t || (c.lite ? `Req ${c.ok}/${c.req} 已验证` : V.phaseNow(c));
   };
-  V.load = () => Promise.all([V.json("/api/board"), V.json("/api/tree")]).then(([b, t]) => {
-    const D = V.D; D.board = b; D.tree = t; D.at = Date.now();
+  V.load = () => Promise.all([V.json("/api/board"), V.json("/api/tree?html=1")]).then(([b, t]) => {
+    const D = V.D; D.board = b; D.tree = t; D.pages = t.pages; D.at = Date.now();
     D.cards = Object.keys(b).reduce((a, p) => a.concat(b[p].map(SV.cardView)), []);
     D.byId = {}; D.cards.forEach(c => { D.byId[c.id] = c; });
     t.ext = t.ext || [];
@@ -119,6 +120,11 @@ var V2 = (function () {
     if (tree !== "ext") return R[tree] ? R[tree] + "/" + rel : "";
     const i = rel.indexOf("/"), root = R.ext && R.ext[rel.slice(0, i)]; return root ? root + rel.slice(i) : "";
   };
+  // an html page is served from /page/<key>/: one key per trust class, so the shell picks the key its root asks for
+  V.isPage = rel => /\.html$/i.test(rel || "");
+  V.pageSandboxed = (tree, rel) => V.D.pages.untrusted.some(p => (tree + ":" + rel).startsWith(p));
+  V.pageURL = (tree, rel) => "/page/" + V.D.pages[V.pageSandboxed(tree, rel) ? "u" : "t"] + "/" + tree + "/" + rel.split("/").map(encodeURIComponent).join("/");
+  V.openPageTab = (tree, rel) => window.open(V.pageURL(tree, rel), "_blank", "noopener");
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };
   V.docsOf = c => V.D.tree.dev.filter(it => it.path.startsWith(c.dir + "/")).map(it => ({ rel: it.path, mtime: it.mtime }));

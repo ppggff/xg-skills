@@ -354,13 +354,13 @@ a.tr { text-decoration: none; }
 #rootPop .rr { display: flex; align-items: baseline; gap: 8px; padding: 3px 4px; font: 400 var(--t-md) var(--cjk); }
 #rootPop .rr span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--mu); font: 400 var(--t-sm) var(--mono); direction: rtl; text-align: left; }
 #rootPop .rr em { font: 400 var(--t-xs) var(--mono); font-style: normal; color: var(--faint); }
-#rootPop .rr button { color: var(--faint); } #rootPop .rr button:hover { color: var(--blocked); }
+#rootPop .rr button { color: var(--faint); } #rootPop .rr button:hover { color: var(--blocked); } #rootPop .rr .rt { font: 400 var(--t-xs) var(--cjk); } #rootPop .rr .rt.on { color: var(--active); } #rootPop .rr .rt:hover { color: var(--tx); }
 #rootPop .radd { display: flex; gap: 6px; margin: 8px 4px 4px; }
 #rootPop .radd input { flex: 1; min-width: 0; height: 26px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); padding: 0 6px; font: 400 var(--t-md) var(--mono); }
 #rootPop .radd button { padding: 0 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); }
-#rootPop .rnote { margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
+#rootPop .rnote { display: block; margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
-.pane:not(.tododoc) .phd [data-t="tedit"] { display: none; }
+.pane:not(.tododoc) .phd [data-t="tedit"], .pane:not(.pagedoc) .phd [data-t="newtab"], .pane.pagedoc .phd :is([data-t="find"], [data-t="hist"], [data-t="width"], [data-t="toc"]) { display: none; }   /* buttons a kind of doc has no use for */
 .md .ttag, .titem .ttag, .ttbl .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
 .md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
   display: inline-grid; place-content: center; vertical-align: -2px; background: none; position: relative; }
@@ -436,7 +436,7 @@ a.tr { text-decoration: none; }
 /* a pane showing a view (board, search, diff, recent) hides its own doc chrome; search keeps the find bar and rail */
 .pane.hosting > :not(.view):not(.find):not(.frail), .pane.hosting:not(.h-search) > :is(.find, .frail) { display: none; }
 .pane.blank .phd .ib[data-t]:not([data-t=close]) { visibility: hidden; }
-.pbody { flex: 1; overflow: auto; overflow-x: hidden; position: relative; }   /* wide tables, code and diagrams scroll inside themselves */
+.pbody { flex: 1; overflow: auto; overflow-x: hidden; position: relative; } .pbody iframe.page { display: block; width: 100%; height: 100%; border: 0; background: #fff; }   /* wide tables, code and diagrams scroll inside themselves; a page without its own background reads as in a browser tab */
 .empty { height: 100%; display: grid; place-items: center; text-align: center; color: var(--mu); font-size: var(--t-md); line-height: 1.9; padding: 20px; }
 .empty svg { display: block; margin: 0 auto 10px; color: var(--faint); }
 .stale {

@@ -181,12 +181,16 @@
   /* ---- extra roots set from the page (044): list, add, remove; changes apply at once ---- */
   function rootPop(anchor, roots) {
     const rows = roots.map(r => `<div class="rr"><b>${esc(r.label)}</b><span data-tip="${esc(r.path)}">${esc(r.path)}</span>`
+      + `<button class="rt${r.trusted ? " on" : ""}" data-rtrust="${esc(r.path)}" data-v="${r.trusted ? 0 : 1}" `
+      + `data-tip="${r.trusted ? "这里的网页与 viewer 同源，点击改为沙箱" : "这里的网页在沙箱里运行，点击改为信任"}">${r.trusted ? "信任" : "沙箱"}</button>`
       + (r.from === "page" ? `<button data-rdel="${esc(r.path)}" data-tip="移除">×</button>` : `<em data-tip="在 config.yaml 的 extra_roots 里改">config</em>`) + "</div>").join("");
     V.pop("rootPop", `<div class="pt">外部目录（只读）</div>${rows || '<div class="qnone">还没有外部目录</div>'}`
       + `<form class="radd"><input placeholder="~/某个目录" aria-label="新的外部目录"><button>添加</button></form>`
+      + '<label class="rnote"><input type="checkbox" class="rtrust"> 信任这个目录：里面的网页不加沙箱，能读写 viewer 的数据</label>'
       + '<div class="rnote">只能添加家目录之下已存在的目录；局域网里能打开 viewer 的设备也能改。</div>', anchor, "left");
   }
-  const roots = (op, path) => fetch("/api/roots", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" }, body: JSON.stringify({ op, path }) })
+  const roots = (op, path, trusted) => fetch("/api/roots", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" },
+    body: JSON.stringify(trusted == null ? { op, path } : { op, path, trusted }) })
     .then(r => r.json().catch(() => ({})).then(d => {
       if (!r.ok) return V.toast(d.error || "没改成（" + r.status + "）");
       if (op === "add") reveal.add("ext");   // show what was just added
@@ -194,13 +198,22 @@
     })).catch(() => V.toast("没改成：连不上 viewer"));
   V.click("[data-troots]", el => (V.isPop("rootPop") ? V.closePops() : V.json("/api/roots").then(d => rootPop(el, d.roots)).catch(() => V.toast("读不到外部目录设置"))));
   V.click("[data-rdel]", el => roots("remove", el.dataset.rdel));
-  document.addEventListener("submit", e => { const f = e.target.closest("#rootPop .radd"); if (!f) return; e.preventDefault(); const v = $("input", f).value.trim(); if (v) roots("add", v); });
+  const TRUST_ASK = "信任后，这个目录里的网页与 viewer 同源，能读写 viewer 的全部数据";
+  V.click("[data-rtrust]", el => {   // one click could trust by mistake, so turning trusted asks first
+    const on = el.dataset.v === "1", go = () => roots("trust", el.dataset.rtrust, on);
+    if (on) V.ask(TRUST_ASK, [["ok", "信任"], ["", "取消"]]).then(v => { if (v) go(); }); else go();
+  });
+  document.addEventListener("submit", e => {
+    const f = e.target.closest("#rootPop .radd"); if (!f) return; e.preventDefault();
+    const v = $("input", f).value.trim(); if (v) roots("add", v, $("#rootPop .rtrust").checked);
+  });
   V.click("[data-unstar]", (el, e) => { e.stopPropagation(); V.toggleStar(el.dataset.unstar); starPop($("#starBtn")); });
   V.click("[data-open]", (el, e) => {
     if (e.target.closest("[data-tren],[data-tdelf]")) return false;   // a todo file row's rename and delete
     V.closePops(); V.app.classList.remove("treepop");
-    const key = el.dataset.open, i = key.indexOf(":");
-    V.openDoc(key.slice(0, i), key.slice(i + 1), e, el.dataset.oline ? { line: +el.dataset.oline } : undefined);
+    const key = el.dataset.open, i = key.indexOf(":"), rel = key.slice(i + 1);
+    if ((e.metaKey || e.ctrlKey) && V.isPage(rel)) return void V.openPageTab(key.slice(0, i), rel);   // ⌘-click: a page in its own tab
+    V.openDoc(key.slice(0, i), rel, e, el.dataset.oline ? { line: +el.dataset.oline } : undefined);
   });
   V.click("#starBtn", el => (V.isPop("starPop") ? V.closePops() : starPop(el)));
   V.click("#trailBtn", el => (V.isPop("trailPop") ? V.closePops() : trailPop(el)));

@@ -29,7 +29,7 @@ var SV = (function () {
     } else {
       if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) return null;
       var path = href.split("#")[0];
-      if (!path.endsWith(".md")) return null;
+      if (!/\.(md|html)$/.test(path)) return null;
       tree = curTree;
       var dir = curRel.indexOf("/") === -1 ? "" : curRel.replace(/\/[^/]*$/, "");
       target = normalizePath(dir, path);
@@ -747,13 +747,13 @@ var SV = (function () {
     return n ? [k, n] : null;
   }
   // 044: a wikilink may name any doc by its path — dev_root by default, kb (also via wiki/ or raw/), or ext/<label>/…;
-  // ".md" is optional. resolveLink keeps the older, KB-only reading for the classic shell.
+  // ".md" is optional; an html page names its ".html". resolveLink keeps the older, KB-only reading for the classic shell.
   function resolveWikiAny(href, treeSets) {
     var w = String(href).trim().match(/^\[\[(.+?)\]\]$/);
     if (!w) return null;
     var x = w[1].split("|")[0].split("#")[0].trim(), tree = "dev", m = x.match(/^(dev|kb|ext)\//);
     if (m) { tree = m[1]; x = x.slice(m[0].length); } else if (/^(wiki|raw)\//.test(x)) tree = "kb";
-    var t = /\.md$/i.test(x) ? x : x + ".md", canon = treeSets[tree] && treeSets[tree].get(t.toLowerCase());
+    var t = /\.(md|html)$/i.test(x) ? x : x + ".md", canon = treeSets[tree] && treeSets[tree].get(t.toLowerCase());
     return canon ? tree + ":" + canon : null;
   }
   // 045: how a list line continues on Enter — the next line's prefix (same indent, quote and bullet; an ordered number

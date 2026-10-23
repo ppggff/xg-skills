@@ -248,4 +248,25 @@ t("046 Req-62: the editor's selection is see-through, so the highlighted text un
   assert.match(css, /\.ted \.tta::selection \{ background: color-mix\(in srgb, var\(--sig\) \d+%, transparent\);/);
 });
 
+t("056: an html doc opens in an iframe from /page/<key>/, sandboxed when its root is untrusted, or in a new tab", () => {
+  assert.match(page, /Content-Security-Policy" content="[^"]*frame-src 'self'/);
+  assert.match(js.core, /V\.json\("\/api\/tree\?html=1"\)/);
+  assert.match(js.core, /V\.pageURL = \(tree, rel\) => "\/page\/" \+ V\.D\.pages\[V\.pageSandboxed\(tree, rel\) \? "u" : "t"\]/);
+  assert.match(js.reader, /<iframe class="page" src="\$\{esc\(V\.pageURL\(loc\.tree, loc\.rel\)\)\}"\$\{sb \? ` sandbox="\$\{SANDBOX\}"` : ""\}/);
+  assert.match(js.reader, /const SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";/);
+  assert.match(viewerPy, /PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"/);   // the frame and the header grant the same
+  assert.match(js.core, /V\.openPageTab = \(tree, rel\) => window\.open\(V\.pageURL\(tree, rel\), "_blank", "noopener"\)/);
+  assert.match(js.tree, /\(e\.metaKey \|\| e\.ctrlKey\) && V\.isPage\(rel\)/);
+  assert.match(js.reader, /function savePlace\(k\) \{\n    const p = P\[k\], loc = p\.loc; if \(!loc \|\| loc\.kind !== "doc" \|\| !p\.doc \|\| p\.doc\.err \|\| p\.doc\.page\) return;/);
+  assert.match(css, /\.pane:not\(\.pagedoc\) \.phd \[data-t="newtab"\],[^{]*\.pane\.pagedoc \.phd :is\(\[data-t="find"\][^{]*\{ display: none; \}/);
+});
+
+t("056: the extra-roots popover trusts a root when it is added or later per row, asking before a row turns trusted", () => {
+  assert.match(js.tree, /data-rtrust="\$\{esc\(r\.path\)\}" data-v="\$\{r\.trusted \? 0 : 1\}"/);
+  assert.match(js.tree, /<input type="checkbox" class="rtrust">/);
+  assert.match(js.tree, /roots\("add", v, \$\("#rootPop \.rtrust"\)\.checked\)/);
+  assert.match(js.tree, /V\.ask\(TRUST_ASK, \[\["ok", "信任"\], \["", "取消"\]\]\)\.then\(v => \{ if \(v\) go\(\); \}\)/);
+  assert.match(js.tree, /JSON\.stringify\(trusted == null \? \{ op, path \} : \{ op, path, trusted \}\)/);
+});
+
 console.log(`${pass} v2 shell tests passed`);

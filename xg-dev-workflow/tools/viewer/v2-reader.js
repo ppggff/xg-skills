@@ -27,7 +27,7 @@
       + V.paneHead(k) + '<div class="ppath"></div>'
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
       + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）")
-      + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
+      + b("newtab", "tab", "在新标签页打开这个网页") + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
@@ -67,7 +67,7 @@
   }
   const memKey = (k, loc) => k + "|" + keyOf(loc);
   function savePlace(k) {
-    const p = P[k], loc = p.loc; if (!loc || loc.kind !== "doc" || !p.doc || p.doc.err) return;
+    const p = P[k], loc = p.loc; if (!loc || loc.kind !== "doc" || !p.doc || p.doc.err || p.doc.page) return;
     const b = p.body, max = b.scrollHeight - b.clientHeight, mem = store.get("read", { order: [], map: {} }), old = mem.map[memKey(k, loc)] || {};
     const els = blocks(k), i = topBlock(k), into = els[i] ? b.getBoundingClientRect().top + HEAD_PAD - els[i].getBoundingClientRect().top : 0;
     const entry = { a: SV.anchorOf(els.map(blockText), i), o: Math.max(0, Math.round(into)), y: b.scrollTop,
@@ -234,8 +234,27 @@
     p.body.innerHTML = `<div class="derr">${why}<br><span class="hint" style="padding:0">${esc(loc.tree + "/" + loc.rel)}</span></div>`;
     V.emit("rendered", k, true); if (k === tocK()) toc(); V.status();
   }
+  // an html page: an iframe from /page/; one whose root is untrusted also gets the frame's sandbox (its responses carry the same)
+  const SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";
+  function page(k, loc, opt) {
+    const p = P[k];
+    V.json("/api/rev?path=" + encodeURIComponent(loc.tree + "/" + loc.rel)).then(d => {
+      if (p.loc !== loc) return;
+      if (!d.mtime) return fail(k, loc, { status: 404 });
+      p.spans = null; p.chars = 0;
+      p.doc = { text: "", body: "", fields: {}, mtime: d.mtime, version: "", src: true, page: true, fmLines: 0 };
+      p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
+      const sb = V.pageSandboxed(loc.tree, loc.rel);
+      p.body.innerHTML = `<iframe class="page" src="${esc(V.pageURL(loc.tree, loc.rel))}"${sb ? ` sandbox="${SANDBOX}"` : ""} title="${esc(loc.rel)}"></iframe>`;
+      crumb(k, loc); paintStar(k); V.emit("rendered", k, opt.entering);
+      if (k === tocK()) toc();
+      V.status();
+    }).catch(e => { if (p.loc === loc) fail(k, loc, e); });
+  }
   V.views.doc = (k, loc, opt) => {
     const p = P[k]; p.chg = null; $(".chgbar", p.el).hidden = true;
+    p.el.classList.toggle("pagedoc", V.isPage(loc.rel));
+    if (V.isPage(loc.rel)) return page(k, loc, opt);
     if (opt.entering) { p.cur = null; $$(".curline,.lastmark", p.body).forEach(x => x.remove()); }
     let mt = 0, ver = "";
     V.api("/raw/" + loc.tree + "/" + loc.rel).then(r => { mt = +r.headers.get("X-Mtime") || 0; ver = r.headers.get("X-Version") || ""; return r.text(); })
@@ -487,6 +506,7 @@
     tipFor = a;
     const where = tree === "dev" ? rel.split("/").slice(0, 2).join("/") : tree === "ext" ? "外部目录 / " + rel.split("/")[0] : V.ROOT_NAME[tree];
     const draw = html => { if (tipFor === a) showTipAt(a, tipHead(rel.split("/").pop(), where) + `<div class="md">${html}</div>`, true); };
+    if (V.isPage(rel)) return draw('<p class="hint">网页：点击在这一栏打开，⌘ 点击在新标签页打开</p>');
     if (lpCache[key] && lpCache[key].mt === mt) return draw(lpCache[key].html);
     V.api("/raw/" + tree + "/" + rel).then(r => r.text())
       .then(text => {
@@ -576,6 +596,7 @@
   V.click(".cite[data-ref]", (el, e) => follow(el, e));
   V.click(".md a[data-rel]", (el, e) => {
     hideTip(); const k = V.paneOf(el);
+    if ((e.metaKey || e.ctrlKey) && V.isPage(el.dataset.rel)) return void V.openPageTab(el.dataset.tree, el.dataset.rel);
     V.nav(e.shiftKey ? (k === "A" ? "B" : "A") : k, { kind: "doc", tree: el.dataset.tree, rel: el.dataset.rel, line: +el.dataset.line || 0 });
   });
   V.click(".md a[data-hash]", el => {
@@ -601,13 +622,14 @@
     if (l.tree === "ext") return V.toast("外部目录的文档不在 gitweb 的仓库列表里");
     window.open(`${V.GITWEB}?p=${l.tree === "kb" ? "knowledge" : "dev-workflow"};a=blob;f=${encodeURIComponent(l.rel)};hb=HEAD`, "_blank", "noopener");
   });
+  V.click('.phd [data-t="newtab"]', el => { const l = P[V.paneOf(el)].loc; if (l && l.kind === "doc" && V.isPage(l.rel)) V.openPageTab(l.tree, l.rel); });
   V.click('.phd [data-t="hist"]', el => (V.isPop("histPop") ? V.closePops() : histPop(V.paneOf(el), el)));
   V.click('.phd [data-t="split"]', () => V.setSplit(!V.isSplit()));   // B keeps what it last showed, or waits empty
   V.click('.phd [data-t="close"]', () => V.setSplit(false));
   V.hotkey("s", () => { const k = V.readingK(); if (!k) return false; V.toggleStar(keyOf(P[k].loc), $('[data-t="star"]', P[k].el)); });
   V.hotkey("\\", () => V.setSplit(!V.isSplit()));
   V.on("split", () => toc());
-  V.on("blank", k => { const p = P[k]; p.doc = null; p.el.classList.add("blank"); p.body.innerHTML = BLANK; const pp = $(".ppath", p.el); pp.innerHTML = ""; delete pp.dataset.path; });
+  V.on("blank", k => { const p = P[k]; p.doc = null; p.el.classList.add("blank"); p.el.classList.remove("pagedoc"); p.body.innerHTML = BLANK; const pp = $(".ppath", p.el); pp.innerHTML = ""; delete pp.dataset.path; });
   V.click(".ppath[data-path] bdi", el => { const p = el.parentElement.dataset.path; V.copy(p, "已复制 " + p); });
   V.click('.phd [data-t="mirror"]', el => { const k = V.paneOf(el), l = P[k].loc; if (l && l.kind === "doc") V.nav(V.other(k), Object.assign({}, l, { xid: null, line: 0 })); });
   V.on("theme", () => {
@@ -622,6 +644,8 @@
   }));
   V.statusFns.doc = () => {
     const p = P[V.focus]; if (!p.loc || p.loc.kind !== "doc") return "";
+    if (p.doc && p.doc.page) return `<span><b>${esc(p.loc.rel.split("/").pop())}</b>${V.isSplit() ? `　${V.focus} 栏` : ""}</span>`
+      + `<span>网页${V.pageSandboxed(p.loc.tree, p.loc.rel) ? "（不信任目录，沙箱中）" : ""}</span><span class="sp"></span><span>点进页面后快捷键交给页面</span>${V.stamp()}`;
     const b = p.body, max = b.scrollHeight - b.clientHeight, pct = max > 0 ? Math.round(b.scrollTop / max * 100) : 100;
     const mins = Math.max(1, Math.round((p.chars || 0) / 500)), keys = $(".find.on", p.el) ? "↵ 下一个 · ⇧↵ 上一个 · esc 关闭" : "f 查找 · h 钉词 · [ ] 后退前进 · \\ 对照";
     return `<span><b>${esc(p.loc.rel.split("/").pop())}</b>${V.isSplit() ? `　${V.focus} 栏` : ""}</span>`

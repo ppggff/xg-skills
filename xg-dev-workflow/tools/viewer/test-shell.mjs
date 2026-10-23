@@ -1112,6 +1112,15 @@ t("044 resolveWikiAny: a wikilink names any doc by path, .md optional, kb and ex
   assert.equal(SV.resolveWikiAny("[[nope]]", sets), null);
   assert.equal(SV.resolveWikiAny("p/a.md", sets), null);
 });
+t("056: a relative link or a wikilink may name an html page in the tree; other files stay broken", () => {
+  const sets = { dev: new Map([["p/c/design.md", "p/c/design.md"], ["p/c/notes/mock.html", "p/c/notes/mock.html"]]), kb: new Map(), ext: new Map() };
+  assert.equal(SV.resolveLink("./notes/mock.html", "dev", "p/c/design.md", sets), "dev:p/c/notes/mock.html");
+  assert.equal(SV.resolveLink("notes/mock.html#top", "dev", "p/c/design.md", sets), "dev:p/c/notes/mock.html");
+  assert.equal(SV.resolveLink("./notes/nope.html", "dev", "p/c/design.md", sets), null);
+  assert.equal(SV.resolveLink("./notes/data.txt", "dev", "p/c/design.md", { dev: new Map([["p/c/notes/data.txt", "p/c/notes/data.txt"]]) }), null);
+  assert.equal(SV.resolveWikiAny("[[p/c/notes/mock.html]]", sets), "dev:p/c/notes/mock.html");
+  assert.equal(SV.resolveWikiAny("[[p/c/design]]", sets), "dev:p/c/design.md");
+});
 t("splitCommits: one entry per commit with sha, date, subject and only the diff part", () => {
   const log = "commit abc1234def\nAuthor: x <x@y>\nDate:   Tue Oct 6 15:16:56 2026 +0800\n\n    first subject\n\n    body line\n\ndiff --git a/a.md b/a.md\n+x\n"
     + "commit 0123456789\nAuthor: x <x@y>\nDate:   Mon Oct 5 10:00:00 2026 +0800\n\n    second\n";

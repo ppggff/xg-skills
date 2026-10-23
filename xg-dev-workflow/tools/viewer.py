@@ -2,7 +2,8 @@
 """viewer.py — a transient localhost server backing the `status` HTML viewer.
 
 A thin, read-only, zero-parse server: it serves the static shell page (marked.js inlined),
-the raw markdown of two trees (docs root + KB) under a realpath boundary, and data endpoints
+the raw markdown of two trees (docs root + KB) under a realpath boundary, the html pages in them
+(with their css / js / images, under /page/<key>/), and data endpoints
 (board / tree / diff / log) that reuse workflow-status.py's computation and git's own output.
 All rendering lives in the shell's JS; the server never parses markdown/frontmatter/board.
 
@@ -10,7 +11,10 @@ Lives only in xg-dev-workflow/tools/ (not a synced copy). stdlib-only.
 
 Security (R6): binds 127.0.0.1 only; every route checks the Host header is localhost
 (--lan binds every interface and adds the LAN IP, plus any --host, to that allowlist)
-(DNS-rebinding guard); /raw and the tree scan are confined to the two roots by realpath;
+(DNS-rebinding guard); /raw, /page and the tree scan are confined to the two roots by realpath;
+a page from an untrusted extra root is served sandboxed (an opaque origin), and each trust class
+of pages sits under its own per-run random key, so neither other sites nor an untrusted page can
+address a trusted file;
 the shell + vendored asset come from a hardcoded repo path, never a user path. Writes go only
 to the todo files (through todo.py) and the extra-roots list; the one cross-request state is the
 card-history cache, keyed by dev_root's HEAD and the design.md mtimes — Ctrl-C stops it clean.
@@ -32,6 +36,7 @@ import json
 import os
 import posixpath
 import re
+import secrets
 import signal
 import socket
 import subprocess
@@ -53,6 +58,11 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "martian-mono.woff2": "font/woff2",
           "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css", "v2-time.css": "text/css",
           **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "time", "reader", "search", "find", "todo", "edit")}}
+PAGE_TYPES = {".html": "text/html", ".htm": "text/html", ".css": "text/css", ".js": "text/javascript",   # what /page serves
+              ".mjs": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
+              ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
+              ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf"}
+PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"   # no allow-same-origin: an opaque origin
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
@@ -164,13 +174,22 @@ def ui_roots():
         return []
 
 
-def save_ui_roots(roots):
+def ui_trusted():
+    """The extra roots marked trusted on the page (realpaths). An absent, old or broken file trusts none."""
+    try:
+        t = json.loads(ui_roots_path().read_text(encoding="utf-8")).get("trusted", [])
+        return {x for x in t if isinstance(x, str)} if isinstance(t, list) else set()
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
+def save_ui_roots(roots, trusted):
     f = ui_roots_path()
     f.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=f.parent, prefix=".viewer-roots.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as h:
-            json.dump({"roots": roots}, h, ensure_ascii=False, indent=2)
+            json.dump({"roots": roots, "trusted": sorted(trusted)}, h, ensure_ascii=False, indent=2)
         os.replace(tmp, f)
     except OSError:
         try:
@@ -226,6 +245,10 @@ def safe_join(root: Path, relpath: str):
 class Handler(http.server.BaseHTTPRequestHandler):
     ext_roots = {}                                   # label -> Path, from config `extra_roots:` and the page; read-only like dev and kb
     ext_from = {}                                    # label -> "config" | "page"
+    ext_trusted = set()                              # realpaths of the extra roots marked trusted; the rest serve sandboxed
+    # one key per trust class, in every /page URL: other sites cannot learn either (only same-origin /api/tree hands
+    # them out), and an untrusted page knows only its own, so it can neither load a trusted file nor open a trusted page
+    page_keys = {"t": secrets.token_urlsafe(12), "u": secrets.token_urlsafe(12)}
     repos = {}                                       # gitweb label -> git dir, the companion's repos (empty without gitweb)
     sha_home = {}                                    # sha -> repo label, filled by /api/shas (misses are not kept: the commit may come later)
     dev_root: Path = None
@@ -286,10 +309,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(n).decode("utf-8"))
             if route == "/api/roots":
-                op, path = body["op"], body["path"]
-                if op not in ("add", "remove") or not isinstance(path, str):
+                op, path, trusted = body["op"], body["path"], body.get("trusted", False)
+                if op not in ("add", "remove", "trust") or not isinstance(path, str) or type(trusted) is not bool \
+                        or (op == "trust" and "trusted" not in body):
                     raise ValueError
-                self._roots_op(op, path)
+                self._roots_op(op, path, trusted)
                 return
             op, name, version = body.get("op", "write"), body["file"], body["version"]
         except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError, OverflowError):
@@ -301,35 +325,46 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._todo_op(op, name, version, body)
 
     def _roots_json(self):
-        return [{"label": l, "path": str(r), "from": self.ext_from.get(l, "config")} for l, r in self.ext_roots.items()]
+        return [{"label": l, "path": str(r), "from": self.ext_from.get(l, "config"), "trusted": str(r) in self.ext_trusted}
+                for l, r in self.ext_roots.items()]
 
-    def _roots_op(self, op, path):
-        """add / remove a page-set extra root. Only an existing directory under the home directory (not home itself);
-        roots from config.yaml are left to config.yaml. Every change is logged."""
+    def _roots_op(self, op, path, trusted=False):
+        """add / remove a page-set extra root, or trust / distrust any extra root. Only an existing directory under the
+        home directory (not home itself); roots from config.yaml are left to config.yaml, their trust lives in the
+        viewer's file. Every change is logged."""
         with self.roots_lock:
-            mine, p = ui_roots(), path.strip()
+            mine, trust, p = ui_roots(), ui_trusted(), path.strip()
             if not (p.startswith("/") or p == "~" or p.startswith("~/")):
                 self._json({"error": "请写完整路径（/… 或 ~/…）"}, 400)
                 return
             real = Path(os.path.expanduser(p)).resolve(strict=False)
-            if op == "add":
+            if op == "trust":
+                if real not in self.ext_roots.values():
+                    self._json({"error": "这个目录不在外部目录里"}, 400)
+                    return
+                (trust.add if trusted else trust.discard)(str(real))
+            elif op == "add":
                 if not real.is_dir() or not root_allowed(real):
                     self._json({"error": "只能添加家目录之下已存在的目录，且不能是隐藏目录或 ~/Library"}, 400)
                     return
                 if str(real) not in mine:
                     mine.append(str(real))
+                (trust.add if trusted else trust.discard)(str(real))
             else:
                 if str(real) not in mine:
                     self._json({"error": "这个目录不是在页面里加的（在 config.yaml 里删）"}, 400)
                     return
                 mine.remove(str(real))
+                trust.discard(str(real))
             try:
-                save_ui_roots(mine)
+                save_ui_roots(mine, trust)
             except OSError as e:
                 self._json({"error": str(e)}, 500)
                 return
             Handler.ext_roots, Handler.ext_from = extra_roots()
-            sys.stderr.write("viewer roots - %s %s %s (from %s)\n" % (self.client_address[0], op, real, self.headers.get("Host", "")))
+            Handler.ext_trusted = ui_trusted()
+            sys.stderr.write("viewer roots - %s %s %s trusted=%s (from %s)\n"
+                             % (self.client_address[0], op, real, str(real) in Handler.ext_trusted, self.headers.get("Host", "")))
             self._json({"roots": self._roots_json()})
 
     def _todo_op(self, op, name, version, body):
@@ -387,10 +422,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._serve_asset(path[len("/assets/"):])
         elif path.startswith("/raw/"):
             self._serve_raw(path)
+        elif path.startswith("/page/"):
+            self._serve_page(path)
         elif path == "/gitweb" or path.startswith("/gitweb/"):
             self._proxy_gitweb(parsed)
         elif path == "/api/tree":
-            self._serve_tree()
+            self._serve_tree(qs.get("html", [""])[0] == "1")
         elif path == "/api/board":
             self._serve_board()
         elif path == "/api/diff":
@@ -515,16 +552,58 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         self._send(200, data, extra={"X-Mtime": str(mt), "X-Version": ver})
 
-    def _serve_tree(self):
+    def _serve_tree(self, html=False):
         # Two-root *.md manifest (root-relative posix); the boundary applies here too:
         # followlinks=False + realpath confinement, so an out-of-root symlink target never
-        # leaks a filename into the listing.
+        # leaks a filename into the listing. html=1 (the v2 shell) adds *.html and the page keys.
+        exts = (".md", ".html") if html else (".md",)
         ext = [dict(it, path=label + "/" + it["path"]) for label, root in self.ext_roots.items()
-               for it in scan_tree(root, with_mtime=True, limit=EXT_SCAN_MAX)]
-        self._json({"dev": scan_tree(self.dev_root, with_mtime=True),
-                    "kb": scan_tree(self.kb_root, with_mtime=True), "ext": ext,
-                    "roots": {"dev": str(self.dev_root), "kb": str(self.kb_root),
-                              "ext": {label: str(root) for label, root in self.ext_roots.items()}}})
+               for it in scan_tree(root, with_mtime=True, limit=EXT_SCAN_MAX, exts=exts)]
+        out = {"dev": scan_tree(self.dev_root, with_mtime=True, exts=exts),
+               "kb": scan_tree(self.kb_root, with_mtime=True, exts=exts), "ext": ext,
+               "roots": {"dev": str(self.dev_root), "kb": str(self.kb_root),
+                         "ext": {label: str(root) for label, root in self.ext_roots.items()}}}
+        if html:
+            out["pages"] = dict(self.page_keys, untrusted=self._untrusted_prefixes())
+        self._json(out)
+
+    def _untrusted(self):
+        return [r for r in self.ext_roots.values() if str(r) not in self.ext_trusted]
+
+    def _untrusted_prefixes(self):
+        """"<tree>:<rel>/" prefixes under which a page takes the untrusted key: each untrusted root wherever a tree
+        reaches it — as its own label, inside another root, or containing one (then the whole tree)."""
+        trees = [("dev:", self.dev_root), ("kb:", self.kb_root)] + [("ext:%s/" % l, r) for l, r in self.ext_roots.items()]
+        out = set()
+        for u in self._untrusted():
+            for pre, root in trees:
+                if u == root or u in root.parents:
+                    out.add(pre)
+                elif root in u.parents:
+                    out.add(pre + u.relative_to(root).as_posix() + "/")
+        return sorted(out)
+
+    def _serve_page(self, path):
+        # /page/<key>/{dev|kb|ext}/<relpath> → a page or one of its files; the key must match the file's trust class,
+        # judged by realpath (a file under any untrusted root is untrusted, whichever tree reached it)
+        m = re.match(r"^/page/([^/]+)/(dev|kb|ext)/(.*)$", path)
+        kind = m and next((k for k, v in self.page_keys.items() if secrets.compare_digest(v, m.group(1))), None)
+        root, relpath = self._root_of(m.group(2), m.group(3)) if kind else (None, None)
+        real = safe_join(root, relpath) if root else None
+        ctype = PAGE_TYPES.get(real.suffix.lower()) if real else None   # the file's own type: a link named .html is not a page
+        untrusted = real is not None and any(u == real or u in real.parents for u in self._untrusted())
+        extra = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}   # no-store: a trust change takes effect on the next load
+        if ctype is None or not real.is_file() or untrusted != (kind == "u"):
+            self._send(404, "not found\n", extra=extra)
+            return
+        if untrusted:
+            extra["Content-Security-Policy"] = PAGE_SANDBOX
+        try:
+            data = real.read_bytes()
+        except OSError:
+            self._send(404, "not found\n", extra=extra)
+            return
+        self._send(200, data, ctype, extra)
 
     def _serve_board(self):
         # schema = iter_cards' pinned fields (incl. 017 `governance`, 020 `carriers` —
@@ -729,12 +808,12 @@ def _trace_empty(card, err):
 
 
 def _rev_token(root: Path, limit=None):
-    """Change token for live refresh (R63): "<newest .md mtime ms>.<.md count>" under root.
+    """Change token for live refresh (R63): "<newest mtime ms>.<count>" over the .md and .html files under root.
     The count makes deletions flip the token too — max-mtime alone misses removing a non-newest file."""
     best = n = 0
     for dirpath, dirnames, filenames in _walk(root, limit):
         for fn in filenames:
-            if fn.endswith(".md") and not (limit and n >= limit):
+            if fn.endswith((".md", ".html")) and not (limit and n >= limit):
                 n += 1
                 try:
                     best = max(best, int((Path(dirpath) / fn).stat().st_mtime * 1000))
@@ -753,7 +832,7 @@ def _walk(root, limit):
         yield dirpath, dirnames, filenames
 
 
-def scan_tree(root: Path, with_mtime=False, limit=None):
+def scan_tree(root: Path, with_mtime=False, limit=None, exts=(".md",)):
     out = []
     for dirpath, _dirnames, filenames in _walk(root, limit):
         if limit and len(out) >= limit:
@@ -761,7 +840,7 @@ def scan_tree(root: Path, with_mtime=False, limit=None):
         for fn in filenames:
             if limit and len(out) >= limit:
                 break
-            if not fn.endswith(".md"):
+            if not fn.endswith(exts):
                 continue
             real = (Path(dirpath) / fn).resolve(strict=False)
             try:
@@ -1053,6 +1132,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
     Handler.ext_roots, Handler.ext_from = extra_roots()
+    Handler.ext_trusted = ui_trusted()
     migrate_todo(dev_root)
     bind = "0.0.0.0" if lan else "127.0.0.1"
     ip = lan_ip() if lan else None
