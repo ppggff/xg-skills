@@ -342,20 +342,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if real not in self.ext_roots.values():
                     self._json({"error": "这个目录不在外部目录里"}, 400)
                     return
-                (trust.add if trusted else trust.discard)(str(real))
             elif op == "add":
                 if not real.is_dir() or not root_allowed(real):
                     self._json({"error": "只能添加家目录之下已存在的目录，且不能是隐藏目录或 ~/Library"}, 400)
                     return
                 if str(real) not in mine:
                     mine.append(str(real))
-                (trust.add if trusted else trust.discard)(str(real))
             else:
                 if str(real) not in mine:
                     self._json({"error": "这个目录不是在页面里加的（在 config.yaml 里删）"}, 400)
                     return
                 mine.remove(str(real))
-                trust.discard(str(real))
+                trusted = False                      # a root added again later starts untrusted
+            (trust.add if trusted else trust.discard)(str(real))
             try:
                 save_ui_roots(mine, trust)
             except OSError as e:
