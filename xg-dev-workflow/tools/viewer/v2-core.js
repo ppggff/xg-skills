@@ -93,7 +93,7 @@ var V2 = (function () {
   V.emit = (ev, ...a) => (subs[ev] || []).forEach(fn => fn(...a));
 
   /* ---- data: board + both trees, re-read on every dev/kb change ---- */
-  V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, pages: { untrusted: [] }, at: 0 };
+  V.D = { board: {}, tree: { dev: [], kb: [] }, cards: [], byId: {}, sets: { dev: new Map(), kb: new Map() }, mtime: { dev: {}, kb: {} }, pages: { untrusted: {} }, at: 0 };
   const PH = ["需求", "设计", "详设", "实现", "测试", "评审"];
   V.phaseNow = c => {
     if (c.st === "done") return "已完成"; if (c.st === "dropped") return "已放弃";
@@ -120,10 +120,11 @@ var V2 = (function () {
     if (tree !== "ext") return R[tree] ? R[tree] + "/" + rel : "";
     const i = rel.indexOf("/"), root = R.ext && R.ext[rel.slice(0, i)]; return root ? root + rel.slice(i) : "";
   };
-  // an html page is served from /page/<key>/: one key per trust class, so the shell picks the key its root asks for
+  // an html page is served from /page/<key>/: trusted files share a key, each untrusted root has its own (null = trusted)
   V.isPage = rel => /\.html$/i.test(rel || "");
-  V.pageSandboxed = (tree, rel) => V.D.pages.untrusted.some(p => (tree + ":" + rel).startsWith(p));
-  V.pageURL = (tree, rel) => "/page/" + V.D.pages[V.pageSandboxed(tree, rel) ? "u" : "t"] + "/" + tree + "/" + rel.split("/").map(encodeURIComponent).join("/");
+  V.pageKey = (tree, rel) => { const k = tree + ":" + rel, u = V.D.pages.untrusted; let best = ""; for (const p in u) if (k.startsWith(p) && p.length > best.length) best = p; return best ? u[best] : null; };
+  V.pageSandboxed = (tree, rel) => V.pageKey(tree, rel) != null;
+  V.pageURL = (tree, rel) => "/page/" + (V.pageKey(tree, rel) || V.D.pages.t) + "/" + tree + "/" + rel.split("/").map(encodeURIComponent).join("/");
   V.openPageTab = (tree, rel) => window.open(V.pageURL(tree, rel), "_blank", "noopener");
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };

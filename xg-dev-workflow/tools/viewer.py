@@ -12,9 +12,9 @@ Lives only in xg-dev-workflow/tools/ (not a synced copy). stdlib-only.
 Security (R6): binds 127.0.0.1 only; every route checks the Host header is localhost
 (--lan binds every interface and adds the LAN IP, plus any --host, to that allowlist)
 (DNS-rebinding guard); /raw, /page and the tree scan are confined to the two roots by realpath;
-a page from an untrusted extra root is served sandboxed (an opaque origin), and each trust class
-of pages sits under its own per-run random key, so neither other sites nor an untrusted page can
-address a trusted file;
+a page from an untrusted extra root is served sandboxed (an opaque origin), and trusted files and
+each untrusted root's files sit under their own per-run key, so neither other sites nor an untrusted
+page can address a file outside its own root;
 the shell + vendored asset come from a hardcoded repo path, never a user path. Writes go only
 to the todo files (through todo.py) and the extra-roots list; the one cross-request state is the
 card-history cache, keyed by dev_root's HEAD and the design.md mtimes — Ctrl-C stops it clean.
@@ -29,6 +29,7 @@ Usage:
 """
 import datetime
 import errno
+import hmac
 import http.client
 import http.server
 import importlib.util
@@ -43,6 +44,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import unicodedata
 import urllib.parse
 import urllib.request
 import webbrowser
@@ -58,8 +60,8 @@ ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /asse
           "martian-mono.woff2": "font/woff2",
           "v2.css": "text/css", "v2-widths.css": "text/css", "v2-themes.css": "text/css", "v2-time.css": "text/css",
           **{"v2-%s.js" % a: "text/javascript" for a in ("core", "tree", "board", "time", "reader", "search", "find", "todo", "edit")}}
-PAGE_TYPES = {".html": "text/html", ".htm": "text/html", ".css": "text/css", ".js": "text/javascript",   # what /page serves
-              ".mjs": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
+PAGE_TYPES = {".html": "text/html; charset=utf-8", ".htm": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",   # what /page serves
+              ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
               ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
               ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf"}
 PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"   # no allow-same-origin: an opaque origin
@@ -217,6 +219,40 @@ def extra_roots():
     return out, src
 
 
+def kept_trust(roots):
+    """The trusted set limited to the extra roots present now. A root that left (a config edit, a missing directory)
+    loses its trust in the file too, so coming back it starts untrusted."""
+    t = ui_trusted()
+    keep = t & {str(r) for r in roots.values()}
+    if keep != t:
+        try:
+            save_ui_roots(ui_roots(), keep)
+        except OSError:
+            pass
+    return keep
+
+
+def load_ext():
+    """Load the extra roots and their trust into the Handler — trust first: every state in between is the stricter one."""
+    roots, src = extra_roots()
+    Handler.ext_trusted = kept_trust(roots)
+    Handler.ext_roots, Handler.ext_from = roots, src
+
+
+def disk_spelling(p: Path):
+    """p as the file system spells it: a case-insensitive volume finds a path in any case and normal form, while the
+    tree lists the names stored on disk."""
+    out = Path(p.anchor)
+    for part in p.parts[1:]:
+        try:
+            names = os.listdir(out)
+        except OSError:
+            return p
+        key = unicodedata.normalize("NFC", part).casefold()
+        out = out / (part if part in names else next((n for n in names if unicodedata.normalize("NFC", n).casefold() == key), part))
+    return out
+
+
 def safe_join(root: Path, relpath: str):
     """Map a URL relpath to a file under root, or None if it escapes (traversal/symlink).
 
@@ -246,9 +282,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     ext_roots = {}                                   # label -> Path, from config `extra_roots:` and the page; read-only like dev and kb
     ext_from = {}                                    # label -> "config" | "page"
     ext_trusted = set()                              # realpaths of the extra roots marked trusted; the rest serve sandboxed
-    # one key per trust class, in every /page URL: other sites cannot learn either (only same-origin /api/tree hands
-    # them out), and an untrusted page knows only its own, so it can neither load a trusted file nor open a trusted page
-    page_keys = {"t": secrets.token_urlsafe(12), "u": secrets.token_urlsafe(12)}
+    page_secret = secrets.token_bytes(16)            # per run: the /page keys derive from it (_page_key)
     repos = {}                                       # gitweb label -> git dir, the companion's repos (empty without gitweb)
     sha_home = {}                                    # sha -> repo label, filled by /api/shas (misses are not kept: the commit may come later)
     dev_root: Path = None
@@ -360,8 +394,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except OSError as e:
                 self._json({"error": str(e)}, 500)
                 return
-            Handler.ext_roots, Handler.ext_from = extra_roots()
-            Handler.ext_trusted = ui_trusted()
+            load_ext()
             sys.stderr.write("viewer roots - %s %s %s trusted=%s (from %s)\n"
                              % (self.client_address[0], op, real, str(real) in Handler.ext_trusted, self.headers.get("Host", "")))
             self._json({"roots": self._roots_json()})
@@ -463,7 +496,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # R63/003: inject the gitweb companion URL (empty when disabled → shell hides the code links);
         # built from the Host the browser used, so a LAN client gets a LAN link (the Host passed _host_ok).
         html = html.replace("__GITWEB_URL__", self.gitweb_url())
-        self._send(200, html, "text/html; charset=utf-8")
+        self._send(200, html, "text/html; charset=utf-8", {"Content-Security-Policy": "frame-ancestors 'self'"})   # a meta CSP cannot say this
 
     def _proxy_gitweb(self, parsed):
         # /gitweb/<rest> → the loopback companion's /<rest>; its own redirects come back under the prefix.
@@ -563,39 +596,68 @@ class Handler(http.server.BaseHTTPRequestHandler):
                "roots": {"dev": str(self.dev_root), "kb": str(self.kb_root),
                          "ext": {label: str(root) for label, root in self.ext_roots.items()}}}
         if html:
-            out["pages"] = dict(self.page_keys, untrusted=self._untrusted_prefixes())
+            out["pages"] = {"t": self._page_key(None), "untrusted": self._untrusted_prefixes()}
         self._json(out)
 
     def _untrusted(self):
         return [r for r in self.ext_roots.values() if str(r) not in self.ext_trusted]
 
-    def _untrusted_prefixes(self):
-        """"<tree>:<rel>/" prefixes under which a page takes the untrusted key: each untrusted root wherever a tree
-        reaches it — as its own label, inside another root, or containing one (then the whole tree)."""
-        trees = [("dev:", self.dev_root), ("kb:", self.kb_root)] + [("ext:%s/" % l, r) for l, r in self.ext_roots.items()]
-        out = set()
+    @classmethod
+    def _page_key(cls, root):
+        # the key in every /page URL of trusted files (root None) or of one untrusted root's files; other sites cannot
+        # learn one (only same-origin /api/tree hands them out), and an untrusted page knows only its own root's
+        return hmac.new(cls.page_secret, str(root or "").encode("utf-8", "surrogateescape"), "sha256").hexdigest()[:20]
+
+    def _page_owner(self, real):
+        """The untrusted root a file belongs to — the nearest one above it, matched by inode so a path spelled in
+        another case or normal form still lands in it — or None for a trusted file."""
+        ids = {}
         for u in self._untrusted():
+            try:
+                st = u.stat()
+            except OSError:
+                continue
+            ids[(st.st_dev, st.st_ino)] = u
+        for p in (real, *real.parents):
+            try:
+                st = p.stat()
+            except OSError:
+                continue
+            if (st.st_dev, st.st_ino) in ids:
+                return ids[(st.st_dev, st.st_ino)]
+        return None
+
+    def _untrusted_prefixes(self):
+        """{"<tree>:<rel>/": key} — where a page takes an untrusted root's key: each untrusted root wherever a tree
+        reaches it, as its own label, inside another root, or containing one (then the whole tree, under the nearest
+        such root). Paths are compared as the disk spells them, which is what the tree lists."""
+        trees = [("dev:", disk_spelling(self.dev_root)), ("kb:", disk_spelling(self.kb_root))] \
+            + [("ext:%s/" % l, disk_spelling(r)) for l, r in self.ext_roots.items()]
+        out = {}
+        for u in self._untrusted():
+            du, key = disk_spelling(u), self._page_key(u)
             for pre, root in trees:
-                if u == root or u in root.parents:
-                    out.add(pre)
-                elif root in u.parents:
-                    out.add(pre + u.relative_to(root).as_posix() + "/")
-        return sorted(out)
+                if du == root or du in root.parents:
+                    if pre not in out or len(du.parts) > out[pre][0]:
+                        out[pre] = (len(du.parts), key)
+                elif root in du.parents:
+                    out[pre + du.relative_to(root).as_posix() + "/"] = (0, key)
+        return {pre: key for pre, (_, key) in sorted(out.items())}
 
     def _serve_page(self, path):
-        # /page/<key>/{dev|kb|ext}/<relpath> → a page or one of its files; the key must match the file's trust class,
-        # judged by realpath (a file under any untrusted root is untrusted, whichever tree reached it)
+        # /page/<key>/{dev|kb|ext}/<relpath> → a page or one of its files; the key must be the one of the file's owner —
+        # judged by realpath, so a file under an untrusted root is that root's whichever tree reached it
         m = re.match(r"^/page/([^/]+)/(dev|kb|ext)/(.*)$", path)
-        kind = m and next((k for k, v in self.page_keys.items() if secrets.compare_digest(v, m.group(1))), None)
-        root, relpath = self._root_of(m.group(2), m.group(3)) if kind else (None, None)
+        root, relpath = self._root_of(m.group(2), m.group(3)) if m else (None, None)
         real = safe_join(root, relpath) if root else None
         ctype = PAGE_TYPES.get(real.suffix.lower()) if real else None   # the file's own type: a link named .html is not a page
-        untrusted = real is not None and any(u == real or u in real.parents for u in self._untrusted())
+        owner = self._page_owner(real) if ctype else None
         extra = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}   # no-store: a trust change takes effect on the next load
-        if ctype is None or not real.is_file() or untrusted != (kind == "u"):
+        if ctype is None or not real.is_file() or \
+                not secrets.compare_digest(self._page_key(owner).encode(), m.group(1).encode("utf-8", "surrogateescape")):
             self._send(404, "not found\n", extra=extra)
             return
-        if untrusted:
+        if owner is not None:
             extra["Content-Security-Policy"] = PAGE_SANDBOX
         try:
             data = real.read_bytes()
@@ -1130,8 +1192,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
           lan=False, hosts=()):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
-    Handler.ext_roots, Handler.ext_from = extra_roots()
-    Handler.ext_trusted = ui_trusted()
+    load_ext()
     migrate_todo(dev_root)
     bind = "0.0.0.0" if lan else "127.0.0.1"
     ip = lan_ip() if lan else None

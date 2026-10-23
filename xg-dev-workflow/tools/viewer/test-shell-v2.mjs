@@ -251,12 +251,14 @@ t("046 Req-62: the editor's selection is see-through, so the highlighted text un
 t("056: an html doc opens in an iframe from /page/<key>/, sandboxed when its root is untrusted, or in a new tab", () => {
   assert.match(page, /Content-Security-Policy" content="[^"]*frame-src 'self'/);
   assert.match(js.core, /V\.json\("\/api\/tree\?html=1"\)/);
-  assert.match(js.core, /V\.pageURL = \(tree, rel\) => "\/page\/" \+ V\.D\.pages\[V\.pageSandboxed\(tree, rel\) \? "u" : "t"\]/);
+  assert.match(js.core, /V\.pageKey = \(tree, rel\) => \{[^}]*p\.length > best\.length[^}]*\}/);   // the nearest untrusted root's key wins
+  assert.match(js.core, /V\.pageURL = \(tree, rel\) => "\/page\/" \+ \(V\.pageKey\(tree, rel\) \|\| V\.D\.pages\.t\)/);
   assert.match(js.reader, /<iframe class="page" src="\$\{esc\(V\.pageURL\(loc\.tree, loc\.rel\)\)\}"\$\{sb \? ` sandbox="\$\{SANDBOX\}"` : ""\}/);
   assert.match(js.reader, /const SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";/);
   assert.match(viewerPy, /PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"/);   // the frame and the header grant the same
   assert.match(js.core, /V\.openPageTab = \(tree, rel\) => window\.open\(V\.pageURL\(tree, rel\), "_blank", "noopener"\)/);
   assert.match(js.tree, /\(e\.metaKey \|\| e\.ctrlKey\) && V\.isPage\(rel\)/);
+  assert.match(js.reader, /V\.click\("\.md a\[data-rel\]", \(el, e\) => \{\n    hideTip\(\); const k = V\.paneOf\(el\);\n    if \(\(e\.metaKey \|\| e\.ctrlKey\) && V\.isPage\(el\.dataset\.rel\)\) return void V\.openPageTab/);
   assert.match(js.reader, /function savePlace\(k\) \{\n    const p = P\[k\], loc = p\.loc; if \(!loc \|\| loc\.kind !== "doc" \|\| !p\.doc \|\| p\.doc\.err \|\| p\.doc\.page\) return;/);
   assert.match(css, /\.pane:not\(\.pagedoc\) \.phd \[data-t="newtab"\],[^{]*\.pane\.pagedoc \.phd :is\(\[data-t="find"\][^{]*\{ display: none; \}/);
 });

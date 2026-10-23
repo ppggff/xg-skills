@@ -12,6 +12,7 @@ import io
 import json
 import os
 import re
+import socket
 import subprocess
 import tempfile
 import threading
@@ -95,6 +96,11 @@ class T0Skeleton(unittest.TestCase):
         self.assertEqual(new.pop("script-src"), old.pop("script-src") - {"'unsafe-inline'"})
         self.assertEqual(new.pop("frame-src"), {"'self'"})        # 056: html pages in the reader, served from /page/
         self.assertEqual(new, old)
+
+    def test_shell_is_framed_only_by_itself(self):     # 056 review 5: no other site can frame the roots popover
+        for path in ("/", "/v1"):
+            r = urllib.request.urlopen(self.base + path, timeout=3)
+            self.assertEqual(r.headers["Content-Security-Policy"], "frame-ancestors 'self'", path)
 
     def test_v2_has_no_inline_script(self):            # script-src drops 'unsafe-inline', so none may exist
         body = get(self.base, "/v2")[1]
@@ -457,12 +463,24 @@ class TRoots(unittest.TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(self.trusted()["notes"], False)
 
+    def test_trust_leaves_with_its_root(self):                     # review 4: a root that comes back starts untrusted
+        cfg = str(self.home / "cfg")
+        self.post({"op": "trust", "path": cfg, "trusted": True})
+        (self.tmp / "config.yaml").write_text("", encoding="utf-8")
+        viewer.load_ext()
+        self.assertEqual(json.loads((self.tmp / "viewer-roots.json").read_text())["trusted"], [])
+        (self.tmp / "config.yaml").write_text("extra_roots:\n  - %s\n" % cfg, encoding="utf-8")
+        viewer.load_ext()
+        self.assertEqual(self.trusted(), {"cfg": False})
+
+    def test_a_roots_row_has_four_fields(self):                    # 056 Inv-5
+        self.assertEqual([set(r) for r in json.loads(get(self.base, "/api/roots")[1])["roots"]], [{"label", "path", "from", "trusted"}])
+
     def test_an_old_or_broken_roots_file_trusts_nothing(self):     # 056 Inv-3
         notes = str(self.home / "notes")
         for text in (json.dumps({"roots": [notes]}), "{not json", json.dumps({"roots": [notes], "trusted": "all"})):
             (self.tmp / "viewer-roots.json").write_text(text, encoding="utf-8")
-            viewer.Handler.ext_roots, viewer.Handler.ext_from = viewer.extra_roots()
-            viewer.Handler.ext_trusted = viewer.ui_trusted()
+            viewer.load_ext()
             self.assertFalse(any(self.trusted().values()), text)
 
 
@@ -570,7 +588,8 @@ class TExtraRoots(unittest.TestCase):
 
 
 class TPage(unittest.TestCase):
-    """056: html pages under /page/<key>/… — one key per trust class, sandboxed when untrusted, confined like /raw."""
+    """056: html pages under /page/<key>/… — one key for trusted files and one per untrusted root, sandboxed when
+    untrusted, confined like /raw."""
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp()).resolve()
         dev, kb, home, out = (self.tmp / n for n in ("dev", "kb", "home", "secret"))
@@ -584,21 +603,22 @@ class TPage(unittest.TestCase):
             f.write_text(text, encoding="utf-8")
         (dev / "link.js").symlink_to(out / "s.js")
         (dev / "c/notes/mock/fake.html").symlink_to(dev / "c/notes/mock/x.txt")
-        roots = [str(home / "tr"), str(home / "un"), str(home / "tr/clone")]
-        (self.tmp / "viewer-roots.json").write_text(json.dumps({"roots": roots, "trusted": [roots[0]]}), encoding="utf-8")
         self.saved = (viewer._rp.config_path, viewer.Path.home)
         viewer._rp.config_path = lambda: self.tmp / "config.yaml"
         viewer.Path.home = classmethod(lambda cls: home)
-        viewer.Handler.ext_roots, viewer.Handler.ext_from = viewer.extra_roots()
-        viewer.Handler.ext_trusted = viewer.ui_trusted()
-        self.httpd, self.base = start(dev, kb)
         self.home, self.dev = home, dev
-        self.T, self.U = (viewer.Handler.page_keys[k] for k in ("t", "u"))
+        self.roots([home / "tr", home / "un", home / "tr/clone"], [home / "tr"])
+        self.httpd, self.base = start(dev, kb)
 
     def tearDown(self):
         viewer._rp.config_path, viewer.Path.home = self.saved
         viewer.Handler.ext_roots, viewer.Handler.ext_from, viewer.Handler.ext_trusted = {}, {}, set()
         self.httpd.shutdown(); self.httpd.server_close()
+
+    def roots(self, roots, trusted):
+        (self.tmp / "viewer-roots.json").write_text(json.dumps({"roots": [str(r) for r in roots], "trusted": [str(r) for r in trusted]}),
+                                                    encoding="utf-8")
+        viewer.load_ext()
 
     def fetch(self, path, host=None):
         req = urllib.request.Request(self.base + urllib.parse.quote(path))
@@ -613,6 +633,16 @@ class TPage(unittest.TestCase):
     def tree(self, qs=""):
         return json.loads(get(self.base, "/api/tree" + qs)[1])
 
+    def key(self, p):
+        """The key the shell would put in front of tree path p: the longest untrusted prefix's, else the trusted one."""
+        pages = self.tree("?html=1")["pages"]
+        tree, _, rel = p.partition("/")
+        hit = max((x for x in pages["untrusted"] if (tree + ":" + rel).startswith(x)), key=len, default=None)
+        return pages["untrusted"][hit] if hit else pages["t"]
+
+    def page(self, p, key=None):
+        return self.fetch("/page/%s/%s" % (key or self.key(p), p))
+
     TRUSTED = ["dev/c/notes/mock/index.html", "dev/c/notes/mock/app.js", "dev/c/notes/mock/data.json",
                "dev/c/notes/base/app.css", "kb/k.html", "ext/tr/t.html"]
     UNTRUSTED = ["ext/un/u.html", "ext/un/u.js", "ext/clone/evil.html", "ext/tr/clone/evil.html", "ext/tr/clone/e.js"]
@@ -622,60 +652,85 @@ class TPage(unittest.TestCase):
         self.assertNotIn("pages", plain)
         self.assertFalse(any(x["path"].endswith(".html") for k in ("dev", "kb", "ext") for x in plain[k]))
         t = self.tree("?html=1")
-        self.assertNotEqual(t["pages"]["t"], t["pages"]["u"])
-        self.assertEqual(sorted(t["pages"]["untrusted"]), ["ext:clone/", "ext:tr/clone/", "ext:un/"])
+        u = t["pages"]["untrusted"]
+        self.assertEqual(sorted(u), ["ext:clone/", "ext:tr/clone/", "ext:un/"])
+        self.assertEqual(u["ext:clone/"], u["ext:tr/clone/"])                  # one root, one key, however it is reached
+        self.assertEqual(len({t["pages"]["t"], u["ext:clone/"], u["ext:un/"]}), 3)
         self.assertIn("c/notes/mock/index.html", [x["path"] for x in t["dev"]])
         self.assertIn("k.html", [x["path"] for x in t["kb"]])
         self.assertTrue({"tr/t.html", "un/u.html", "clone/evil.html", "tr/clone/evil.html"} <= {x["path"] for x in t["ext"]})
         self.assertTrue(all(set(x) == {"path", "mtime"} for k in ("dev", "kb", "ext") for x in t[k]))
 
-    def test_each_key_serves_only_its_class(self):   # Inv-4
+    def test_each_key_serves_only_its_own_files(self):   # Inv-4
+        T, u = self.tree("?html=1")["pages"]["t"], self.tree("?html=1")["pages"]["untrusted"]
         for p in self.TRUSTED:
-            self.assertEqual(self.fetch("/page/%s/%s" % (self.T, p))[0], 200, p)
-            self.assertEqual(self.fetch("/page/%s/%s" % (self.U, p))[0], 404, p)
+            self.assertEqual(self.page(p)[0], 200, p)
+            for k in u.values():
+                self.assertEqual(self.page(p, k)[0], 404, p)
         for p in self.UNTRUSTED:
-            self.assertEqual(self.fetch("/page/%s/%s" % (self.U, p))[0], 200, p)
-            self.assertEqual(self.fetch("/page/%s/%s" % (self.T, p))[0], 404, p)
+            self.assertEqual(self.page(p)[0], 200, p)
+            self.assertEqual(self.page(p, T)[0], 404, p)
+        self.assertEqual(self.page("ext/un/u.js", u["ext:clone/"])[0], 404)   # an untrusted root cannot reach another's files
+        self.assertEqual(self.page("ext/clone/evil.html", u["ext:un/"])[0], 404)
         for p in self.TRUSTED[:1] + self.UNTRUSTED[:1]:
             self.assertEqual(self.fetch("/page/nokey/" + p)[0], 404, p)
             self.assertEqual(self.fetch("/page/" + p)[0], 404, p)
 
     def test_headers_by_class(self):   # Inv-1
-        st, h, body = self.fetch("/page/%s/dev/c/notes/mock/index.html" % self.T)
+        st, h, body = self.page("dev/c/notes/mock/index.html")
         self.assertEqual((st, body), (200, b"<p>PAGEWORD</p>"))
-        self.assertEqual(h["Content-Type"], "text/html")
+        self.assertEqual(h["Content-Type"], "text/html; charset=utf-8")      # a page without <meta charset> still reads as UTF-8
         self.assertIsNone(h["Content-Security-Policy"])
-        self.assertEqual(self.fetch("/page/%s/dev/c/notes/mock/app.js" % self.T)[1]["Content-Type"], "text/javascript")
+        self.assertEqual(self.page("dev/c/notes/mock/app.js")[1]["Content-Type"], "text/javascript; charset=utf-8")
         for p in self.TRUSTED + self.UNTRUSTED:
-            key = self.U if p in self.UNTRUSTED else self.T
-            h = self.fetch("/page/%s/%s" % (key, p))[1]
+            h = self.page(p)[1]
             self.assertEqual((h["Cache-Control"], h["X-Content-Type-Options"], h["ETag"]), ("no-store", "nosniff", None), p)
             csp = h["Content-Security-Policy"] or ""
-            if key == self.U:
+            if p in self.UNTRUSTED:
                 self.assertTrue(csp.startswith("sandbox ") and "allow-scripts" in csp and "allow-same-origin" not in csp, p)
 
     def test_confined_and_typed(self):
         for p in ("dev/../secret/s.js", "dev/link.js", "dev/c/notes/mock/x.txt", "dev/c/notes/mock/k.md", "dev/c/notes/mock/fake.html",
                   "dev/nope.html", "ext/nope/u.html"):
-            self.assertEqual(self.fetch("/page/%s/%s" % (self.T, p))[0], 404, p)
-        self.assertEqual(self.fetch("/page/%s/kb/k.html" % self.T, host="evil.example:80")[0], 403)
+            self.assertEqual(self.page(p)[0], 404, p)
+        self.assertEqual(self.page("kb/k.html")[0], 200)
+        self.assertEqual(self.fetch("/page/%s/kb/k.html" % self.key("kb/k.html"), host="evil.example:80")[0], 403)
+        with socket.create_connection(("127.0.0.1", self.httpd.server_address[1]), timeout=3) as c:   # a raw non-ASCII key
+            c.sendall(b"GET /page/\xc3\xa9/kb/k.html HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            self.assertTrue(c.recv(64).startswith(b"HTTP/1.0 404"))
 
     def test_trust_change_moves_a_root_between_keys(self):
-        viewer.Handler.ext_trusted = {str(self.home / "tr"), str(self.home / "un")}
-        self.assertEqual(self.fetch("/page/%s/ext/un/u.html" % self.T)[0], 200)
-        self.assertEqual(self.fetch("/page/%s/ext/un/u.html" % self.U)[0], 404)
+        self.roots([self.home / "tr", self.home / "un", self.home / "tr/clone"], [self.home / "tr", self.home / "un"])
+        self.assertEqual(self.key("ext/un/u.html"), self.tree("?html=1")["pages"]["t"])
+        st, h, _ = self.page("ext/un/u.html")
+        self.assertEqual((st, h["Content-Security-Policy"]), (200, None))
         self.assertEqual(sorted(self.tree("?html=1")["pages"]["untrusted"]), ["ext:clone/", "ext:tr/clone/"])
-        viewer.Handler.ext_trusted = set(viewer.Handler.ext_trusted) | {str(self.home / "tr/clone")}
-        self.assertEqual(self.fetch("/page/%s/ext/tr/clone/e.js" % self.T)[0], 200)
+
+    def test_an_unreadable_trust_list_sandboxes_every_extra_root(self):   # Inv-1
+        (self.tmp / "viewer-roots.json").write_text(json.dumps({"roots": [str(self.home / "tr")], "trusted": "all"}), encoding="utf-8")
+        viewer.load_ext()
+        self.assertEqual(self.page("ext/tr/t.html", self.tree("?html=1")["pages"]["t"])[0], 404)
+        self.assertTrue((self.page("ext/tr/t.html")[1]["Content-Security-Policy"] or "").startswith("sandbox "))
 
     def test_a_trusted_root_inside_an_untrusted_one_is_untrusted(self):   # the strictest class wins
         inner = self.home / "un/inner"
         inner.mkdir(); (inner / "i.html").write_text("<p>i</p>", encoding="utf-8")
-        viewer.Handler.ext_roots = dict(viewer.Handler.ext_roots, inner=inner)
-        viewer.Handler.ext_trusted = set(viewer.Handler.ext_trusted) | {str(inner)}
-        self.assertIn("ext:inner/", self.tree("?html=1")["pages"]["untrusted"])
-        self.assertEqual(self.fetch("/page/%s/ext/inner/i.html" % self.T)[0], 404)
-        self.assertEqual(self.fetch("/page/%s/ext/inner/i.html" % self.U)[0], 200)
+        self.roots([self.home / "tr", self.home / "un", self.home / "tr/clone", inner], [self.home / "tr", inner])
+        u = self.tree("?html=1")["pages"]["untrusted"]
+        self.assertEqual(u["ext:inner/"], u["ext:un/"])                        # its files belong to the root above it
+        self.assertEqual(self.page("ext/inner/i.html", self.tree("?html=1")["pages"]["t"])[0], 404)
+        self.assertEqual(self.page("ext/inner/i.html")[0], 200)
+
+    @unittest.skipUnless(os.path.exists(str(Path(tempfile.gettempdir()).resolve()).upper()), "needs a case-insensitive file system")
+    def test_a_root_spelled_in_another_case_is_still_untrusted(self):   # review 1: paths are compared as the disk stores them
+        disk = self.home / "tr/Clone2"
+        disk.mkdir(); (disk / "x.html").write_text("<p>x</p>", encoding="utf-8")
+        self.roots([self.home / "tr", self.home / "tr/clone2"], [self.home / "tr"])
+        u = self.tree("?html=1")["pages"]["untrusted"]
+        self.assertIn("ext:tr/Clone2/", u)                                     # the tree lists the disk's spelling
+        self.assertEqual(self.page("ext/tr/Clone2/x.html", self.tree("?html=1")["pages"]["t"])[0], 404)
+        st, h, _ = self.page("ext/tr/Clone2/x.html")
+        self.assertTrue(st == 200 and h["Content-Security-Policy"].startswith("sandbox "))
 
     def test_raw_search_and_rev_keep_to_md(self):   # Inv-2, plus the live refresh sees html
         self.assertEqual(get(self.base, "/raw/dev/c/notes/mock/index.html")[0], 404)
