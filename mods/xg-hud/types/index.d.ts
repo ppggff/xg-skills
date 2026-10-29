@@ -61,6 +61,8 @@ declare module 'claude-code' {
       times: HudTimes
       isMsgOpen: boolean
       msgNow: number
+      buf: string[]
+      isBufOpen: boolean
     }
   }
 }

@@ -22,6 +22,8 @@ const todoAt = atom({ plugin: 'xg-hud', key: 'todoAt' } as const, 0)
 const times = atom({ plugin: 'xg-hud', key: 'times' } as const, { message: null, reply: null } as HudTimes)
 const isMsgOpen = atom({ plugin: 'xg-hud', key: 'isMsgOpen' } as const, false)
 const msgNow = atom({ plugin: 'xg-hud', key: 'msgNow' } as const, 0)
+const buf = atom({ plugin: 'xg-hud', key: 'buf' } as const, [])
+const isBufOpen = atom({ plugin: 'xg-hud', key: 'isBufOpen' } as const, false)
 
 type Ctx = { home: string; cwd: string; config: Config }
 type $ = EngineInterface
@@ -276,12 +278,12 @@ async function finishTodo($: $, item: HudTodo): Promise<boolean> {
   return true
 }
 
-// Copies the todo into the prompt only; marking it done is the done button's job.
-async function takeTodo($: $, item: HudTodo): Promise<void> {
+// Copies into the prompt only; a todo leaves by done, the buf by clear.
+async function takeText($: $, text: string): Promise<void> {
   const { text: draft } = await $.prompt.read()
   const filled = draft.trim()
-    ? await $.prompt.fill({ text: `\n${item.text}`, mode: 'append' })
-    : await $.prompt.fill({ text: item.text, mode: 'replace' })
+    ? await $.prompt.fill({ text: `\n${text}`, mode: 'append' })
+    : await $.prompt.fill({ text, mode: 'replace' })
   if (!filled.isFilled) $.ui.toast('Prompt is not writable now')
 }
 
@@ -409,6 +411,38 @@ async function tickTimes($: $): Promise<void> {
   }
 }
 
+// Buf: drafts set aside from the prompt, one part per append; this session's own, mirrored to $.store for a resume.
+const BUF_ROWS = 4
+
+async function bufKey($: $): Promise<string> {
+  return `buf:${await $.session.id()}`
+}
+
+async function changeBuf($: $, fn: (parts: string[]) => string[]): Promise<string[]> {
+  const parts = await update($, buf, fn)
+  const key = await bufKey($)
+  if (parts.length === 0) await $.store.delete(key)
+  else await $.store.set(key, parts)
+  return parts
+}
+
+// The prompt is cleared only once the draft is stored, so a failure never loses what was typed.
+async function appendBuf($: $): Promise<void> {
+  const text = (await $.prompt.read()).text.trimEnd()
+  if (!text) {
+    $.ui.toast('Prompt is empty, nothing to add to buf')
+    return
+  }
+  const parts = await changeBuf($, list => [...list, text])
+  await $.prompt.fill({ text: '', mode: 'replace' })
+  $.ui.toast(`Added to buf (${parts.length})`)
+}
+
+async function restoreBuf($: $): Promise<void> {
+  const saved = await $.store.get(await bufKey($))
+  if (Array.isArray(saved) && (await read($, buf)).length === 0) await update($, buf, () => saved as string[])
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
@@ -418,6 +452,7 @@ export const register: Register = on => {
     $.clock.every(SYNC_MS, () => void syncTodos($))
     await restoreTimes($)
     $.clock.every(TICK_MS, () => void tickTimes($))
+    await restoreBuf($)
     void snapshotKb($).then(() => refreshAll($))
     return started
   })
@@ -495,6 +530,9 @@ export const register: Register = on => {
     const msgOpen = stamps.message !== null && (await read($, isMsgOpen))
     const msgText = stamps.message === null ? null : `${clockText(stamps.message)}${msgOpen ? ' ▾' : ''}`
     const msgCost = msgText ? cells(msgText) + SEP_CELLS : 0
+    const parts = await read($, buf)
+    const bufOpen = await read($, isBufOpen)
+    const bufText = `buf${parts.length ? ` ${parts.length}` : ''}${bufOpen ? ' ▾' : ''}`
     if (view !== null) {
       const counts = [pending && `${pending}c`, view.reads.length && `${view.reads.length}r`, written && `${written}w`].filter(Boolean)
       const text = `KB ${counts.length ? counts.join(' ') : '✓'}${kbOpen ? ' ▾' : ''}`
@@ -506,7 +544,7 @@ export const register: Register = on => {
       const progress = c.reqs.length === 0 ? c.status : isAllDone ? '✓' : isNarrow ? `${verified}/${c.reqs.length}` : `${bar(verified, c.reqs.length, 8)} ${verified}/${c.reqs.length}`
       const tail = ` ${progress}${cardOpen ? ' ▾' : ''}`
       const kbCost = all.length ? cells(all[0]!.text) + SEP_CELLS : 0
-      const titleRoom = room - kbCost - cells(`${c.id} `) - cells(tail) - cells(todoText) - SEP_CELLS - msgCost
+      const titleRoom = room - kbCost - cells(`${c.id} `) - cells(tail) - cells(todoText) - SEP_CELLS - cells(bufText) - SEP_CELLS - msgCost
       const title = titleRoom >= 4 ? ` ${clip(c.title, titleRoom - 1)}` : ''
       all.push({ key: 'card', text: `${c.id}${title}${tail}`, onPress: () => update($, isCardOpen, v => !v), rank: 1 })
     }
@@ -514,6 +552,7 @@ export const register: Register = on => {
       if (await update($, isTodoOpen, v => !v)) void syncTodos($)
     }
     all.push({ key: 'todo', text: todoText, onPress: toggleTodo, rank: 2 })
+    all.push({ key: 'buf', text: bufText, onPress: () => update($, isBufOpen, v => !v), rank: 4 })
     if (msgText) {
       const toggleMsg = async () => {
         const now = await $.clock.now()
@@ -559,14 +598,30 @@ export const register: Register = on => {
       const current = at % pages
       return [...body.slice(current * size, (current + 1) * size), { mark: '…', text: `page ${current + 1}/${pages}, click for next`, onPress: onNext }]
     }
-    const allRows = Math.max(0, (e.props.maxRows ?? 20) - (isDesktop ? 3 : 1))
-    // Todo rows are reserved first (wrapped items from `at` on, a more row, the new/stash row); KB and card share the rest.
+    const bandRows = Math.max(0, (e.props.maxRows ?? 20) - (isDesktop ? 3 : 1))
     const othersOpen = (kbOpen && kbLines.length > 0) || (cardOpen && c !== null)
     const todoWidth = Math.min(64, room)
     // An item row is number(2) text take(4) done(4) spacer [connector(1)], one gap between each; the text gets the rest
-    // exactly, or the surface wraps it a second time.
+    // exactly, or the surface wraps it a second time. A buf row has no take / done.
     const hasTicks = !isDesktop && !isNarrow
     const todoTextWidth = Math.max(8, todoWidth - (hasTicks ? 16 : 14))
+    const bufTextWidth = Math.max(8, todoWidth - (hasTicks ? 6 : 4))
+    // Buf rows are reserved before everything else: a preview of up to BUF_ROWS (a more row among them when parts are
+    // left out), then the actions row.
+    const wrapped = bufOpen ? parts.map(part => todoLines(part, bufTextWidth, 2)) : []
+    const bufFit = Math.min(BUF_ROWS, Math.max(2, bandRows - 1))
+    const bufCap = wrapped.flat().length > bufFit ? bufFit - 1 : bufFit
+    const bufShown: string[][] = []
+    let bufUsed = 0
+    for (const lines of wrapped) {
+      if (bufUsed + lines.length > bufCap) break
+      bufShown.push(lines)
+      bufUsed += lines.length
+    }
+    const bufHidden = parts.length - bufShown.length
+    const bufRows = bufOpen ? bufUsed + (bufHidden > 0 ? 1 : 0) + 1 : 0
+    const allRows = Math.max(0, bandRows - bufRows)
+    // Todo rows come next (wrapped items from `at` on, a more row, the new/stash row); KB and card share the rest.
     const todoAvail = (othersOpen ? Math.max(3, Math.ceil(allRows / 2)) : allRows) - 2
     const todoItems: { item: HudTodo; lines: string[] }[] = []
     let todoUsed = 0
@@ -611,19 +666,20 @@ export const register: Register = on => {
     const pressable = (key: string, label: string, onPress: () => unknown) =>
       <Box key={`${key}-hover`}><Button key={key} plain dimColor hover={{ underline: true }} label={label} onPress={onPress} /></Box>
 
+    // Connectors as KB and card draw them: ┤ on each entry's first row, │ on its wrapped rows, ┘ closing the block.
+    const tick = (glyphs: string[]) => hasTicks ? <Box flexDirection="column">{glyphs.map(g => <Text dimColor>{g}</Text>)}</Box> : null
+
     // Todo detail: a fixed-width, left-aligned list; each text wraps beside its take/done. The last row holds the new
     // field and stash at its right end.
     const todoBlock: RenderChildren[] = []
     if (todoOpen) {
-      // Connectors as KB and card draw them: ┤ on each entry's first row, │ on its wrapped rows, ┘ closing the block.
-      const tick = (glyphs: string[]) => hasTicks ? <Box flexDirection="column">{glyphs.map(g => <Text dimColor>{g}</Text>)}</Box> : null
       todoItems.forEach(({ item, lines }, i) => {
         const id = `${todoId(item)}-${at + i}`
         todoBlock.push(
           <Box key={`todo-${id}`} flexDirection="row" gap={1} width={todoWidth}>
             <Box width={2}><Text dimColor>{String(at + i + 1)}</Text></Box>
             <Box width={todoTextWidth} flexDirection="column">{lines.map(line => <Text>{line}</Text>)}</Box>
-            {pressable(`todo-take-${id}`, 'take', () => takeTodo($, item))}
+            {pressable(`todo-take-${id}`, 'take', () => takeText($, item.text))}
             {pressable(`todo-done-${id}`, 'done', () => finishTodo($, item))}
             <Box flexGrow={1} />
             {tick(['┤', ...lines.slice(1).map(() => '│')])}
@@ -668,6 +724,39 @@ export const register: Register = on => {
       )
     }
 
+    // Buf detail: the same fixed-width list, a preview only; its actions row closes it.
+    const bufBlock: RenderChildren[] = []
+    if (bufOpen) {
+      bufShown.forEach((lines, i) => {
+        bufBlock.push(
+          <Box key={`buf-part-${i}`} flexDirection="row" gap={1} width={todoWidth}>
+            <Box width={2}><Text dimColor>{String(i + 1)}</Text></Box>
+            <Box width={bufTextWidth} flexDirection="column">{lines.map(line => <Text>{line}</Text>)}</Box>
+            <Box flexGrow={1} />
+            {tick(['┤', ...lines.slice(1).map(() => '│')])}
+          </Box>,
+        )
+      })
+      if (bufHidden > 0) {
+        bufBlock.push(
+          <Box key="buf-more" flexDirection="row" gap={1} width={todoWidth} paddingLeft={3}>
+            <Text dimColor>{`… ${bufHidden} more`}</Text>
+            <Box flexGrow={1} />
+            {tick(['┤'])}
+          </Box>,
+        )
+      }
+      bufBlock.push(
+        <Box key="buf-actions" flexDirection="row" gap={1} width={todoWidth}>
+          <Box flexGrow={1} />
+          {pressable('buf-append', 'append', () => appendBuf($))}
+          {parts.length > 0 && pressable('buf-take', 'take', () => takeText($, parts.join('\n')))}
+          {parts.length > 0 && pressable('buf-clear', 'clear', () => changeBuf($, () => []))}
+          {tick(['┘'])}
+        </Box>,
+      )
+    }
+
     if (e.surface === 'desktop') {
       // Desktop draws in a proportional font: real flex layout instead of padded text and box-drawing glyphs.
       const { Svg } = $.ui.resolve(e)
@@ -690,7 +779,7 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Box flexDirection="column" alignItems="flex-end">
             <Box flexDirection="row" flexWrap="nowrap" gap={2} paddingRight={1}>{segs}</Box>
-            {(groups.length > 0 || todoBlock.length > 0) && (
+            {(groups.length > 0 || todoBlock.length > 0 || bufBlock.length > 0) && (
               <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1} rowGap={1}>
                 {groups.map((lines, g) => (
                   <Box key={`group-${g}`} flexDirection="column">
@@ -703,6 +792,7 @@ export const register: Register = on => {
                   </Box>
                 ))}
                 {todoBlock.length > 0 && <Box key="group-todo" flexDirection="column">{todoBlock}</Box>}
+                {bufBlock.length > 0 && <Box key="group-buf" flexDirection="column">{bufBlock}</Box>}
               </Box>
             )}
           </Box>
@@ -740,6 +830,7 @@ export const register: Register = on => {
             </Box>
           )}
           {todoBlock.length > 0 && <Box flexDirection="column">{todoBlock}</Box>}
+          {bufBlock.length > 0 && <Box flexDirection="column">{bufBlock}</Box>}
         </Box>
         {below}
       </Box>
