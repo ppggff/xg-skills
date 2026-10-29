@@ -413,8 +413,6 @@ async function tickTimes($: $): Promise<void> {
 }
 
 // Buf: drafts set aside from the prompt, one part per append; this session's own, mirrored to $.store for a resume.
-const BUF_ROWS = 4
-
 async function bufKey($: $): Promise<string> {
   return `buf:${await $.session.id()}`
 }
@@ -622,18 +620,24 @@ export const register: Register = on => {
     const hasTicks = !isDesktop && !isNarrow
     const todoTextWidth = Math.max(8, todoWidth - (hasTicks ? 16 : 14))
     const bufTextWidth = Math.max(8, todoWidth - (hasTicks ? 6 : 4))
-    // Buf rows are reserved before everything else: a preview of up to BUF_ROWS (a more row among them when parts are
-    // left out), then the actions row.
-    const wrapped = bufOpen ? parts.map(part => todoLines(part, bufTextWidth, 2)) : []
-    const bufFit = Math.min(BUF_ROWS, Math.max(2, bandRows - 1))
-    const bufCap = wrapped.flat().length > bufFit ? bufFit - 1 : bufFit
-    const bufShown: string[][] = []
-    let bufUsed = 0
-    for (const lines of wrapped) {
-      if (bufUsed + lines.length > bufCap) break
-      bufShown.push(lines)
-      bufUsed += lines.length
+    // Buf rows are reserved before everything else: whole parts while they fit (half the band when another detail is
+    // open too), a more row when parts are left out, then the actions row. Only a first part taller than that is cut.
+    const full = bufOpen ? parts.map(part => todoLines(part, bufTextWidth, Infinity)) : []
+    const bufFit = Math.max(2, (todoOpen || othersOpen ? Math.ceil(bandRows / 2) : bandRows) - 1)
+    const fitBuf = (cap: number): string[][] => {
+      const shown: string[][] = []
+      let used = 0
+      for (const [i, lines] of full.entries()) {
+        const kept = used + lines.length <= cap ? lines : i === 0 ? todoLines(parts[0]!, bufTextWidth, cap) : null
+        if (!kept) break
+        shown.push(kept)
+        used += kept.length
+      }
+      return shown
     }
+    const fitted = fitBuf(bufFit)
+    const bufShown = fitted.length < parts.length ? fitBuf(bufFit - 1) : fitted
+    const bufUsed = bufShown.flat().length
     const bufHidden = parts.length - bufShown.length
     const bufRows = bufOpen ? bufUsed + (bufHidden > 0 ? 1 : 0) + 1 : 0
     const allRows = Math.max(0, bandRows - bufRows)

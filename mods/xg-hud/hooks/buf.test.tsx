@@ -137,14 +137,43 @@ describe('buf segment', () => {
     expect(await ui.find({ type: 'Text', text: 'other session' })).toBeUndefined()
   })
 
-  test('a long buffer previews its first rows and counts the parts left out', async ($, on) => {
-    world(on, '', { 'buf:s1': ['one', 'two', 'three', 'four', 'five', 'six'] })
+  test('a multi-line part shows every line while the band has room', async ($, on) => {
+    world(on, '', { 'buf:s1': ['l1\nl2\nl3\nl4\nl5', 'next'] })
     await start($)
     const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
     await ui.press({ key: 'buf' })
-    expect(await ui.find({ type: 'Text', text: 'one' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: 'six' })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /… 3 more/ })).toBeDefined()
+    for (const line of ['l1', 'l2', 'l3', 'l4', 'l5', 'next']) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
+  })
+
+  test('only a part taller than the band is cut', async ($, on) => {
+    world(on, '', { 'buf:s1': ['l1\nl2\nl3\nl4\nl5\nl6'] })
+    await start($)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND, props: { hasSurvey: false, isWorking: false, maxRows: 5, bodyColumns: 100 } as never })
+    await ui.press({ key: 'buf' })
+    expect(await ui.find({ type: 'Text', text: 'l3 …' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'l4' })).toBeUndefined()
+  })
+
+  test('parts beyond the band are counted in a more row', async ($, on) => {
+    world(on, '', { 'buf:s1': Array.from({ length: 15 }, (_, i) => `p${i + 1}`) })
+    await start($)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'buf' })
+    expect(await ui.find({ type: 'Text', text: 'p9' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'p10' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /… 6 more/ })).toBeDefined()
+  })
+
+  test('with the todo list open too, the buf takes half the band', async ($, on) => {
+    world(on, '', { 'buf:s1': Array.from({ length: 15 }, (_, i) => `p${i + 1}`) })
+    await start($)
+    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'todo' })
+    await ui.press({ key: 'buf' })
+    expect(await ui.find({ type: 'Text', text: 'p4' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'p5' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /… 11 more/ })).toBeDefined()
   })
 
   test('a card title leaves room for the buf segment', async ($, on) => {
