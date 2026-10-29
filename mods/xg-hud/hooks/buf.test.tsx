@@ -88,7 +88,7 @@ describe('buf segment', () => {
       expect(await seg(ui)).toBe('buf 2 ▾')
     })
 
-    test(`clear empties it; take and clear show only while it holds something (${surface})`, async ($, on) => {
+    test(`clear takes two presses; take and clear show only while it holds something (${surface})`, async ($, on) => {
       const fake = world(on, 'keep me')
       const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
       await ui.press({ key: 'buf' })
@@ -97,9 +97,33 @@ describe('buf segment', () => {
       await ui.press({ key: 'buf-append' })
       expect(await ui.find({ type: 'Text', text: 'keep me' })).toBeDefined()
       await ui.press({ key: 'buf-clear' })
+      expect((await ui.find({ key: 'buf-clear' }))?.text).toBe('clear?')
+      expect(fake.store['buf:s1']).toEqual(['keep me'])
+      await ui.press({ key: 'buf-clear' })
       expect(await seg(ui)).toBe('buf ▾')
       expect(fake.store['buf:s1']).toBeUndefined()
       expect(await ui.find({ key: 'buf-take' })).toBeUndefined()
+    })
+
+    test(`an armed clear goes back to clear on take, append or closing the segment (${surface})`, async ($, on) => {
+      const fake = world(on, '', { 'buf:s1': ['A'] })
+      await start($)
+      const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
+      await ui.press({ key: 'buf' })
+      const clearText = async () => (await ui.find({ key: 'buf-clear' }))?.text
+      await ui.press({ key: 'buf-clear' })
+      await ui.press({ key: 'buf-take' })
+      expect(await clearText()).toBe('clear')
+      await ui.press({ key: 'buf-clear' })
+      fake.draft = 'B'
+      await ui.press({ key: 'buf-append' })
+      expect(await clearText()).toBe('clear')
+      await ui.press({ key: 'buf-clear' })
+      await ui.press({ key: 'buf' })
+      await ui.press({ key: 'buf' })
+      expect(await clearText()).toBe('clear')
+      await ui.press({ key: 'buf-clear' })
+      expect(fake.store['buf:s1']).toEqual(['A', 'B'])
     })
   }
 

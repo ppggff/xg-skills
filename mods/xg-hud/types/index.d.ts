@@ -63,6 +63,7 @@ declare module 'claude-code' {
       msgNow: number
       buf: string[]
       isBufOpen: boolean
+      isBufClearArmed: boolean
     }
   }
 }

@@ -24,6 +24,7 @@ const isMsgOpen = atom({ plugin: 'xg-hud', key: 'isMsgOpen' } as const, false)
 const msgNow = atom({ plugin: 'xg-hud', key: 'msgNow' } as const, 0)
 const buf = atom({ plugin: 'xg-hud', key: 'buf' } as const, [])
 const isBufOpen = atom({ plugin: 'xg-hud', key: 'isBufOpen' } as const, false)
+const isBufClearArmed = atom({ plugin: 'xg-hud', key: 'isBufClearArmed' } as const, false)
 
 type Ctx = { home: string; cwd: string; config: Config }
 type $ = EngineInterface
@@ -438,6 +439,16 @@ async function appendBuf($: $): Promise<void> {
   $.ui.toast(`Added to buf (${parts.length})`)
 }
 
+// Clear takes two presses: the first only arms it (clear?); the buf's other actions disarm it.
+async function clearBuf($: $): Promise<void> {
+  if (!(await read($, isBufClearArmed))) {
+    await update($, isBufClearArmed, () => true)
+    return
+  }
+  await update($, isBufClearArmed, () => false)
+  await changeBuf($, () => [])
+}
+
 async function restoreBuf($: $): Promise<void> {
   const saved = await $.store.get(await bufKey($))
   if (Array.isArray(saved) && (await read($, buf)).length === 0) await update($, buf, () => saved as string[])
@@ -533,6 +544,11 @@ export const register: Register = on => {
     const parts = await read($, buf)
     const bufOpen = await read($, isBufOpen)
     const bufText = `buf${parts.length ? ` ${parts.length}` : ''}${bufOpen ? ' ▾' : ''}`
+    const clearArmed = await read($, isBufClearArmed)
+    const disarmed = (then: () => unknown) => async () => {
+      await update($, isBufClearArmed, () => false)
+      await then()
+    }
     if (view !== null) {
       const counts = [pending && `${pending}c`, view.reads.length && `${view.reads.length}r`, written && `${written}w`].filter(Boolean)
       const text = `KB ${counts.length ? counts.join(' ') : '✓'}${kbOpen ? ' ▾' : ''}`
@@ -552,7 +568,7 @@ export const register: Register = on => {
       if (await update($, isTodoOpen, v => !v)) void syncTodos($)
     }
     all.push({ key: 'todo', text: todoText, onPress: toggleTodo, rank: 2 })
-    all.push({ key: 'buf', text: bufText, onPress: () => update($, isBufOpen, v => !v), rank: 4 })
+    all.push({ key: 'buf', text: bufText, onPress: disarmed(() => update($, isBufOpen, v => !v)), rank: 4 })
     if (msgText) {
       const toggleMsg = async () => {
         const now = await $.clock.now()
@@ -749,9 +765,9 @@ export const register: Register = on => {
       bufBlock.push(
         <Box key="buf-actions" flexDirection="row" gap={1} width={todoWidth}>
           <Box flexGrow={1} />
-          {pressable('buf-append', 'append', () => appendBuf($))}
-          {parts.length > 0 && pressable('buf-take', 'take', () => takeText($, parts.join('\n')))}
-          {parts.length > 0 && pressable('buf-clear', 'clear', () => changeBuf($, () => []))}
+          {pressable('buf-append', 'append', disarmed(() => appendBuf($)))}
+          {parts.length > 0 && pressable('buf-take', 'take', disarmed(() => takeText($, parts.join('\n'))))}
+          {parts.length > 0 && pressable('buf-clear', clearArmed ? 'clear?' : 'clear', () => clearBuf($))}
           {tick(['┘'])}
         </Box>,
       )
