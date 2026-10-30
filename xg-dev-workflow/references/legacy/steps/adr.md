@@ -30,11 +30,11 @@ To **dismiss** a category-match, write down **≥2 named alternatives + why each
 a one-line hand-wave doesn't clear it.
 
 ### What qualifies (recognisers, from grill-with-docs/ADR-FORMAT)
-- **Architectural shape** — "系统表走 fdbobj AM 而非 heap";"frozenxid 走 per-appserver shmem 而非 FDB key".
-- **Integration patterns between components** — "catalog_extension 经 proxy RPC 连 catalog_4x,不直连节点".
+- **Architectural shape** — "订单状态走事件溯源而非原地更新";"会话状态放进程内缓存而非集中式 KV".
+- **Integration patterns between components** — "计费服务经消息队列接收订单事件,不直连订单库".
 - **Technology / lock-in choices** — 存储后端、锁服务、重依赖,换掉要花一个季度的那种(不是每个库).
 - **Boundary & scope decisions** — "X 由 A 组件拥有,其它只按 ID 引用";刻意的"不做"和"做"一样值钱.
-- **Deliberate deviations from the obvious path** — "kernel 只加 hook、逻辑放 storage_am"这类反直觉选择,挡住下一个人"顺手改回去".
+- **Deliberate deviations from the obvious path** — "核心只加扩展点、逻辑放插件"这类反直觉选择,挡住下一个人"顺手改回去".
 - **Constraints not visible in code** — 合规、SLA、外部契约、环境限制.
 - **Non-obvious rejected alternatives** — 否掉某方案的理由很微妙时记下,否则半年后又有人提.
 

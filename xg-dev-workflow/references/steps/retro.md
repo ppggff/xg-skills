@@ -34,6 +34,10 @@ the workflow so the skill compounds — and prune, so it does not sediment.
    · 约束 · 模版 · 视角 · 元) and the two totals (lite face / whole skill incl. `references/legacy/` +
    `tools/legacy/`). Commit the skill repo (English message; new commits, never rewritten history). Re-score
    the usage log where user feedback contradicted a provisional score.
+   **The skill repo is public**: an incident from another project is cited by card id and its workflow-level
+   shape (what was skipped, misread or asked); that project's technical content — code identifiers or
+   snippets, architecture, test layout, measured values — stays in its card or KB. The same holds for commit
+   messages and for examples in step bodies, which use a neutral placeholder project (`acme-db`).
 
 ## Pruning pass — every retro
 

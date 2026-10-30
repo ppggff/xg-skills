@@ -4,6 +4,20 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-10-30 — the skill repo is public: incidents are cited by card id, never by another project's technical content
+
+- `steps/retro.md` step 5: a CHANGELOG entry, a commit message or a step-body example cites another project's incident
+  by card id and its workflow-level shape (what was skipped, misread or asked). That project's code identifiers or
+  snippets, architecture, test layout and measured values stay in its card or KB; step-body examples use a neutral
+  placeholder project (`acme-db`).
+- `references/legacy/steps/adr.md`: the ADR recogniser examples that described a real project's architecture now use
+  neutral ones. Content-only fix in a frozen file; the procedure is unchanged.
+- Why: a privacy scan of the full `main` history before a push found no personal data, but several CHANGELOG Why
+  paragraphs and the legacy ADR examples carried other projects' technical detail; step 5 named what the incident
+  record holds but not what it must leave out. Already-pushed entries stay as they are — the human (2026-10-30):
+  「已经push的就不改了……要给retro加个限制，不要技术细节」.
+- **体量行**: 元 81 · lite face otherwise unchanged.
+
 ## 2026-10-15 — every go, a go（续）included, carries its own grill and lens fields (card hashdata/013)
 
 - Go-4 is now per entry: each 授权记录 **go** / **go（续）** dated from 2026-10-16 carries `grill:` and `lens:`, as
