@@ -121,6 +121,14 @@ t("054: brightness is kept per theme; the bars and the date head set the indicat
   assert.match(css, /\.tm-name \{ pointer-events: none; \} \.tm-name::before \{[^}]*width: var\(--tm-nw, 220px\); pointer-events: auto; \}/);
 });
 
+t("a reload resumes the session: per tab, written on pagehide after a leave per pane, read before the board fallback", () => {
+  assert.match(js.core, /addEventListener\("pagehide", \(\) => \{\s*\["A", "B"\]\.forEach\(k => \{ if \(P\[k\]\.loc\) V\.emit\("leave", k, P\[k\]\.loc\); \}\);/);
+  assert.match(js.core, /sessionStorage\.setItem\(SESSION, /);
+  assert.doesNotMatch(js.core, /localStorage\.setItem\(SESSION/, "a new tab must not inherit another tab's panes");
+  assert.match(js.core, /if \(!resume\(\)\) V\.nav\("A", \{ kind: "board" \}, \{ push: false \}\);/);
+  assert.match(js.core, /V\.nav\(k, x\.loc, \{ push: false, user: false \}\)/, "a resumed doc neither pushes history nor counts as a new visit");
+});
+
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {

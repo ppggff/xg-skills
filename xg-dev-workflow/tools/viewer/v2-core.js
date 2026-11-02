@@ -494,6 +494,35 @@ var V2 = (function () {
     if (e.key === "Escape") { e.preventDefault(); if (!e.repeat && askDone) askDone(null); }
   }, true);
 
+  /* ---- session: a reload comes back to both panes, their histories and scroll places, as if it never happened.
+     Per tab (sessionStorage), so a new tab still opens on the board ---- */
+  const SESSION = "svd2-session";
+  addEventListener("pagehide", () => {
+    ["A", "B"].forEach(k => { if (P[k].loc) V.emit("leave", k, P[k].loc); });   // the area files keep what they keep on leaving: find terms, result scroll
+    const pane = k => ({ loc: V.here(P[k]), hist: P[k].hist, fwd: P[k].fwd, raw: P[k].rawKey || null });
+    const kc = $("#bscroll .kcols");
+    try {
+      sessionStorage.setItem(SESSION, JSON.stringify({ split: V.isSplit(), focus: V.focus, A: pane("A"), B: pane("B"),
+        board: [$("#bscroll").scrollTop, kc ? kc.scrollLeft : 0], tree: $("#tree").scrollTop }));
+    } catch (e) {}
+  });
+  function resume() {
+    let s = null; try { s = JSON.parse(sessionStorage.getItem(SESSION)); } catch (e) {}
+    const ok = x => x && x.loc && V.views[x.loc.kind];
+    if (!s || !ok(s.A)) return false;
+    const ks = s.split && !V.isNarrow() ? ["A", "B"] : ["A"];   // narrow reads in one pane
+    ks.forEach(k => {
+      const p = P[k], x = s[k]; p.hist = x && x.hist || []; p.fwd = x && x.fwd || []; p.rawKey = x && x.raw || null;
+      if (ok(x)) V.nav(k, x.loc, { push: false, user: false }); else V.setSplit(true);
+    });
+    V.setFocus(ks.includes(s.focus) ? s.focus : "A"); V.paintHist();
+    requestAnimationFrame(() => {
+      $("#tree").scrollTop = s.tree || 0;
+      const b = s.board || [], kc = $("#bscroll .kcols"); $("#bscroll").scrollTop = b[0] || 0; if (kc) kc.scrollLeft = b[1] || 0;
+    });
+    return true;
+  }
+
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
@@ -504,7 +533,7 @@ var V2 = (function () {
     V.emit("init");
     V.sizeClasses(); addEventListener("resize", V.sizeClasses);
     $("#tree").innerHTML = '<div class="hint">加载中…</div>';
-    V.load().then(() => { V.emit("data"); V.nav("A", { kind: "board" }, { push: false }); })
+    V.load().then(() => { V.emit("data"); if (!resume()) V.nav("A", { kind: "board" }, { push: false }); })
       .catch(e => { $("#bscroll").innerHTML = `<div class="empty-b">读不到数据：${esc(e.message)}</div>`; });
     setInterval(V.poll, V.CFG.pollMs);
   });
