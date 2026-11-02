@@ -55,10 +55,11 @@ describe('buf segment', () => {
       expect(await seg(ui)).toBe('buf')
       await ui.press({ key: 'buf' })
       await ui.press({ key: 'buf-append' })
-      expect(await seg(ui)).toBe('buf 1 ▾')
+      expect(await seg(ui)).toBe('buf 1')
       fake.draft = 'second part'
+      await ui.press({ key: 'buf' })
       await ui.press({ key: 'buf-append' })
-      expect(await seg(ui)).toBe('buf 2 ▾')
+      expect(await seg(ui)).toBe('buf 2')
     })
 
     test(`append moves the draft in and clears the prompt; an empty draft adds nothing (${surface})`, async ($, on) => {
@@ -70,22 +71,31 @@ describe('buf segment', () => {
       expect(fake.store['buf:s1']).toEqual(['draft one\nline two'])
       expect(fake.storedAtFill[0]).toEqual(['draft one\nline two'])
       fake.draft = '   '
+      await ui.press({ key: 'buf' })
       await ui.press({ key: 'buf-append' })
       expect(fake.draft).toBe('   ')
       expect(fake.store['buf:s1']).toEqual(['draft one\nline two'])
+      expect(await seg(ui)).toBe('buf 1 ▾')
     })
 
-    test(`take fills the prompt with every part and keeps them; a draft gets them on a new line (${surface})`, async ($, on) => {
+    test(`take moves every part into the prompt, empties the buf and closes it (${surface})`, async ($, on) => {
       const fake = world(on, '', { 'buf:s1': ['A', 'B'] })
       await start($)
       const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
       await ui.press({ key: 'buf' })
       await ui.press({ key: 'buf-take' })
       expect(fake.draft).toBe('A\nB')
-      fake.draft = 'mine'
+      expect(fake.store['buf:s1']).toBeUndefined()
+      expect(await seg(ui)).toBe('buf')
+    })
+
+    test(`take puts the parts on a new line after a draft (${surface})`, async ($, on) => {
+      const fake = world(on, 'mine', { 'buf:s1': ['A', 'B'] })
+      await start($)
+      const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
+      await ui.press({ key: 'buf' })
       await ui.press({ key: 'buf-take' })
       expect(fake.draft).toBe('mine\nA\nB')
-      expect(await seg(ui)).toBe('buf 2 ▾')
     })
 
     test(`clear takes two presses; take and clear show only while it holds something (${surface})`, async ($, on) => {
@@ -95,6 +105,7 @@ describe('buf segment', () => {
       expect(await ui.find({ key: 'buf-take' })).toBeUndefined()
       expect(await ui.find({ key: 'buf-clear' })).toBeUndefined()
       await ui.press({ key: 'buf-append' })
+      await ui.press({ key: 'buf' })
       expect(await ui.find({ type: 'Text', text: 'keep me' })).toBeDefined()
       await ui.press({ key: 'buf-clear' })
       expect((await ui.find({ key: 'buf-clear' }))?.text).toBe('clear?')
@@ -105,18 +116,16 @@ describe('buf segment', () => {
       expect(await ui.find({ key: 'buf-take' })).toBeUndefined()
     })
 
-    test(`an armed clear goes back to clear on take, append or closing the segment (${surface})`, async ($, on) => {
+    test(`an armed clear goes back to clear on append or closing the segment (${surface})`, async ($, on) => {
       const fake = world(on, '', { 'buf:s1': ['A'] })
       await start($)
       const ui = await $.ui.mount({ plugin: 'xg-hud', surface, ...BAND })
       await ui.press({ key: 'buf' })
       const clearText = async () => (await ui.find({ key: 'buf-clear' }))?.text
       await ui.press({ key: 'buf-clear' })
-      await ui.press({ key: 'buf-take' })
-      expect(await clearText()).toBe('clear')
-      await ui.press({ key: 'buf-clear' })
       fake.draft = 'B'
       await ui.press({ key: 'buf-append' })
+      await ui.press({ key: 'buf' })
       expect(await clearText()).toBe('clear')
       await ui.press({ key: 'buf-clear' })
       await ui.press({ key: 'buf' })
@@ -137,22 +146,15 @@ describe('buf segment', () => {
     expect(await ui.find({ type: 'Text', text: 'other session' })).toBeUndefined()
   })
 
-  test('a multi-line part shows every line while the band has room', async ($, on) => {
-    world(on, '', { 'buf:s1': ['l1\nl2\nl3\nl4\nl5', 'next'] })
+  test('each part shows one row: a multi-line or too-long part is cut with …', async ($, on) => {
+    world(on, '', { 'buf:s1': ['l1\nl2\nl3', 'w'.repeat(200), 'short'] })
     await start($)
     const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND })
     await ui.press({ key: 'buf' })
-    for (const line of ['l1', 'l2', 'l3', 'l4', 'l5', 'next']) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
-  })
-
-  test('only a part taller than the band is cut', async ($, on) => {
-    world(on, '', { 'buf:s1': ['l1\nl2\nl3\nl4\nl5\nl6'] })
-    await start($)
-    const ui = await $.ui.mount({ plugin: 'xg-hud', surface: 'terminal', ...BAND, props: { hasSurvey: false, isWorking: false, maxRows: 5, bodyColumns: 100 } as never })
-    await ui.press({ key: 'buf' })
-    expect(await ui.find({ type: 'Text', text: 'l3 …' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: 'l4' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: 'l1 …' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'l2' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /^w+ ?…$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'short' })).toBeDefined()
   })
 
   test('parts beyond the band are counted in a more row', async ($, on) => {

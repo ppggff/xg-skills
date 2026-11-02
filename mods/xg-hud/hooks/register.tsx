@@ -279,13 +279,14 @@ async function finishTodo($: $, item: HudTodo): Promise<boolean> {
   return true
 }
 
-// Copies into the prompt only; a todo leaves by done, the buf by clear.
-async function takeText($: $, text: string): Promise<void> {
+// Copies into the prompt; a todo leaves by done, the buf empties itself once the prompt holds the text.
+async function takeText($: $, text: string): Promise<boolean> {
   const { text: draft } = await $.prompt.read()
   const filled = draft.trim()
     ? await $.prompt.fill({ text: `\n${text}`, mode: 'append' })
     : await $.prompt.fill({ text, mode: 'replace' })
   if (!filled.isFilled) $.ui.toast('Prompt is not writable now')
+  return filled.isFilled
 }
 
 // Replaces the list with what the files hold now. Items added while the list ran are kept, and a failed list changes nothing.
@@ -434,7 +435,15 @@ async function appendBuf($: $): Promise<void> {
   }
   const parts = await changeBuf($, list => [...list, text])
   await $.prompt.fill({ text: '', mode: 'replace' })
+  await update($, isBufOpen, () => false)
   $.ui.toast(`Added to buf (${parts.length})`)
+}
+
+// Take moves every part into the prompt, so it empties the buf without asking; a prompt that refused the text keeps it.
+async function takeBuf($: $): Promise<void> {
+  if (!(await takeText($, (await read($, buf)).join('\n')))) return
+  await changeBuf($, () => [])
+  await update($, isBufOpen, () => false)
 }
 
 // Clear takes two presses: the first only arms it (clear?); the buf's other actions disarm it.
@@ -620,26 +629,13 @@ export const register: Register = on => {
     const hasTicks = !isDesktop && !isNarrow
     const todoTextWidth = Math.max(8, todoWidth - (hasTicks ? 16 : 14))
     const bufTextWidth = Math.max(8, todoWidth - (hasTicks ? 6 : 4))
-    // Buf rows are reserved before everything else: whole parts while they fit (half the band when another detail is
-    // open too), a more row when parts are left out, then the actions row. Only a first part taller than that is cut.
-    const full = bufOpen ? parts.map(part => todoLines(part, bufTextWidth, Infinity)) : []
+    // Buf rows are reserved before everything else: one row per part, cut with … (half the band when another detail is
+    // open too), a more row when parts are left out, then the actions row.
     const bufFit = Math.max(2, (todoOpen || othersOpen ? Math.ceil(bandRows / 2) : bandRows) - 1)
-    const fitBuf = (cap: number): string[][] => {
-      const shown: string[][] = []
-      let used = 0
-      for (const [i, lines] of full.entries()) {
-        const kept = used + lines.length <= cap ? lines : i === 0 ? todoLines(parts[0]!, bufTextWidth, cap) : null
-        if (!kept) break
-        shown.push(kept)
-        used += kept.length
-      }
-      return shown
-    }
-    const fitted = fitBuf(bufFit)
-    const bufShown = fitted.length < parts.length ? fitBuf(bufFit - 1) : fitted
-    const bufUsed = bufShown.flat().length
+    const bufCount = !bufOpen ? 0 : parts.length <= bufFit ? parts.length : bufFit - 1
+    const bufShown = parts.slice(0, bufCount).map(part => todoLines(part, bufTextWidth, 1))
     const bufHidden = parts.length - bufShown.length
-    const bufRows = bufOpen ? bufUsed + (bufHidden > 0 ? 1 : 0) + 1 : 0
+    const bufRows = bufOpen ? bufShown.length + (bufHidden > 0 ? 1 : 0) + 1 : 0
     const allRows = Math.max(0, bandRows - bufRows)
     // Todo rows come next (wrapped items from `at` on, a more row, the new/stash row); KB and card share the rest.
     const todoAvail = (othersOpen ? Math.max(3, Math.ceil(allRows / 2)) : allRows) - 2
@@ -751,9 +747,9 @@ export const register: Register = on => {
         bufBlock.push(
           <Box key={`buf-part-${i}`} flexDirection="row" gap={1} width={todoWidth}>
             <Box width={2}><Text dimColor>{String(i + 1)}</Text></Box>
-            <Box width={bufTextWidth} flexDirection="column">{lines.map(line => <Text>{line}</Text>)}</Box>
+            <Box width={bufTextWidth}><Text>{lines[0]}</Text></Box>
             <Box flexGrow={1} />
-            {tick(['┤', ...lines.slice(1).map(() => '│')])}
+            {tick(['┤'])}
           </Box>,
         )
       })
@@ -770,7 +766,7 @@ export const register: Register = on => {
         <Box key="buf-actions" flexDirection="row" gap={1} width={todoWidth}>
           <Box flexGrow={1} />
           {pressable('buf-append', 'append', disarmed(() => appendBuf($)))}
-          {parts.length > 0 && pressable('buf-take', 'take', disarmed(() => takeText($, parts.join('\n'))))}
+          {parts.length > 0 && pressable('buf-take', 'take', disarmed(() => takeBuf($)))}
           {parts.length > 0 && pressable('buf-clear', clearArmed ? 'clear?' : 'clear', () => clearBuf($))}
           {tick(['┘'])}
         </Box>,
