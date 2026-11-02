@@ -573,6 +573,43 @@ t("blockSpans: skips space tokens; a non-comment html token still counts (raw bl
   assert.equal(spans.length, 2);
   assert.deepEqual(spans[0], { start: 1, end: 3 });   // the leading space token's 1 line still counts toward ln
 });
+t("srcSlice: blocks i0..i1 run to the next block's first line, trailing blanks dropped; the last block runs to the end", () => {
+  const body = "# Title\n\npara one\nstill one\n\n<!-- c -->\n\n- a\n- b\n";
+  const spans = [{ start: 0, end: 2 }, { start: 2, end: 5 }, { start: 7, end: 9 }];
+  assert.equal(SV.srcSlice(body, spans, 0, 0), "# Title");
+  assert.equal(SV.srcSlice(body, spans, 0, 1), "# Title\n\npara one\nstill one");
+  assert.equal(SV.srcSlice(body, spans, 2, 2), "- a\n- b");
+});
+t("hlLines: one escaped html line per source line; unknown kinds only escape", () => {
+  assert.deepEqual(SV.hlLines("a < b\nc\n", "txt"), ["a &lt; b", "c"]);
+  assert.deepEqual(SV.hlLines("", "py"), [""]);
+});
+t("hlLines code: keywords, strings, numbers, line comments by language; a comment marker inside a string stays string", () => {
+  const [l] = SV.hlLines('def f(x): return "a#b" + 1  # note', "py");
+  assert.match(l, /<span class="hl-k">def<\/span>/); assert.match(l, /<span class="hl-s">&quot;a#b&quot;<\/span>/);
+  assert.match(l, /<span class="hl-n">1<\/span>/); assert.match(l, /<span class="hl-c"># note<\/span>$/);
+  assert.match(SV.hlLines("x = 1 // c", "go")[0], /<span class="hl-c">\/\/ c<\/span>/);
+  assert.doesNotMatch(SV.hlLines("#include <x>", "c")[0], /hl-c/, "# is no comment in C");
+  assert.match(SV.hlLines("SELECT 1 -- c", "sql")[0], /<span class="hl-k">SELECT<\/span>[\s\S]*<span class="hl-c">-- c<\/span>/);
+});
+t("hlLines code: a block comment carries across lines and ends where it closes", () => {
+  const ls = SV.hlLines("a /* one\ntwo\nthree */ b", "js");
+  assert.equal(ls[1], '<span class="hl-c">two</span>');
+  assert.match(ls[2], /^<span class="hl-c">three \*\/<\/span> b$/);
+});
+t("hlLines json/yaml: keys apart from values", () => {
+  assert.match(SV.hlLines('{"k": "v", "n": 2}', "json")[0], /<span class="hl-a">&quot;k&quot;<\/span>: <span class="hl-s">&quot;v&quot;<\/span>[\s\S]*<span class="hl-n">2<\/span>/);
+  assert.match(SV.hlLines("name: x", "yaml")[0], /^<span class="hl-a">name<\/span>: x$/);
+});
+t("hlLines md: frontmatter keys, headings, list marks, inline code and links; fenced lines are not read as markdown", () => {
+  const ls = SV.hlLines("---\nid: 1\n---\n# T\n- [x] see `a` and [[b]]\n```\n# not a heading\n```", "md");
+  assert.equal(ls[0], '<span class="hl-m">---</span>'); assert.match(ls[1], /^<span class="hl-a">id<\/span>: 1$/);
+  assert.equal(ls[3], '<span class="hl-h"># T</span>');
+  assert.match(ls[4], /^<span class="hl-m">- \[x\]<\/span> see <span class="hl-s">`a`<\/span> and <span class="hl-l">\[\[b\]\]<\/span>$/);
+  assert.equal(ls[6], '<span class="hl-q"># not a heading</span>');
+  assert.match(SV.hlLines("```python\nimport os\n```", "md")[1], /<span class="hl-k">import<\/span>/, "a fence with a language is highlighted as that language");
+  assert.equal(SV.hlLines("---\nx", "md")[1], "x", "an unclosed frontmatter keeps its non-key lines plain");
+});
 t("blockLineNumbers: 1-based file line = span.start + fmLines + 1", () => {
   const spans = [{ start: 0, end: 1 }, { start: 2, end: 3 }];
   assert.deepEqual(SV.blockLineNumbers(spans, 4), [5, 7]);

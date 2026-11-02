@@ -239,8 +239,9 @@
     if (!pb) { if (!e.target.closest("#selbar")) sb.classList.remove("on"); return; }
     setTimeout(() => {
       const s = window.getSelection(), txt = s.toString().trim();
-      if (!txt || txt.length > 160 || !s.rangeCount) { sb.classList.remove("on"); return; }
-      selK = V.paneOf(pb);
+      const k = V.paneOf(pb), d = P[k].doc, md = pb.classList.contains("pbody") && !!d && !d.src && !d.err && !P[k].chg, long = txt.length > 160;
+      if (!txt || (long && !md) || !s.rangeCount) { sb.classList.remove("on"); return; }
+      selK = k; sb.classList.toggle("srcok", md); sb.classList.toggle("long", long);
       const r = s.getRangeAt(0).getBoundingClientRect(); sb.classList.add("on");
       sb.style.left = Math.max(8, Math.min(innerWidth - sb.offsetWidth - 8, r.left + r.width / 2 - sb.offsetWidth / 2)) + "px";
       sb.style.top = (r.top - sb.offsetHeight - 8 < 40 ? r.bottom + 8 : r.top - sb.offsetHeight - 8) + "px";
@@ -249,6 +250,7 @@
   V.click("#selbar button", el => {
     const s = window.getSelection().toString().trim(), loc = P[selK].loc;
     $("#selbar").classList.remove("on");
+    if (el.dataset.s === "md" || el.dataset.s === "rich") return V.copySel(selK, window.getSelection().getRangeAt(0), el.dataset.s);
     if (el.dataset.s === "todo") return V.capture({ text: s, at: window.getSelection().anchorNode, k: selK });
     if (el.dataset.s === "find") open(selK, s); else V.copy(`${loc && loc.rel ? loc.rel.split("/").pop() : "搜索结果"}：「${s}」`, "已复制为引用");
   });

@@ -21,6 +21,7 @@
 @keyframes tocin { from { opacity: 0; transform: translateX(6px); } }
 .md pre { white-space: pre; }
 .app.narrow .md pre { white-space: pre-wrap; word-break: break-word; }
+.md.src.nowrap pre { white-space: pre; word-break: normal; padding-left: 0; } .md.src.nowrap .sl { display: flex; width: max-content; min-width: 100%; } .md.src.nowrap .sl::before { position: sticky; left: 0; flex: none; padding-right: 12px; background: var(--paper); opacity: 1; z-index: 1; }   /* unwrapped: a line's number holds the left edge while the line scrolls */
 .app.narrow .md table { display: table; width: auto; }   /* fits the pane and wraps in its cells, no sideways scroll, as in the classic shell */
 .app.narrow .md td, .app.narrow .md th { overflow-wrap: anywhere; }
 /* narrow: the left strip can go away entirely; the nav then opens as a drawer from the pane head */
@@ -78,6 +79,7 @@
 
 .app.phone .status > span:not(:first-child):not(:last-child) { display: none; }
 .app.phone #histPop { width: 94vw; }
+#trailPop { width: clamp(340px, 40vw, 640px); }   /* long paths read whole when there is room */
 .app.phone #trailPop, .app.phone #starPop { width: 88vw; }
 /* short (phone landscape) */
 /* a small screen (narrow or short): a lower detail, its progress as a number beside the governance, no bars */

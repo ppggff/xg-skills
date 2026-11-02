@@ -312,6 +312,82 @@ var SV = (function () {
   // 010: card-drawer "Decisions" rows from the ledger (active blocks only; "" = no ledger).
   function escd(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
+  // ---- code highlighting (source view, fenced blocks): one html string per line, a few token classes, state carried across lines ----
+  var HL_KW = {};
+  ("if else elif for while do return break continue def class import from as with try except finally raise func function var let const "
+    + "new this self None True False null true false nil package type struct interface map chan go defer switch case default in is not and "
+    + "or lambda yield async await pass global export extends static public private protected void int char long unsigned bool string fi "
+    + "then esac done local select from where insert update delete create table into values join on by group order").split(" ")
+    .forEach(function (w) { HL_KW[w] = 1; });
+  var HL_LANG = { hash: /^(py|python|sh|bash|zsh|shell|console|rb|ruby|pl|r|yaml|yml|toml|conf|cfg|ini|mk|make|cmake|dockerfile)$/,
+    slash: /^(js|javascript|mjs|cjs|ts|typescript|tsx|jsx|go|golang|c|h|cc|cpp|c\+\+|hpp|java|rs|rust|swift|kt|scala|css|scss|proto)$/, dash: /^(sql|plpgsql|lua|hs)$/ };
+  function hlKind(ext) {
+    ext = String(ext || "").toLowerCase();
+    if (ext === "md" || ext === "markdown") return "md";
+    if (ext === "json" || ext === "jsonl") return "json";
+    for (var k in HL_LANG) if (HL_LANG[k].test(ext)) return k;
+    return "";
+  }
+  function hsp(cls, s) { return s ? '<span class="' + cls + '">' + escd(s) + "</span>" : ""; }
+  var HL_STR = "\"(?:[^\"\\\\]|\\\\.)*\"?|'(?:[^'\\\\]|\\\\.)*'?|`(?:[^`\\\\]|\\\\.)*`?";
+  var HL_RE = {
+    hash: new RegExp("()(#)|(" + HL_STR + ")|(\\b\\d[\\w.]*)|([A-Za-z_]\\w*)", "g"),
+    slash: new RegExp("(\\/\\*)|(\\/\\/)|(" + HL_STR + ")|(\\b\\d[\\w.]*)|([A-Za-z_]\\w*)", "g"),
+    dash: new RegExp("()(--)|(" + HL_STR + ")|(\\b\\d[\\w.]*)|([A-Za-z_]\\w*)", "g"),
+    json: new RegExp("()()(" + HL_STR + ")|(-?\\b\\d[\\w.]*)|([A-Za-z_]\\w*)", "g"),
+  };
+  function hlCode(line, st, kind) {
+    var out = "", last = 0, re = HL_RE[kind], m, cls;
+    if (st.blk) {
+      var e = line.indexOf("*/"); if (e < 0) return hsp("hl-c", line);
+      out = hsp("hl-c", line.slice(0, e + 2)); last = e + 2; st.blk = false;
+    }
+    if (kind === "hash" && /^\s*[\w.-]+\s*[:=]/.test(line) && last === 0) {   // a config key
+      var k = /^(\s*)([\w.-]+)/.exec(line); out = escd(k[1]) + hsp("hl-a", k[2]); last = k[0].length;
+    }
+    re.lastIndex = last;
+    while ((m = re.exec(line))) {
+      out += escd(line.slice(last, m.index));
+      if (m[1]) {
+        var end = line.indexOf("*/", m.index + 2);
+        if (end < 0) { st.blk = true; return out + hsp("hl-c", line.slice(m.index)); }
+        out += hsp("hl-c", line.slice(m.index, end + 2)); last = re.lastIndex = end + 2; continue;
+      }
+      if (m[2]) return out + hsp("hl-c", line.slice(m.index));
+      if (m[3]) cls = kind === "json" && /^\s*:/.test(line.slice(m.index + m[3].length)) ? "hl-a" : "hl-s";
+      else if (m[4]) cls = "hl-n";
+      else cls = HL_KW[m[5]] || HL_KW[m[5].toLowerCase()] && kind === "dash" ? "hl-k" : "";
+      out += cls ? hsp(cls, m[0]) : escd(m[0]); last = re.lastIndex;
+    }
+    return out + escd(line.slice(last));
+  }
+  var MD_INLINE = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\[\[[^\]]+\]\]|\[[^\]]*\]\([^)]*\))|(<!--.*?-->)/g;
+  function hlMd(line, st, i) {
+    if (i === 0 && line === "---") { st.fm = true; return hsp("hl-m", line); }
+    if (st.fm) {
+      if (line === "---") { st.fm = false; return hsp("hl-m", line); }
+      var k = /^(\s*)([\w.-]+)(:)/.exec(line);
+      return k ? escd(k[1]) + hsp("hl-a", k[2]) + escd(line.slice(k[1].length + k[2].length)) : escd(line);
+    }
+    var f = /^\s*(```|~~~)\s*([\w+-]*)/.exec(line);
+    if (f) { st.fence = st.fence ? null : { kind: hlKind(f[2]), st: {} }; return hsp("hl-m", line); }
+    if (st.fence) return st.fence.kind && st.fence.kind !== "md" ? hlCode(line, st.fence.st, st.fence.kind) : hsp("hl-q", line);
+    if (st.com || /^\s*<!--/.test(line) && line.indexOf("-->") < 0) { st.com = line.indexOf("-->") < 0; return hsp("hl-c", line); }
+    if (/^#{1,6}\s/.test(line)) return hsp("hl-h", line);
+    var out = "", last = 0, m, lead = /^(\s*)([-*+]|\d+[.)]|>)(\s+\[[ xX]\])?(?=\s|$)/.exec(line);
+    if (lead) { out = escd(lead[1]) + hsp("hl-m", lead[2] + (lead[3] || "")); last = lead[0].length; }
+    MD_INLINE.lastIndex = last;
+    while ((m = MD_INLINE.exec(line))) {
+      out += escd(line.slice(last, m.index));
+      out += hsp(m[1] ? "hl-s" : m[2] ? "hl-b" : m[3] ? "hl-l" : "hl-c", m[0]); last = MD_INLINE.lastIndex;
+    }
+    return out + escd(line.slice(last));
+  }
+  function hlLines(text, ext) {
+    var kind = hlKind(ext), st = {}, lines = String(text).replace(/\n$/, "").split("\n");
+    return lines.map(function (l, i) { return kind === "md" ? hlMd(l, st, i) : kind ? hlCode(l, st, kind) : escd(l); });
+  }
+
   function decisionRows(decisions) {
     if (!decisions || !decisions.length) return "";
     var pend = decisions.filter(function (d) { return d.state !== "approved"; }).length;
@@ -397,6 +473,12 @@ var SV = (function () {
       ln += lines;
     });
     return spans;
+  }
+  // the source lines of blocks i0..i1, trailing blank lines dropped; a block before another ends on a newline, so its
+  // end is exclusive, while the last block may not, so it runs to the end of the body
+  function srcSlice(body, spans, i0, i1) {
+    var lines = String(body).split("\n");
+    return lines.slice(spans[i0].start, spans[i1 + 1] ? spans[i1].end : lines.length).join("\n").replace(/\s+$/, "");
   }
   function blockLineNumbers(spans, fmLines) {
     return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
@@ -806,7 +888,7 @@ var SV = (function () {
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows,
            governanceBadge: governanceBadge, clampMeasure: clampMeasure,
-           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers,
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers, srcSlice: srcSlice, hlLines: hlLines,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,

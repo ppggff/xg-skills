@@ -61,6 +61,9 @@ var V2 = (function () {
     up: svg('<path d="M6 15l6-6 6 6"/>', 2), down: svg('<path d="M6 9l6 6 6-6"/>', 2),
     doc: svg('<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4"/>'),
     code: svg('<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>', 1.7),
+    raw: svg('<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5V8h4M10.5 11.5L9 13.5l1.5 2M14.5 11.5l1.5 2-1.5 2"/>', 1.6),
+    wrap: svg('<path d="M4 6h16M4 12h13a3 3 0 0 1 0 6h-4M4 18h5"/><path d="M15 16l-2 2 2 2"/>', 1.7),
+    copy: svg('<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>', 1.7),
     tab: svg('<path d="M14 4h6v6M20 4l-8 8"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>', 1.7),
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>', 1.8),
     done: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.2),
@@ -85,6 +88,18 @@ var V2 = (function () {
     const done = () => V.toast(ok), no = () => V.toast("复制失败，浏览器没有允许");
     if (!(window.isSecureContext && navigator.clipboard)) return execCopy(text) ? done() : no();
     navigator.clipboard.writeText(text).then(done, () => (execCopy(text) ? done() : no()));
+  };
+  const execRich = html => {   // the same fallback for formatted text: select a hidden copy of the html
+    const d = document.createElement("div"); d.innerHTML = html; d.style.cssText = "position:fixed;left:-9999px;top:0";
+    document.body.appendChild(d); const s = getSelection(), r = document.createRange(); r.selectNodeContents(d); s.removeAllRanges(); s.addRange(r);
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {} s.removeAllRanges(); d.remove(); return ok;
+  };
+  V.copyRich = (html, text, ok) => {
+    const done = () => V.toast(ok), no = () => V.toast("复制失败，浏览器没有允许");
+    if (!(window.isSecureContext && navigator.clipboard && window.ClipboardItem)) return execRich(html) ? done() : no();
+    const blob = (x, type) => new Blob([x], { type });
+    navigator.clipboard.write([new ClipboardItem({ "text/html": blob(html, "text/html"), "text/plain": blob(text, "text/plain") })])
+      .then(done, () => (execRich(html) ? done() : no()));
   };
 
   /* ---- events between the area files ---- */

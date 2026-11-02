@@ -54,3 +54,7 @@
   --shadow: 0 12px 30px -14px rgba(0,0,0,.8), 0 1px 3px rgba(0,0,0,.4);
   --tile: var(--card);
 }
+
+/* ---- code highlighting (source view, fenced blocks): theme tokens only, so every theme colours it ---- */
+.hl-k { color: var(--active); } .hl-s { color: var(--done); } .hl-n { color: var(--paused); } .hl-a { color: var(--todo); } .hl-l, .hl-m { color: var(--sig); }
+.hl-c { color: var(--faint); font-style: italic; } .hl-h, .hl-b { color: var(--ink); font-weight: 700; } .hl-q { color: var(--mu); }

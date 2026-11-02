@@ -360,7 +360,7 @@ a.tr { text-decoration: none; }
 #rootPop .radd button { padding: 0 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); }
 #rootPop .rnote { display: block; margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
-.pane:not(.tododoc) .phd [data-t="tedit"], .pane:not(.pagedoc) .phd [data-t="newtab"], .pane.pagedoc .phd :is([data-t="find"], [data-t="hist"], [data-t="width"], [data-t="toc"]) { display: none; }   /* buttons a kind of doc has no use for */
+.pane:not(.mddoc) .phd :is([data-t="raw"], [data-t="copy"]), .pane:not(.srcdoc) .phd [data-t="wrap"], .pane:not(.tododoc) .phd [data-t="tedit"], .pane:not(.pagedoc) .phd [data-t="newtab"], .pane.pagedoc .phd :is([data-t="find"], [data-t="hist"], [data-t="width"], [data-t="toc"]) { display: none; }   /* buttons a kind of doc has no use for */
 .md .ttag, .titem .ttag, .ttbl .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
 .md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
   display: inline-grid; place-content: center; vertical-align: -2px; background: none; position: relative; }
@@ -483,8 +483,8 @@ a.tr { text-decoration: none; }
 .md .mermaid { margin: 0 0 14px; overflow-x: auto; }
 .md .mermaid svg { max-width: 100%; height: auto; }
 .md .merr { font: 400 var(--t-sm) var(--mono); color: var(--blocked); }
-.md.src { max-width: none; padding: 14px 0 60px; }
-.md.src pre { background: none; border-radius: 0; margin: 0; padding: 0 20px; }
+.md.src { padding: 14px 0 60px; } .md.src .sl { display: block; position: relative; }   /* source view: one block per line, wrapped unless .nowrap */
+.md.src pre { background: none; border-radius: 0; margin: 0; padding: 0 20px 0 52px; white-space: pre-wrap; word-break: break-word; } .md.src .sl::before { content: attr(data-n); position: absolute; left: -46px; width: 34px; text-align: right; color: var(--faint); opacity: .7; user-select: none; }
 .derr { padding: 40px 34px; color: var(--mu); font-size: var(--t-lg); line-height: 1.8; }
 .derr b { color: var(--blocked); font-weight: 500; }
 .fml { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 20px; font: 400 var(--t-sm) var(--mono); color: var(--mu); margin: 0 0 18px; }
@@ -659,7 +659,7 @@ a.tr { text-decoration: none; }
 }
 .chgbar code { font: 400 var(--t-xs) var(--mono); color: var(--sig); }
 .chgbar button { margin-left: auto; color: var(--sig); }
-#trailPop, #starPop { width: 340px; padding: 6px; }
+#trailPop, #starPop, #copyPop { width: 340px; padding: 6px; } #copyPop { width: 240px; }
 .sta {
   display: grid; grid-template-columns: 14px 1fr auto 18px; gap: 8px; align-items: center; width: 100%; padding: 5px 8px; border-radius: var(--r-sm);
   font: 400 var(--t-sm) var(--mono); color: var(--tx);
@@ -695,7 +695,7 @@ a.tr { text-decoration: none; }
 .fall:hover { color: var(--ink); background: var(--hover); }
 #selbar { display: flex; gap: 2px; padding: 3px; }
 #selbar button { padding: 4px 9px; border-radius: var(--r-md); font-size: var(--t-sm); }
-#selbar button:hover { background: var(--hover); }
+#selbar button:hover { background: var(--hover); } #selbar:not(.srcok) :is([data-s="md"], [data-s="rich"]), #selbar.long :is([data-s="find"], [data-s="copy"], [data-s="todo"]) { display: none; }
 
 /* ---- quick open ---- */
 .qo { position: fixed; inset: 0; z-index: 46; background: rgba(10,12,16,.25); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; animation: fadein .15s; }

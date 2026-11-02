@@ -231,10 +231,10 @@ t("Inv-6-f: scroll writers in priority order — explicit target, then (entering
   assert.ok(i0 > 0 && i0 < i1 && i1 < i2, "keep → target → anchor");
   assert.match(js.board, /const b = \$\("#bscroll"\), top = b\.scrollTop, kc = \$\("\.kcols", b\), left = kc \? kc\.scrollLeft : 0;/, "board re-render keeps both scroll axes");
 });
-t("Inv-6-g: nothing sticks to a bottom edge — the sticky elements are heads at the top: the table's and the time form's", () => {
+t("Inv-6-g: nothing sticks to a bottom edge — the sticky elements are heads at the top (the table's, the time form's) and the unwrapped source view's line numbers at the left", () => {
   const sticky = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*sticky[^}]*\}/g)];
-  assert.strictEqual(sticky.length, 2);
-  assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/); assert.match(sticky[1][0], /\.tm-head \{[^}]*top: 0/);
+  assert.strictEqual(sticky.length, 3);
+  assert.match(sticky[0][0], /\.tbl th[^{]*\{[^}]*top: 0/); assert.match(sticky[1][0], /\.sl::before \{[^}]*left: 0/); assert.match(sticky[2][0], /\.tm-head \{[^}]*top: 0/);
 });
 
 t("round 5: iOS keeps the text size on turning to landscape", () => {

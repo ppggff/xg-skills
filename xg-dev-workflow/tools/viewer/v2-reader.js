@@ -25,7 +25,7 @@
     return '<div class="phd">'
       + `<button class="ib navb" data-navb data-tip="导航" aria-label="导航">${V.I.menu}</button>`
       + V.paneHead(k) + '<div class="ppath"></div>'
-      + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("hist", "hist", "这篇文档的变更历史")
+      + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("raw", "raw", "查看原始文件") + b("wrap", "wrap", "源码折行：开 / 关") + b("copy", "copy", "复制全文") + b("hist", "hist", "这篇文档的变更历史")
       + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）")
       + b("newtab", "tab", "在新标签页打开这个网页") + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
@@ -101,6 +101,9 @@
       document.head.appendChild(s);
     }));
   }
+  const hlBlocks = root => $$('pre > code[class*="language-"]', root).forEach(c => {   // a fence with a language, coloured as the source view colours it
+    const m = /language-([\w+-]+)/.exec(c.className); if (m && m[1] !== "mermaid") c.innerHTML = SV.hlLines(c.textContent, m[1]).join("\n");
+  });
   function renderMermaid(k, root) {
     const codes = $$("pre > code.language-mermaid", root); if (!codes.length) return;
     ensureMermaid().then(m => codes.forEach((code, i) => {
@@ -192,6 +195,7 @@
   }
   function lineTarget(k, loc) {   // the block holding a source line, else (no line table) the section holding it
     const p = P[k];
+    if (p.doc.src) return $(`.sl[data-n="${loc.line}"]`, p.body);
     if (p.spans) { const i = p.spans.findIndex(s => loc.line - 1 - p.doc.fmLines <= s.end); return blocks(k)[i >= 0 ? i : p.spans.length - 1] || null; }
     const lines = [], hs = $$(".md h1,.md h2,.md h3,.md h4,.md h5,.md h6", p.body);
     p.doc.body.split("\n").forEach((l, i) => { if (/^#{1,6}\s+\S/.test(l)) lines.push({ line: i }); });
@@ -212,15 +216,17 @@
   }
   const slug = t => t.replace(/^#/, "").trim().toLowerCase().replace(/[^\w一-鿿]+/g, "-").replace(/^-+|-+$/g, "");
   function paint(k, loc, opt, text, mtime, version) {
-    const p = P[k], keepTop = p.body.scrollTop, src = !/\.md$/i.test(loc.rel);
+    const p = P[k], keepTop = p.body.scrollTop, raw = p.rawKey === keyOf(loc), src = !/\.md$/i.test(loc.rel) || raw;
+    const rb = $('[data-t="raw"]', p.el); rb.classList.toggle("on", raw); rb.dataset.tip = raw ? "回到渲染视图" : "查看原始文件";
     p.spans = null;
     const fm = src ? { fields: {}, body: text } : SV.parseFrontmatter(text);
     p.doc = { text, body: fm.body, fields: fm.fields, mtime, version, src, fmLines: text.split("\n").length - fm.body.split("\n").length };
     p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
-    const inner = src ? `<pre><code>${esc(text)}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
-    p.body.innerHTML = `<article class="md${src ? " src" : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
+    const ext = raw ? "md" : (/\.([^./]+)$/.exec(loc.rel) || [])[1];
+    const inner = src ? `<pre><code>${SV.hlLines(text, ext).map((h, i) => `<span class="sl" data-n="${i + 1}">${h}\n</span>`).join("")}</code></pre>` : fmLine(fm.fields) + window.marked.parse(fm.body);
+    p.body.innerHTML = `<article class="md${src ? " src" + (store.get("srcWrap", true) ? "" : " nowrap") : ""}${opt.entering && !V.RM ? " enter" : ""}" lang="en">${inner}</article>`;   // en: the system face picks PingFang's UI cut for Chinese, as the classic shell
     const md = $(".md", p.body);
-    if (!src) { markDoc(k, md, loc); renderMermaid(k, md); linkGit(k, md, loc); }
+    if (!src) { markDoc(k, md, loc); hlBlocks(md); renderMermaid(k, md); linkGit(k, md, loc); }
     applyMeasure(k); crumb(k, loc); lineNumbers(k);
     place(k, loc, opt, keepTop);
     p.chars = (md.textContent || "").replace(/\s/g, "").length;
@@ -253,7 +259,9 @@
   }
   V.views.doc = (k, loc, opt) => {
     const p = P[k]; p.chg = null; $(".chgbar", p.el).hidden = true;
-    p.el.classList.toggle("pagedoc", V.isPage(loc.rel));
+    p.el.classList.toggle("pagedoc", V.isPage(loc.rel)); p.el.classList.toggle("mddoc", /\.md$/i.test(loc.rel));
+    if (p.rawKey && p.rawKey !== keyOf(loc)) p.rawKey = null;   // the source view holds for one doc only
+    p.el.classList.toggle("srcdoc", !/\.md$/i.test(loc.rel) || p.rawKey === keyOf(loc));
     if (V.isPage(loc.rel)) return page(k, loc, opt);
     if (opt.entering) { p.cur = null; $$(".curline,.lastmark", p.body).forEach(x => x.remove()); }
     let mt = 0, ver = "";
@@ -273,7 +281,7 @@
   const M_LEFT = 12, M_MIN = 360, WNAME = { default: "默认", full: "铺满" };
   const hasCustom = m => typeof m.l === "number" && typeof m.w === "number";
   function applyMeasure(k) {
-    const md = $(".md", P[k].body); if (!md || md.classList.contains("src")) return;
+    const md = $(".md", P[k].body); if (!md) return;
     const m = MEAS[k], space = P[k].body.clientWidth - M_LEFT;   // the right rule needs a gap to sit in
     if (!$(".mrule", md)) md.insertAdjacentHTML("beforeend", '<i class="mrule" data-m="l" data-tip="拖动左边界"></i><i class="mrule" data-m="r" data-tip="拖动右边界"></i>');
     if (V.isNarrow()) { md.style.removeProperty("--m-l"); md.style.removeProperty("--m-w"); return; }   // full width, rules hidden by CSS
@@ -579,13 +587,50 @@
       if (p.loc !== loc) return;
       p.chg = sha;
       const top = p.body.scrollTop, md = changeArticle(d, loc, k);
-      p.body.innerHTML = ""; p.body.appendChild(md); renderMermaid(k, md); applyMeasure(k); lineNumbers(k); p.body.scrollTop = top;
+      p.body.innerHTML = ""; p.body.appendChild(md); hlBlocks(md); renderMermaid(k, md); applyMeasure(k); lineNumbers(k); p.body.scrollTop = top;
       const bar = $(".chgbar", p.el); bar.hidden = false;
       const what = sha === "worktree" ? "未提交的改动：磁盘上的当前版本，相对最近一次提交的新增与删除已标出（只读）" : `变更 <code>${esc(sha.slice(0, 7))}</code>：这次提交后的版本，新增与删除已标出（只读）`;
       bar.innerHTML = `<span>${what}</span><button data-chg="" data-pane="${k}">退出变更视图</button>`;
       crumb(k, loc); V.emit("rendered", k, false); if (k === tocK()) toc(); repaintHist(k);
     }).catch(() => { if (p.loc === loc) V.toast("这次提交的改动读不出来"); });
   }
+
+  /* ---- copy: the markdown source or formatted text, of a selection or the whole doc ---- */
+  function rich(frag) {   // reader chrome out, a diagram back to its source
+    const box = document.createElement("div"); box.appendChild(frag);
+    $$(".anc,.lnum,.curline,.lastmark,.mrule,.fml,.fmt", box).forEach(x => x.remove());
+    $$(".mermaid", box).forEach(m => { const pre = document.createElement("pre"); pre.textContent = m.dataset.src || ""; m.replaceWith(pre); });
+    return { html: box.innerHTML, text: (box.textContent || "").trim() };
+  }
+  V.copySel = (k, range, how) => {
+    const p = P[k];
+    if (how === "rich") { const r = rich(range.cloneContents()); return V.copyRich(r.html, r.text, "已复制带格式文本"); }
+    const hit = p.spans ? blocks(k).map((b, i) => (range.intersectsNode(b) ? i : -1)).filter(i => i >= 0) : [];
+    if (!hit.length) return V.toast("这段选区对不上原文的行，复制不了原文");
+    const md = SV.srcSlice(p.doc.body, p.spans, hit[0], hit[hit.length - 1]);
+    V.copy(md, `已复制原文（${md.split("\n").length} 行）`);
+  };
+  let copyK = "A";
+  V.click('.phd [data-t="copy"]', el => {
+    if (V.isPop("copyPop")) return V.closePops();
+    copyK = V.paneOf(el);
+    const it = (how, name, note) => `<button class="li" data-cp="${how}" role="menuitem"><span>${name}</span><em>${note}</em></button>`;
+    V.pop("copyPop", '<div class="pt">复制全文</div>' + it("md", "Markdown 原文", "整个文件") + it("rich", "带格式文本", "粘贴到文档、邮件"), el, "right");
+  });
+  V.click("[data-cp]", el => {
+    V.closePops();
+    const p = P[copyK]; if (!p.doc || p.doc.err) return;
+    if (el.dataset.cp === "md") return V.copy(p.doc.text, "已复制全文原文");
+    const md = $(".md", p.body), r = document.createRange(); r.selectNodeContents(md);
+    const x = rich(r.cloneContents()); V.copyRich(x.html, x.text, "已复制全文（带格式）");
+  });
+  const paintWrap = () => { const on = store.get("srcWrap", true); $$(".md.src").forEach(m => m.classList.toggle("nowrap", !on)); $$('[data-t="wrap"]').forEach(b => b.classList.toggle("on", on)); };
+  V.on("init", paintWrap);
+  V.click('.phd [data-t="wrap"]', el => { store.set("srcWrap", !store.get("srcWrap", true)); paintWrap(); V.emit("content", V.paneOf(el)); });
+  V.click('.phd [data-t="raw"]', el => {
+    const k = V.paneOf(el), p = P[k], l = p.loc; if (!l || l.kind !== "doc") return;
+    p.rawKey = p.rawKey === keyOf(l) ? null : keyOf(l); V.rerender(k);
+  });
 
   /* ---- clicks, keys, status ---- */
   function paintStar(k) {
