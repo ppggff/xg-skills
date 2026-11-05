@@ -79,7 +79,7 @@
 
 .app.phone .status > span:not(:first-child):not(:last-child) { display: none; }
 .app.phone #histPop { width: 94vw; }
-#trailPop { width: clamp(340px, 40vw, 640px); }   /* long paths read whole when there is room */
+#trailPop, #starPop { width: clamp(340px, 40vw, 640px); }   /* long paths read whole when there is room */
 .app.phone #trailPop, .app.phone #starPop { width: 88vw; }
 /* short (phone landscape) */
 /* a small screen (narrow or short): a lower detail, its progress as a number beside the governance, no bars */
