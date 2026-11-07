@@ -153,8 +153,8 @@
     h += `<div class="tsec"><button class="nm" data-fold-k="ext">外部目录</button><button class="tc" data-troots data-tip="设置外部目录">⚙</button>${ext.length ? ctl("ext") : ""}</div>`;
     if (isOpen("ext") && ext.length) h += nodeRows("ext", SV.buildTree(ext), "", 0, SV.sortCmp(sorts.ext.key, sorts.ext.dir), cur, false);
     tree.innerHTML = h; tree.scrollTop = top;
-    const cr = $("#tree .tr.cur:not([data-goboard])");
-    if (reveal && cr && (cr.offsetTop < tree.scrollTop || cr.offsetTop > tree.scrollTop + tree.clientHeight - 30)) tree.scrollTop = cr.offsetTop - tree.clientHeight / 3;
+    const cr = $("#tree .tr.cur:not([data-goboard])"), y = cr && cr.offsetTop - tree.offsetTop;   // offsetTop counts from #nav, above the tree's own top
+    if (reveal && cr && (y < tree.scrollTop || y > tree.scrollTop + tree.clientHeight - 30)) tree.scrollTop = y - tree.clientHeight / 3;
   }
   // opening a doc unfolds its ancestors for this session only — a programmatic expand is not a preference
   V.revealDoc = (tree, rel) => {
