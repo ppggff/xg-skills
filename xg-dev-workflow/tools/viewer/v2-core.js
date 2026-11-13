@@ -29,9 +29,19 @@ var V2 = (function () {
   /* ---- fetch ---- */
   V.api = p => fetch(p).then(r => {
     if (r.ok) return r;
+    if (r.status === 401) V.authLost();
     const e = new Error(p + " → " + r.status); e.status = r.status; throw e;
   });
   V.json = p => V.api(p).then(r => r.json());
+  // 059: a login that ran out shows a bar rather than leaving the page: whatever is typed but not yet written stays
+  V.AUTH = ($('meta[name="viewer-auth"]') || {}).content === "1";
+  V.authLost = () => {
+    if ($("#authbar")) return;
+    const b = document.createElement("button"); b.id = "authbar"; b.textContent = "登录已过期，点这里重新登录（没写入的内容请先复制）";
+    b.onclick = () => location.reload(); document.body.appendChild(b);
+  };
+  V.logout = () => fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" }, body: "{}" })
+    .then(() => location.reload(), () => V.toast("退出失败：连不上 viewer"));
 
   /* ---- small ui helpers ---- */
   const svg = (d, w = 1.6) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -465,10 +475,12 @@ var V2 = (function () {
     const h = $("#help"); h.hidden = !h.hidden; if (h.hidden) return;
     V.closePops();
     h.firstChild.innerHTML = '<div class="pt">快捷键</div><div class="hgrid">' + KEYS.map(([g, rows]) => `<section><h4>${g}</h4>`
-      + rows.map(([k, d]) => `<div><kbd>${esc(k)}</kbd><span>${esc(d)}</span></div>`).join("") + "</section>").join("") + "</div>";
+      + rows.map(([k, d]) => `<div><kbd>${esc(k)}</kbd><span>${esc(d)}</span></div>`).join("") + "</section>").join("") + "</div>"
+      + (V.AUTH ? '<div class="hout"><button data-logout>退出登录</button><span>只对这个浏览器生效；登录 7 天内免输口令，用着就一直有效</span></div>' : "");
   };
   V.hotkey("?", () => V.toggleHelp());
   V.click("#helpBtn", () => V.toggleHelp());
+  V.click("[data-logout]", () => V.logout());
   document.addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
   V.layer(70, () => !$("#help").hidden, () => { $("#help").hidden = true; });
 

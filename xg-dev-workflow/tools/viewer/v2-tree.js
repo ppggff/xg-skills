@@ -192,6 +192,7 @@
   const roots = (op, path, trusted) => fetch("/api/roots", { method: "POST", headers: { "Content-Type": "application/json", "X-SV-Write": "1" },
     body: JSON.stringify(trusted == null ? { op, path } : { op, path, trusted }) })
     .then(r => r.json().catch(() => ({})).then(d => {
+      if (r.status === 401) return V.authLost();
       if (!r.ok) return V.toast(d.error || "没改成（" + r.status + "）");
       if (op === "add") reveal.add("ext");   // show what was just added
       return V.load().then(() => V.emit("data")).then(() => rootPop($("[data-troots]"), d.roots));

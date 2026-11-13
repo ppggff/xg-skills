@@ -133,14 +133,15 @@ async function stopChrome({ child, cdp, userDir }) {
 
 // --- viewer lifecycle ---------------------------------------------------------
 async function viewerUp(url) {
-  try { const r = await fetch(new URL("/api/rev", url), { signal: AbortSignal.timeout(1500) }); return r.ok ? await r.json() : null; }
+  try { const r = await fetch(new URL("/api/rev", url), { signal: AbortSignal.timeout(1500) }); return r.status === 401 ? { locked: true } : r.ok ? await r.json() : null; }
   catch { return null; }
 }
 async function ensureViewer(url) {
   const rev = await viewerUp(url);
+  if (rev && rev.locked) throw new Error(`the viewer on ${url} asks for a password — point --url at a free port and a --no-auth viewer is started there`);
   if (rev) return { rev, stop: () => {} };
   const port = new URL(url).port || "80";
-  const child = spawn("python3", [join(HERE, "..", "viewer.py"), "--no-browser", "--port", port], { stdio: "ignore" });
+  const child = spawn("python3", [join(HERE, "..", "viewer.py"), "--no-browser", "--no-auth", "--port", port], { stdio: "ignore" });
   for (let i = 0; i < 40; i++) { await sleep(250); const r = await viewerUp(url); if (r) return { rev: r, stop: () => child.kill() }; }
   child.kill(); throw new Error("viewer did not come up on " + url);
 }

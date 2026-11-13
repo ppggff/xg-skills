@@ -777,6 +777,8 @@ a.tr { text-decoration: none; }
   font: 400 var(--t-sm) var(--cjk); padding: 7px 12px; border-radius: 99px; opacity: 0; transition: opacity .2s, transform .25s var(--ease); pointer-events: none;
 }
 #toast.on { opacity: 1; transform: translate(-50%,0); }
+#authbar { position: fixed; z-index: 60; top: 0; left: 50%; transform: translateX(-50%); padding: 6px 16px; border-radius: 0 0 var(--r-lg) var(--r-lg); background: var(--blocked); color: var(--paper); font: 600 var(--t-md) var(--cjk); box-shadow: var(--shadow); }
+.hout { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--ln); font: 400 var(--t-sm) var(--cjk); color: var(--mu); } .hout button { color: var(--blocked); font: 600 var(--t-sm) var(--cjk); }
 #link { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 #link path { fill: none; stroke: var(--sig); stroke-width: 1.2; }
 #link circle { fill: var(--sig); }

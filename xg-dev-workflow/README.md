@@ -105,7 +105,11 @@ colour, requirements as bars, a moment's state in the card detail), doc/KB brows
 **gitweb companion**; needs `lighttpd` (syntax highlighting in gitweb when `highlight` is installed; tabs show 4 wide), disable with `--no-gitweb`; `/` is the main frontend (`/v2` is an alias), and the frozen classic one stays at
 `/v1` on the same data, with its own remembered settings; read-only extra directories come from an optional `extra_roots:` list in the shared config or from the page
 (kept in `viewer-roots.json` beside it); its todo view keeps markdown files in `<dev_root>/todo/`, the only files the viewer
-writes besides that list); `retro` improves the workflow. The
+writes besides that list; every client, loopback included, logs in with an access password set once by
+`python3 tools/viewer.py --set-password` (a salted hash in `viewer-auth.json` beside the shared config — until it exists the
+viewer runs locked, and a new one takes effect without a restart and ends every login), a login lasting 7 days after its
+last use; `--no-auth` asks for none; with `--lan` the password crosses the network as plain http, so prefer `ssh -L` on a
+network you do not trust); `retro` improves the workflow. The
 legacy phase verbs (`requirement` / `design` / `detail` / `plan` / `test` / `change`) exist only for 存量
 cards and are defined in `references/legacy/SKILL.md`.
 
