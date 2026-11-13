@@ -1,0 +1,31 @@
+/* status viewer v2 — the todo panel (⌘J): the quick open's form, its rows the todo view's items, and the
+   top-bar button's open count. */
+.tdpbox { width: min(640px,100%); display: flex; flex-direction: column; max-height: 80vh; }
+.tdin { display: flex; align-items: center; gap: 4px; padding-left: 14px; border-bottom: 1px solid var(--ln); color: var(--todo); }
+.tdin svg { flex: none; width: 16px; height: 16px; }
+.qbox .tdin input.tdq { border-bottom: 0; padding-left: 8px; font-family: var(--cjk); }
+.tdn { flex: none; padding-right: 14px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); white-space: nowrap; }
+.tdadd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 7px 16px; background: var(--sigs); border-bottom: 1px solid var(--ln); font: 400 var(--t-sm) var(--cjk); color: var(--mu); }
+.tdadd[hidden] { display: none; }
+.tdadd .k { color: var(--sig); font-weight: 600; }
+.tdadd select { height: 22px; border: 1px solid var(--ln2); border-radius: var(--r-sm); background: var(--paper); color: var(--tx); font: inherit; }
+.tdadd label { min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }
+.tdadd label code { font: 400 var(--t-xs) var(--mono); color: var(--tx); overflow: hidden; text-overflow: ellipsis; }
+.tdadd input[type=checkbox] { margin: 0; accent-color: var(--sig); }
+.tdadd .to { margin-left: auto; color: var(--faint); }
+.tdlist { flex: 1; min-height: 0; max-height: 60vh; overflow: auto; padding: 4px 5px; }
+.tdlist .hint { padding: 14px 11px; }
+.titem.tdr { border: 0; border-radius: var(--r-sm); padding: 5px 11px; cursor: pointer; font-size: var(--t-md); }
+.titem.tdr.sel { background: var(--sigs); }
+.titem.tdr .tck { border-radius: 50%; }
+.titem.tdr.fresh { animation: tdfresh 1.6s var(--ease); }
+@keyframes tdfresh { from { background: var(--hit); } }
+.tdf { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
+.tdundo { display: flex; align-items: center; gap: 12px; padding: 7px 16px; border-top: 1px solid var(--ln); background: var(--card); font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
+.tdundo[hidden] { display: none; }
+.tdundo button { margin-left: auto; color: var(--sig); font: 600 var(--t-sm) var(--cjk); }
+.tdpbox .qf [data-tdall] { margin-left: auto; color: var(--sig); }
+#todoBtn[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -2px; right: -5px; min-width: 15px; height: 13px; padding: 0 3px; border-radius: 7px;
+  background: var(--todo); color: var(--paper); font: 600 9px/13px var(--mono); text-align: center; pointer-events: none; }
+#todoBtn.late[data-n]:not([data-n=""])::after { background: var(--blocked); }
+@media (max-width: 760px) { #tdp { padding: 0; } .tdpbox { width: 100%; max-height: 100dvh; border-radius: 0; } }

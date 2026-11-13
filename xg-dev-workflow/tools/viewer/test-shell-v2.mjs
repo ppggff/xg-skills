@@ -10,7 +10,7 @@ import vm from "node:vm";
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), "utf8");
 const AREAS = ["core", "tree", "board", "time", "reader", "search", "find", "todo", "edit"];
-const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css") + "\n" + read("v2-time.css");
+const page = read("shell-v2.html"), css = read("v2-themes.css") + "\n" + read("v2.css") + "\n" + read("v2-widths.css") + "\n" + read("v2-time.css") + "\n" + read("v2-todo.css");
 const js = Object.fromEntries(AREAS.map((a) => [a, read(`v2-${a}.js`)]));
 const allJs = Object.values(js).join("\n");
 const viewerPy = read("../viewer.py");
@@ -48,7 +48,7 @@ t("a table group heading keeps its distance whether or not a dots row sits above
 t("a multi-line todo: the todo view counts the further lines; the reader renders a todo file as any doc", () => {
   assert.doesNotMatch(js.reader, /breaks: true|todoReadable/);
   assert.match(js.todo, /it\.more\.length \? `<span class="tmore"/);
-  assert.equal((js.todo.match(/\$\{moreHTML\(it\)\}/g) || []).length, 2);   // the list form and the table
+  assert.equal((js.todo.match(/\$\{moreHTML\(it\)\}/g) || []).length, 3);   // the list form, the table and the panel
   assert.match(css, /#tip \.tfull \{ white-space: pre-wrap;/);
 });
 
@@ -132,7 +132,7 @@ t("a reload resumes the session: per tab, written on pagehide after a leave per 
 t("every area file parses", () => { for (const a of AREAS) new vm.Script(js[a], { filename: `v2-${a}.js` }); });
 
 t("Q-4: each file stays under ~800 lines", () => {
-  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ["v2-themes.css", read("v2-themes.css")], ["v2-time.css", read("v2-time.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
+  for (const [f, src] of [["shell-v2.html", page], ["v2.css", read("v2.css")], ["v2-widths.css", read("v2-widths.css")], ["v2-themes.css", read("v2-themes.css")], ["v2-time.css", read("v2-time.css")], ["v2-todo.css", read("v2-todo.css")], ...AREAS.map((a) => [`v2-${a}.js`, js[a]])])
     assert.ok(src.split("\n").length <= 820, `${f} has ${src.split("\n").length} lines`);
 });
 
@@ -254,6 +254,18 @@ t("043 Req-4: the history labels uncommitted changes, not a sha", () => {
 });
 t("046 Req-62: the editor's selection is see-through, so the highlighted text under the textarea stays readable", () => {
   assert.match(css, /\.ted \.tta::selection \{ background: color-mix\(in srgb, var\(--sig\) \d+%, transparent\);/);
+});
+
+t("058 Req-2: one todo panel — ⌘J, the top-bar button, t and 记为 todo all open it; a tick goes through the one [data-tck] handler", () => {
+  assert.match(js.todo, /V\.chord\.j = \(\) => V\.todoPanel\(\);/);
+  assert.match(js.todo, /V\.hotkey\("t", \(\) => V\.todoPanel\(\)\);/);
+  assert.match(js.todo, /V\.capture = opt => V\.todoPanel\(opt\);/);
+  assert.match(page, /<button class="ib" id="todoBtn"[^>]*data-key="⌘J"/);
+  assert.doesNotMatch(page, /id="cap"/);
+  assert.match(js.todo, /<button class="tck" data-tck="\$\{esc\(it\.file\)\}\|\$\{it\.line\}"/);
+  assert.doesNotMatch(js.todo.slice(js.todo.indexOf("the todo panel")), /todoWrite\("tick", it\./);   // no second tick path for the panel's rows
+  assert.match(js.todo, /else if \(e\.key === "Escape"\) \{ e\.preventDefault\(\); if \(inp\.value\)/);   // esc clears first, then closes
+  assert.match(css, /#todoBtn\.late\[data-n\]:not\(\[data-n=""\]\)::after \{ background: var\(--blocked\); \}/);
 });
 
 t("058 Req-1: a page's theme rides its URL as ~light / ~dark — its own choice, else the viewer's light or dark; a change reloads it", () => {

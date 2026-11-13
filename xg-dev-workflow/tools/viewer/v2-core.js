@@ -12,7 +12,7 @@ var V2 = (function () {
   V.GITWEB = ($('meta[name="gitweb-url"]') || {}).content || "";
   V.ROOT_NAME = { dev: "dev_root", kb: "知识库", ext: "外部目录" };   // ext docs carry their extra root's label as the first path segment
   // behaviour numbers, in one place: refresh period, how long a toast stays, and the list sizes
-  V.CFG = { pollMs: 2500, toastMs: 1900, trail: 12, qoRecent: 8, qoDocs: 40, qoCards: 8 };
+  V.CFG = { pollMs: 2500, toastMs: 1900, undoMs: 5000, trail: 12, qoRecent: 8, qoDocs: 40, qoCards: 8 };
 
   /* ---- storage: every key this page writes is svd2-*, never the classic shell's sv-* ---- */
   V.store = {
@@ -455,10 +455,11 @@ var V2 = (function () {
   V.click("[data-lum0]", el => { const k = el.dataset.lum0; V.setLum(k, 100); const i = $(`[data-lum="${k}"]`); if (i) { i.value = 100; i.nextElementSibling.textContent = "100%"; } });
 
   /* ---- help: every key in one panel ---- */
-  const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"], ["⌃⇧ + 键", "代替 ⌘ + 键（单按 ⌃ 留给文字编辑）"]]],
+  const KEYS = [["全局", [["⌘K", "搜索文档、卡片与 Fact"], ["⌘J / t", "todo 面板：筛选、新增、勾完成"], ["/", "全文搜索"], ["b", "看板"], ["[ ]", "焦点栏后退、前进"], ["\\", "打开或关闭右栏"], ["?", "这个面板"], ["esc", "一次关一层"], ["⌃⇧ + 键", "代替 ⌘ + 键（单按 ⌃ 留给文字编辑）"]]],
     ["文档", [["f", "在本文查找"], ["h", "钉住选中的词"], ["⇧H", "清空钉住词"], ["s", "加或取消星标"], ["⇧ 点击", "在另一栏打开"], ["↵", "跟随聚焦的引用或链接"]]],
     ["看板", [["方向键", "移动选中的卡"], ["↵ / 双击", "打开 design.md"], ["⇧ 点击", "在另一栏打开"]]],
     ["查找框", [["↵ ⇧↵", "下一个、上一个"], ["⌘↵", "钉住这个词"], ["↑ ↓", "查找历史"]]],
+    ["todo 面板", [["↵ ⇧↵", "打开条目，或在另一栏打开"], ["⌥↵", "勾完成（可撤销）"], ["⌘↵", "把输入记为新条目"], ["esc", "先清空，再关闭"]]],
     ["⌘K", [["↑ ↓", "选择"], ["↵", "打开"], ["⇧↵", "在另一栏打开"], ["⌘↵", "全文搜索"], ["⇧⌘↵", "在另一栏全文搜索"]]]];
   V.toggleHelp = () => {
     const h = $("#help"); h.hidden = !h.hidden; if (h.hidden) return;
@@ -530,7 +531,7 @@ var V2 = (function () {
   /* ---- boot: after every area file has registered ---- */
   document.addEventListener("DOMContentLoaded", () => {
     P.A.el = $("#pA"); P.B.el = $("#pB");
-    const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", themeBtn: "theme",
+    const ICONS = { filesBtn: "folder", back: "back", fwd: "fwd", trailBtn: "clock", starBtn: "star", qBtn: "search", todoBtn: "done", themeBtn: "theme",
       navTog: "colL", sideTog: "colR", sideOpen: "colL" };
     Object.keys(ICONS).forEach(id => { $("#" + id).innerHTML = V.I[ICONS[id]]; });
     $('#nav [data-goboard]').innerHTML = V.I.grid;
