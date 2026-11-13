@@ -19,7 +19,7 @@
   V.findK = () => (V.view === "doc" || V.view === "search" ? V.navPane() : null);
 
   /* ---- the index: the pane's readable text, whitespace folded, with a run table back to text nodes ---- */
-  const SKIP = ".anc,.lnum,.mrule,.curline,.lastmark,.fml,.fmt,style,script";
+  const SKIP = ".anc,.lnum,.mrule,.curline,.lcopy,.lastmark,.fml,.fmt,style,script";
   function buildIndex(k) {
     const md = root(k); if (!md) return null;
     const shells = [], w = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest(SKIP) ? 2 : 1) });

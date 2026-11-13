@@ -36,7 +36,7 @@
   const BLANK = '<div class="empty"><div><svg width="42" height="28" viewBox="0 0 46 30" fill="none" stroke="currentColor">'
     + '<rect x=".5" y=".5" width="45" height="29" rx="3"/><path d="M23 .5v29"/><path d="M28 9h12M28 14h9M28 19h11" opacity=".5"/></svg>'
     + "点正文里的 [Fact-n]，或按住 ⇧ 点一个链接，<br>文档会在这一栏打开。</div></div>";
-  const BLOCK_SEL = ".md p,.md li,.md h1,.md h2,.md h3,.md h4,.md h5,.md h6,.md pre,.md tr,.md blockquote,.md .mermaid";
+  const BLOCK_SEL = ".md.src .sl,.md p,.md li,.md h1,.md h2,.md h3,.md h4,.md h5,.md h6,.md pre,.md tr,.md blockquote,.md .mermaid";
   V.on("init", () => ["A", "B"].forEach(k => {
     const p = P[k]; p.el.innerHTML = shell(k); p.body = $(".pbody", p.el); p.doc = null;
     if (k === "B") p.body.innerHTML = BLANK;
@@ -53,7 +53,7 @@
   const tocK = () => { const f = V.navPane(), o = V.other(f); return shown(f) ? f : shown(o) ? o : null; };   // whose headings the side column lists
 
   /* ---- reading place: per (pane, doc), a content anchor first and pixels as the fallback ---- */
-  const NOT_BLOCK = /^(lnum|curline|lastmark|mrule|fml|fmt)$/;
+  const NOT_BLOCK = /^(lnum|curline|lcopy|lastmark|mrule|fml|fmt)$/;
   const blocks = k => $$(".md > *", P[k].body).filter(el => ![...el.classList].some(c => NOT_BLOCK.test(c)));
   V.lineOf = (k, el) => {   // 0-based source line (frontmatter included) of the top-level block holding el, when blocks map 1:1
     const p = P[k], i = p.spans ? blocks(k).findIndex(b => b.contains(el)) : -1;
@@ -290,7 +290,7 @@
     if (p.rawKey && p.rawKey !== keyOf(loc)) p.rawKey = null;   // the source view holds for one doc only
     p.el.classList.toggle("srcdoc", !/\.md$/i.test(loc.rel) || p.rawKey === keyOf(loc));
     if (V.isPage(loc.rel)) return page(k, loc, opt);
-    if (opt.entering) { p.cur = null; $$(".curline,.lastmark", p.body).forEach(x => x.remove()); }
+    if (opt.entering) { p.cur = null; $$(".curline,.lcopy,.lastmark", p.body).forEach(x => x.remove()); }
     let mt = 0, ver = "";
     V.api("/raw/" + loc.tree + "/" + loc.rel).then(r => { mt = +r.headers.get("X-Mtime") || 0; ver = r.headers.get("X-Version") || ""; return r.text(); })
       .then(t => { if (p.loc === loc && !p.chg) paint(k, loc, opt, t, mt, ver); })
@@ -369,6 +369,9 @@
     const top = rect.top - (h - rect.height) / 2 + (row ? 0 : inkShift(blk));
     ov.style.top = (top - mr.top - 1) + "px"; ov.style.height = (h + 2) + "px";
     ov.style.left = (padL - 8) + "px"; ov.style.width = (mr.width - padL - padR + 16) + "px";
+    let cb = $(".lcopy", md);   // the band's copy button sits above the text, so it is a sibling, not the band's child
+    if (!cb) { cb = document.createElement("button"); cb.className = "lcopy"; cb.dataset.lcopy = k; cb.dataset.tip = "复制这一行（y 原文 · ⇧Y 纯文本）"; cb.setAttribute("aria-label", "复制这一行"); cb.innerHTML = V.I.copy; md.appendChild(cb); }
+    cb.style.top = (top - mr.top + h / 2 - 10) + "px"; cb.style.left = (mr.width - padR + 10) + "px";
     P[k].cur = { blk, off: clientY == null ? null : clientY - blk.getBoundingClientRect().top };
   }
   function recur(k) {
@@ -625,7 +628,7 @@
   /* ---- copy: the markdown source or formatted text, of a selection or the whole doc ---- */
   function rich(frag) {   // reader chrome out, a diagram back to its source
     const box = document.createElement("div"); box.appendChild(frag);
-    $$(".anc,.lnum,.curline,.lastmark,.mrule,.fml,.fmt", box).forEach(x => x.remove());
+    $$(".anc,.lnum,.curline,.lcopy,.lastmark,.mrule,.fml,.fmt", box).forEach(x => x.remove());
     $$(".mermaid", box).forEach(m => { const pre = document.createElement("pre"); pre.textContent = m.dataset.src || ""; m.replaceWith(pre); });
     return { html: box.innerHTML, text: (box.textContent || "").trim() };
   }
@@ -637,6 +640,42 @@
     const md = SV.srcSlice(p.doc.body, p.spans, hit[0], hit[hit.length - 1]);
     V.copy(md, `已复制原文（${md.split("\n").length} 行）`);
   };
+  // 058: the current line without a selection — markdown source (a table row's line, a list item's marker line, else the
+  // whole block) or plain text (a row's cells tab-separated); the source view copies its own line either way
+  function lineCopy(k) {
+    const p = P[k], c = p && p.cur, blk = c && c.blk;
+    if (!blk || !blk.isConnected || !p.doc || p.doc.err) return null;
+    if (blk.matches(".sl")) { const s = blk.textContent.replace(/\n$/, ""); return { md: s, text: s }; }
+    const unit = blk.matches(".md li > p") ? blk.parentElement : blk;
+    const strip = el => { const x = el.cloneNode(true); $$(".anc,.lnum,ul,ol", x).forEach(y => { if (y !== x) y.remove(); }); return (x.textContent || "").replace(/\s*\n\s*/g, " ").trim(); };
+    const text = unit.matches("tr") ? [...unit.cells].map(strip).join("\t") : unit.matches("li") ? strip(unit) : rich((() => { const r = document.createRange(); r.selectNodeContents(unit); return r.cloneContents(); })()).text;
+    const els = blocks(k), i = p.spans ? els.findIndex(b => b.contains(unit)) : -1;
+    if (i < 0) return { md: text, text };
+    const src = SV.srcSlice(p.doc.body, p.spans, i, i), top = els[i];
+    const part = unit.matches("tr") && top === unit.closest("table") ? SV.partLine(src, "row", [...top.rows].indexOf(unit))
+      : unit.matches("li") && top.matches("ul,ol") ? SV.partLine(src, "item", $$("li", top).indexOf(unit)) : null;
+    return { md: part || src, text };
+  }
+  V.copyLine = (k, how) => {
+    const x = k && lineCopy(k); if (!x) return V.toast("先点一下要复制的那一行");
+    V.copy(x[how], how === "md" ? "已复制这一行的原文" : "已复制这一行（纯文本）");
+  };
+  V.hotkey("y", () => { const k = V.readingK(); if (!k || !lineCopy(k)) return false; V.copyLine(k, "md"); });
+  V.hotkey("Y", () => { const k = V.readingK(); if (!k || !lineCopy(k)) return false; V.copyLine(k, "text"); });
+  // ⌘C with nothing selected copies the current line's source; a selection, or a text field, keeps the browser's own copy
+  document.addEventListener("copy", e => {
+    if (String(window.getSelection()) || (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]"))) return;
+    const k = V.readingK(), x = k && lineCopy(k); if (!x || !e.clipboardData) return;
+    e.clipboardData.setData("text/plain", x.md); e.preventDefault(); V.toast("已复制这一行的原文");
+  });
+  let lineK = "A";
+  V.click("[data-lcopy]", el => {
+    if (V.isPop("copyPop")) return V.closePops();
+    lineK = el.dataset.lcopy;
+    const it = (how, name, note) => `<button class="li" data-lcp="${how}" role="menuitem"><span>${name}</span><em>${note}</em></button>`;
+    V.pop("copyPop", '<div class="pt">复制这一行</div>' + it("md", "Markdown 原文", "y") + it("text", "纯文本", "⇧Y · 表格行以 tab 分隔"), el, "right");
+  });
+  V.click("[data-lcp]", el => { V.closePops(); V.copyLine(lineK, el.dataset.lcp); });
   let copyK = "A";
   V.click('.phd [data-t="copy"]', el => {
     if (V.isPop("copyPop")) return V.closePops();

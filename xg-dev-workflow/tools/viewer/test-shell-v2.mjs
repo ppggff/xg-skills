@@ -231,7 +231,7 @@ t("Inv-6-e: a failed render drops what hung off the last good one", () => {
   assert.match(rendered, /if \(!root\(k\)\) \{ h\.hits = \[\]; h\.cur = -1; if \(HL\) names\(k\)\.forEach\(n => CSS\.highlights\.delete\(n\)\); rail\(k\); count\(k\); return; \}/);
   const fail = js.reader.match(/function fail\(k, loc, e\) \{[\s\S]*?\n {2}\}/)[0];
   assert.match(fail, /V\.emit\("rendered", k, true\)/, "the error branch announces its (empty) content");
-  assert.match(js.reader, /if \(opt\.entering\) \{ p\.cur = null; \$\$\("\.curline,\.lastmark", p\.body\)\.forEach\(x => x\.remove\(\)\); \}/);
+  assert.match(js.reader, /if \(opt\.entering\) \{ p\.cur = null; \$\$\("\.curline,\.lcopy,\.lastmark", p\.body\)\.forEach\(x => x\.remove\(\)\); \}/);
 });
 t("Inv-6-f: scroll writers in priority order — explicit target, then (entering) the remembered place, else stay", () => {
   const place = js.reader.match(/function place\(k, loc, opt, keepTop\) \{[\s\S]*?\n {2}\}/)[0];
@@ -254,6 +254,17 @@ t("043 Req-4: the history labels uncommitted changes, not a sha", () => {
 });
 t("046 Req-62: the editor's selection is see-through, so the highlighted text under the textarea stays readable", () => {
   assert.match(css, /\.ted \.tta::selection \{ background: color-mix\(in srgb, var\(--sig\) \d+%, transparent\);/);
+});
+
+t("058 Req-3: the current line copies without a selection — y source, Y plain text, ⌘C only when nothing is selected outside a field", () => {
+  assert.match(js.reader, /const BLOCK_SEL = "\.md\.src \.sl,/);   // the source view's own lines are current lines too
+  assert.match(js.reader, /SV\.partLine\(src, "row", \[\.\.\.top\.rows\]\.indexOf\(unit\)\)/);
+  assert.match(js.reader, /SV\.partLine\(src, "item", \$\$\("li", top\)\.indexOf\(unit\)\)/);
+  assert.match(js.reader, /document\.addEventListener\("copy", e => \{\n    if \(String\(window\.getSelection\(\)\) \|\| \(e\.target\.closest && e\.target\.closest\("input,textarea,select,\[contenteditable\]"\)\)\) return;/);
+  assert.doesNotMatch(js.reader + js.core, /V\.chord\.c\b/);   // a chord would swallow the native copy in text fields
+  assert.match(js.reader, /V\.hotkey\("y", /);
+  assert.match(js.reader, /V\.hotkey\("Y", /);
+  assert.match(js.find, /const SKIP = "[^"]*\.lcopy/);
 });
 
 t("058 Req-2: one todo panel — ⌘J, the top-bar button, t and 记为 todo all open it; a tick goes through the one [data-tck] handler", () => {

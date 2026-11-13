@@ -520,6 +520,8 @@ a.tr { text-decoration: none; }
 /* current line: set by click or TOC jump, never by scrolling; bright in the focused pane */
 .curline { position: absolute; pointer-events: none; z-index: -1; border-radius: 3px; background: var(--hover); }
 .pane.focus .curline { background: color-mix(in srgb, var(--sig) 13%, transparent); }
+.lcopy { position: absolute; z-index: 2; width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--faint); }
+.lcopy:hover { color: var(--sig); background: var(--hover); } .lcopy svg { width: 14px; height: 14px; }
 .lastmark { position: absolute; left: 8px; width: 14px; height: 1.5px; border-radius: 1px; background: var(--sig); pointer-events: none; animation: lastin .3s var(--ease); transition: opacity .4s; }
 .lastmark.out { opacity: 0; }
 @keyframes lastin { from { opacity: 0; transform: translateX(-4px); } }

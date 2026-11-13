@@ -578,7 +578,24 @@ t("srcSlice: blocks i0..i1 run to the next block's first line, trailing blanks d
   const spans = [{ start: 0, end: 2 }, { start: 2, end: 5 }, { start: 7, end: 9 }];
   assert.equal(SV.srcSlice(body, spans, 0, 0), "# Title");
   assert.equal(SV.srcSlice(body, spans, 0, 1), "# Title\n\npara one\nstill one");
-  assert.equal(SV.srcSlice(body, spans, 2, 2), "- a\n- b");
+  assert.equal(SV.srcSlice(body, spans, 2, 2), "- a\n- b");  // 058: a list or quote whose raw has no final newline — its span ends a line short, the slice still takes the line
+  const b2 = "- one\n- two\n\n> quote\n\npara\n";
+  assert.equal(SV.srcSlice(b2, [{ start: 0, end: 1 }, { start: 3, end: 3 }, { start: 5, end: 5 }], 0, 0), "- one\n- two");
+  assert.equal(SV.srcSlice(b2, [{ start: 0, end: 1 }, { start: 3, end: 3 }, { start: 5, end: 5 }], 1, 1), "> quote");
+});
+t("058 partLine: a table's i-th row skips the delimiter row; a list's i-th item (depth-first) is its i-th marker line outside fences", () => {
+  const table = "| a | b |\n| --- | --- |\n| x \\| y | 1 |\n| z | 2 |";
+  assert.equal(SV.partLine(table, "row", 0), "| a | b |");
+  assert.equal(SV.partLine(table, "row", 1), "| x \\| y | 1 |");
+  assert.equal(SV.partLine(table, "row", 2), "| z | 2 |");
+  assert.equal(SV.partLine(table, "row", 3), null);
+  const list = "- one\n  - nested\n    ```\n    - not an item\n    ```\n  more of nested\n1. ordered\n* star";
+  assert.equal(SV.partLine(list, "item", 0), "- one");
+  assert.equal(SV.partLine(list, "item", 1), "  - nested");
+  assert.equal(SV.partLine(list, "item", 2), "1. ordered");
+  assert.equal(SV.partLine(list, "item", 3), "* star");
+  assert.equal(SV.partLine(list, "item", 4), null);
+  assert.equal(SV.partLine("- [ ] task\n- [x] done", "item", 1), "- [x] done");
 });
 t("hlLines: one escaped html line per source line; unknown kinds only escape", () => {
   assert.deepEqual(SV.hlLines("a < b\nc\n", "txt"), ["a &lt; b", "c"]);

@@ -474,11 +474,26 @@ var SV = (function () {
     });
     return spans;
   }
-  // the source lines of blocks i0..i1, trailing blank lines dropped; a block before another ends on a newline, so its
-  // end is exclusive, while the last block may not, so it runs to the end of the body
+  // the source lines of blocks i0..i1, trailing blank lines dropped; the last block runs to the end of the body. A
+  // list or quote token's raw may lack its final newline, so its span stops a line short: the slice takes the
+  // non-blank lines that follow, up to a blank line, a comment or the next block
   function srcSlice(body, spans, i0, i1) {
-    var lines = String(body).split("\n");
-    return lines.slice(spans[i0].start, spans[i1 + 1] ? spans[i1].end : lines.length).join("\n").replace(/\s+$/, "");
+    var lines = String(body).split("\n"), next = spans[i1 + 1], e = next ? spans[i1].end : lines.length;
+    while (next && e < next.start && lines[e].trim() && !/^\s*<!--/.test(lines[e])) e++;
+    return lines.slice(spans[i0].start, e).join("\n").replace(/\s+$/, "");
+  }
+  // 058: the source line of one part of a block: a table's row i (header 0; the delimiter row is not a row), or a list's
+  // item i in depth-first order (its marker line; markers inside a fenced block do not count); null when out of range
+  function partLine(src, kind, i) {
+    var lines = String(src).split("\n");
+    if (kind === "row") { var j = i === 0 ? 0 : i + 1; return j < lines.length && lines[j].trim() ? lines[j] : null; }
+    var fence = null, n = 0;
+    for (var k = 0; k < lines.length; k++) {
+      var f = /^\s*(`{3,}|~{3,})/.exec(lines[k]);
+      if (f) { if (fence === null) fence = f[1]; else if (f[1].charAt(0) === fence.charAt(0) && f[1].length >= fence.length) fence = null; continue; }
+      if (fence === null && /^\s*([-*+]|\d{1,9}[.)])(\s|$)/.test(lines[k]) && n++ === i) return lines[k];
+    }
+    return null;
   }
   function blockLineNumbers(spans, fmLines) {
     return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
@@ -888,7 +903,7 @@ var SV = (function () {
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows,
            governanceBadge: governanceBadge, clampMeasure: clampMeasure,
-           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers, srcSlice: srcSlice, hlLines: hlLines,
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers, srcSlice: srcSlice, partLine: partLine, hlLines: hlLines,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
