@@ -190,6 +190,19 @@ class TIntegration(unittest.TestCase):
         self.assertIn("demo", body)                                     # symlinked git-dir listed with clean projid
         self.assertIn('href="/gitweb/?p=demo;a=summary"', body)      # gitweb's own links stay under the viewer's prefix
 
+    def test_a_key_shuts_out_direct_requests(self):   # 059: another local user cannot read the repos off the loopback port
+        self.proc.terminate(); self.proc.wait(timeout=3)
+        self.lcfg = gwc.write_configs(self.runtime, self.disc, self.port, key="k3y")
+        self.assertTrue(gwc._validate(self.disc["lighttpd"], self.lcfg), "generated lighttpd config invalid")
+        self.proc = subprocess.Popen([self.disc["lighttpd"], "-D", "-f", str(self.lcfg)])
+        self.assertTrue(gwc._await_up(self.proc, self.port, key="k3y"))   # up, confirmed with the key
+        self.assertEqual(self._get("127.0.0.1:%d" % self.port), 403)       # no key
+        req = urllib.request.Request("http://127.0.0.1:%d/" % self.port, headers={"Host": "127.0.0.1:%d" % self.port, "X-Viewer-Key": "wrong"})
+        with self.assertRaises(urllib.error.HTTPError):
+            urllib.request.urlopen(req, timeout=3)
+        req = urllib.request.Request("http://127.0.0.1:%d/" % self.port, headers={"Host": "127.0.0.1:%d" % self.port, "X-Viewer-Key": "k3y"})
+        self.assertEqual(urllib.request.urlopen(req, timeout=3).status, 200)
+
     def test_responses_close_the_connection(self):
         self.assertTrue(gwc._await_up(self.proc, self.port))
         import http.client   # urllib always asks for Connection: close itself; a browser asks for keep-alive

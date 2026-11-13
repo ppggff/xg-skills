@@ -587,6 +587,163 @@ class TExtraRoots(unittest.TestCase):
                 viewer._gw._rp._load = saved
 
 
+class TAuth(unittest.TestCase):
+    """059: the access password — a locked viewer until one is set, a login page and 401s without a live login,
+    a 7-day login that slides with use, page keys that outlive a restart, and the gitweb port behind a shared key."""
+    GETS = ["/raw/dev/a.md", "/api/tree", "/api/tree?html=1", "/api/board", "/api/diff?card=p/001", "/api/trace?card=p/001",
+            "/api/log", "/api/search?q=x", "/api/rev", "/api/filelog?path=dev/a.md", "/api/filediff?path=dev/a.md&sha=worktree",
+            "/api/branchlog?repo=r&branch=b", "/api/roots", "/api/history", "/api/shas?h=abc", "/gitweb/", "/nope"]
+    SHELLS = ["/", "/v2", "/v1"]
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp()).resolve()
+        (self.tmp / "dev").mkdir(); (self.tmp / "kb").mkdir()
+        (self.tmp / "dev" / "a.md").write_text("SECRETWORD", encoding="utf-8")
+        (self.tmp / "dev" / "p.html").write_text("<p>page</p>", encoding="utf-8")
+        self.saved = viewer._rp.config_path
+        viewer._rp.config_path = lambda: self.tmp / "cfg" / "config.yaml"
+        self.httpd, self.base = start(self.tmp / "dev", self.tmp / "kb")
+        viewer.Handler.auth_file = viewer.auth_path()
+
+    def tearDown(self):
+        viewer._rp.config_path = self.saved
+        viewer.Handler.auth_file, viewer.Handler._auth, viewer.Handler.auth_fails = None, (None, None), 0
+        self.httpd.shutdown(); self.httpd.server_close()
+
+    def req(self, path, method="GET", body=None, cookie=None, headers=None):
+        h = dict(headers or {})
+        if body is not None:
+            h.update({"Content-Type": "application/json", "X-SV-Write": "1"})
+        if cookie:
+            h["Cookie"] = cookie
+        r = urllib.request.Request(self.base + path, data=None if body is None else json.dumps(body).encode(), method=method, headers=h)
+        try:
+            resp = urllib.request.urlopen(r, timeout=5)
+            return resp.status, resp.headers, resp.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers, e.read().decode("utf-8", "replace")
+
+    def login(self, pw="pw-1"):
+        st, h, _ = self.req("/api/login", "POST", {"password": pw})
+        return st, (h.get("Set-Cookie") or "").split(";")[0]
+
+    def test_locked_until_a_password_is_set(self):   # Req-1-e, Req-1-d
+        st, _, body = self.req("/")
+        self.assertEqual(st, 200)
+        self.assertIn("status viewer", body)
+        self.assertIn("--set-password", body)
+        self.assertNotIn("SECRETWORD", body)
+        self.assertEqual(self.req("/api/board")[0], 503)
+        self.assertEqual(self.req("/assets/v2.css")[0], 200)
+        viewer.write_auth(viewer.auth_path(), "pw-1")            # no restart: the next request sees it
+        st, _, body = self.req("/")
+        self.assertEqual(st, 200)
+        self.assertIn("status viewer", body)
+        self.assertIn('type="password"', body)
+
+    def test_every_route_needs_a_login(self):   # Inv-1, Req-1-a
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        for p in self.GETS:
+            st, _, body = self.req(p)
+            self.assertEqual(st, 401, p)
+            self.assertNotIn("SECRETWORD", body, p)
+        for p in self.SHELLS:
+            st, _, body = self.req(p)
+            self.assertEqual(st, 200, p)
+            self.assertIn('type="password"', body, p)
+        st, _, _ = self.req("/api/todo", "POST", {"op": "append", "file": "inbox.md", "version": "", "text": "x"})
+        self.assertEqual(st, 401)
+        st, cookie = self.login()
+        self.assertEqual(st, 200)
+        for p in self.GETS[:3] + ["/api/rev"]:
+            self.assertEqual(self.req(p, cookie=cookie)[0], 200, p)
+        self.assertIn("SECRETWORD", self.req("/raw/dev/a.md", cookie=cookie)[2])
+
+    def test_login_checks_and_slows_failures(self):   # Req-1-c
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        waits = []
+        with unittest.mock.patch.object(viewer.time, "sleep", waits.append):
+            for _ in range(3):
+                self.assertEqual(self.login("wrong")[0], 401)
+            self.assertEqual(self.login("pw-1")[0], 200)
+            self.assertEqual(self.login("wrong")[0], 401)
+        self.assertEqual(waits, [0, 0.5, 1.5, 3.5, 0])   # a success resets the count
+        st, _, _ = self.req("/api/login", "POST", {"password": "pw-1"}, headers={"Origin": "http://evil.example"})
+        self.assertEqual(st, 403)                          # the writes' cross-site guard holds for the login too
+
+    def test_login_slides_and_expires(self):   # Req-2-a
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        now = [1_800_000_000.0]
+        with unittest.mock.patch.object(viewer.time, "time", lambda: now[0]):
+            st, cookie = self.login()
+            self.assertIn("HttpOnly", self.req("/api/login", "POST", {"password": "pw-1"})[1]["Set-Cookie"])
+            now[0] += 6 * 86400                              # used again within the week: signed anew
+            st, h, _ = self.req("/api/rev", cookie=cookie)
+            self.assertEqual(st, 200)
+            fresh = h["Set-Cookie"].split(";")[0]
+            self.assertNotEqual(fresh, cookie)
+            self.assertIn("Max-Age=604800", h["Set-Cookie"])
+            self.assertIsNone(self.req("/api/rev", cookie=fresh)[1]["Set-Cookie"])   # signed less than an hour ago: left as it is
+            now[0] += 6 * 86400
+            self.assertEqual(self.req("/api/rev", cookie=cookie)[0], 401)   # the old one is past its week
+            self.assertEqual(self.req("/api/rev", cookie=fresh)[0], 200)
+            now[0] += 8 * 86400
+            self.assertEqual(self.req("/api/rev", cookie=fresh)[0], 401)
+
+    def test_logout_and_a_new_password_end_logins(self):   # Req-2-b, Req-1-f, Req-3-a
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        _, cookie = self.login()
+        st, h, _ = self.req("/api/logout", "POST", {}, cookie=cookie)
+        self.assertEqual(st, 200)
+        self.assertIn("Max-Age=0", h["Set-Cookie"])
+        key = viewer.Handler._page_key(None)
+        viewer.Handler.page_secret = os.urandom(16)        # a restart: the per-run secret changes, the keys do not
+        self.assertEqual(viewer.Handler._page_key(None), key)
+        viewer.write_auth(viewer.auth_path(), "pw-2")
+        self.assertEqual(self.req("/api/rev", cookie=cookie)[0], 401)
+        self.assertNotEqual(viewer.Handler._page_key(None), key)
+        self.assertEqual(self.login("pw-1")[0], 401)
+        self.assertEqual(self.login("pw-2")[0], 200)
+
+    def test_pages_go_by_their_key(self):   # /page/ needs no cookie: a sandboxed page's own requests carry none
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        key = viewer.Handler._page_key(None)
+        self.assertEqual(self.req("/page/%s/dev/p.html" % key)[0], 200)
+        self.assertEqual(self.req("/page/%s/dev/p.html" % ("0" * 20))[0], 404)
+
+    def test_the_gitweb_proxy_carries_the_key(self):   # Req-1-g: the companion answers only requests with it
+        seen = []
+        class Up(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a): pass
+            def do_GET(self):
+                seen.append(self.headers.get("X-Viewer-Key"))
+                self.send_response(200); self.send_header("Content-Type", "text/html"); self.end_headers(); self.wfile.write(b"gitweb")
+        up = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Up)
+        threading.Thread(target=up.serve_forever, daemon=True).start()
+        saved = (viewer.Handler.gitweb_port, viewer.Handler.gitweb_key)
+        viewer.Handler.gitweb_port, viewer.Handler.gitweb_key = up.server_address[1], "k3y"
+        try:
+            viewer.write_auth(viewer.auth_path(), "pw-1")
+            self.assertEqual(self.req("/gitweb/")[0], 401)
+            self.assertEqual(seen, [])                         # nothing forwarded without a login
+            _, cookie = self.login()
+            self.assertEqual(self.req("/gitweb/", cookie=cookie)[0], 200)
+            self.assertEqual(seen, ["k3y"])
+        finally:
+            viewer.Handler.gitweb_port, viewer.Handler.gitweb_key = saved
+            up.shutdown(); up.server_close()
+
+    def test_the_file_holds_no_password(self):   # Inv-2
+        p = viewer.auth_path()
+        viewer.write_auth(p, "pw-plain-text")
+        self.assertEqual(p.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("pw-plain-text", p.read_text(encoding="utf-8"))
+        self.assertEqual(sorted(x.name for x in p.parent.iterdir()), ["viewer-auth.json"])   # no temp file left behind
+        _, cookie = self.login("pw-plain-text")
+        for path in self.GETS[:4]:
+            self.assertNotIn(json.loads(p.read_text())["secret"], self.req(path, cookie=cookie)[2], path)
+
+
 class TPage(unittest.TestCase):
     """056: html pages under /page/<key>/… — one key for trusted files and one per untrusted root, sandboxed when
     untrusted, confined like /raw."""

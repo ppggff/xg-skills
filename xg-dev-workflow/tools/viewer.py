@@ -15,7 +15,12 @@ Security (R6): binds 127.0.0.1 only; every route checks the Host header is local
 a page from an untrusted extra root is served sandboxed (an opaque origin), and trusted files and
 each untrusted root's files sit under their own per-run key, so neither other sites nor an untrusted
 page can address a file outside its own root;
-the shell + vendored asset come from a hardcoded repo path, never a user path. Writes go only
+the shell + vendored asset come from a hardcoded repo path, never a user path.
+Access (059): a password is asked of every client, loopback included — set it with --set-password (it lives as a salted
+hash beside a secret in one 0600 file next to the shared config); without one the viewer runs locked. A login is a
+signed cookie good for 7 days after its last use; /assets/ (static code) and /page/ (its own key) need none. The page
+keys derive from that file's secret, so page addresses outlive a restart; a new password ends every login and address.
+--no-auth asks for none. The gitweb companion takes only requests carrying the viewer's per-run key. Writes go only
 to the todo files (through todo.py) and the extra-roots list; the one cross-request state is the
 card-history cache, keyed by dev_root's HEAD and the design.md mtimes — Ctrl-C stops it clean.
 
@@ -25,12 +30,15 @@ reported and the run stops rather than degrading to a random port.
 
 Usage:
   viewer.py [--port N] [--no-browser] [--no-gitweb] [--gitweb-port N] [--dev-root DIR] [--kb-root DIR]
-            [--lan] [--host NAME]...
+            [--lan] [--host NAME]... [--no-auth]
+  viewer.py --set-password      set or change the access password (asks twice; ends every login)
 """
 import datetime
 import errno
+import hashlib
 import hmac
 import http.client
+import http.cookies
 import http.server
 import importlib.util
 import json
@@ -44,6 +52,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -54,6 +63,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 VIEWER_DIR = TOOLS_DIR / "viewer"
 SHELL_HTML = VIEWER_DIR / "shell.html"            # the classic frontend, frozen, at /v1
 SHELL_V2_HTML = VIEWER_DIR / "shell-v2.html"     # the frontend at /; /v2 stays as an alias for old bookmarks
+LOGIN_HTML = VIEWER_DIR / "login.html"            # 059: what a shell route shows without a live login
 ASSETS = {"marked.min.js": "text/javascript",     # filename allowlist for /assets/<name>
           "mermaid.min.js": "text/javascript",    # served from the hardcoded VIEWER_DIR only
           "sv.js": "text/javascript",
@@ -87,6 +97,49 @@ def theme_page(data, theme):
     d = DOCTYPE.match(data)
     at = d.end() if d else 0
     return data[:at] + b'<html data-theme="' + t + b'">' + reset + data[at:]
+
+
+AUTH_TTL = 7 * 86400          # a login lasts this long after its last use
+AUTH_RENEW = 3600             # a login cookie older than this is signed again: what slides the week along
+SCRYPT = {"n": 2 ** 14, "r": 8, "p": 1}
+SHELLS = ("/", "/v2", "/v1")
+LOCKED_HTML = ('<!doctype html><meta charset="utf-8"><title>status viewer</title>'
+               '<body style="font:15px/1.6 system-ui,sans-serif;max-width:36em;margin:15vh auto;padding:0 16px">'
+               '<h1 style="font-size:18px">status viewer 还没有访问口令</h1>'
+               '<p>在运行 viewer 的机器上执行 <code>viewer.py --set-password</code> 设置口令，设好后刷新这个页面即可，不用重启 viewer。</p>')
+
+
+def auth_path():
+    return _rp.config_path().parent / "viewer-auth.json"
+
+
+def hash_password(pw, salt):
+    return hashlib.scrypt(pw.encode("utf-8"), salt=salt, dklen=32, **SCRYPT)
+
+
+def write_auth(path, pw):
+    """The password's salted hash and a fresh secret in one 0600 file, swapped in whole — a reader never sees half
+    of it. Logins and page addresses signed with the old secret stop working."""
+    salt = os.urandom(16)
+    data = json.dumps({"salt": salt.hex(), "hash": hash_password(pw, salt).hex(), "secret": secrets.token_hex(32)})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        os.fchmod(f.fileno(), 0o600)   # O_CREAT's mode applies only to a new file
+        f.write(data)
+    os.replace(tmp, path)
+
+
+def set_password_cli(path):
+    import getpass
+    a = getpass.getpass("viewer 访问口令：")
+    if not a:
+        sys.exit("口令不能为空")
+    if getpass.getpass("再输一遍：") != a:
+        sys.exit("两次输入不一致，没有改动")
+    write_auth(path, a)
+    print("已设置：%s。正在运行的 viewer 下一次请求就会用它；所有已登录的浏览器需要重新登录。" % path)
 
 
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
@@ -312,6 +365,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
     dev_root: Path = None
     kb_root: Path = None
     gitweb_port: int = 0              # 003: companion port; its URL is built per request from the Host used (0 = disabled)
+    gitweb_key = ""                   # 059: the per-run key the companion requires of every request
+    auth_file: Path = None            # 059: None = no password asked (--no-auth, tests); else read whenever it changes
+    _auth = (None, None)              # (the auth file's signature, its content or None)
+    auth_lock = threading.Lock()      # one login at a time: each costs a scrypt, and failures slow the next
+    auth_fails = 0
 
     def log_message(self, fmt, *args):
         sys.stderr.write("viewer %s - %s\n" % (self.command, fmt % args))
@@ -319,6 +377,89 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _host_ok(self):
         host = self.headers.get("Host", "")
         return host.split(":")[0] in ALLOWED_HOSTS
+
+    @classmethod
+    def auth_state(cls):
+        """The auth file as {salt, hash, secret} bytes, or None while no password is set."""
+        try:
+            st = os.stat(cls.auth_file)
+        except OSError:
+            cls._auth = (None, None)
+            return None
+        sig = (st.st_mtime_ns, st.st_ino)
+        if cls._auth[0] != sig:
+            try:
+                d = json.loads(Path(cls.auth_file).read_text(encoding="utf-8"))
+                val = {k: bytes.fromhex(d[k]) for k in ("salt", "hash", "secret")}
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                val = None
+            cls._auth = (sig, val)
+        return cls._auth[1]
+
+    def _cookie_name(self):
+        return "sv_auth_%d" % self.server.server_address[1]   # cookies ignore ports: another viewer on this host keeps its own
+
+    @staticmethod
+    def _sign(secret, ts):
+        return hmac.new(secret, b"login:%d" % ts, "sha256").hexdigest()
+
+    def _cookie(self, a, ts):
+        return "%s=%d.%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax" % (self._cookie_name(), ts, self._sign(a["secret"], ts), AUTH_TTL)
+
+    def _session(self, a):
+        """Whether the request carries a live login; one signed more than AUTH_RENEW ago is signed again."""
+        c = http.cookies.SimpleCookie()
+        try:
+            c.load(self.headers.get("Cookie", ""))
+        except http.cookies.CookieError:
+            return False
+        m = c.get(self._cookie_name())
+        ts, _, sig = (m.value if m else "").partition(".")
+        if not ts.isdigit() or not hmac.compare_digest(sig.encode(), self._sign(a["secret"], int(ts)).encode()):
+            return False
+        now = int(time.time())
+        if not now - AUTH_TTL < int(ts) <= now + 60:
+            return False
+        if now - int(ts) > AUTH_RENEW:
+            self._set_cookie = self._cookie(a, now)
+        return True
+
+    def _gate(self, path):
+        """True when the request may go on; else its answer is sent — the login page for a shell, 401 for the rest,
+        and while no password is set only the notice how to set one. /assets/ holds no user data; a page answers to
+        the key in its address, since a sandboxed page's own requests carry no cookie."""
+        self._set_cookie = None
+        if not self.auth_file or path.startswith(("/assets/", "/page/")):
+            return True
+        a = self.auth_state()
+        if a is None:
+            if path in SHELLS:
+                self._send(200, LOCKED_HTML, "text/html; charset=utf-8")
+            else:
+                self._send(503, "locked: no password yet — run viewer.py --set-password\n")
+            return False
+        if self._session(a):
+            return True
+        if path in SHELLS:
+            self._serve_shell(LOGIN_HTML, login=True)
+        else:
+            self._json({"error": "login"}, 401)
+        return False
+
+    def _login(self, pw):
+        a = self.auth_state() if self.auth_file else None
+        if a is None or not isinstance(pw, str):
+            self._json({"error": "login"}, 401)
+            return
+        with Handler.auth_lock:
+            time.sleep(min(30.0, 0.5 * (2 ** Handler.auth_fails - 1)))   # 0, .5, 1.5, 3.5 … for each failure in a row
+            ok = hmac.compare_digest(hash_password(pw, a["salt"]), a["hash"])
+            Handler.auth_fails = 0 if ok else min(Handler.auth_fails + 1, 8)
+        if not ok:
+            self._json({"error": "password"}, 401)
+            return
+        self._set_cookie = self._cookie(a, int(time.time()))
+        self._json({"ok": True})
 
     def gitweb_url(self):
         return "/gitweb/" if self.gitweb_port else ""   # same origin: the viewer forwards to the loopback companion
@@ -332,6 +473,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             for k, v in (extra or {}).items():
                 self.send_header(k, v)
+            if getattr(self, "_set_cookie", None):
+                self.send_header("Set-Cookie", self._set_cookie)
             self.end_headers()
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionError):
@@ -349,13 +492,28 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(403, "forbidden: non-localhost Host\n")
             return
         route = urllib.parse.urlparse(self.path).path
-        if route not in ("/api/todo", "/api/roots"):
+        if route not in ("/api/todo", "/api/roots", "/api/login", "/api/logout"):
             self._send(404, "not found\n")
             return
         origin = self.headers.get("Origin")
         if (origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host", "")) or \
                 self.headers.get("X-SV-Write") != "1" or not self.headers.get("Content-Type", "").startswith("application/json"):
             self._send(403, "forbidden\n")
+            return
+        if route == "/api/logout":   # this browser only: a login is a signed cookie, not a server record
+            self._set_cookie = "%s=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" % self._cookie_name()
+            self._json({"ok": True})
+            return
+        if route == "/api/login":
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                pw = json.loads(self.rfile.read(n).decode("utf-8")).get("password") if 0 < n <= 4096 else None
+            except (ValueError, UnicodeDecodeError, AttributeError):
+                pw = None
+            self._set_cookie = None
+            self._login(pw)
+            return
+        if not self._gate(route):
             return
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -470,6 +628,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         parsed = urllib.parse.urlparse(self.path)
         path, qs = parsed.path, urllib.parse.parse_qs(parsed.query)
+        if not self._gate(path):
+            return
         if path in ("/", "/v2"):
             self._serve_shell(SHELL_V2_HTML)
         elif path == "/v1":
@@ -511,7 +671,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
             self._send(404, "not found\n")
 
-    def _serve_shell(self, page):
+    def _serve_shell(self, page, login=False):
         try:
             html = page.read_text(encoding="utf-8")
         except OSError as e:
@@ -519,7 +679,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         # R63/003: inject the gitweb companion URL (empty when disabled → shell hides the code links);
         # built from the Host the browser used, so a LAN client gets a LAN link (the Host passed _host_ok).
-        html = html.replace("__GITWEB_URL__", self.gitweb_url())
+        html = html.replace("__GITWEB_URL__", "" if login else self.gitweb_url()).replace("__AUTH__", "1" if self.auth_file else "")
         self._send(200, html, "text/html; charset=utf-8", {"Content-Security-Policy": "frame-ancestors 'self'"})   # a meta CSP cannot say this
 
     def _proxy_gitweb(self, parsed):
@@ -530,7 +690,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         upstream = (parsed.path[len("/gitweb"):] or "/") + ("?" + parsed.query if parsed.query else "")
         try:
             c = http.client.HTTPConnection("127.0.0.1", self.gitweb_port, timeout=300)   # lighttpd sends a CGI response only once it is complete: a big blame says nothing until git is done
-            c.request("GET", upstream, headers={"Host": "127.0.0.1:%d" % self.gitweb_port, "Accept-Encoding": "identity"})
+            c.request("GET", upstream, headers={"Host": "127.0.0.1:%d" % self.gitweb_port, "Accept-Encoding": "identity",
+                                                "X-Viewer-Key": self.gitweb_key})
             r = c.getresponse()
             body = r.read()
             c.close()
@@ -630,7 +791,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _page_key(cls, root):
         # the key in every /page URL of trusted files (root None) or of one untrusted root's files; other sites cannot
         # learn one (only same-origin /api/tree hands them out), and an untrusted page knows only its own root's
-        return hmac.new(cls.page_secret, str(root or "").encode("utf-8", "surrogateescape"), "sha256").hexdigest()[:20]
+        a = cls.auth_state() if cls.auth_file else None   # 059: from the auth file's secret, so addresses outlive a restart
+        secret = hmac.new(a["secret"], b"page", "sha256").digest() if a else cls.page_secret
+        return hmac.new(secret, str(root or "").encode("utf-8", "surrogateescape"), "sha256").hexdigest()[:20]
 
     def _page_owner(self, real):
         """The untrusted root a file belongs to — the nearest one above it, matched by inode so a path spelled in
@@ -1215,9 +1378,10 @@ def bind_server(port, bind="127.0.0.1"):
 
 
 def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, gitweb=True, gitweb_port=None,
-          lan=False, hosts=()):
+          lan=False, hosts=(), auth=True):
     Handler.dev_root = dev_root
     Handler.kb_root = kb_root
+    Handler.auth_file = auth_path() if auth else None
     load_ext()
     migrate_todo(dev_root)
     bind = "0.0.0.0" if lan else "127.0.0.1"
@@ -1229,7 +1393,8 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
     companion = None
     if gitweb:                                  # 003: co-launch the read-only gitweb companion
         try:
-            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT)   # loopback only, even with --lan: clients reach it through /gitweb/
+            Handler.gitweb_key = secrets.token_hex(16)
+            companion = _gw.start(gitweb_port or _gw.DEFAULT_PORT, key=Handler.gitweb_key)   # loopback only, even with --lan: clients reach it through /gitweb/
         except Exception as e:
             sys.stderr.write("gitweb companion error: %s\n" % e)
         if not companion:                       # require both up by default; --no-gitweb to opt out
@@ -1244,9 +1409,13 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
     print("status viewer on %s  (dev_root=%s, kb=%s)  — Ctrl-C to stop" %
           (url, dev_root, kb_root), file=sys.stderr)
+    if not auth:
+        print("--no-auth: no password asked — anyone who reaches this port can read everything and write the todo files", file=sys.stderr)
+    elif Handler.auth_state() is None:
+        print("no access password yet: the viewer stays locked until you run  viewer.py --set-password  (no restart needed)", file=sys.stderr)
     if lan:
-        print("--lan: also on http://%s:%d/ (Host allowlist: %s) — anyone on this network can read dev_root, the KB "
-              "and every repo (gitweb at /gitweb/), and rewrite the files in <dev_root>/todo/" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
+        print("--lan: also on http://%s:%d/ (Host allowlist: %s). Plain http: the password and the login cookie cross the "
+              "network unencrypted — on a network you do not trust, use ssh -L instead" % (ip or "<your LAN ip>", httpd.server_address[1], ", ".join(sorted(ALLOWED_HOSTS))), file=sys.stderr)
     # serve_forever runs in a worker thread so the main thread can shut it down from a signal
     # handler (shutdown() must be called from a different thread). Installing the handlers
     # explicitly also overrides an inherited SIG_IGN (e.g. when launched backgrounded).
@@ -1273,7 +1442,7 @@ def serve(dev_root: Path, kb_root: Path, port=DEFAULT_PORT, open_browser=True, g
 
 def parse_args(argv):
     port, open_browser, dev_arg, kb_arg = DEFAULT_PORT, True, None, None
-    gitweb, gitweb_port, lan, hosts = True, None, False, []
+    gitweb, gitweb_port, lan, hosts, auth, set_pw = True, None, False, [], True, False
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -1293,6 +1462,10 @@ def parse_args(argv):
             lan = True
         elif a == "--host":
             hosts.append(argv[i + 1]); i += 2; continue
+        elif a == "--no-auth":
+            auth = False
+        elif a == "--set-password":
+            set_pw = True
         elif a in ("-h", "--help"):
             print(__doc__[__doc__.index("Usage:"):].rstrip())
             sys.exit(0)
@@ -1301,14 +1474,17 @@ def parse_args(argv):
             sys.exit(2)
         i += 1
     return {"port": port, "open_browser": open_browser, "dev_arg": dev_arg, "kb_arg": kb_arg,
-            "gitweb": gitweb, "gitweb_port": gitweb_port, "lan": lan, "hosts": hosts}
+            "gitweb": gitweb, "gitweb_port": gitweb_port, "lan": lan, "hosts": hosts, "auth": auth, "set_password": set_pw}
 
 
 def main(argv):
     a = parse_args(argv)
+    if a["set_password"]:
+        set_password_cli(auth_path())
+        return
     dev_root, kb_root = resolve_roots(a["dev_arg"], a["kb_arg"])
     serve(dev_root, kb_root, port=a["port"], open_browser=a["open_browser"],
-          gitweb=a["gitweb"], gitweb_port=a["gitweb_port"], lan=a["lan"], hosts=a["hosts"])
+          gitweb=a["gitweb"], gitweb_port=a["gitweb_port"], lan=a["lan"], hosts=a["hosts"], auth=a["auth"])
 
 
 if __name__ == "__main__":

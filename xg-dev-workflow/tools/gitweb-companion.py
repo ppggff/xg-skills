@@ -193,7 +193,7 @@ def _view_configs(runtime):
     return perl
 
 
-def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
+def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "localhost"), key=""):
     (runtime / "tmp").mkdir(parents=True, exist_ok=True)
     gwcfg = runtime / "gitweb_config.perl"
     gwcfg.write_text(_view_configs(runtime) + 
@@ -223,7 +223,9 @@ def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "lo
         'setenv.add-environment = ( "GITWEB_CONFIG" => "%s", "PATH" => "%s" )\n'
         '$HTTP["host"] !~ "^(%s)(:[0-9]+)?$" { url.access-deny = ( "" ) }\n'
         % (disc["share"], bind, port, runtime / "lighttpd.pid", runtime / "error.log",
-           gwcfg, os.environ.get("PATH", ""), "|".join(re.escape(h) for h in hosts)),
+           gwcfg, os.environ.get("PATH", ""), "|".join(re.escape(h) for h in hosts))
+        # the viewer's key: another local user reaching the loopback port directly gets nothing
+        + ('$REQUEST_HEADER["X-Viewer-Key"] != "%s" { url.access-deny = ( "" ) }\n' % key if key else ""),
         encoding="utf-8")
     return lcfg
 
@@ -267,7 +269,7 @@ def reap_stale(runtime):
     return reaped
 
 
-def prepare(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
+def prepare(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost"), key=""):
     """discover + build forest + write configs + validate. Returns a handle dict or None."""
     disc = discover()
     if not disc:
@@ -276,10 +278,10 @@ def prepare(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost"
     runtime.mkdir(parents=True, exist_ok=True)
     repos = collect_repos()
     build_forest(runtime, repos)
-    lcfg = write_configs(runtime, disc, port, bind, hosts)
+    lcfg = write_configs(runtime, disc, port, bind, hosts, key)
     if not _validate(disc["lighttpd"], lcfg):
         return None
-    return {"disc": disc, "runtime": runtime, "lcfg": lcfg, "port": port,
+    return {"disc": disc, "runtime": runtime, "lcfg": lcfg, "port": port, "key": key,
             "repos": [label for label, _ in repos]}
 
 
@@ -291,16 +293,16 @@ def _port_open(port):
         return False
 
 
-def _serves_gitweb(port):
+def _serves_gitweb(port, key=""):
     """Whether 127.0.0.1:port answers with our gitweb (not just any listener)."""
     try:
-        with urllib.request.urlopen("http://127.0.0.1:%d/" % port, timeout=0.6) as r:
+        with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:%d/" % port, headers={"X-Viewer-Key": key}), timeout=0.6) as r:
             return "gitweb" in r.read(4096).decode("utf-8", "replace").lower()
     except Exception:
         return False
 
 
-def _await_up(proc, port, timeout=6.0):
+def _await_up(proc, port, timeout=6.0, key=""):
     """Up = the child is alive AND the port serves *our* gitweb. Polls (no fixed-settle guess) until
     either the child exits (bind failure / bad config → not up) or a gitweb response confirms it.
     Two independent signals, so neither a slow startup nor a foreign process holding the port can
@@ -309,21 +311,22 @@ def _await_up(proc, port, timeout=6.0):
     while time.monotonic() < deadline:
         if proc.poll() is not None:
             return False
-        if _serves_gitweb(port):
+        if _serves_gitweb(port, key):
             return True
         time.sleep(0.1)
     return False
 
 
-def start(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost")):
-    """Prepare + launch lighttpd, confirming it comes up. Returns handle, or None on any failure."""
-    h = prepare(port, bind, hosts)
+def start(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost"), key=""):
+    """Prepare + launch lighttpd, confirming it comes up. Returns handle, or None on any failure. With a key,
+    lighttpd answers only requests carrying it in X-Viewer-Key."""
+    h = prepare(port, bind, hosts, key)
     if not h:
         return None
     if reap_stale(h["runtime"]):
         time.sleep(0.5)                      # let our just-reaped stale release the port
     proc = subprocess.Popen([h["disc"]["lighttpd"], "-D", "-f", str(h["lcfg"])])
-    if not _await_up(proc, port):
+    if not _await_up(proc, port, key=key):
         sys.stderr.write("gitweb-companion: lighttpd did not come up on 127.0.0.1:%d "
                          "(port busy or config error)\n" % port)
         if proc.poll() is None:
