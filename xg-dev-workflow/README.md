@@ -113,5 +113,30 @@ network you do not trust); `retro` improves the workflow. The
 legacy phase verbs (`requirement` / `design` / `detail` / `plan` / `test` / `change`) exist only for 存量
 cards and are defined in `references/legacy/SKILL.md`.
 
+## Status viewer
+
+`python3 tools/viewer.py` — the board across projects, its time form, a doc in the reader, and the ⌘J todo
+panel (the interface is Chinese; the screenshots follow your light or dark theme):
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-dark.webp">
+  <img alt="The board: each project's cards with their status, requirement counts and next step" src="docs/screenshots/board-light.webp">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/timeline-dark.webp">
+  <img alt="The board's time form: each card's status over its design.md history on a time axis" src="docs/screenshots/timeline-light.webp">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/reader-dark.webp">
+  <img alt="The reader: a design doc with its Mermaid diagrams, the file tree on the left and the outline on the right" src="docs/screenshots/reader-light.webp">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/todo-dark.webp">
+  <img alt="The todo panel over a knowledge-base page: open items grouped by due date, with links to their cards" src="docs/screenshots/todo-light.webp">
+</picture>
+
 See `SKILL.md` for the routing contract; `references/steps/lite.md` for the procedure; `CHANGELOG.md` for
 how the skill evolved.

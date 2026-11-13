@@ -10,6 +10,14 @@ Each package is Markdown-driven — a `SKILL.md` contract plus on-demand
 test pipeline; "running" a skill means Claude Code loading its `SKILL.md` and
 following the procedure.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="xg-dev-workflow/docs/screenshots/board-dark.webp">
+  <img alt="The status viewer's board: each project's cards with their status, requirement counts and next step" src="xg-dev-workflow/docs/screenshots/board-light.webp">
+</picture>
+
+The workflow's status viewer (`xg-dev-workflow/tools/viewer.py`); more screenshots in
+[`xg-dev-workflow/README.md`](xg-dev-workflow/README.md#status-viewer).
+
 ## Packages
 
 ### [`xg-dev-workflow/`](xg-dev-workflow/)
