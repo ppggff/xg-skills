@@ -60,30 +60,30 @@ and each covered block's `确认:` line, `status: executing`, `go:`, commit agai
 
 ## Executing (after go)
 
-Stay in this session by default; switch when context is long, work is interrupted, or a handoff is being
-tested. Usually just continue — change approach, add tests, reorder, fix review findings, update prose and
-evidence — while the commitments hold and operations stay inside the authorization; a material approach
-change gets one reason line. **Slice boundaries are not stops**: report and continue; a stop names one of the
-three reasons below. **A→B walk**: A's problem → does B still meet the commitments? → rewrite 当前方案 → one
-reason line → re-verify what B touches → sync facts / ADR / diagrams; B cannot meet a commitment → propose and
-pause the dependent work. Product commits: `constraints.md` Git-1 (no card tail; the Req 验证 line or plan.md row
-names the SHAs); a product commit that changes a verified behavior updates the Req 验证 / 变更 line in the same turn.
-**Come back to the human only for** (1) changing a goal, weakening acceptance, dropping a deliverable, or
-changing an explicit constraint or boundary; (2) work or a major trade-off beyond the authorization — "not
-forbidden" is not authorization; (3) an operation needing its own authorization (`constraints.md` Ops).
-Ask form: what was found · which commitment · proposed change; the doc carries a 待确认 proposal, the old
-commitment stands, only dependent work pauses. Clarifications and blockers are not approvals: investigate
-what code can answer, ask promptly for what only the human knows. A human correction lands as one line in
-`notes/observations.md` at once — never inside a message that also asks a question; memory is the model's to write.
-**A human addition mid-run** (executing or closing: the human adds a goal or tightens one a go covers; a Req still 讨论中
-waits for its go ask) is its own authorization — run the pre-go checks on it first (current code, grill and lenses per
-「Triggers」), land it (a new Req block, or a 变更 + same-day 确认 line) and a `go（续）` 授权记录 line with their fields
-(Go-4), both quoting it verbatim, then continue (closing → executing); stop only for (1)–(3) — a conflict with a
-commitment, what the go excluded, an Ops operation. A question or a musing is not an addition; unsure → ask.
-**Re-open after close-out**: a new goal after `status: done` returns the card to executing (board done → active
-once, with a reason line — Lay-4), adds a new Req block and a **new go ask** (lenses per 「Triggers」), and writes an
-授权记录 line `go（续）`; only a different project or carrier opens a new card. A close-out leaving any 待人判 item
-stops at `status: closing`; `done` only once the human has ruled.
+Stay in this session by default; switch when context is long, work is interrupted, or a handoff is being tested. Usually
+just continue — change approach, add tests, reorder, fix review findings, update prose and evidence — while the
+commitments hold and operations stay inside the authorization; a material approach change gets one reason line. **Slice
+boundaries are not stops**: report and continue; a stop names one of the three reasons below. **A→B walk**: A's problem →
+does B still meet the commitments? → rewrite 当前方案 → one reason line → re-verify what B touches → sync facts / ADR /
+diagrams; B cannot meet a commitment → propose and pause the dependent work. Product commits: `constraints.md` Git-1 (no
+card tail; the Req 验证 line or plan.md row names the SHAs); a product commit that changes a verified behavior updates the
+Req 验证 / 变更 line in the same turn. **Come back to the human only for** (1) changing a goal, weakening acceptance,
+dropping a deliverable, or changing an explicit constraint or boundary — rewriting an existing test's assertion to accept
+a changed reading is (1): before the edit, list old · new · what it guards; (2) work or a major trade-off beyond the
+authorization — "not forbidden" is not authorization; (3) an operation needing its own authorization (`constraints.md`
+Ops). Where the design's words leave a human-visible choice open (direction, condition, scope), say the choice in one
+line before coding it. Ask form: what was found · which commitment · proposed change; the doc carries a 待确认 proposal, the
+old commitment stands, only dependent work pauses. Clarifications and blockers are not approvals: investigate what code
+can answer, ask promptly for what only the human knows. A human correction lands as one line in `notes/observations.md`
+at once — never inside a message that also asks a question; memory is the model's to write. **A human addition mid-run**
+(executing or closing: the human adds a goal or tightens one a go covers; a Req still 讨论中 waits for its go ask) is its
+own authorization — run the pre-go checks on it first (current code, grill and lenses per 「Triggers」), land it (a new Req
+block, or a 变更 + same-day 确认 line) and a `go（续）` 授权记录 line with their fields (Go-4), both quoting it verbatim, then
+continue (closing → executing); stop only for (1)–(3) — a conflict with a commitment, what the go excluded, an Ops
+operation. A question or a musing is not an addition; unsure → ask. **Re-open after close-out**: a new goal after
+`status: done` returns the card to executing (board done → active once, with a reason line — Lay-4), adds a new Req block
+and a **new go ask** (lenses per 「Triggers」), and writes an 授权记录 line `go（续）`; only a different project or carrier opens
+a new card. A close-out leaving any 待人判 item stops at `status: closing`; `done` only once the human has ruled.
 
 ### Slice discipline
 

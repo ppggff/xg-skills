@@ -4,6 +4,18 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-11-13 — executing: a rewritten assertion and an open design word come back first (card hashdata/019)
+
+- Rewriting an existing test's assertion to accept a changed reading now counts as weakening acceptance, a
+  come-back reason (1): before the edit, list the old assertion, the new one and what it guards.
+- Where the design's words leave a human-visible choice open (direction, condition, scope), the choice is said in
+  one line before it is coded.
+- Why: on card 019 the model rewrote test assertions after the fact several times (a scrape count, a fixture's
+  bucket, a chart's point count) and resolved an open 「取整」 into the coarsest reading (always round up, also
+  where no coarse data is read) without saying so; the human caught each one through a side note. The rule
+  existed in memory but not in the executing list the model checks. lite.md stays at its 160-line cap by
+  rewrapping the paragraph.
+
 ## 2026-11-13 — viewer: html pages follow light / dark, a todo panel, copy a line without selecting (card xg-skills/058)
 
 - An html page opened in the reader follows the viewer's light or dark, or its own choice from a page-head button
