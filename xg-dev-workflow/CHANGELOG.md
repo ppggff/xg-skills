@@ -4,6 +4,24 @@ Behavior-level history of the skill (the curated view; `git log` is the full one
 the M6 retro step: when a retro changes skill behavior, prepend a dated entry here, newest first.
 Each entry says *what changed* and *why*, not the raw diff.
 
+## 2026-11-13 — viewer: html pages follow light / dark, a todo panel, copy a line without selecting (card xg-skills/058)
+
+- An html page opened in the reader follows the viewer's light or dark, or its own choice from a page-head button
+  (跟随 viewer / 亮色 / 暗色, kept per page). The page URL carries it as a `~light` / `~dark` path segment, so relative
+  links inside the page keep it; viewer.py sets `data-theme` on the page's `<html>` tag and sets it again once the
+  page's own scripts have run. Pages that style dark only through `prefers-color-scheme`, or not at all, still follow
+  the system.
+- A todo panel on ⌘J, a top-bar button with the open count (red when something is overdue), `t` and the selection's
+  记为 todo: one field filters the open items and is the text of a new one. Rows group as overdue / due today, the
+  card in view, the rest; ↵ opens an item's link (⇧ the other pane), ⌥↵ ticks it with a few seconds to take it back,
+  ⌘↵ writes the field to inbox.md with project and doc filled in. The old capture box is gone.
+- After a click marks a line, `y` copies its markdown source (a table row's own line, a list item's marker line, else
+  the block), `⇧Y` its plain text with a row's cells tab-separated, and ⌘C does what `y` does when nothing is selected
+  and no text field has focus; a button at the band's end offers both. The source view's lines count too.
+- Fix alongside: copying a selection's source no longer drops the last line of a list or quote.
+- Why: an iframe's `prefers-color-scheme` follows the system, never the viewer (measured), so pages stayed light under
+  a dark viewer; todo capture could only add, never look; copying one table row meant a drag-select.
+
 ## 2026-10-30 — the skill repo is public: incidents are cited by card id, never by another project's technical content
 
 - `steps/retro.md` step 5: a CHANGELOG entry, a commit message or a step-body example cites another project's incident
