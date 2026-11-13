@@ -65,7 +65,7 @@ PAGE_TYPES = {".html": "text/html; charset=utf-8", ".htm": "text/html; charset=u
               ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
               ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf"}
 PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"   # no allow-same-origin: an opaque origin
-HTML_OPEN = re.compile(rb"<html(?=[\s>/])([^>]*)>", re.I)
+HTML_OPEN = re.compile(rb"""<html(?=[\s>/])((?:[^>"']|"[^"]*"|'[^']*')*)>""", re.I)
 DOCTYPE = re.compile(rb"^(\xef\xbb\xbf)?\s*<!doctype[^>]*>", re.I)
 
 
@@ -75,7 +75,11 @@ def theme_page(data, theme):
     while loading, and one whose CSP forbids inline scripts keeps the attribute alone."""
     t = theme.encode()
     reset = b'<script>(function(r,t){document.addEventListener("DOMContentLoaded",function(){r.setAttribute("data-theme",t)})})(document.documentElement,"' + t + b'")</script>'
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):   # UTF-16: ASCII bytes spliced in would garble it
+        return data
     m = HTML_OPEN.search(data)
+    if m and re.search(rb"<script", data[:m.start()], re.I):   # an "<html" inside a script's text is not the tag
+        m = None
     if m:
         attrs = re.sub(rb"""\s+data-theme\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)""", b"", m.group(1), flags=re.I)
         tag = data[m.start():m.start() + 5] + attrs.rstrip(b"/ ") + b' data-theme="' + t + b'">'

@@ -174,7 +174,8 @@
   V.cardWiki = raw => { const m = /^\[\[(.+?)\]\]$/.exec(String(raw).trim()), c = m && V.cardOf(m[1]), d = c && V.mainDoc(c); return d ? "dev:" + d : null; };
   V.todoItems = () => itemsAll(false);
   V.todoRowHTML = it => rowHTML(it);
-  V.todosOfCard = c => itemsAll(false).filter(t => !t.done && (t.text.includes("[[" + c.id + "]]") || t.text.includes("[[" + c.dir + "/") || t.text.includes("[[" + c.id + "|")));
+  const linksCard = (text, c) => text.includes("[[" + c.id + "]]") || text.includes("[[" + c.dir + "/") || text.includes("[[" + c.id + "|");
+  V.todosOfCard = c => itemsAll(false).filter(t => !t.done && linksCard(t.text, c));
   /* ---- the todo panel: ⌘J, the top-bar button, t, or 记为 todo on a selection. One field filters the open items and is
      the text of a new one (written to inbox.md with the context filled in); a row opens its link, or ticks done ---- */
   const wikiOf = (tree, rel) => (tree === "dev" ? rel : tree === "kb" && /^(wiki|raw)\//.test(rel) ? rel : tree + "/" + rel).replace(/\.md$/, "");
@@ -182,7 +183,7 @@
   V.todoAppend = (name, item) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.headers.get("X-Version") || "")
     .catch(e => (e.status === 404 ? "" : Promise.reject(e)))
     .then(version => V.todoWrite("append", name, Object.assign({ project: "", link: "", stamp: SV.todoStamp(new Date(), true), version }, item)));
-  const T = { q: "", sel: 0, rows: [], ctx: null, added: "", undo: null };
+  const T = { q: "", sel: 0, rows: [], ctx: null, added: "", undo: null, pend: null };
   const box = () => $("#tdp .qbox");
   function context(opt) {   // the project and doc a new item gets: the doc or card in view, and the line a selection starts on
     const k = opt.k || V.navPane(), loc = V.P[k].loc, card = loc && loc.kind === "doc" ? V.cardOfPath(loc.tree, loc.rel) : loc && loc.kind === "board" && V.selCard ? V.card(V.selCard()) : null;
@@ -193,7 +194,6 @@
   }
   // the open items, read from the version edits are addressed by
   const openItems = () => Object.keys(F).sort().flatMap(n => SV.parseTodo(seen(n)).filter(it => !it.done).map(it => Object.assign({ file: n, meta: SV.todoMeta(it.text) }, it)));
-  const ofCard = (it, c) => it.text.includes("[[" + c.id + "]]") || it.text.includes("[[" + c.dir + "/") || it.text.includes("[[" + c.id + "|");
   const prioKey = it => it.meta.prio || 2.5;   // ⏫ 🔼, then none, then 🔽
   const madeKey = it => { const d = SV.todoDate(it.meta.created); return d ? -d.getTime() : 0; };
   function groups() {
@@ -207,7 +207,7 @@
         .sort((a, b) => b.sc - a.sc || madeKey(a.it) - madeKey(b.it)).map(x => x.it)]];
     }
     return take("逾期 · 今天到期", all.filter(it => it.meta.due && it.meta.due <= t).sort((a, b) => a.meta.due.localeCompare(b.meta.due)))
-      .concat(c ? take("当前卡 · " + c.n + " " + c.slug, all.filter(it => ofCard(it, c))) : [])
+      .concat(c ? take("当前卡 · " + c.n + " " + c.slug, all.filter(it => linksCard(it.text, c))) : [])
       .concat(take(c || all.some(it => it.meta.due && it.meta.due <= t) ? "其余" : "", all.slice().sort((a, b) => prioKey(a) - prioKey(b) || madeKey(a) - madeKey(b))));
   }
   const panelRow = (it, i) => `<div class="titem tdr${i === T.sel ? " sel" : ""}${T.added && it.meta.text.startsWith(T.added) ? " fresh" : ""}" data-tdr="${i}">`
@@ -243,7 +243,7 @@
     const inp = $(".tdq", b); inp.value = T.q; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     (loaded ? Promise.resolve() : load()).then(paintPanel);
   };
-  const closePanel = () => { $("#tdp").hidden = true; T.undo = null; };
+  const closePanel = () => { $("#tdp").hidden = true; T.undo = T.pend = null; };
   function addItem() {
     const b = box(), text = T.q, proj = $(".capproj", b) ? $(".capproj", b).value : "", link = $(".capdoc", b) && $(".capdoc", b).checked ? T.ctx.doc : "";
     if (!text || b.dataset.busy) return;
@@ -263,17 +263,27 @@
     if (ln) return ln.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: e.shiftKey }));
     V.openDoc("dev", DIR + it.file, e, { line: it.line + 1 });
   }
-  // a tick in the panel goes through the one [data-tck] handler; the panel then offers to take it back for a while
+  // a tick in the panel goes through the one [data-tck] handler, which writes it a moment later; the panel offers to take
+  // it back once the tick is on disk, and only while that line still reads as written — a line that moved is left alone
   function noteTick(at) {
     const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); if (!it || it.done) return;
-    const u = $(".tdundo", box()), undo = T.undo = { file: at.file, line: at.line };
-    u.innerHTML = `<span>已完成：${esc(SV.todoMeta(it.text).text.slice(0, 40))}</span><button data-tdundo>撤销</button>`; u.hidden = false;
+    const pend = T.pend = { file: at.file, line: at.line, key: SV.todoMeta(it.text).text };
+    setTimeout(() => { if (T.pend === pend) T.pend = null; }, V.CFG.undoMs);   // a refused tick never lands
+  }
+  function offerUndo() {
+    const pd = T.pend, f = pd && F[pd.file]; if (!f) return;
+    const it = SV.parseTodo(seen(pd.file)).find(x => x.line === pd.line);
+    if (!it || !it.done || SV.todoMeta(it.text).text !== pd.key) return;
+    T.pend = null;
+    const u = $(".tdundo", box()), undo = T.undo = { file: pd.file, line: pd.line, was: SV.todoLine(seen(pd.file), pd.line) };
+    u.innerHTML = `<span>已完成：${esc(pd.key.slice(0, 40))}</span><button data-tdundo>撤销</button>`; u.hidden = false;
     setTimeout(() => { if (T.undo === undo) { T.undo = null; u.hidden = true; } }, V.CFG.undoMs);
   }
   V.click("[data-tdundo]", () => {
     const u = T.undo; if (!u || !F[u.file]) return;
     T.undo = null; $(".tdundo", box()).hidden = true;
-    V.todoWrite("tick", u.file, { line: u.line, text: SV.todoLine(seen(u.file), u.line), done: false, today: today(),
+    if (SV.todoLine(seen(u.file), u.line) !== u.was) return V.toast("这一条在别处改过了，没有撤销");
+    V.todoWrite("tick", u.file, { line: u.line, text: u.was, done: false, today: today(),
       version: F[u.file].shown != null ? F[u.file].base : F[u.file].version });
   });
   V.click("[data-tdall]", () => { closePanel(); V.nav(V.navPane(), { kind: "todo" }); });
@@ -310,7 +320,7 @@
     const b = $("#todoBtn"); if (!b) return;
     const all = openItems(), t = today(), late = all.some(it => it.meta.due && it.meta.due < t);
     b.dataset.n = all.length ? String(all.length) : ""; b.classList.toggle("late", late);
-    paintPanel();
+    paintPanel(); offerUndo();
   });
   V.todoOpen = () => Object.values(F).reduce((n, f) => n + SV.parseTodo(f.text).filter(i => !i.done).length, 0);
   const find = id => { const i = id.lastIndexOf("|"), file = id.slice(0, i), line = +id.slice(i + 1); return F[file] && SV.parseTodo(seen(file)).find(x => x.line === line) && { file, line }; };

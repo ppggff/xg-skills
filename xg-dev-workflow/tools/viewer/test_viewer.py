@@ -716,6 +716,12 @@ class TPage(unittest.TestCase):
         self.assertTrue(out.startswith(b'\xef\xbb\xbf<!doctype html><HTML class=a data-theme="dark">'), out)              # an old value replaced
         self.assertEqual(out.count(b"data-theme="), 1)
         self.assertIn(b"<script>", f(b"<html>z", "dark"))   # best effort: set again once the page's own scripts have run
+        self.assertTrue(f(b'<html lang="a>b">z', "dark").startswith(b'<html lang="a>b" data-theme="dark">'))       # a > inside a value
+        out = f(b'<!doctype html><script>var s = "<html>";</script>', "dark")                                          # <html only inside a script
+        self.assertTrue(out.startswith(b'<!doctype html><html data-theme="dark">'), out)
+        self.assertIn(b'var s = "<html>";</script>', out)
+        u16 = "<html>x".encode("utf-16")
+        self.assertEqual(f(u16, "dark"), u16)                                                                          # not ASCII-compatible: as it is
 
     def test_confined_and_typed(self):
         for p in ("dev/../secret/s.js", "dev/link.js", "dev/c/notes/mock/x.txt", "dev/c/notes/mock/k.md", "dev/c/notes/mock/fake.html",
