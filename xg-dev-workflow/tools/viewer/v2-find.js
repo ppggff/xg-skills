@@ -251,7 +251,7 @@
     const s = window.getSelection().toString().trim(), loc = P[selK].loc;
     $("#selbar").classList.remove("on");
     if (el.dataset.s === "md" || el.dataset.s === "rich") return V.copySel(selK, window.getSelection().getRangeAt(0), el.dataset.s);
-    if (el.dataset.s === "todo") return V.capture({ text: s, at: window.getSelection().anchorNode, k: selK });
+    if (el.dataset.s === "todo") return V.todoPanel({ text: s, at: window.getSelection().anchorNode, k: selK });
     if (el.dataset.s === "find") open(selK, s); else V.copy(`${loc && loc.rel ? loc.rel.split("/").pop() : "搜索结果"}：「${s}」`, "已复制为引用");
   });
 

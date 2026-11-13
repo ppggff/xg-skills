@@ -270,7 +270,7 @@ t("058 Req-3: the current line copies without a selection — y source, Y plain 
 t("058 Req-2: one todo panel — ⌘J, the top-bar button, t and 记为 todo all open it; a tick goes through the one [data-tck] handler", () => {
   assert.match(js.todo, /V\.chord\.j = \(\) => V\.todoPanel\(\);/);
   assert.match(js.todo, /V\.hotkey\("t", \(\) => V\.todoPanel\(\)\);/);
-  assert.match(js.todo, /V\.capture = opt => V\.todoPanel\(opt\);/);
+  assert.match(js.find, /return V\.todoPanel\(\{ text: s, at: window\.getSelection\(\)\.anchorNode, k: selK \}\);/);
   assert.match(page, /<button class="ib" id="todoBtn"[^>]*data-key="⌘J"/);
   assert.doesNotMatch(page, /id="cap"/);
   assert.match(js.todo, /<button class="tck" data-tck="\$\{esc\(it\.file\)\}\|\$\{it\.line\}"/);

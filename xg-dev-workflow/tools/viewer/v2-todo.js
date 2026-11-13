@@ -243,7 +243,6 @@
     const inp = $(".tdq", b); inp.value = T.q; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     (loaded ? Promise.resolve() : load()).then(paintPanel);
   };
-  V.capture = opt => V.todoPanel(opt);
   const closePanel = () => { $("#tdp").hidden = true; T.undo = null; };
   function addItem() {
     const b = box(), text = T.q, proj = $(".capproj", b) ? $(".capproj", b).value : "", link = $(".capdoc", b) && $(".capdoc", b).checked ? T.ctx.doc : "";
