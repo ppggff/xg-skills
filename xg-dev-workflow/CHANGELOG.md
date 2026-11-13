@@ -16,6 +16,20 @@ Each entry says *what changed* and *why*, not the raw diff.
   existed in memory but not in the executing list the model checks. lite.md stays at its 160-line cap by
   rewrapping the paragraph.
 
+## 2026-11-13 — viewer: an access password and a 7-day login (card xg-skills/059)
+
+- Every client, loopback included, logs in with a password set once by `viewer.py --set-password` (scrypt hash and a
+  secret in one 0600 file beside the shared config; re-read when it changes, so no restart; a new password ends every
+  login). Until one exists the viewer runs locked: `/` answers 200 with how to set it, so a daemon's readiness probe
+  still passes. A login is an HttpOnly cookie good for 7 days after its last use; a 401 puts up a bar to log in again
+  instead of leaving the page, and the help panel offers logout. `--no-auth` asks for none; `--lan` warns that the
+  password crosses the network as plain http.
+- Page addresses now derive from that secret and outlive a restart (they stay valid after a logout, until the
+  password changes). The gitweb companion takes only requests carrying the viewer's per-run key, written to a 0600
+  config, so another local user cannot read the repos off its loopback port.
+- Why: the viewer had no identity check at all for whoever reached its port — another user on the same host, or
+  anyone on the LAN under `--lan`; the human asked for a password with an expiry after page addresses broke on restart.
+
 ## 2026-11-13 — viewer: html pages follow light / dark, a todo panel, copy a line without selecting (card xg-skills/058)
 
 - An html page opened in the reader follows the viewer's light or dark, or its own choice from a page-head button
