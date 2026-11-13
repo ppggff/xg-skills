@@ -27,7 +27,9 @@
 .tdundo { display: flex; align-items: center; gap: 12px; padding: 7px 16px; border-top: 1px solid var(--ln); background: var(--card); font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
 .tdundo[hidden] { display: none; }
 .tdundo button { margin-left: auto; color: var(--sig); font: 600 var(--t-sm) var(--cjk); }
-.tdpbox .qf [data-tdall] { margin-left: auto; color: var(--sig); }
+.tdpbox .qf .tdgo { margin-left: auto; display: flex; gap: 12px; }
+.tdpbox .qf .tdgo button { color: var(--sig); font: inherit; }
+.tdpbox .qf .tdgo button:hover { text-decoration: underline; }
 #todoBtn[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -2px; right: -5px; min-width: 15px; height: 13px; padding: 0 3px; border-radius: 7px;
   background: var(--todo); color: var(--paper); font: 600 9px/13px var(--mono); text-align: center; pointer-events: none; }
 #todoBtn.late[data-n]:not([data-n=""])::after { background: var(--blocked); }

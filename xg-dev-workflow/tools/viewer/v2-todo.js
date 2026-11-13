@@ -257,7 +257,7 @@
     const b = box();
     b.innerHTML = `<div class="tdin">${V.I.done}<input class="tdq" placeholder="筛选待办，或写一条新的…" autocomplete="off" aria-label="筛选或新增 todo"><span class="tdn"></span></div>`
       + `<div class="tdadd" hidden></div><div class="tdlist scroll"></div><div class="tdundo" hidden></div>`
-      + `<div class="qf"><span><kbd>↑↓</kbd>选择</span><span><kbd>↵</kbd>打开</span><span><kbd>⇧↵</kbd>在另一栏打开</span><span><kbd>⌥↵</kbd>完成</span><span><kbd>⌘↵</kbd>新增</span><span><kbd>esc</kbd>清空 / 关闭</span><button data-tdall>全部 todo →</button></div>`;
+      + `<div class="qf"><span><kbd>↑↓</kbd>选择</span><span><kbd>↵</kbd>打开</span><span><kbd>⇧↵</kbd>在另一栏打开</span><span><kbd>⌥↵</kbd>完成</span><span><kbd>⌘↵</kbd>新增</span><span><kbd>esc</kbd>清空 / 关闭</span><span class="tdgo"><button data-tdgo="list" data-tip="todo 视图：待办（⇧ 在另一栏）">待办 <kbd>⌥1</kbd></button><button data-tdgo="review" data-tip="todo 视图：回顾（⇧ 在另一栏）">回顾 <kbd>⌥2</kbd></button></span></div>`;
     el.hidden = false;
     const inp = $(".tdq", b); inp.value = T.q; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     (loaded ? Promise.resolve() : load()).then(paintPanel);
@@ -305,7 +305,9 @@
     V.todoWrite("tick", u.file, { line: u.line, text: u.was, done: false, today: today(),
       version: F[u.file].shown != null ? F[u.file].base : F[u.file].version });
   });
-  V.click("[data-tdall]", () => { closePanel(); V.nav(V.navPane(), { kind: "todo" }); });
+  // the todo view in one of its two presets, as the tree's 待办 / 回顾 rows open it
+  const goView = (mode, e) => { closePanel(); V.todoPreset(mode); V.nav(V.target(e), { kind: "todo" }); };
+  V.click("[data-tdgo]", (el, e) => goView(el.dataset.tdgo, e));
   V.on("init", () => {
     const el = $("#tdp");
     el.addEventListener("click", e => {
@@ -323,6 +325,7 @@
       e.stopPropagation();
       const mod = e.metaKey || e.ctrlKey, inp = e.target;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); T.sel = Math.max(0, Math.min(T.rows.length - 1, T.sel + (e.key === "ArrowDown" ? 1 : -1))); $$(".tdr", el).forEach(x => x.classList.toggle("sel", +x.dataset.tdr === T.sel)); const s = $(".tdr.sel", el); if (s) s.scrollIntoView({ block: "nearest" }); }
+      else if (e.altKey && !mod && (e.code === "Digit1" || e.code === "Digit2")) { e.preventDefault(); goView(e.code === "Digit1" ? "list" : "review", e); }   // by key position: ⌥ + a digit types a symbol on a Mac
       else if (e.key === "Enter" && mod) { e.preventDefault(); addItem(); }
       else if (e.key === "Enter" && e.altKey) { e.preventDefault(); const ck = $(`.tdr[data-tdr="${T.sel}"] [data-tck]`, el); if (ck) ck.click(); }
       else if (e.key === "Enter") { e.preventDefault(); if (T.rows.length) openRow(e); else addItem(); }
