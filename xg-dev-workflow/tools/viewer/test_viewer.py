@@ -711,6 +711,31 @@ class TAuth(unittest.TestCase):
         self.assertEqual(self.req("/page/%s/dev/p.html" % key)[0], 200)
         self.assertEqual(self.req("/page/%s/dev/p.html" % ("0" * 20))[0], 404)
 
+    def test_odd_cookies_neither_hide_the_login_nor_break_the_request(self):   # review: other local services share the cookie jar
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        _, cookie = self.login()
+        for before in ('x={"a":1}', "y=a b", 'z=c\\d', "w[]=1", "bare"):
+            self.assertEqual(self.req("/api/rev", cookie=before + "; " + cookie)[0], 200, before)
+        name = cookie.split("=")[0]
+        for bad in ("²" + ".x", "1e9.x", "-5.x", "", "9" * 30 + ".x", "9" * 5000 + ".x"):
+            self.assertEqual(self.req("/api/rev", cookie="%s=%s" % (name, bad))[0], 401, bad)
+
+    def test_a_damaged_auth_file_locks(self):   # fail safe: never open, never a weak key
+        p = viewer.auth_path()
+        viewer.write_auth(p, "pw-1")
+        d = json.loads(p.read_text())
+        for broken in ({**d, "secret": ""}, {**d, "salt": "00"}, {k: v for k, v in d.items() if k != "hash"}, "not json"):
+            p.write_text(broken if isinstance(broken, str) else json.dumps(broken))
+            self.assertEqual(self.req("/api/rev")[0], 503, broken)
+            self.assertEqual(self.login("pw-1")[0], 401, broken)
+
+    def test_failures_wait_outside_the_lock(self):   # review: a stream of wrong guesses must not queue the owner behind it
+        viewer.write_auth(viewer.auth_path(), "pw-1")
+        held = []
+        with unittest.mock.patch.object(viewer.time, "sleep", lambda s: held.append(viewer.Handler.auth_lock.locked())):
+            self.login("wrong"); self.login("wrong"); self.login("pw-1")
+        self.assertEqual(held, [False, False, False])
+
     def test_the_gitweb_proxy_carries_the_key(self):   # Req-1-g: the companion answers only requests with it
         seen = []
         class Up(http.server.BaseHTTPRequestHandler):

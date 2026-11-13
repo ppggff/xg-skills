@@ -135,6 +135,12 @@ class TUnit(unittest.TestCase):
         self.assertIn("$feature{'blame'}{'default'} = [1];", gw)
         self.assertIn("$feature{'javascript-actions'}{'default'} = [1];", gw)
 
+    def test_the_config_with_a_key_is_private(self):   # 059: the key in lighttpd.conf must not be readable by other users
+        tmp = Path(tempfile.mkdtemp())
+        lcfg = gwc.write_configs(tmp, {"share": "/some/gitweb"}, 8791, key="k3y")
+        self.assertEqual(lcfg.stat().st_mode & 0o777, 0o600)
+        self.assertIn('$REQUEST_HEADER["X-Viewer-Key"] != "k3y"', lcfg.read_text())
+
     def test_write_configs_lan(self):
         tmp = Path(tempfile.mkdtemp())
         gwc.write_configs(tmp, {"share": "/some/gitweb"}, 8791, bind="0.0.0.0", hosts=["127.0.0.1", "localhost", "192.168.1.185"])

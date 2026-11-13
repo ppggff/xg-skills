@@ -38,7 +38,6 @@ import errno
 import hashlib
 import hmac
 import http.client
-import http.cookies
 import http.server
 import importlib.util
 import json
@@ -105,8 +104,8 @@ SCRYPT = {"n": 2 ** 14, "r": 8, "p": 1}
 SHELLS = ("/", "/v2", "/v1")
 LOCKED_HTML = ('<!doctype html><meta charset="utf-8"><title>status viewer</title>'
                '<body style="font:15px/1.6 system-ui,sans-serif;max-width:36em;margin:15vh auto;padding:0 16px">'
-               '<h1 style="font-size:18px">status viewer 还没有访问口令</h1>'
-               '<p>在运行 viewer 的机器上执行 <code>viewer.py --set-password</code> 设置口令，设好后刷新这个页面即可，不用重启 viewer。</p>')
+               '<h1 style="font-size:18px">status viewer 还没有可用的访问口令</h1>'
+               '<p>口令文件不存在或已损坏。在运行 viewer 的机器上执行 <code>viewer.py --set-password</code> 设置口令，设好后刷新这个页面即可，不用重启 viewer。</p>')
 
 
 def auth_path():
@@ -123,12 +122,17 @@ def write_auth(path, pw):
     salt = os.urandom(16)
     data = json.dumps({"salt": salt.hex(), "hash": hash_password(pw, salt).hex(), "secret": secrets.token_hex(32)})
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        os.fchmod(f.fileno(), 0o600)   # O_CREAT's mode applies only to a new file
-        f.write(data)
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix="." + path.name + ".", suffix=".tmp")   # 0600 from the start
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(data)
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def set_password_cli(path):
@@ -391,6 +395,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             try:
                 d = json.loads(Path(cls.auth_file).read_text(encoding="utf-8"))
                 val = {k: bytes.fromhex(d[k]) for k in ("salt", "hash", "secret")}
+                if [len(val[k]) for k in ("salt", "hash", "secret")] != [16, 32, 32]:
+                    val = None
             except (OSError, ValueError, KeyError, TypeError, AttributeError):
                 val = None
             cls._auth = (sig, val)
@@ -408,14 +414,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _session(self, a):
         """Whether the request carries a live login; one signed more than AUTH_RENEW ago is signed again."""
-        c = http.cookies.SimpleCookie()
-        try:
-            c.load(self.headers.get("Cookie", ""))
-        except http.cookies.CookieError:
-            return False
-        m = c.get(self._cookie_name())
-        ts, _, sig = (m.value if m else "").partition(".")
-        if not ts.isdigit() or not hmac.compare_digest(sig.encode(), self._sign(a["secret"], int(ts)).encode()):
+        # read by hand: SimpleCookie stops parsing at another local service's odd cookie (JSON, spaces), losing ours
+        name, val = self._cookie_name(), ""
+        for part in self.headers.get("Cookie", "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == name:
+                val = v
+        ts, _, sig = val.partition(".")
+        if not (ts.isascii() and ts.isdigit() and len(ts) <= 12) or \
+                not hmac.compare_digest(sig.encode("ascii", "replace"), self._sign(a["secret"], int(ts)).encode()):
             return False
         now = int(time.time())
         if not now - AUTH_TTL < int(ts) <= now + 60:
@@ -451,8 +458,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if a is None or not isinstance(pw, str):
             self._json({"error": "login"}, 401)
             return
+        # 0, .5, 1.5, 3.5 … up to 30s for each failure in a row, waited outside the lock: a stream of wrong
+        # guesses slows everyone to that cap but never queues the owner behind them
+        time.sleep(min(30.0, 0.5 * (2 ** Handler.auth_fails - 1)))
         with Handler.auth_lock:
-            time.sleep(min(30.0, 0.5 * (2 ** Handler.auth_fails - 1)))   # 0, .5, 1.5, 3.5 … for each failure in a row
             ok = hmac.compare_digest(hash_password(pw, a["salt"]), a["hash"])
             Handler.auth_fails = 0 if ok else min(Handler.auth_fails + 1, 8)
         if not ok:

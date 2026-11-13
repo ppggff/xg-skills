@@ -210,6 +210,10 @@ def write_configs(runtime, disc, port, bind="127.0.0.1", hosts=("127.0.0.1", "lo
         % (runtime / "projectroot", runtime / "tmp"),
         encoding="utf-8")
     lcfg = runtime / "lighttpd.conf"
+    if lcfg.exists():
+        lcfg.chmod(0o600)   # it may hold the viewer's key: never readable by other users, also while being rewritten
+    else:
+        lcfg.touch(mode=0o600)
     lcfg.write_text(
         'server.document-root = "%s"\n'
         'server.bind = "%s"\n'
@@ -276,6 +280,7 @@ def prepare(port=DEFAULT_PORT, bind="127.0.0.1", hosts=("127.0.0.1", "localhost"
         return None
     runtime = runtime_dir()
     runtime.mkdir(parents=True, exist_ok=True)
+    runtime.chmod(0o700)
     repos = collect_repos()
     build_forest(runtime, repos)
     lcfg = write_configs(runtime, disc, port, bind, hosts, key)
