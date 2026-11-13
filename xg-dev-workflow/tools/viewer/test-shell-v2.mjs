@@ -279,6 +279,7 @@ t("058 Req-2: one todo panel — ⌘J, the top-bar button, t and 记为 todo all
   assert.match(css, /#todoBtn\.late\[data-n\]:not\(\[data-n=""\]\)::after \{ background: var\(--blocked\); \}/);  assert.match(js.todo, /return take\("刚记下", T\.added \?/);   // a new item leads the list until the field changes
   assert.match(js.todo, /if \(T\.q\) \$\$\("\.tdr \.ttx", b\)\.forEach\(x => markHits\(x, T\.q\)\);/);   // matches marked in the text as shown
   assert.match(js.todo, /const FADE_MS = 1500;/);
+  assert.match(js.todo, /function openRow\(e\) \{\n    const it = T\.rows\[T\.sel\]; if \(!it\) return;\n    closePanel\(\);\n    V\.openDoc\("dev", DIR \+ it\.file, e, \{ line: it\.line \+ 1 \}\);/);   // a row opens its todo line, never its link
   assert.match(css, /\.titem\.tdr\.fading \{ animation: tdfade/);
 });
 

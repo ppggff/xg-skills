@@ -275,11 +275,10 @@
       V.toast("记下了：todo/inbox.md"); paintPanel();
     }, () => { delete b.dataset.busy; V.toast("没记下：读不到 inbox.md"); });
   }
+  // a row opens its todo file at the item's line; the links in its text open their own docs
   function openRow(e) {
     const it = T.rows[T.sel]; if (!it) return;
-    const row = $(`.tdr[data-tdr="${T.sel}"]`, box()), ln = row && $(".ttx [data-open]", row);
     closePanel();
-    if (ln) return ln.dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: e.shiftKey }));
     V.openDoc("dev", DIR + it.file, e, { line: it.line + 1 });
   }
   // a tick in the panel goes through the one [data-tck] handler, which writes it a moment later; the panel offers to take
