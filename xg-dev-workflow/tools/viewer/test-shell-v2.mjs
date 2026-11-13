@@ -276,7 +276,10 @@ t("058 Req-2: one todo panel — ⌘J, the top-bar button, t and 记为 todo all
   assert.match(js.todo, /<button class="tck" data-tck="\$\{esc\(it\.file\)\}\|\$\{it\.line\}"/);
   assert.doesNotMatch(js.todo.slice(js.todo.indexOf("the todo panel")), /todoWrite\("tick", it\./);   // no second tick path for the panel's rows
   assert.match(js.todo, /else if \(e\.key === "Escape"\) \{ e\.preventDefault\(\); if \(inp\.value\)/);   // esc clears first, then closes
-  assert.match(css, /#todoBtn\.late\[data-n\]:not\(\[data-n=""\]\)::after \{ background: var\(--blocked\); \}/);
+  assert.match(css, /#todoBtn\.late\[data-n\]:not\(\[data-n=""\]\)::after \{ background: var\(--blocked\); \}/);  assert.match(js.todo, /return take\("刚记下", T\.added \?/);   // a new item leads the list until the field changes
+  assert.match(js.todo, /if \(T\.q\) \$\$\("\.tdr \.ttx", b\)\.forEach\(x => markHits\(x, T\.q\)\);/);   // matches marked in the text as shown
+  assert.match(js.todo, /const FADE_MS = 1500;/);
+  assert.match(css, /\.titem\.tdr\.fading \{ animation: tdfade/);
 });
 
 t("058 Req-1: a page's theme rides its URL as ~light / ~dark — its own choice, else the viewer's light or dark; a change reloads it", () => {

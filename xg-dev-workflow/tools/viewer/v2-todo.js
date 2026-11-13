@@ -183,7 +183,8 @@
   V.todoAppend = (name, item) => V.api("/raw/dev/" + DIR + encodeURIComponent(name)).then(r => r.headers.get("X-Version") || "")
     .catch(e => (e.status === 404 ? "" : Promise.reject(e)))
     .then(version => V.todoWrite("append", name, Object.assign({ project: "", link: "", stamp: SV.todoStamp(new Date(), true), version }, item)));
-  const T = { q: "", sel: 0, rows: [], ctx: null, added: "", undo: null, pend: null };
+  const T = { q: "", sel: 0, rows: [], ctx: null, added: "", undo: null, pend: null, fade: null };
+  const FADE_MS = 1500;   // a ticked row stays, struck through, this long before it leaves the list
   const box = () => $("#tdp .qbox");
   function context(opt) {   // the project and doc a new item gets: the doc or card in view, and the line a selection starts on
     const k = opt.k || V.navPane(), loc = V.P[k].loc, card = loc && loc.kind === "doc" ? V.cardOfPath(loc.tree, loc.rel) : loc && loc.kind === "board" && V.selCard ? V.card(V.selCard()) : null;
@@ -196,8 +197,11 @@
   const openItems = () => Object.keys(F).sort().flatMap(n => SV.parseTodo(seen(n)).filter(it => !it.done).map(it => Object.assign({ file: n, meta: SV.todoMeta(it.text) }, it)));
   const prioKey = it => it.meta.prio || 2.5;   // ⏫ 🔼, then none, then 🔽
   const madeKey = it => { const d = SV.todoDate(it.meta.created); return d ? -d.getTime() : 0; };
+  // the open items, plus the one just ticked while it fades
+  const shownItems = () => openItems().concat(T.fade && F[T.fade.file] ? SV.parseTodo(seen(T.fade.file)).filter(it => it.done && it.line === T.fade.line)
+    .map(it => Object.assign({ file: T.fade.file, meta: SV.todoMeta(it.text) }, it)) : []);
   function groups() {
-    const all = openItems(), t = today(), c = T.ctx && T.ctx.card, seenId = new Set(), take = (name, list) => {
+    const all = shownItems(), t = today(), c = T.ctx && T.ctx.card, seenId = new Set(), take = (name, list) => {
       const rows = list.filter(it => !seenId.has(it.file + "|" + it.line)); rows.forEach(it => seenId.add(it.file + "|" + it.line));
       return rows.length ? [[name, rows]] : [];
     };
@@ -206,20 +210,35 @@
       return [["", all.map(it => { const m = SV.matchScore(T.q, label(it)); return m.hit ? { it, sc: m.score } : null; }).filter(Boolean)
         .sort((a, b) => b.sc - a.sc || madeKey(a.it) - madeKey(b.it)).map(x => x.it)]];
     }
-    return take("逾期 · 今天到期", all.filter(it => it.meta.due && it.meta.due <= t).sort((a, b) => a.meta.due.localeCompare(b.meta.due)))
+    return take("刚记下", T.added ? all.filter(it => it.meta.text.startsWith(T.added)) : [])
+      .concat(take("逾期 · 今天到期", all.filter(it => it.meta.due && it.meta.due <= t).sort((a, b) => a.meta.due.localeCompare(b.meta.due)))
       .concat(c ? take("当前卡 · " + c.n + " " + c.slug, all.filter(it => linksCard(it.text, c))) : [])
-      .concat(take(c || all.some(it => it.meta.due && it.meta.due <= t) ? "其余" : "", all.slice().sort((a, b) => prioKey(a) - prioKey(b) || madeKey(a) - madeKey(b))));
+      .concat(take(c || all.some(it => it.meta.due && it.meta.due <= t) ? "其余" : "", all.slice().sort((a, b) => prioKey(a) - prioKey(b) || madeKey(a) - madeKey(b)))));
   }
-  const panelRow = (it, i) => `<div class="titem tdr${i === T.sel ? " sel" : ""}${T.added && it.meta.text.startsWith(T.added) ? " fresh" : ""}" data-tdr="${i}">`
-    + `<button class="tck" data-tck="${esc(it.file)}|${it.line}" aria-label="标为完成"></button>`
+  const panelRow = (it, i) => `<div class="titem tdr${i === T.sel ? " sel" : ""}${T.added && it.meta.text.startsWith(T.added) ? " fresh" : ""}${it.done ? " done fading" : ""}" data-tdr="${i}">`
+    + `<button class="tck" data-tck="${esc(it.file)}|${it.line}" aria-label="${it.done ? "标为未完成" : "标为完成"}">${it.done ? "✓" : ""}</button>`
     + `<span class="ttx">${V.todoItemHTML(it.meta.text, it.file)}${moreHTML(it)}</span>${V.todoMetaHTML(it.meta, false)}`
     + `<span class="tdf">${esc(it.file.replace(/\.md$/, ""))}</span></div>`;
+  // the matched characters of a filtered row, marked in the text as shown (its links and tags stay as they are)
+  function markHits(el, q) {
+    const nodes = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest(".tmore") ? 2 : 1) });
+    let s = ""; for (let n = walk.nextNode(); n; n = walk.nextNode()) { nodes.push([n, s.length]); s += n.data; }
+    const m = SV.matchScore(q, s); if (!m.hit || !m.idx.length) return;
+    const hit = new Set(m.idx);
+    nodes.forEach(([n, at]) => {
+      if (![...n.data].some((c, i) => hit.has(at + i))) return;
+      const f = document.createDocumentFragment();
+      [...n.data].forEach((c, i) => { if (hit.has(at + i)) { const b = document.createElement("b"); b.className = "tdh"; b.textContent = c; f.appendChild(b); } else f.appendChild(document.createTextNode(c)); });
+      n.parentNode.replaceChild(f, n);
+    });
+  }
   function paintPanel() {
     const b = box(); if (!b || $("#tdp").hidden) return;
     const gs = groups(); T.rows = gs.flatMap(g => g[1]); T.sel = Math.max(0, Math.min(T.sel, T.rows.length - 1));
     let i = 0;
     $(".tdlist", b).innerHTML = T.rows.length ? gs.map(([name, rows]) => (name ? `<div class="qg">${esc(name)}</div>` : "") + rows.map(it => panelRow(it, i++)).join("")).join("")
       : `<div class="hint">${T.q ? "没有匹配的待办。↵ 把它记为新的一条" : "没有未完成的待办"}</div>`;
+    if (T.q) $$(".tdr .ttx", b).forEach(x => markHits(x, T.q));
     const n = openItems().length;
     $(".tdn", b).textContent = T.q ? `${T.rows.length} / ${n}` : `${n} 项未完成`;
     const c = T.ctx, add = $(".tdadd", b), projs = Object.keys(V.D.board || {}).sort();
@@ -267,7 +286,8 @@
   // it back once the tick is on disk, and only while that line still reads as written — a line that moved is left alone
   function noteTick(at) {
     const it = SV.parseTodo(seen(at.file)).find(x => x.line === at.line); if (!it || it.done) return;
-    const pend = T.pend = { file: at.file, line: at.line, key: SV.todoMeta(it.text).text };
+    const pend = T.pend = { file: at.file, line: at.line, key: SV.todoMeta(it.text).text }, fade = T.fade = { file: at.file, line: at.line };
+    setTimeout(() => { if (T.fade === fade) { T.fade = null; paintPanel(); } }, FADE_MS);
     setTimeout(() => { if (T.pend === pend) T.pend = null; }, V.CFG.undoMs);   // a refused tick never lands
   }
   function offerUndo() {

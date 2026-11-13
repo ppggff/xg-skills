@@ -19,6 +19,9 @@
 .titem.tdr.sel { background: var(--sigs); }
 .titem.tdr .tck { border-radius: 50%; }
 .titem.tdr.fresh { animation: tdfresh 1.6s var(--ease); }
+.titem.tdr.fading { animation: tdfade .6s var(--ease) forwards; }   /* drawn at the repaint after the write, ~0.8s in */
+@keyframes tdfade { to { opacity: 0; } }
+.tdr .tdh { color: var(--sig); font-weight: 600; }
 @keyframes tdfresh { from { background: var(--hit); } }
 .tdf { flex: none; font: 400 var(--t-xs) var(--mono); color: var(--faint); }
 .tdundo { display: flex; align-items: center; gap: 12px; padding: 7px 16px; border-top: 1px solid var(--ln); background: var(--card); font: 400 var(--t-sm) var(--cjk); color: var(--tx); }
