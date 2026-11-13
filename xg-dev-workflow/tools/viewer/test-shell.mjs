@@ -597,6 +597,13 @@ t("058 partLine: a table's i-th row skips the delimiter row; a list's i-th item 
   assert.equal(SV.partLine(list, "item", 4), null);
   assert.equal(SV.partLine("- [ ] task\n- [x] done", "item", 1), "- [x] done");
 });
+t("058 partIndex: the part holding a block's n-th line — the row (the delimiter counts as the header), the item whose marker is last at or above it", () => {
+  const table = "| a | b |\n| --- | --- |\n| x | 1 |\n| z | 2 |";
+  assert.deepEqual([0, 1, 2, 3].map((n) => SV.partIndex(table, "row", n)), [0, 0, 1, 2]);
+  const list = "- one\n  more of one\n  - nested\n    ```\n    - not an item\n    ```\n- two";
+  assert.deepEqual([0, 1, 2, 4, 6].map((n) => SV.partIndex(list, "item", n)), [0, 0, 1, 1, 2]);
+  assert.equal(SV.partIndex("intro\n- a", "item", 0), -1);   // above the first marker: no item
+});
 t("hlLines: one escaped html line per source line; unknown kinds only escape", () => {
   assert.deepEqual(SV.hlLines("a < b\nc\n", "txt"), ["a &lt; b", "c"]);
   assert.deepEqual(SV.hlLines("", "py"), [""]);

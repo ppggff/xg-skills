@@ -196,7 +196,14 @@
   function lineTarget(k, loc) {   // the block holding a source line, else (no line table) the section holding it
     const p = P[k];
     if (p.doc.src) return $(`.sl[data-n="${loc.line}"]`, p.body);
-    if (p.spans) { const i = p.spans.findIndex(s => loc.line - 1 - p.doc.fmLines <= s.end); return blocks(k)[i >= 0 ? i : p.spans.length - 1] || null; }
+    if (p.spans) {   // down to the list item or table row that holds the line, as copying a line maps them up
+      // the last block starting at or above the line: a span's end is where the next block may start, and a list's
+      // span can stop a line short (srcSlice), so the starts are what to go by
+      const n = loc.line - 1 - p.doc.fmLines, f = p.spans.reduce((a, s, j) => (s.start <= n ? j : a), -1), i = Math.max(0, f), el = blocks(k)[i] || null;
+      const src = el && SV.srcSlice(p.doc.body, p.spans, i, i), off = n - p.spans[i].start;
+      const part = !el ? null : el.matches("table") ? el.rows[SV.partIndex(src, "row", off)] : el.matches("ul,ol") ? $$("li", el)[SV.partIndex(src, "item", off)] : null;
+      return part || el;
+    }
     const lines = [], hs = $$(".md h1,.md h2,.md h3,.md h4,.md h5,.md h6", p.body);
     p.doc.body.split("\n").forEach((l, i) => { if (/^#{1,6}\s+\S/.test(l)) lines.push({ line: i }); });
     return hs[SV.sectionForLine(lines.length === hs.length ? lines : [], loc.line, p.doc.fmLines)] || null;

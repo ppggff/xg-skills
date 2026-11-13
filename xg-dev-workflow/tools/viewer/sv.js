@@ -495,6 +495,18 @@ var SV = (function () {
     }
     return null;
   }
+  // 058: the reverse — which part holds the block's line n: the row (the delimiter row reads as the header), or the item
+  // whose marker line is the last at or above it, in depth-first order; -1 above the first marker
+  function partIndex(src, kind, n) {
+    if (kind === "row") return n <= 1 ? 0 : n - 1;
+    var lines = String(src).split("\n"), fence = null, at = -1;
+    for (var k = 0; k <= n && k < lines.length; k++) {
+      var f = /^\s*(`{3,}|~{3,})/.exec(lines[k]);
+      if (f) { if (fence === null) fence = f[1]; else if (f[1].charAt(0) === fence.charAt(0) && f[1].length >= fence.length) fence = null; continue; }
+      if (fence === null && /^\s*([-*+]|\d{1,9}[.)])(\s|$)/.test(lines[k])) at++;
+    }
+    return at;
+  }
   function blockLineNumbers(spans, fmLines) {
     return (spans || []).map(function (s) { return s.start + (fmLines || 0) + 1; });
   }
@@ -903,7 +915,7 @@ var SV = (function () {
            mergeTreeOpen: mergeTreeOpen, taskCounts: taskCounts, taskTone: taskTone,
            traceCells: traceCells, traceGaps: traceGaps, decisionRows: decisionRows,
            governanceBadge: governanceBadge, clampMeasure: clampMeasure,
-           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers, srcSlice: srcSlice, partLine: partLine, hlLines: hlLines,
+           blockSpans: blockSpans, blockLineNumbers: blockLineNumbers, srcSlice: srcSlice, partLine: partLine, partIndex: partIndex, hlLines: hlLines,
            buildIndexText: buildIndexText, scanHits: scanHits, offsetToNode: offsetToNode, stepHitIndex: stepHitIndex,
            railTop: railTop, pinSlot: pinSlot,
            viewKey: viewKey, histLabel: histLabel, mruPut: mruPut, recallPut: recallPut, anchorOf: anchorOf, anchorFind: anchorFind,
