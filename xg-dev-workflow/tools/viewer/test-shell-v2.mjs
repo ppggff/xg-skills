@@ -256,19 +256,28 @@ t("046 Req-62: the editor's selection is see-through, so the highlighted text un
   assert.match(css, /\.ted \.tta::selection \{ background: color-mix\(in srgb, var\(--sig\) \d+%, transparent\);/);
 });
 
+t("058 Req-1: a page's theme rides its URL as ~light / ~dark — its own choice, else the viewer's light or dark; a change reloads it", () => {
+  assert.match(js.core, /\(th \? "~" \+ th \+ "\/" : ""\) \+ tree/);
+  assert.match(js.core, /V\.pageTheme = \(tree, rel\) => V\.pageThemeOf\(tree, rel\) \|\| \(V\.isDark\(\) \? "dark" : "light"\)/);
+  assert.match(js.reader, /V\.on\("theme", repage\)/);
+  assert.match(js.reader, /if \(th === p\.pageTh\) return;/);   // only a real change of light / dark reloads the frame
+  assert.match(js.reader, /b\("pth", "theme", "这个网页的明暗"\)/);
+  assert.match(viewerPy, /\(\?:~\(light\|dark\)\/\)\?\(dev\|kb\|ext\)/);
+});
+
 t("056: an html doc opens in an iframe from /page/<key>/, sandboxed when its root is untrusted, or in a new tab", () => {
   assert.match(page, /Content-Security-Policy" content="[^"]*frame-src 'self'/);
   assert.match(js.core, /V\.json\("\/api\/tree\?html=1"\)/);
   assert.match(js.core, /V\.pageKey = \(tree, rel\) => \{[^}]*p\.length > best\.length[^}]*\}/);   // the nearest untrusted root's key wins
-  assert.match(js.core, /V\.pageURL = \(tree, rel\) => "\/page\/" \+ \(V\.pageKey\(tree, rel\) \|\| V\.D\.pages\.t\)/);
-  assert.match(js.reader, /<iframe class="page" src="\$\{esc\(V\.pageURL\(loc\.tree, loc\.rel\)\)\}"\$\{sb \? ` sandbox="\$\{SANDBOX\}"` : ""\}/);
+  assert.match(js.core, /V\.pageURL = \(tree, rel, th\) => "\/page\/" \+ \(V\.pageKey\(tree, rel\) \|\| V\.D\.pages\.t\)/);
+  assert.match(js.reader, /<iframe class="page" src="\$\{esc\(V\.pageURL\(loc\.tree, loc\.rel, p\.pageTh\)\)\}"\$\{sb \? ` sandbox="\$\{SANDBOX\}"` : ""\}/);
   assert.match(js.reader, /const SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";/);
   assert.match(viewerPy, /PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"/);   // the frame and the header grant the same
-  assert.match(js.core, /V\.openPageTab = \(tree, rel\) => window\.open\(V\.pageURL\(tree, rel\), "_blank", "noopener"\)/);
+  assert.match(js.core, /V\.openPageTab = \(tree, rel\) => window\.open\(V\.pageURL\(tree, rel, V\.pageTheme\(tree, rel\)\), "_blank", "noopener"\)/);
   assert.match(js.tree, /\(e\.metaKey \|\| e\.ctrlKey\) && V\.isPage\(rel\)/);
   assert.match(js.reader, /V\.click\("\.md a\[data-rel\]", \(el, e\) => \{\n    hideTip\(\); const k = V\.paneOf\(el\);\n    if \(\(e\.metaKey \|\| e\.ctrlKey\) && V\.isPage\(el\.dataset\.rel\)\) return void V\.openPageTab/);
   assert.match(js.reader, /function savePlace\(k\) \{\n    const p = P\[k\], loc = p\.loc; if \(!loc \|\| loc\.kind !== "doc" \|\| !p\.doc \|\| p\.doc\.err \|\| p\.doc\.page\) return;/);
-  assert.match(css, /\.pane:not\(\.pagedoc\) \.phd \[data-t="newtab"\],[^{]*\.pane\.pagedoc \.phd :is\(\[data-t="find"\][^{]*\{ display: none; \}/);
+  assert.match(css, /\.pane:not\(\.pagedoc\) \.phd :is\(\[data-t="newtab"\], \[data-t="pth"\]\),[^{]*\.pane\.pagedoc \.phd :is\(\[data-t="find"\][^{]*\{ display: none; \}/);
 });
 
 t("056: the extra-roots popover trusts a root when it is added or later per row, asking before a row turns trusted", () => {

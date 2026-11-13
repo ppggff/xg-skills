@@ -27,7 +27,7 @@
       + V.paneHead(k) + '<div class="ppath"></div>'
       + b("star", "star", "加星标", "s") + b("find", "find", "在本文查找", "f") + b("raw", "raw", "查看原始文件") + b("wrap", "wrap", "源码折行：开 / 关") + b("copy", "copy", "复制全文") + b("hist", "hist", "这篇文档的变更历史")
       + b("width", "width", "阅读宽度：默认 / 自定 / 铺满") + b("mirror", "mirror", "在另一栏打开这篇（镜像）")
-      + b("newtab", "tab", "在新标签页打开这个网页") + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
+      + b("pth", "theme", "这个网页的明暗") + b("newtab", "tab", "在新标签页打开这个网页") + (V.GITWEB ? b("gitweb", "code", "在 gitweb 打开这篇（新标签页）") : "") + b("tedit", "doc", "编辑这个 todo 文件") + V.paneEnd(k)
       + `<button class="ib tocb" data-t="toc" data-tip="目录" aria-label="目录">${V.I.toc}</button></div>`
       + '<div class="stale"><span>这篇文档在磁盘上更新了</span><button data-stale>刷新</button></div><div class="chgbar" hidden></div>'
       + `<div class="find" data-pane="${k}"></div><div class="pbody scroll"></div><div class="frail"></div>`
@@ -251,12 +251,39 @@
       p.doc = { text: "", body: "", fields: {}, mtime: d.mtime, version: "", src: true, page: true, fmLines: 0 };
       p.el.classList.remove("blank"); $(".stale", p.el).classList.remove("on");
       const sb = V.pageSandboxed(loc.tree, loc.rel);
-      p.body.innerHTML = `<iframe class="page" src="${esc(V.pageURL(loc.tree, loc.rel))}"${sb ? ` sandbox="${SANDBOX}"` : ""} title="${esc(loc.rel)}"></iframe>`;
-      crumb(k, loc); paintStar(k); V.emit("rendered", k, opt.entering);
+      p.pageTh = V.pageTheme(loc.tree, loc.rel);
+      p.body.innerHTML = `<iframe class="page" src="${esc(V.pageURL(loc.tree, loc.rel, p.pageTh))}"${sb ? ` sandbox="${SANDBOX}"` : ""} title="${esc(loc.rel)}"></iframe>`;
+      crumb(k, loc); paintStar(k); paintPth(k); V.emit("rendered", k, opt.entering);
       if (k === tocK()) toc();
       V.status();
     }).catch(e => { if (p.loc === loc) fail(k, loc, e); });
   }
+  // a page shown in a pane reloads when the theme it should have changes: the viewer's light / dark, or its own choice
+  const repage = () => ["A", "B"].forEach(k => {
+    const p = P[k], l = p.loc, f = l && l.kind === "doc" && V.isPage(l.rel) && $("iframe.page", p.body); if (!f) return;
+    const th = V.pageTheme(l.tree, l.rel); if (th === p.pageTh) return;
+    p.pageTh = th; f.src = V.pageURL(l.tree, l.rel, th); paintPth(k);
+  });
+  V.on("theme", repage);
+  const PTH = [["", "跟随 viewer"], ["light", "亮色"], ["dark", "暗色"]];
+  function paintPth(k) {
+    const l = P[k].loc, b = $('[data-t="pth"]', P[k].el); if (!b || !l || l.kind !== "doc") return;
+    const own = V.pageThemeOf(l.tree, l.rel);
+    b.classList.toggle("on", !!own); b.dataset.tip = "这个网页的明暗：" + PTH.find(x => x[0] === own)[1];
+  }
+  let pthK = "A";
+  V.click('.phd [data-t="pth"]', el => {
+    if (V.isPop("copyPop")) return V.closePops();
+    pthK = V.paneOf(el); const l = P[pthK].loc, own = V.pageThemeOf(l.tree, l.rel);
+    V.pop("copyPop", '<div class="pt">这个网页的明暗</div>' + PTH.map(([v, n]) => `<button class="li" data-pth="${v}" role="menuitemradio" aria-checked="${v === own}"><span>${n}</span><em>${v === own ? "✓" : ""}</em></button>`).join(""), el, "right");
+  });
+  V.click("[data-pth]", el => {
+    V.closePops();
+    const l = P[pthK].loc; if (!l) return;
+    const m = store.get("pageTheme", {}), key = l.tree + ":" + l.rel;
+    if (el.dataset.pth) m[key] = el.dataset.pth; else delete m[key];
+    store.set("pageTheme", m); repage(); paintPth(pthK);
+  });
   V.views.doc = (k, loc, opt) => {
     const p = P[k]; p.chg = null; $(".chgbar", p.el).hidden = true;
     p.el.classList.toggle("pagedoc", V.isPage(loc.rel)); p.el.classList.toggle("mddoc", /\.md$/i.test(loc.rel));

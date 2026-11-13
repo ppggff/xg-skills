@@ -360,7 +360,7 @@ a.tr { text-decoration: none; }
 #rootPop .radd button { padding: 0 10px; border-radius: var(--r-sm); background: var(--card); color: var(--tx); }
 #rootPop .rnote { display: block; margin: 4px; font: 400 var(--t-xs) var(--cjk); color: var(--faint); }
 /* todo files in the reader (044): tickable boxes, @tags, the edit button only there, and the editor */
-.pane:not(.mddoc) .phd :is([data-t="raw"], [data-t="copy"]), .pane:not(.srcdoc) .phd [data-t="wrap"], .pane:not(.tododoc) .phd [data-t="tedit"], .pane:not(.pagedoc) .phd [data-t="newtab"], .pane.pagedoc .phd :is([data-t="find"], [data-t="hist"], [data-t="width"], [data-t="toc"]) { display: none; }   /* buttons a kind of doc has no use for */
+.pane:not(.mddoc) .phd :is([data-t="raw"], [data-t="copy"]), .pane:not(.srcdoc) .phd [data-t="wrap"], .pane:not(.tododoc) .phd [data-t="tedit"], .pane:not(.pagedoc) .phd :is([data-t="newtab"], [data-t="pth"]), .pane.pagedoc .phd :is([data-t="find"], [data-t="hist"], [data-t="width"], [data-t="toc"]) { display: none; }   /* buttons a kind of doc has no use for */
 .md .ttag, .titem .ttag, .ttbl .ttag { color: var(--sig); font: 400 var(--t-sm) var(--mono); }
 .md input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; border: 1px solid var(--ln2); border-radius: 3px;
   display: inline-grid; place-content: center; vertical-align: -2px; background: none; position: relative; }

@@ -139,8 +139,12 @@ var V2 = (function () {
   V.isPage = rel => /\.html$/i.test(rel || "");
   V.pageKey = (tree, rel) => { const k = tree + ":" + rel, u = V.D.pages.untrusted; let best = ""; for (const p in u) if (k.startsWith(p) && p.length > best.length) best = p; return best ? u[best] : null; };
   V.pageSandboxed = (tree, rel) => V.pageKey(tree, rel) != null;
-  V.pageURL = (tree, rel) => "/page/" + (V.pageKey(tree, rel) || V.D.pages.t) + "/" + tree + "/" + rel.split("/").map(encodeURIComponent).join("/");
-  V.openPageTab = (tree, rel) => window.open(V.pageURL(tree, rel), "_blank", "noopener");
+  // a theme segment (~light / ~dark) has the server set the page's data-theme; relative links inside the page keep it
+  V.pageURL = (tree, rel, th) => "/page/" + (V.pageKey(tree, rel) || V.D.pages.t) + "/" + (th ? "~" + th + "/" : "") + tree + "/" + rel.split("/").map(encodeURIComponent).join("/");
+  // a page's theme: its own choice when it has one, else the light or dark the viewer shows
+  V.pageThemeOf = (tree, rel) => V.store.get("pageTheme", {})[tree + ":" + rel] || "";
+  V.pageTheme = (tree, rel) => V.pageThemeOf(tree, rel) || (V.isDark() ? "dark" : "light");
+  V.openPageTab = (tree, rel) => window.open(V.pageURL(tree, rel, V.pageTheme(tree, rel)), "_blank", "noopener");
   V.card = id => V.D.byId[id];
   V.cardOfPath = (tree, rel) => { if (tree !== "dev") return null; const m = /^([^/]+)\/(\d{3})-/.exec(rel || ""); return m ? V.D.byId[m[1] + "/" + m[2]] : null; };
   V.docsOf = c => V.D.tree.dev.filter(it => it.path.startsWith(c.dir + "/")).map(it => ({ rel: it.path, mtime: it.mtime }));

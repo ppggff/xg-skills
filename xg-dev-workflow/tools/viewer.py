@@ -65,6 +65,26 @@ PAGE_TYPES = {".html": "text/html; charset=utf-8", ".htm": "text/html; charset=u
               ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
               ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf"}
 PAGE_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-modals"   # no allow-same-origin: an opaque origin
+HTML_OPEN = re.compile(rb"<html(?=[\s>/])([^>]*)>", re.I)
+DOCTYPE = re.compile(rb"^(\xef\xbb\xbf)?\s*<!doctype[^>]*>", re.I)
+
+
+def theme_page(data, theme):
+    """A page's html with data-theme=<theme> on its <html> tag (one is added after the doctype when there is none),
+    plus a script that sets it again once the page's own scripts have run — a page may set or clear the attribute
+    while loading, and one whose CSP forbids inline scripts keeps the attribute alone."""
+    t = theme.encode()
+    reset = b'<script>(function(r,t){document.addEventListener("DOMContentLoaded",function(){r.setAttribute("data-theme",t)})})(document.documentElement,"' + t + b'")</script>'
+    m = HTML_OPEN.search(data)
+    if m:
+        attrs = re.sub(rb"""\s+data-theme\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)""", b"", m.group(1), flags=re.I)
+        tag = data[m.start():m.start() + 5] + attrs.rstrip(b"/ ") + b' data-theme="' + t + b'">'
+        return data[:m.start()] + tag + reset + data[m.end():]
+    d = DOCTYPE.match(data)
+    at = d.end() if d else 0
+    return data[:at] + b'<html data-theme="' + t + b'">' + reset + data[at:]
+
+
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1"}   # the default bind (IPv4 loopback) and Host allowlist
 ALLOWED_HOSTS = set(LOCALHOST_HOSTS)           # --lan adds the LAN IP and any --host names
 # gitweb pages share the viewer's origin, so they may not send anything elsewhere (repo HTML is not rendered: $prevent_xss)
@@ -647,8 +667,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _serve_page(self, path):
         # /page/<key>/{dev|kb|ext}/<relpath> → a page or one of its files; the key must be the one of the file's owner —
         # judged by realpath, so a file under an untrusted root is that root's whichever tree reached it
-        m = re.match(r"^/page/([^/]+)/(dev|kb|ext)/(.*)$", path)
-        root, relpath = self._root_of(m.group(2), m.group(3)) if m else (None, None)
+        m = re.match(r"^/page/([^/]+)/(?:~(light|dark)/)?(dev|kb|ext)/(.*)$", path)
+        root, relpath = self._root_of(m.group(3), m.group(4)) if m else (None, None)
         real = safe_join(root, relpath) if root else None
         ctype = PAGE_TYPES.get(real.suffix.lower()) if real else None   # the file's own type: a link named .html is not a page
         owner = self._page_owner(real) if ctype else None
@@ -664,6 +684,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError:
             self._send(404, "not found\n", extra=extra)
             return
+        if m.group(2) and real.suffix.lower() in (".html", ".htm"):
+            data = theme_page(data, m.group(2))
         self._send(200, data, ctype, extra)
 
     def _serve_board(self):

@@ -689,6 +689,34 @@ class TPage(unittest.TestCase):
             if p in self.UNTRUSTED:
                 self.assertTrue(csp.startswith("sandbox ") and "allow-scripts" in csp and "allow-same-origin" not in csp, p)
 
+    def test_theme_segment(self):   # 058: /page/<key>/~light|~dark/… sets the page's data-theme; other files and plain URLs untouched
+        def themed(p, th="dark", key=None):
+            tree, _, rel = p.partition("/")
+            return self.fetch("/page/%s/~%s/%s/%s" % (key or self.key(p), th, tree, rel))
+        st, h, body = themed("dev/c/notes/mock/index.html")
+        self.assertEqual(st, 200)
+        self.assertTrue(body.startswith(b'<html data-theme="dark">'), body)
+        self.assertTrue(body.endswith(b"<p>PAGEWORD</p>"), body)
+        self.assertEqual(self.page("dev/c/notes/mock/index.html")[2], b"<p>PAGEWORD</p>")
+        self.assertEqual(themed("dev/c/notes/mock/app.js")[2], b"x=1")          # a page's own files, reached by a relative URL, as they are
+        self.assertEqual(themed("dev/c/notes/base/app.css", "light")[2], b"p{}")
+        st, h, body = themed("ext/un/u.html", "light")                          # sandboxed pages too, with their CSP unchanged
+        self.assertEqual(st, 200)
+        self.assertIn(b'data-theme="light"', body)
+        self.assertTrue(h["Content-Security-Policy"].startswith("sandbox ") and "allow-same-origin" not in h["Content-Security-Policy"])
+        self.assertEqual(themed("ext/un/u.html", "light", self.tree("?html=1")["pages"]["t"])[0], 404)
+        for bad in ("~blue", "~", "dark"):
+            self.assertEqual(self.fetch("/page/%s/%s/kb/k.html" % (self.key("kb/k.html"), bad))[0], 404, bad)
+
+    def test_theme_rewrite(self):
+        f = viewer.theme_page
+        self.assertEqual(f(b'<!DOCTYPE html>\n<html lang="zh">x', "dark")[:42], b'<!DOCTYPE html>\n<html lang="zh" data-theme')
+        self.assertTrue(f(b"<!doctype html><p>x", "light").startswith(b'<!doctype html><html data-theme="light">'))   # no <html>: after the doctype
+        out = f(b'\xef\xbb\xbf<!doctype html><HTML data-theme="light" class=a>y', "dark")
+        self.assertTrue(out.startswith(b'\xef\xbb\xbf<!doctype html><HTML class=a data-theme="dark">'), out)              # an old value replaced
+        self.assertEqual(out.count(b"data-theme="), 1)
+        self.assertIn(b"<script>", f(b"<html>z", "dark"))   # best effort: set again once the page's own scripts have run
+
     def test_confined_and_typed(self):
         for p in ("dev/../secret/s.js", "dev/link.js", "dev/c/notes/mock/x.txt", "dev/c/notes/mock/k.md", "dev/c/notes/mock/fake.html",
                   "dev/nope.html", "ext/nope/u.html"):
